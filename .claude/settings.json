@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(psql *)",
+      "Bash(pg_dump *)",
+      "Bash(pg_restore *)",
+      "Bash(pg_basebackup *)",
+      "Bash(redis-cli *)",
+      "Bash(flyway *)",
+      "Bash(liquibase *)",
+      "Read(.env)",
+      "Read(.env.local)",
+      "Read(.env.production)",
+      "Read(.env.development)"
+    ]
+  }
+}
