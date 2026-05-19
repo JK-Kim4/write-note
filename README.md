@@ -33,7 +33,7 @@ write-note/
 |---|---|
 | 프론트 | Next.js 16 (App Router) + TypeScript + React 19 + Tailwind 4 |
 | 에디터 | TipTap |
-| 백엔드 | Kotlin 2.2 + Spring Boot 4.0.6 on Java 25 (Web + Security + Data JPA + Validation + Flyway) |
+| 백엔드 | Kotlin 2.2 + Spring Boot 4.0.6 on Java 24 toolchain (Web + Security + Data JPA + Validation + Flyway) |
 | 빌드 | Gradle Kotlin DSL (gradlew wrapper 포함) |
 | DB | PostgreSQL 17 (로컬 docker, 프로덕션 Supabase Postgres) |
 | 인증 | Spring Security + JWT + Kakao OAuth2 |
@@ -45,7 +45,7 @@ write-note/
 ### 사전 요구사항
 
 - Node.js 20+ / pnpm 8+
-- Java 25 (Corretto 권장) — backend 빌드/실행
+- Java 24 (Gradle toolchain). 시스템 Corretto 25 이상이면 OK — Gradle 이 toolchain 24 로 자동 처리
 - Docker 28+ — Postgres 컨테이너
 - Spring Boot 빌드는 backend/ 의 `./gradlew` wrapper 사용 (시스템 gradle 불필요)
 
