@@ -1,6 +1,6 @@
 # TypeScript 코드 퀄리티
 
-본 프로젝트 프론트 (Next.js 15 App Router + TypeScript) 룰. 출처: Google gts + TypeScript Style Guide (mkosir).
+본 프로젝트 프론트 (Next.js 16 App Router + TypeScript + React 19) 룰. 출처: Google gts + TypeScript Style Guide (mkosir).
 
 ## 타입 안전성
 
