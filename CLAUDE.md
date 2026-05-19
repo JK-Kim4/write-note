@@ -14,10 +14,10 @@ V1 wireframe 완료, 구현 진입 전.
 
 | 레이어 | 기술 |
 |---|---|
-| 프론트 | Next.js 15 (App Router) + TypeScript |
+| 프론트 | Next.js 16.2.6 (App Router) + TypeScript 5.9 + React 19.2 |
 | 에디터 | TipTap |
 | 상태 관리 | React Query (서버 데이터) + Zustand (로컬 UI) |
-| 백엔드 | Kotlin + Spring Boot 3.x (Web + Security + Data JPA + Validation) |
+| 백엔드 | Kotlin + Spring Boot 4.0.6 (Web + Security + Data JPA + Validation) on Java 25 |
 | 빌드 | Gradle (Kotlin DSL) |
 | DB | PostgreSQL (Supabase Postgres 의 DB 만 사용) |
 | 인증 | Spring Security + JWT + Kakao OAuth2 |

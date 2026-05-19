@@ -1,6 +1,6 @@
 # Kotlin 코드 퀄리티
 
-본 프로젝트 백엔드 (Kotlin + Spring Boot 3.x) 룰. 출처: Kotlin 공식 conventions + Android Kotlin Style + ktlint.
+본 프로젝트 백엔드 (Kotlin + Spring Boot 4.0.6 on Java 25) 룰. 출처: Kotlin 공식 conventions + Android Kotlin Style + ktlint.
 
 ## 네이밍
 
