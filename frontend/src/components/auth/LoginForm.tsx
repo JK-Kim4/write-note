@@ -4,6 +4,7 @@ import { FormInput } from "@/components/ui/FormInput";
 import { KakaoButton } from "@/components/auth/KakaoButton";
 import { PanelLink } from "@/components/auth/PanelLink";
 import { SubmitLoading } from "@/components/ui/SubmitLoading";
+import { useAuthPlaceholder } from "@/stores/authPlaceholder";
 
 /**
  * LoginForm — 로그인 폼 (login / login-error / login-loading 공용).
@@ -18,12 +19,31 @@ interface LoginFormProps {
 
 export function LoginForm({ state = "default" }: LoginFormProps) {
     const dim = state === "loading";
+    const setUserId = useAuthPlaceholder((s) => s.setUserId);
+    const isDev = process.env.NODE_ENV !== "production";
     return (
         <form
             className="flex flex-col gap-4"
             style={{ opacity: dim ? 0.6 : 1, pointerEvents: dim ? "none" : "auto" }}
             onSubmit={(e) => e.preventDefault()}
         >
+            {isDev ? (
+                /* 임시 — Week 1B-1~2 진입 시 폐기. JWT cookie 기반 세션으로 swap.
+                 * dogfooding 시점에 placeholder userId 박아 메인 surface 진입 가능하게.
+                 */
+                <button
+                    type="button"
+                    onClick={() => setUserId(`dev-user-${Date.now()}`)}
+                    className="w-full py-2 rounded-button-utility text-sm font-semibold"
+                    style={{
+                        backgroundColor: "color-mix(in srgb, var(--w-accent) 8%, transparent)",
+                        color: "var(--w-accent)",
+                        border: "1px dashed var(--w-accent)",
+                    }}
+                >
+                    [DEV] 임시 사용자로 진입 →
+                </button>
+            ) : null}
             <FormInput
                 name="email"
                 type="email"

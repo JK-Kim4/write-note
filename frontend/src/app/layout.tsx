@@ -45,6 +45,7 @@ export default function RootLayout({
         <html
             lang="ko"
             className={`${notoSerifKR.variable} ${nanumMyeongjo.variable} h-full antialiased`}
+            suppressHydrationWarning
         >
             <head>
                 <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
