@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/writenote
+    username: writenote
+    password: writenote-local-dev
+    hikari:
+      maximum-pool-size: 3
+  test:
+    database:
+      replace: none
+
+app:
+  cors:
+    allowed-origins: http://localhost:3000

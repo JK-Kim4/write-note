@@ -30,9 +30,10 @@ V1 wireframe 완료, 구현 진입 전.
 
 | 용도 | 명령어 |
 |---|---|
-| test | (미정) |
-| build | (미정) |
-| boot | (미정) |
+| local DB | `docker compose up -d --wait postgres` |
+| backend test | `cd backend && ./gradlew test` |
+| backend verify | `cd backend && ./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` |
+| backend boot | `cd backend && ./gradlew bootRun --args='--spring.profiles.active=local'` |
 
 ## 안전 가드레일 (HARD-GATE)
 
@@ -52,3 +53,8 @@ V1 wireframe 완료, 구현 진입 전.
 
 - 작업 마무리 시점 5축 회고: [.claude/skills/retrospective/SKILL.md](.claude/skills/retrospective/SKILL.md)
   - 회고 §5-2 "룰 갱신 후보" 가 `agent-workflow-discipline.md` 의 누적 입력
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->

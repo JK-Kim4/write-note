@@ -13,7 +13,7 @@
 
 ## 상태
 
-🟢 V1 구현 진입 — 모노레포 + 로컬 인프라 스켈레톤 완료. 다음: Week 0 PoC 3종 (TipTap 한국어 IME / Spring+Postgres / PWA manifest).
+🟢 Week 1A backend foundation 완료. 다음: Week 1B 인증 기반(Spring Security + JWT + Kakao OAuth2 + 이메일/비밀번호 로그인).
 
 ## 디렉토리
 
@@ -53,16 +53,23 @@ write-note/
 
 ```bash
 # 1. Postgres 컨테이너 기동
-docker compose up -d postgres
+docker compose up -d --wait postgres
 
 # 2. 백엔드 (호스트 직접 실행)
 cd backend
-./gradlew bootRun           # 8080 포트, http://localhost:8080
+./gradlew bootRun --args='--spring.profiles.active=local'  # 8080 포트
 
 # 3. 프론트 (호스트 직접 실행, 새 터미널)
 cd frontend
 pnpm install                 # 첫 회만
 pnpm dev                     # 3000 포트, http://localhost:3000
+```
+
+### 백엔드 검증
+
+```bash
+cd backend
+./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build
 ```
 
 ### 서비스 종료

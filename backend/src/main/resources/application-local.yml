@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/writenote
+    username: writenote
+    password: writenote-local-dev
+
+app:
+  cors:
+    allowed-origins: http://localhost:3000
