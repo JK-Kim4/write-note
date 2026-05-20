@@ -75,6 +75,36 @@
 - 결과: tool_uses 4 / ~59K 토큰 / 100초 — 적정 범위 내
 - 명시 적용 시 더 짧은 보고 가능했음. 본 사례는 작업 규모가 작아 비용 차이 미미했으나, 큰 작업에서 동일 누락 시 비용 폭증 위험
 
+## 5. 프로젝트 본질 정의 문서의 실제 정합성 검증 (HARD-GATE)
+
+spec / implement 진입 시 본질 정의 문서 (`AGENTS.md`, `CLAUDE.md`, framework-specific 경고, package metadata 인용 등) 가 **실제 코드베이스 / 패키지 구조와 정합한지 검증 후 진행 의무**.
+
+문서 정독 자체가 추측을 박지는 못한다 — 문서가 작성 시점 환경 기준으로 박혔는데 본 시점 환경이 다르면 그 문서를 따른 결정도 추측이 된다.
+
+### 검증 가능 영역
+
+- 문서에 명시된 **파일 경로 / 디렉토리** 실제 존재 여부 (`ls` 또는 `find`)
+- 문서가 인용한 **메서드·함수·옵션** 의 실제 패키지 export 여부 (`grep`)
+- 문서가 인용한 **패키지 docs 경로** 실제 존재 여부 (`node_modules/<pkg>/docs/` 등)
+- 문서가 명시한 **버전·환경 가정** 의 현재 상태 일치 여부 (`package.json`, `tsconfig.json`, `next.config.*` 등)
+
+### 절차
+
+1. 본질 정의 문서 정독 시 인용된 경로 / 메서드 / 파일 list 작성
+2. 각 항목에 대해 실제 존재 검증 (`Bash` 또는 `Read`)
+3. 불일치 발견 시:
+   - 즉시 진행 멈춤 X (작업 자체 차단은 과한 신중함)
+   - **별도 트랙으로 surfacing** 의무 — 회고 §"어긋난 점" + 02-progress 의 "별도 정리 트랙" 박음
+   - 본 spec 영역에서 정정 가능하면 본 spec 산출물에 포함, 아니면 후속 작업 단위로 분리
+4. 정합 확인 후에만 본질 정의 문서를 결정 근거로 사용
+
+### 회귀 사례 — 2026-05-21 002 frontend route scaffold
+
+- `frontend/AGENTS.md` 가 "Read the relevant guide in `node_modules/next/dist/docs/` before writing any code" 명시 — Next.js 16 breaking change 정독 의무
+- 본 spec implement 진입 시 `pnpm install` 후 확인 결과 해당 디렉토리 **부재** (PoC 0-3 시점에는 존재했던 듯, sw-register.tsx 주석에서 인용)
+- 본 spec implement 는 docs 정독 없이 진행 가능 영역만 직접 (Phase 1~5 의 라우트 골격 + 정적 외관) + 추측 위험 영역 (server-client 경계 / 폰트 메타데이터) 은 즉시 발견 → fix
+- 회피 가능했던 시점: speckit-specify 또는 plan 단계의 research 에 `frontend/AGENTS.md` 의 인용 경로 실제 존재 검증 task 박았더라면
+
 ## 메타 — 본 룰의 누적 정책
 
 본 룰은 **회고 회귀 사례에서 도출** 된 항목을 누적한다. 새 항목 추가 절차:

@@ -55,6 +55,10 @@ V1 wireframe 완료, 구현 진입 전.
   - 회고 §5-2 "룰 갱신 후보" 가 `agent-workflow-discipline.md` 의 누적 입력
 
 <!-- SPECKIT START -->
+Current implementation plan:
+
+- [Frontend Route & Page Scaffold](specs/002-frontend-route-scaffold/plan.md)
+
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+shell commands, and other important information, read the current plan above.
 <!-- SPECKIT END -->

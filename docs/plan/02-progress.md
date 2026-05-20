@@ -1,8 +1,8 @@
 # write-note V1 — 작업 진척도
 
-**최종 갱신:** 2026-05-20
-**상태:** Phase 1A 완료 — Week 1B 인증 진입 대기
-**SoT 진입점:** 다음 세션 진입 시 본 문서 + [00-stack-and-schedule.md](./00-stack-and-schedule.md) + [01-phase-breakdown.md](./01-phase-breakdown.md) + [specs/001-phase-1a-backend-scaffold/plan.md](../../specs/001-phase-1a-backend-scaffold/plan.md) 정독으로 컨텍스트 복원
+**최종 갱신:** 2026-05-21
+**상태:** Phase 1A (Backend Foundation) + 002 (Frontend Route & Page Scaffold) 자동화 검증 완료 — 사용자 dogfooding 5 영역 + Week 1B 진입 대기
+**SoT 진입점:** 다음 세션 진입 시 본 문서 + [00-stack-and-schedule.md](./00-stack-and-schedule.md) + [01-phase-breakdown.md](./01-phase-breakdown.md) + [specs/001-phase-1a-backend-scaffold/plan.md](../../specs/001-phase-1a-backend-scaffold/plan.md) + [specs/002-frontend-route-scaffold/plan.md](../../specs/002-frontend-route-scaffold/plan.md) 정독으로 컨텍스트 복원
 
 ---
 
@@ -65,6 +65,38 @@ cd backend
 - Week 1B에서 `X-User-Id`를 authenticated principal user id로 교체해야 하며, 클라이언트가 owner id를 직접 제어하지 못하게 해야 한다.
 - Project CRUD는 최소 필드(`id`, `userId`, `title`, `archived`, `createdAt`, `updatedAt`)만 구현했다. genre/target length/tone/synopsis/world notes는 Week 2 범위.
 
+### 002 Frontend Route & Page Scaffold (2026-05-21, 자동화 검증 완료 / dogfooding 대기)
+
+| Phase | 상태 | 산출물 |
+|---|---|---|
+| 002 Frontend Route & Page Scaffold | 🟡 (자동화 GREEN / dogfooding 5 영역 대기) | wireframe 전체 (12 인증 + 6 메인 view + H0) 라우트 골격 + 공유 인프라 (디자인 토큰 / 다크 모드 / React Query / Zustand / fetch 기반 API client + 임시 X-User-Id) + PoC 검증용 `/poc/*` 폐기 + production PWA manifest+sw-register 유지 |
+
+**spec/plan/tasks:** [`specs/002-frontend-route-scaffold/`](../../specs/002-frontend-route-scaffold/) (spec.md / plan.md / research.md / data-model.md / contracts/route-surfaces.md / contracts/api-client.md / quickstart.md / tasks.md / checklists/requirements.md)
+
+**핵심 결정 (Clarification 2026-05-20):**
+- Q1 PoC 검증용 page (`/poc/tiptap`, `/poc/pwa`) 폐기. production manifest/sw-register 유지
+- Q2 인증 = nested route + shared layout (`/auth/<panel>` 12 자식 + `auth/layout.tsx`)
+- Q3 작성 = `/write` 단일 URL + `/write/preview` 자식 route, 모드 분기는 설정에서
+- Q4 H0 = `/` 홈 라우트의 동적 변형 (프로젝트 0 ↔ 1+)
+- Q5 1:1 시각 측정 = 디자인 토큰 grep + 컴포넌트 매핑 표 + 라이트/다크 육안 비교 (visual regression 자동화 보류)
+
+**자동화 검증 결과 (T052/T055/T056):**
+- 디자인 토큰 grep — `#0066cc / #2997ff / #d70015 / #ff453a / 14px / 16px / 18px / 0.95 / #28231d` 모두 `tokens.css` / `globals.css` 에 박힘 ✓
+- 가드 적용 — `requireAnon`: `auth/layout.tsx` / `requireAuth`: `page.tsx`, `memos/page.tsx`, `settings/page.tsx`, `write/layout.tsx` ✓
+- `pnpm lint` + `pnpm build` GREEN — 21 static page 생성 (19 surface + manifest + auto not-found) ✓
+
+**사용자 dogfooding 대기 (Phase 6 + Phase 7 일부):**
+- T049 다크 모드 19 surface 일관 (라이트↔다크 토글 + surface 간 이동 시 선호 유지)
+- T050 시스템 테마 따라가기 (`theme === 'system'` + OS 변경)
+- T051 placeholder query 동작 (backend `bootRun` + `useProjects` 호출 + envelope unwrap)
+- T053 19 surface 1:1 시각 비교 (`pnpm dev` + `designs/wireframe.html` 옆 비교)
+- T054 PWA "홈 화면 추가" (iOS Safari + Android Chrome)
+
+**중요한 구현 결정:**
+- Next.js 16 Server → Client component 로 `onSubmit` 핸들러 직접 전달 불가 발견 → form 컴포넌트 4 종에 `'use client'` 추가
+- `frontend/AGENTS.md` 의 경고 (`node_modules/next/dist/docs/` 정독 의무) 의 docs 디렉토리가 실제 install 에 없음 — 별도 트랙 정리 필요
+- Noto Serif KR / Nanum Myeongjo `next/font/google` 메타데이터가 `subsets: ['latin']` 만 명시 지원 — 폰트 파일 자체의 한국어 글리프 의존, dogfooding 시점 검증
+
 ### 회고 / 룰 (본 세션 누적)
 
 - PoC 0-2 5축 회고 — [`docs/retrospectives/2026-05-19-poc-0-2-spring-postgres.md`](../retrospectives/2026-05-19-poc-0-2-spring-postgres.md). commit `586bdba`
@@ -102,9 +134,23 @@ e808d36 chore: docker-compose + README
 
 ---
 
-## 3. 다음 진입점 — Week 1B 인증 기반
+## 3. 다음 진입점 — 002 dogfooding 마무리 + Week 1B 인증 기반
 
-Phase 1A의 backend foundation은 완료됐다. 다음 단계는 `docs/plan/01-phase-breakdown.md`의 Week 1B 범위:
+002 자동화 검증은 완료됐다. 다음은 두 트랙 병행 가능:
+
+### 트랙 A — 002 dogfooding 마무리 (P6 + P7)
+
+| Task | 작업 | 비고 |
+|---|---|---|
+| T049 | 다크 모드 19 surface 일관 검증 | `pnpm dev` + ThemeToggle 라이트/다크 19 surface 모두 확인 |
+| T050 | 시스템 테마 따라가기 | `theme === 'system'` 일 때 OS 다크 모드 토글 → 자동 따라가기 |
+| T051 | placeholder query 동작 | backend `bootRun` + 홈 진입 시 `useProjects` 호출 + envelope unwrap |
+| T053 | 19 surface 1:1 시각 비교 | `designs/wireframe.html` 옆에 띄워 양쪽 비교, 불일치 시 fix |
+| T054 | PWA 홈 화면 추가 | iOS Safari + Android Chrome 메뉴 노출 확인 |
+
+본 트랙 GREEN 완료 시 002 commit + merge 후 Week 1B 진입.
+
+### 트랙 B — Week 1B 인증 기반 (`docs/plan/01-phase-breakdown.md`의 Week 1B 범위):
 
 | Phase | 작업 | 주의 |
 |---|---|---|
