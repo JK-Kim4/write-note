@@ -123,7 +123,10 @@ class ProjectControllerIT {
             .andExpect(jsonPath("$.error.code").value("NOT_FOUND"))
     }
 
-    private fun createUser(): User = userRepository.saveAndFlush(User(email = "controller-${UUID.randomUUID()}@example.com"))
+    private fun createUser(): User =
+        userRepository.saveAndFlush(
+            User(email = "controller-${UUID.randomUUID()}@example.com", passwordHash = "test-fixture-password-hash"),
+        )
 
     private fun extractProjectId(body: String): Long =
         requireNotNull(Regex(""""id":(\d+)""").find(body)) { "Response does not contain project id: $body" }

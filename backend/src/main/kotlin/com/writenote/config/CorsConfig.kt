@@ -1,27 +1,36 @@
 package com.writenote.config
 
-import org.springframework.beans.factory.annotation.Value
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.web.servlet.config.annotation.CorsRegistry
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
+import org.springframework.web.cors.CorsConfiguration
+import org.springframework.web.cors.CorsConfigurationSource
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
+/**
+ * CORS 설정 — V1 와일드카드 정책.
+ *
+ * credentials=false + origin 와일드카드. 토큰을 localStorage + Authorization 헤더로 전달하므로
+ * Cookie 미사용 → credentials=false 안전.
+ *
+ * SecurityFilterChain 의 cors DSL 결선은 R-G (T031) 에서.
+ *
+ * 출처: research.md R-8, contracts/security-filter-chain.md §4.
+ */
 @Configuration
-class CorsConfig(
-    @Value("\${app.cors.allowed-origins}")
-    private val allowedOrigins: String,
-) : WebMvcConfigurer {
-    override fun addCorsMappings(registry: CorsRegistry) {
-        val origins =
-            allowedOrigins
-                .split(",")
-                .map { origin -> origin.trim() }
-                .filter { origin -> origin.isNotEmpty() }
-
-        registry
-            .addMapping("/**")
-            .allowedOrigins(*origins.toTypedArray())
-            .allowedMethods("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS")
-            .allowedHeaders("*")
-            .allowCredentials(true)
+class CorsConfig {
+    @Bean
+    fun corsConfigurationSource(): CorsConfigurationSource {
+        val configuration =
+            CorsConfiguration().apply {
+                allowedOrigins = listOf("*")
+                allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+                allowedHeaders = listOf("Authorization", "Content-Type", "Idempotency-Key", "Accept")
+                exposedHeaders = listOf("Location")
+                allowCredentials = false
+                maxAge = 3600L
+            }
+        return UrlBasedCorsConfigurationSource().apply {
+            registerCorsConfiguration("/**", configuration)
+        }
     }
 }

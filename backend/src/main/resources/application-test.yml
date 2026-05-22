@@ -25,6 +25,6 @@ app:
     allowed-origins: http://localhost:3000
   auth:
     jwt:
-      secret: test-deterministic-secret-32byte-base64-padding-for-testing-only-AAAA
+      secret: d24tdGVzdC1kZXRlcm1pbmlzdGljLWp3dC0zMmJ5dGU=
   mail:
     mode: log

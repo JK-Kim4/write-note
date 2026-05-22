@@ -57,51 +57,51 @@ description: "Task list for Phase 1B Backend Auth Foundation implementation"
 
 ### Config 빈
 
-- [ ] T006 `JwtConfig.kt` 신설 — `backend/src/main/kotlin/com/writenote/config/JwtConfig.kt` 에 `JwtProperties` (`@ConfigurationProperties("app.auth.jwt")`) + `JwtTokenProvider` 빈 + 시크릿 검증 (32바이트 미만 → fail-fast). research.md R-1, token-formats.md §1
-- [ ] T007 [P] `MailConfig.kt` + `MailSenderPort` 인터페이스 — `backend/src/main/kotlin/com/writenote/config/MailConfig.kt` + `backend/src/main/kotlin/com/writenote/auth/MailSenderPort.kt`. profile 별 구현: `LoggingMailSender` (local/test) + `JavaMailSenderAdapter` (prod, placeholder). research.md R-2
-- [ ] T008 [P] `OAuth2Config.kt` 신설 — `backend/src/main/kotlin/com/writenote/config/OAuth2Config.kt` 에 카카오 `ClientRegistration` env 기반 (scope=`profile_nickname,account_email`). research.md R-3
-- [ ] T009 [P] `CorsConfig.kt` 갱신 — `backend/src/main/kotlin/com/writenote/config/CorsConfig.kt` 에 V1 정책 (와일드카드 origin / 6 method / 4 헤더 / Location 노출 / credentials=false / maxAge=3600) 박음. research.md R-8, contracts/security-filter-chain.md §4
-- [ ] T010 [P] `PasswordEncoderConfig.kt` 신설 — `backend/src/main/kotlin/com/writenote/config/PasswordEncoderConfig.kt` 에 `BCryptPasswordEncoder(strength = 12)` 빈. research.md R-4
+- [X] T006 `JwtConfig.kt` 신설 — `backend/src/main/kotlin/com/writenote/config/JwtConfig.kt` 에 `JwtProperties` (`@ConfigurationProperties("app.auth.jwt")`) + `JwtTokenProvider` 빈 + 시크릿 검증 (32바이트 미만 → fail-fast). research.md R-1, token-formats.md §1
+- [X] T007 [P] `MailConfig.kt` + `MailSenderPort` 인터페이스 — `backend/src/main/kotlin/com/writenote/config/MailConfig.kt` + `backend/src/main/kotlin/com/writenote/auth/MailSenderPort.kt` + `LoggingMailSender.kt` (`@ConditionalOnProperty(app.mail.mode=log)`). research.md R-2
+- [X] T008 [P] `OAuth2Config.kt` 신설 — `backend/src/main/kotlin/com/writenote/config/OAuth2Config.kt` placeholder (Spring Security 가 application.yml 자동 처리). research.md R-3
+- [X] T009 [P] `CorsConfig.kt` 갱신 — `WebMvcConfigurer` 패턴 → `CorsConfigurationSource` 빈 패턴 교체. V1 정책 (와일드카드 origin / 6 method / 4 헤더 / Location 노출 / credentials=false / maxAge=3600). research.md R-8, contracts/security-filter-chain.md §4. **별도 트랙**: `app.cors.allowed-origins` yml 키 사용처 없음 (R-G SecurityConfig 정리 시 yml 4 파일 cleanup)
+- [X] T010 [P] `PasswordEncoderConfig.kt` 신설 — `backend/src/main/kotlin/com/writenote/config/PasswordEncoderConfig.kt` 에 `BCryptPasswordEncoder(strength = 12)` 빈. research.md R-4
 
 ### 에러 코드 + 도메인 예외 + 핸들러
 
-- [ ] T011 [P] `AuthTokenType.kt` enum — `backend/src/main/kotlin/com/writenote/enums/AuthTokenType.kt` (`EMAIL_VERIFY`, `PASSWORD_RESET`, `REFRESH`). data-model.md §2
-- [ ] T012 [P] `AuthErrorCode.kt` enum — `backend/src/main/kotlin/com/writenote/enums/AuthErrorCode.kt` 에 5종 401 + 검증/충돌 코드 + 한국어 메시지 (contracts/auth-endpoints.md §14)
-- [ ] T013 [P] `AuthException.kt` — `backend/src/main/kotlin/com/writenote/error/AuthException.kt` (휴대용 코드 + HTTP status 페어)
-- [ ] T014 `GlobalExceptionHandler.kt` 확장 — `backend/src/main/kotlin/com/writenote/error/GlobalExceptionHandler.kt` 에 `AuthException` 핸들러 추가 (Result<T> envelope 응답). T013 의존
-- [ ] T015 [P] `AuthErrorEntryPoint.kt` 신설 — `backend/src/main/kotlin/com/writenote/auth/AuthErrorEntryPoint.kt` (Spring Security `AuthenticationEntryPoint` 구현, Result envelope JSON 응답). contracts/security-filter-chain.md §6
+- [X] T011 [P] `AuthTokenType.kt` enum — `backend/src/main/kotlin/com/writenote/enums/AuthTokenType.kt` (`EMAIL_VERIFY`, `PASSWORD_RESET`, `REFRESH`). data-model.md §2
+- [X] T012 [P] `AuthErrorCode.kt` enum — `backend/src/main/kotlin/com/writenote/enums/AuthErrorCode.kt` 에 15종 코드 + (HttpStatus, 한국어 메시지) 페어 (contracts/auth-endpoints.md §14). 5 generic 코드는 기존 `ErrorCode` 유지
+- [X] T013 [P] `AuthException.kt` — `backend/src/main/kotlin/com/writenote/error/AuthException.kt` (**open class** + errorCode + default message)
+- [X] T014 `Result.kt` overload + `GlobalExceptionHandler.kt` 확장 — `model/response/Result.kt` 에 `failure(AuthErrorCode, String)` overload 추가 + `error/GlobalExceptionHandler.kt` 에 `handleAuth` 추가 (T013 의존)
+- [X] T015 [P] `AuthErrorEntryPoint.kt` 신설 — `backend/src/main/kotlin/com/writenote/auth/AuthErrorEntryPoint.kt` (Spring Security `AuthenticationEntryPoint` 구현, `AUTH_TOKEN_MISSING` 응답. INVALID/EXPIRED 분기는 R-G 의 JwtAuthenticationFilter 영역). `tools.jackson.databind.ObjectMapper` 사용 (Spring Boot 4 = Jackson 3)
 
 ### Users 엔티티 확장 + V3 마이그레이션
 
-- [ ] T016 `User.kt` 엔티티 확장 — `backend/src/main/kotlin/com/writenote/entity/User.kt` 에 `kakaoId` / `passwordHash` / `emailVerifiedAt` / `lastLoginAt` / `failedLoginCount` / `lockoutUntil` / `updatedAt` 컬럼 + `@CreatedDate`/`@LastModifiedDate` 추가. data-model.md §1
-- [ ] T017 `V3__expand_users_for_auth.sql` 신설 — `backend/src/main/resources/db/migration/V3__expand_users_for_auth.sql` 에 ALTER TABLE + 부분 UNIQUE 인덱스 + CHECK 제약 작성. data-model.md §3. **적용은 사용자 컨펌 후 (external-infra-safety.md HARD-GATE)**
-- [ ] T018 `UserRepository.kt` 확장 — `backend/src/main/kotlin/com/writenote/repository/UserRepository.kt` 에 `findByEmail` / `findByKakaoId` / `findByEmailForUpdate` (`@Lock(LockModeType.PESSIMISTIC_WRITE)`) 추가. data-model.md §7
-- [ ] T019 [P] `UserRepositoryIT.kt` 통합 테스트 — `backend/src/test/kotlin/com/writenote/repository/UserRepositoryIT.kt` 에 1차 캐시 우회 패턴 (`flush + clear`) + DEFAULT (`updated_at`) / UNIQUE / CHECK 위반 케이스. `~/.claude/rules/kotlin/spring/jpa-test-patterns.md` HARD-GATE
+- [X] T016 `User.kt` 엔티티 확장 — `backend/src/main/kotlin/com/writenote/entity/User.kt` 에 5 신규 컬럼 (`emailVerifiedAt` / `lastLoginAt` / `failedLoginCount` / `lockoutUntil` / `updatedAt`) + JPA Auditing (`@EntityListeners(AuditingEntityListener::class)` + `@CreatedDate` / `@LastModifiedDate`) + `BackendApplication.kt` 에 `@EnableJpaAuditing`. **V1 정합 발견**: `kakaoId` / `passwordHash` 는 V1 박힘 → 본 라운드 영역 외
+- [X] T017 `V3__expand_users_for_auth.sql` 신설 — `backend/src/main/resources/db/migration/V3__expand_users_for_auth.sql` 에 5 ADD COLUMN + `users_credential_present` CHECK. V1 의 `uk_users_kakao_id` UNIQUE 인덱스가 이미 NULL 다수 허용 (PostgreSQL 표준) → 부분 UNIQUE 인덱스 추가 X. **적용은 사용자 컨펌 후 (R-D 후, R-E 진입 직전)**
+- [X] T018 `UserRepository.kt` 확장 — `backend/src/main/kotlin/com/writenote/repository/UserRepository.kt` 에 `findByEmail` / `findByKakaoId` / `findByEmailForUpdate` (`@Lock(LockModeType.PESSIMISTIC_WRITE) + @Query`) 추가. data-model.md §7
+- [X] T019 [P] `UserRepositoryIT.kt` 갱신 (Phase 1A 의 기존 IT 위에 7 신규 케이스 추가, 총 9 케이스) — V3 신규 컬럼 DB default / `failed_login_count` default 0 / CHECK 위반 / `findByEmail` / `findByKakaoId` / `findByEmailForUpdate` / kakao-only 사용자 CHECK 통과 + Phase 1A fixture 회귀 fix (`User(email = "...", passwordHash = "test-fixture-password-hash")`). **추가**: `ProjectRepositoryIT.kt` 4 site + `ProjectControllerIT.kt` 1 site 동일 fixture fix. `~/.claude/rules/kotlin/spring/jpa-test-patterns.md` HARD-GATE
 
 ### AuthToken 엔티티 + V4 마이그레이션
 
-- [ ] T020 [P] `AuthToken.kt` 엔티티 신설 — `backend/src/main/kotlin/com/writenote/entity/AuthToken.kt` (data-model.md §2 스케치 정합)
-- [ ] T021 `V4__create_auth_tokens.sql` 신설 — `backend/src/main/resources/db/migration/V4__create_auth_tokens.sql` (data-model.md §4). **적용은 사용자 컨펌 후**
-- [ ] T022 [P] `AuthTokenRepository.kt` 신설 — `backend/src/main/kotlin/com/writenote/repository/AuthTokenRepository.kt` (findByTokenHashAndType / deleteByTokenHashAndType / deleteByUserIdAndType / cleanupExpiredAndUsed). data-model.md §7
-- [ ] T023 [P] `AuthTokenRepositoryIT.kt` 통합 테스트 — `backend/src/test/kotlin/com/writenote/repository/AuthTokenRepositoryIT.kt` (1차 캐시 우회 + UNIQUE 충돌 + cleanup 쿼리)
+- [X] T020 [P] `AuthToken.kt` 엔티티 신설 — `backend/src/main/kotlin/com/writenote/entity/AuthToken.kt` (id / userId / type ENUM + STRING / tokenHash UNIQUE / expiresAt / usedAt / createdAt + 2 인덱스 + `@EntityListeners(AuditingEntityListener)` + `@CreatedDate`). data-model.md §2 정합
+- [X] T021 `V4__create_auth_tokens.sql` 신설 — `backend/src/main/resources/db/migration/V4__create_auth_tokens.sql` (CREATE TABLE + FK CASCADE + CHECK + 2 INDEX). **🛑 V3+V4 적용은 사용자 컨펌 시점 (R-D 완료 직후)**
+- [X] T022 [P] `AuthTokenRepository.kt` 신설 — 4 메서드 (findByTokenHashAndType / deleteByTokenHashAndType / deleteByUserIdAndType / cleanupExpiredAndUsed JPQL with `@Modifying` + fully-qualified enum name)
+- [X] T023 [P] `AuthTokenRepositoryIT.kt` 통합 테스트 — `backend/src/test/kotlin/com/writenote/repository/AuthTokenRepositoryIT.kt` 5 케이스: INSERT + flush+clear + findByTokenHashAndType / UNIQUE 충돌 / `deleteByTokenHashAndType` / `cleanupExpiredAndUsed` 3 row 분기 / type 분기 조회. JPA `@Enumerated(EnumType.STRING)` 가 enum 강제하므로 DB CHECK 위반 case skip. tokenHash fixture = `prefix-${UUID.replace("-","").take(24)}` 길이 64자 정합
 
 ### Component (Service 비대화 방지) — TDD HARD-GATE
 
-- [ ] T024 [P] `PasswordPolicyValidator.kt` Component + 단위 테스트 — `backend/src/main/kotlin/com/writenote/components/PasswordPolicyValidator.kt` (12자 + 영문/숫자/특수). 테스트: `backend/src/test/kotlin/com/writenote/components/PasswordPolicyValidatorTest.kt` (통과 / 12자 미만 / 영문 누락 / 숫자 누락 / 특수 누락 5 케이스). research.md R-4
-- [ ] T025 [P] `AuthTokenGenerator.kt` Component + 단위 테스트 — `backend/src/main/kotlin/com/writenote/components/AuthTokenGenerator.kt` (32바이트 SecureRandom → base64url + SHA-256 해시 페어). 테스트: `backend/src/test/kotlin/com/writenote/components/AuthTokenGeneratorTest.kt` (길이 / 엔트로피 / 해시 결정성). research.md R-6
-- [ ] T026 [P] `AuthTokenLifecycleManager.kt` Component + 단위 테스트 — `backend/src/main/kotlin/com/writenote/components/AuthTokenLifecycleManager.kt` (만료 검증 / 일회용 used_at / 재사용 거부). 테스트: `backend/src/test/kotlin/com/writenote/components/AuthTokenLifecycleManagerTest.kt` (유효 / 만료 / 사용 완료 3 케이스). contracts/token-formats.md
-- [ ] T027 [P] `JwtTokenProvider` 단위 테스트 — `backend/src/test/kotlin/com/writenote/auth/JwtTokenProviderTest.kt` (발급 + payload (`sub`/`email`/`iat`/`exp`) 정확값 `eq()` matcher / 만료 / 변조 / RS256 잘못된 알고리즘 거부 4 케이스). T006 의존. TDD HARD-GATE — testing-strategy.md "any() matcher 금지"
+- [X] T024 [P] `PasswordPolicyValidator.kt` + 단위 테스트 5 케이스 (강한 비밀번호 통과 / 12자 미만 / 영문 누락 / 숫자 누락 / 특수 누락) — `AuthException(PASSWORD_TOO_WEAK)` throw 패턴
+- [X] T025 [P] `AuthTokenGenerator.kt` + 단위 테스트 3 케이스 — 32 byte SecureRandom → base64url no-padding 43자 + SHA-256 hex 64자. `TokenPair(plaintext, hash)` data class. `hash()` 결정성 + `generate()` 엔트로피 검증
+- [X] T026 [P] `AuthTokenLifecycleManager.kt` + 단위 테스트 6 케이스 — `assertUsable` (만료/일회용 재사용/REFRESH 사용 완료 무관) + `markUsed`. `AuthException(AUTH_TOKEN_EXPIRED / AUTH_TOKEN_ALREADY_USED)` throw 패턴
+- [X] T027 [P] `JwtTokenProvider.parseAccessToken` 추가 + 단위 테스트 4 케이스 — round-trip payload `eq()` matcher / 만료 (createAccessToken `now` 인자로 과거 시각 박음) / 변조 / 다른 secret signature mismatch. `AuthException(AUTH_TOKEN_EXPIRED / AUTH_TOKEN_INVALID)` throw 패턴. `io.jsonwebtoken.ExpiredJwtException` + `JwtException` 분기. TDD HARD-GATE — `any()` matcher 금지
 
 ### 인증 Principal + 3 필터 + SecurityConfig baseline
 
-- [ ] T028 [P] `AuthenticatedPrincipal.kt` data class — `backend/src/main/kotlin/com/writenote/auth/AuthenticatedPrincipal.kt` (`userId: Long`, `email: String`). contracts/security-filter-chain.md §5
-- [ ] T029 `JwtAuthenticationFilter.kt` 신설 — `backend/src/main/kotlin/com/writenote/auth/JwtAuthenticationFilter.kt` (`Bearer eyJ` 접두사 매칭 → JwtTokenProvider 검증 → SecurityContext 박음). T006/T028 의존
-- [ ] T030 [P] `ApiTokenAuthenticationFilter.kt` 골격 — `backend/src/main/kotlin/com/writenote/auth/ApiTokenAuthenticationFilter.kt` (`Bearer wnt_` + `/api/capture` 한정. 본 spec 진입 시점 = 항상 401 — ApiToken 테이블 Week 4 신설 전까지). contracts/security-filter-chain.md §1
-- [ ] T031 `SecurityConfig.kt` baseline — `backend/src/main/kotlin/com/writenote/config/SecurityConfig.kt` 에 SecurityFilterChain bean (CORS DSL + CSRF disabled + AuthErrorEntryPoint 등록 + JwtAuthenticationFilter / ApiTokenAuthenticationFilter / LoginAttemptFilter 등록 + 보호/공개 endpoint 매트릭스 설정). T009/T015/T029/T030 의존. **본 spec 의 모든 user story phase 의 보호/공개 endpoint 분기는 본 task 갱신**
+- [X] T028 [P] `AuthenticatedPrincipal.kt` data class — `backend/src/main/kotlin/com/writenote/auth/AuthenticatedPrincipal.kt` (R-G 에서 R-F 로 끌어옴). contracts/security-filter-chain.md §5
+- [X] T029 `JwtAuthenticationFilter.kt` 신설 — `Bearer eyJ` 접두사 매칭 + `JwtTokenProvider.parseAccessToken` 호출 + SecurityContext 에 `AuthenticatedPrincipal` 박음 + `AuthException` catch 시 직접 401 envelope 응답
+- [X] T030 [P] `ApiTokenAuthenticationFilter.kt` 골격 — `Bearer wnt_` + `POST /api/capture` 한정 + 본 spec 진입 시점 항상 401 (Week 4 신설 전). 다른 경로 pass-through
+- [X] T031 `SecurityConfig.kt` baseline 갱신 — 001 의 permit-all 폐기 → SecurityFilterChain bean (CSRF disabled + CORS DSL + STATELESS session + 공개 8 endpoint + `/api/capture` permitAll (ApiTokenAuthenticationFilter 가 401 처리) + anyRequest authenticated + AuthErrorEntryPoint 등록 + JwtAuthenticationFilter + ApiTokenAuthenticationFilter + `oauth2Login.disable()` (US2 진입 시 활성))
 
 ### OpenAPI 보안 schema
 
-- [ ] T032 [P] `OpenApiConfig.kt` 갱신 — `backend/src/main/kotlin/com/writenote/config/OpenApiConfig.kt` 에 `BearerJwt` + `BearerApiToken` 두 SecurityScheme 등록 (contracts/security-filter-chain.md §7)
+- [X] T032 [P] `OpenApiConfig.kt` 갱신 — `BearerJwt` + `BearerApiToken` 두 SecurityScheme 등록 (contracts/security-filter-chain.md §7)
 
 **Checkpoint**: 두 엔티티 + Repository + 4 Config + 4 Component + 3 필터 + Security baseline 준비 완료. 이제 user story 별 endpoint 구현 가능.
 
