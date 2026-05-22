@@ -89,8 +89,8 @@
 
 | HTTP | code | 조건 |
 |---|---|---|
-| 400 | `AUTH_TOKEN_INVALID` | 토큰 미존재 / 형식 오류 |
-| 400 | `AUTH_TOKEN_EXPIRED` | `expires_at < now()` |
+| 401 | `AUTH_TOKEN_INVALID` | 토큰 미존재 / 형식 오류 |
+| 401 | `AUTH_TOKEN_EXPIRED` | `expires_at < now()` |
 | 409 | `AUTH_TOKEN_ALREADY_USED` | `used_at IS NOT NULL` (재사용 시도) |
 
 **부수 효과**: 검증 성공 시 `users.email_verified_at = now()` + `auth_tokens.used_at = now()` 단일 트랜잭션 갱신.

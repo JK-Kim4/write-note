@@ -118,27 +118,27 @@ description: "Task list for Phase 1B Backend Auth Foundation implementation"
 
 ### DTO + 이벤트
 
-- [ ] T033 [P] [US1] 인증 Request DTO 5종 — `backend/src/main/kotlin/com/writenote/model/request/SignupEmailRequest.kt`, `VerifyEmailRequest.kt`, `LoginRequest.kt`, `RefreshTokenRequest.kt`, `LogoutRequest.kt` (`@Email` / `@NotBlank` Hibernate Validator)
-- [ ] T034 [P] [US1] 인증 Response DTO — `backend/src/main/kotlin/com/writenote/model/response/TokenPairResponse.kt`, `AuthMeResponse.kt`, `SignupEmailResponse.kt`
-- [ ] T035 [P] [US1] `EmailVerificationRequestedEvent.kt` — `backend/src/main/kotlin/com/writenote/auth/EmailVerificationRequestedEvent.kt` (userId, email, 평문 token)
-- [ ] T036 [US1] `EmailVerificationListener.kt` — `backend/src/main/kotlin/com/writenote/auth/EmailVerificationListener.kt` `@TransactionalEventListener(phase = AFTER_COMMIT)` (MailSenderPort 호출). T007/T035 의존, `~/.claude/rules/java/spring/spring-patterns.md` §"@Transactional + @TransactionalEventListener 계약"
+- [X] T033 [P] [US1] 인증 Request DTO 5종 — `backend/src/main/kotlin/com/writenote/model/request/SignupEmailRequest.kt`, `VerifyEmailRequest.kt`, `LoginRequest.kt`, `RefreshTokenRequest.kt`, `LogoutRequest.kt` (`@field:Email` / `@field:NotBlank` use-site target)
+- [X] T034 [P] [US1] 인증 Response DTO — `backend/src/main/kotlin/com/writenote/model/response/TokenPairResponse.kt`, `AuthMeResponse.kt`, `SignupEmailResponse.kt`
+- [X] T035 [P] [US1] `EmailVerificationRequestedEvent.kt` — `userId`/`email`/`plaintextToken`
+- [X] T036 [US1] `EmailVerificationListener.kt` — `@TransactionalEventListener(phase = AFTER_COMMIT)` + MailSenderPort 호출
 
 ### Converter
 
-- [ ] T037 [P] [US1] `UserAuthConverter.kt` Component — `backend/src/main/kotlin/com/writenote/components/UserAuthConverter.kt` (User → AuthMeResponse 변환. 본 spec 진입 시점 activeApiTokenCount=0 고정)
+- [X] T037 [P] [US1] `UserAuthConverter.kt` Component — User → AuthMeResponse 매핑. activeApiTokenCount=0 고정 (Week 4 swap)
 
-### Service (TDD HARD-GATE)
+### Service (TDD HARD-GATE) — US1-β-1
 
-- [ ] T038 [US1] `AuthService.kt` 신설 + 통합 테스트 — `backend/src/main/kotlin/com/writenote/service/AuthService.kt` (signupEmail / verifyEmail / login (P4 잠금 카운트는 US4 에서 합류) / refresh / logout / me 메서드). 트랜잭션 경계 박음 (`@Transactional(rollbackFor = Exception::class)`). 메일 발송은 트랜잭션 외부 (이벤트 AFTER_COMMIT). 테스트: `backend/src/test/kotlin/com/writenote/service/AuthServiceIT.kt` (Testcontainers + `EntityManager.flush+clear` 패턴, 5 시나리오: 신규 가입 / 인증 / 로그인 / refresh / 로그아웃 후 refresh 거부). T014/T024/T025/T026/T036 의존
+- [X] T038 [US1] `AuthService.kt` + AuthServiceIT — 6 메서드 (signupEmail / verifyEmail / login / refresh / logout / me) + `@Transactional(rollbackFor=Exception)` + `findByEmailForUpdate` pessimistic lock + Refresh AuthToken INSERT + ApplicationEventPublisher 이벤트 발행. AuthServiceIT 5 시나리오 (signup happy / 중복 거부 / 약한 비번 거부 / lifecycle 사이클 / verify-email + 재사용 거부). US4 영역 (failed_login_count++) 은 placeholder
 
-### Controller + Security 갱신
+### Controller + Security 갱신 — US1-β-2
 
-- [ ] T039 [US1] `AuthController.kt` 신설 — `backend/src/main/kotlin/com/writenote/controller/AuthController.kt` (POST /api/auth/signup/email / verify-email / login / refresh / POST /api/auth/logout / GET /api/auth/me). 모든 endpoint 가 Result<T> envelope. T038 의존
-- [ ] T040 [US1] `SecurityConfig.kt` 갱신 — T031 의 baseline 위에 본 US1 endpoint 공개/보호 매트릭스 박음 (`/api/auth/signup/email` / `/api/auth/verify-email` / `/api/auth/login` / `/api/auth/refresh` 공개, `/api/auth/logout` / `/api/auth/me` 보호)
+- [X] T039 [US1] `AuthController.kt` — 6 endpoint + Result<T> envelope + `@Valid` + `@AuthenticationPrincipal AuthenticatedPrincipal`
+- [X] T040 [US1] `SecurityConfig.kt` — **변경 없음** (R-G 의 baseline 이 이미 US1 endpoint 매트릭스 박음: 4 공개 + `anyRequest authenticated`)
 
 ### Web 테스트 (회귀 게이트)
 
-- [ ] T041 [US1] `AuthControllerWebTest.kt` 신설 — `backend/src/test/kotlin/com/writenote/controller/AuthControllerWebTest.kt` (`@WebMvcTest` 또는 `@SpringBootTest`, MockMvc). 시나리오: signup 성공 / 이메일 형식 오류 / 약한 비밀번호 / 중복 가입 / verify-email happy / 만료 / 재사용 / login happy / 미인증 거부 / refresh / logout (총 12+ 케이스, contracts/auth-endpoints.md 의 매트릭스 정합)
+- [X] T041 [US1] `AuthControllerWebTest.kt` 15 시나리오 — signup (happy/형식/약한 비번/중복) + verify-email (happy/만료/재사용) + login (happy/미인증/비번 불일치) + refresh+logout (happy/revoked/missing) + me (happy/missing). **spec 내부 모순 발견 + fix**: contracts §2 의 `AUTH_TOKEN_INVALID/EXPIRED` HTTP status = 400 박혔지만 §14 매트릭스 + R-B `AuthErrorCode` enum 의 `HttpStatus.UNAUTHORIZED` 가 본질 → 401. contracts §2 갱신 + WebTest status fix
 
 **🛑 회귀 게이트**: `./gradlew :backend:test --tests "*Auth*" :backend:ktlintMainSourceSetCheck :backend:ktlintTestSourceSetCheck` GREEN 의무.
 
