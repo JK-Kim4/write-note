@@ -7,3 +7,8 @@ spring:
 app:
   cors:
     allowed-origins: http://localhost:3000
+  auth:
+    jwt:
+      secret: ${JWT_SECRET:local-dev-secret-please-replace-with-base64-32byte-string-AAAAAAAA}
+  mail:
+    mode: log

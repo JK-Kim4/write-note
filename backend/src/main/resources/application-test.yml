@@ -8,7 +8,23 @@ spring:
   test:
     database:
       replace: none
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: test-placeholder-not-used
+            client-secret: test-placeholder-not-used
+            redirect-uri: http://localhost:0/test-callback
+            scope:
+              - profile_nickname
+              - account_email
 
 app:
   cors:
     allowed-origins: http://localhost:3000
+  auth:
+    jwt:
+      secret: test-deterministic-secret-32byte-base64-padding-for-testing-only-AAAA
+  mail:
+    mode: log
