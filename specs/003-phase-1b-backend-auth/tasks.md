@@ -234,21 +234,21 @@ description: "Task list for Phase 1B Backend Auth Foundation implementation"
 
 ### DTO + Service (TDD HARD-GATE)
 
-- [ ] T059 [P] [US5] 연결 DTO 2종 — `backend/src/main/kotlin/com/writenote/model/request/LinkEmailRequest.kt` (`password` 만), `LinkKakaoStateRequest.kt` (state 분기용 내부 모델)
-- [ ] T060 [US5] `AccountLinkService.kt` 신설 + 통합 테스트 — `backend/src/main/kotlin/com/writenote/service/AccountLinkService.kt` (`linkEmail(userId, password)` + `linkKakao(userId, kakaoUserInfo)` — `KakaoConflictChecker` 호출). 테스트: `backend/src/test/kotlin/com/writenote/service/AccountLinkServiceIT.kt` (linkEmail happy / 이미 비밀번호 설정됨 / 약한 비밀번호 거부 / linkKakao happy / 다른 사용자에 묶인 카카오 식별자 거부, 5 케이스). T042/T024 의존
+- [X] T059 [P] [US5] 연결 DTO 2종 — `LinkEmailRequest.kt` (`password` 만), `LinkKakaoStateRequest.kt` (session attribute wrapper, `SESSION_ATTRIBUTE_KEY` 박음). 추가 산출물 = `LinkEmailResponse.kt` (userId / email / passwordSet, contracts §12)
+- [X] T060 [US5] `AccountLinkService.kt` 신설 + 통합 테스트 — `linkEmail(userId, password): User` + `linkKakao(userId, kakaoId)` (KakaoConflictChecker.evaluateForLink 호출 — Acceptable / AlreadyLinkedToOther / ConflictWithSelf 3 분기). 테스트: 6 케이스 (linkEmail happy / 이미 비밀번호 설정됨 / 약한 비밀번호 거부 / linkKakao happy / 다른 user 에 묶인 kakaoId / 본인 다른 kakaoId 박힘 거부). T042/T024 의존
 
 ### Kakao OAuth 추가 연결 분기
 
-- [ ] T061 [US5] `KakaoOAuth2UserService.kt` 갱신 — `state` 파라미터 분기: state 가 추가 연결 시그널 포함 시 본인 user 의 `kakao_id` UPDATE (`AccountLinkService.linkKakao()` 위임). T043/T060 의존
+- [X] T061 [US5] `KakaoOAuth2UserService.kt` 갱신 — HttpSession 의 `LinkKakaoStateRequest` 추출 → linkUserId 박혀있으면 link flow (`AccountLinkService.linkKakao()` 호출, AuthException → OAuth2AuthenticationException 변환), 미박힘이면 login flow. **추가 산출물**: `OAuth2SuccessHandler.kt` 갱신 — linkUserId attribute 있으면 token 발급 X + `/auth/link-success` redirect. T043/T060 의존
 
 ### Controller + Security
 
-- [ ] T062 [US5] `AuthController.kt` 갱신 — `POST /api/auth/link/kakao` (302 redirect + state) + `POST /api/auth/link/email` 2 endpoint. T060 의존
-- [ ] T063 [US5] `SecurityConfig.kt` 갱신 — 두 endpoint 보호 (JWT 필수)
+- [X] T062 [US5] `AuthController.kt` 갱신 — `POST /api/auth/link/kakao` (session 박음 + 302 Location: `/api/auth/oauth/kakao`) + `POST /api/auth/link/email` 2 endpoint. T060 의존
+- [X] T063 [US5] `SecurityConfig.kt` — **변경 없음** (`anyRequest().authenticated()` 가 두 endpoint 자동 catch, 명시 등록 불필요)
 
 ### Web 테스트
 
-- [ ] T064 [US5] Web 테스트 — `backend/src/test/kotlin/com/writenote/controller/AccountLinkWebTest.kt` (linkEmail happy / PASSWORD_ALREADY_SET 충돌 / linkKakao state 분기 / KAKAO_ALREADY_LINKED 충돌, 4 케이스)
+- [X] T064 [US5] Web 테스트 — `AccountLinkWebTest.kt` 4 케이스 (linkEmail happy / PASSWORD_ALREADY_SET / linkKakao start 302 + session attribute / linkEmail 비인증 401). KAKAO_ALREADY_LINKED 는 OAuth callback flow 영역 — `AccountLinkServiceIT` case 5 (다른 user 에 묶인 kakaoId 거부) 가 단위 검증 박음
 
 **🛑 회귀 게이트**: `./gradlew :backend:test --tests "*AccountLink*" --tests "*Link*" :backend:ktlintMainSourceSetCheck` GREEN.
 

@@ -4,6 +4,7 @@ import com.writenote.components.KakaoConflictChecker
 import com.writenote.components.KakaoLoginDecision
 import com.writenote.entity.User
 import com.writenote.repository.UserRepository
+import com.writenote.service.AccountLinkService
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -25,8 +26,9 @@ import java.time.Instant
 class KakaoOAuth2UserServiceTest {
     private val userRepository = mockk<UserRepository>()
     private val conflictChecker = mockk<KakaoConflictChecker>()
+    private val accountLinkService = mockk<AccountLinkService>()
     private val delegate = mockk<DefaultOAuth2UserService>()
-    private val service = KakaoOAuth2UserService(userRepository, conflictChecker, delegate)
+    private val service = KakaoOAuth2UserService(userRepository, conflictChecker, accountLinkService, delegate)
 
     @Test
     fun `신규 가입 — NewKakaoUser 분기 시 User INSERT 후 userId attribute 박힌 OAuth2User 반환`() {

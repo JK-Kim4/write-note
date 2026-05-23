@@ -3,7 +3,10 @@ package com.writenote.auth
 import com.writenote.components.KakaoConflictChecker
 import com.writenote.components.KakaoLoginDecision
 import com.writenote.entity.User
+import com.writenote.error.AuthException
+import com.writenote.model.request.LinkKakaoStateRequest
 import com.writenote.repository.UserRepository
+import com.writenote.service.AccountLinkService
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest
@@ -13,6 +16,8 @@ import org.springframework.security.oauth2.core.OAuth2Error
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User
 import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.stereotype.Component
+import org.springframework.web.context.request.RequestContextHolder
+import org.springframework.web.context.request.ServletRequestAttributes
 import java.time.Instant
 
 /**
@@ -28,6 +33,7 @@ import java.time.Instant
 class KakaoOAuth2UserService(
     private val userRepository: UserRepository,
     private val conflictChecker: KakaoConflictChecker,
+    private val accountLinkService: AccountLinkService,
     private val delegate: DefaultOAuth2UserService = DefaultOAuth2UserService(),
 ) : OAuth2UserService<OAuth2UserRequest, OAuth2User> {
     override fun loadUser(request: OAuth2UserRequest): OAuth2User {
@@ -38,21 +44,56 @@ class KakaoOAuth2UserService(
         val kakaoAccount = raw.attributes["kakao_account"] as Map<String, Any>
         val email = kakaoAccount["email"] as String
 
-        val user =
-            when (val decision = conflictChecker.evaluateForLogin(kakaoId, email)) {
-                is KakaoLoginDecision.NewKakaoUser -> insertNewKakaoUser(decision)
-                is KakaoLoginDecision.ExistingKakaoUser -> touchLastLogin(decision.user)
-                KakaoLoginDecision.EmailConflictNotLinked ->
-                    throw OAuth2AuthenticationException(
-                        OAuth2Error(KAKAO_EMAIL_ALREADY_REGISTERED),
-                    )
+        val linkState = extractLinkStateFromSession()
+        val (user, extraAttributes) =
+            if (linkState != null) {
+                handleLinkFlow(linkState.linkUserId, kakaoId) to mapOf("linkUserId" to linkState.linkUserId)
+            } else {
+                handleLoginFlow(kakaoId, email) to emptyMap()
             }
 
         return DefaultOAuth2User(
             listOf(SimpleGrantedAuthority("ROLE_USER")),
-            raw.attributes + ("userId" to user.id!!),
+            raw.attributes + ("userId" to user.id!!) + extraAttributes,
             "id",
         )
+    }
+
+    private fun handleLoginFlow(
+        kakaoId: String,
+        email: String,
+    ): User =
+        when (val decision = conflictChecker.evaluateForLogin(kakaoId, email)) {
+            is KakaoLoginDecision.NewKakaoUser -> insertNewKakaoUser(decision)
+            is KakaoLoginDecision.ExistingKakaoUser -> touchLastLogin(decision.user)
+            KakaoLoginDecision.EmailConflictNotLinked ->
+                throw OAuth2AuthenticationException(
+                    OAuth2Error(KAKAO_EMAIL_ALREADY_REGISTERED),
+                )
+        }
+
+    /**
+     * Link flow — 본인 user 에 kakaoId 박음. AccountLinkService.linkKakao 가 분기 처리.
+     * AuthException 은 OAuth2AuthenticationException 으로 변환 → OAuth2FailureHandler 가 redirect.
+     */
+    private fun handleLinkFlow(
+        linkUserId: Long,
+        kakaoId: String,
+    ): User {
+        try {
+            accountLinkService.linkKakao(linkUserId, kakaoId)
+        } catch (ex: AuthException) {
+            throw OAuth2AuthenticationException(OAuth2Error(ex.errorCode.name))
+        }
+        return userRepository.findById(linkUserId).orElseThrow {
+            OAuth2AuthenticationException(OAuth2Error("AUTH_TOKEN_INVALID"))
+        }
+    }
+
+    private fun extractLinkStateFromSession(): LinkKakaoStateRequest? {
+        val attrs = RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes ?: return null
+        val session = attrs.request.getSession(false) ?: return null
+        return session.getAttribute(LinkKakaoStateRequest.SESSION_ATTRIBUTE_KEY) as? LinkKakaoStateRequest
     }
 
     private fun insertNewKakaoUser(decision: KakaoLoginDecision.NewKakaoUser): User {

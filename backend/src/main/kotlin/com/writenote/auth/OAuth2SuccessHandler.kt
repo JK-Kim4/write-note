@@ -4,6 +4,7 @@ import com.writenote.components.AuthTokenGenerator
 import com.writenote.config.JwtProperties
 import com.writenote.entity.AuthToken
 import com.writenote.enums.AuthTokenType
+import com.writenote.model.request.LinkKakaoStateRequest
 import com.writenote.repository.AuthTokenRepository
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -38,6 +39,16 @@ class OAuth2SuccessHandler(
         authentication: Authentication,
     ) {
         val oauth2User = authentication.principal as OAuth2User
+
+        // Link flow — session 의 linkUserId 가 KakaoOAuth2UserService 통해 attributes 에 박혀있으면
+        // token 발급 X, link-success redirect (FR-023, R3 결정).
+        val linkUserId = oauth2User.attributes["linkUserId"] as? Long
+        if (linkUserId != null) {
+            request.getSession(false)?.removeAttribute(LinkKakaoStateRequest.SESSION_ATTRIBUTE_KEY)
+            response.sendRedirect("$frontendBaseUrl/auth/link-success")
+            return
+        }
+
         val userId = oauth2User.attributes["userId"] as Long
 
         @Suppress("UNCHECKED_CAST")

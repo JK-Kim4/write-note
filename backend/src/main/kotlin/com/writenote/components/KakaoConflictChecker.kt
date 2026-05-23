@@ -35,6 +35,32 @@ class KakaoConflictChecker(
         }
         return KakaoLoginDecision.NewKakaoUser(kakaoId = kakaoId, email = email)
     }
+
+    /**
+     * 로그인 사용자의 카카오 추가 연결 분기 결정 (FR-023, FR-025, US5).
+     *
+     * - 본인 user 미존재 → [KakaoLinkDecision.AlreadyLinkedToOther] (보수적 거부)
+     * - 같은 kakaoId 가 다른 user 에 묶임 → [KakaoLinkDecision.AlreadyLinkedToOther]
+     * - 본인 user 가 이미 다른 kakaoId 박힘 → [KakaoLinkDecision.ConflictWithSelf]
+     * - 그 외 (본인 미연결 / 본인 이미 같은 kakaoId idempotent) → [KakaoLinkDecision.Acceptable]
+     */
+    fun evaluateForLink(
+        kakaoId: String,
+        linkUserId: Long,
+    ): KakaoLinkDecision {
+        val self =
+            userRepository.findById(linkUserId).orElse(null)
+                ?: return KakaoLinkDecision.AlreadyLinkedToOther
+        val existingByKakaoId = userRepository.findByKakaoId(kakaoId)
+        if (existingByKakaoId != null && existingByKakaoId.id != linkUserId) {
+            return KakaoLinkDecision.AlreadyLinkedToOther
+        }
+        val selfKakaoId = self.kakaoId
+        if (selfKakaoId != null && selfKakaoId != kakaoId) {
+            return KakaoLinkDecision.ConflictWithSelf
+        }
+        return KakaoLinkDecision.Acceptable(self)
+    }
 }
 
 sealed class KakaoLoginDecision {
@@ -48,4 +74,17 @@ sealed class KakaoLoginDecision {
     ) : KakaoLoginDecision()
 
     data object EmailConflictNotLinked : KakaoLoginDecision()
+}
+
+sealed class KakaoLinkDecision {
+    /** 본인 user 박힘 + kakaoId 박음 가능 (미연결 또는 idempotent). */
+    data class Acceptable(
+        val user: User,
+    ) : KakaoLinkDecision()
+
+    /** 다른 user 에 묶인 kakaoId — KAKAO_ALREADY_LINKED 응답. */
+    data object AlreadyLinkedToOther : KakaoLinkDecision()
+
+    /** 본인 user 가 이미 다른 kakaoId 박힘 — KAKAO_LINK_CONFLICT 응답. */
+    data object ConflictWithSelf : KakaoLinkDecision()
 }
