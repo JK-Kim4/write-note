@@ -3,6 +3,8 @@ package com.writenote.controller
 import com.writenote.auth.AuthenticatedPrincipal
 import com.writenote.model.request.LoginRequest
 import com.writenote.model.request.LogoutRequest
+import com.writenote.model.request.PasswordResetConfirmRequest
+import com.writenote.model.request.PasswordResetRequestRequest
 import com.writenote.model.request.RefreshTokenRequest
 import com.writenote.model.request.SignupEmailRequest
 import com.writenote.model.request.VerifyEmailRequest
@@ -11,6 +13,7 @@ import com.writenote.model.response.Result
 import com.writenote.model.response.SignupEmailResponse
 import com.writenote.model.response.TokenPairResponse
 import com.writenote.service.AuthService
+import com.writenote.service.PasswordResetService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -25,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/auth")
 class AuthController(
     private val authService: AuthService,
+    private val passwordResetService: PasswordResetService,
 ) {
     @PostMapping("/signup/email")
     fun signupEmail(
@@ -65,4 +69,20 @@ class AuthController(
     fun me(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
     ): ResponseEntity<Result<AuthMeResponse>> = ResponseEntity.ok(Result.success(authService.me(principal)))
+
+    @PostMapping("/password-reset/request")
+    fun passwordResetRequest(
+        @Valid @RequestBody request: PasswordResetRequestRequest,
+    ): ResponseEntity<Result<Nothing?>> {
+        passwordResetService.request(request)
+        return ResponseEntity.ok(Result.success<Nothing?>(null))
+    }
+
+    @PostMapping("/password-reset/confirm")
+    fun passwordResetConfirm(
+        @Valid @RequestBody request: PasswordResetConfirmRequest,
+    ): ResponseEntity<Result<Nothing?>> {
+        passwordResetService.confirm(request)
+        return ResponseEntity.ok(Result.success<Nothing?>(null))
+    }
 }
