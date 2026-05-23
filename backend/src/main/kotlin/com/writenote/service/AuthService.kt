@@ -41,6 +41,7 @@ class AuthService(
     private val userAuthConverter: UserAuthConverter,
     private val jwtProperties: JwtProperties,
     private val applicationEventPublisher: ApplicationEventPublisher,
+    private val loginAttemptService: LoginAttemptService,
 ) {
     /**
      * 이메일·비밀번호 회원가입.
@@ -115,15 +116,15 @@ class AuthService(
     }
 
     /**
-     * 이메일·비밀번호 로그인.
+     * 이메일·비밀번호 로그인 (FR-007 ~ FR-009, FR-013 ~ FR-015).
      *
      * 1. 비밀번호 검증 (findByEmailForUpdate — pessimistic lock, FR-038)
-     * 2. 이메일 인증 여부 검증
-     * 3. last_login_at / failed_login_count 갱신
-     * 4. REFRESH 토큰 INSERT
+     * 2. 실패 시 LoginAttemptService.recordFailure (count++ + 5회 도달 시 lockout)
+     * 3. 이메일 인증 여부 검증
+     * 4. 성공 시 LoginAttemptService.recordSuccess (count=0 + lastLoginAt 갱신)
+     * 5. REFRESH 토큰 INSERT
      *
-     * US4 영역 (failed_login_count += 1, lockout) 은 본 라운드 placeholder.
-     * US4 진입 시 LoginAttemptService 결선 예정.
+     * 잠금 상태 검증 자체는 LoginAttemptFilter 가 controller 진입 전 차단.
      */
     @Transactional(rollbackFor = [Exception::class])
     fun login(request: LoginRequest): TokenPairResponse {
@@ -132,16 +133,18 @@ class AuthService(
                 ?: throw AuthException(AuthErrorCode.LOGIN_FAILED)
         val passwordHash =
             user.passwordHash
-                ?: throw AuthException(AuthErrorCode.LOGIN_FAILED) // 카카오 단독 가입자 (비밀번호 미설정)
+                ?: run {
+                    loginAttemptService.recordFailure(request.email)
+                    throw AuthException(AuthErrorCode.LOGIN_FAILED)
+                }
         if (!passwordEncoder.matches(request.password, passwordHash)) {
-            // TODO(US4) failed_login_count += 1, 5회 도달 시 lockout 처리 — US4 LoginAttemptService 결선
+            loginAttemptService.recordFailure(request.email)
             throw AuthException(AuthErrorCode.LOGIN_FAILED)
         }
         if (user.emailVerifiedAt == null) {
             throw AuthException(AuthErrorCode.EMAIL_NOT_VERIFIED)
         }
-        user.lastLoginAt = Instant.now()
-        user.failedLoginCount = 0 // 성공 시 카운트 초기화
+        loginAttemptService.recordSuccess(request.email)
         val accessToken =
             jwtTokenProvider.createAccessToken(
                 userId = requireNotNull(user.id),

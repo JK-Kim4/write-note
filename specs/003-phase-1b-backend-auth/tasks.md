@@ -211,14 +211,14 @@ description: "Task list for Phase 1B Backend Auth Foundation implementation"
 
 ### Service + Filter (TDD HARD-GATE — 4 회귀 케이스 의무)
 
-- [ ] T054 [US4] `LoginAttemptService.kt` 신설 + 통합 테스트 — `backend/src/main/kotlin/com/writenote/service/LoginAttemptService.kt` (`recordFailure(email)` / `recordSuccess(email)` / `isLocked(email)` — 모두 `@Lock(LockModeType.PESSIMISTIC_WRITE)` 로 user row 갱신, FR-038). 테스트: `backend/src/test/kotlin/com/writenote/service/LoginAttemptServiceIT.kt` (4 회귀 케이스: 5회 실패 → 6번째 잠금 / 잠금 만료 후 통과 / 4회 실패 후 성공 시 카운트 초기화 / 동시 실패 결정성). T018 의존. TDD HARD-GATE
-- [ ] T055 [US4] `LoginAttemptFilter.kt` 신설 — `backend/src/main/kotlin/com/writenote/auth/LoginAttemptFilter.kt` (URL = `POST /api/auth/login` 한정. Request body 의 email 추출 — body 1회만 읽기 → cache. `LoginAttemptService.isLocked()` 통과 시 다음 필터, 잠금 시 401 + LOGIN_LOCKED + AuthErrorEntryPoint 통해 envelope 응답). T054 의존
-- [ ] T056 [US4] `SecurityConfig.kt` 갱신 — `LoginAttemptFilter` 를 `JwtAuthenticationFilter` 앞 위치에 등록 (contracts/security-filter-chain.md §1)
+- [X] T054 [US4] `LoginAttemptService.kt` 신설 + 통합 테스트 — `backend/src/main/kotlin/com/writenote/service/LoginAttemptService.kt` (`recordFailure(email)` / `recordSuccess(email)` / `isLocked(email)` — 모두 `@Lock(LockModeType.PESSIMISTIC_WRITE)` 로 user row 갱신, FR-038). 테스트: `backend/src/test/kotlin/com/writenote/service/LoginAttemptServiceIT.kt` (4 회귀 케이스: 5회 실패 → 6번째 잠금 / 잠금 만료 후 통과 / 4회 실패 후 성공 시 카운트 초기화 / 동시 실패 결정성 — 직렬 검증 + pessimistic lock 호출 경로). T018 의존. TDD HARD-GATE
+- [X] T055 [US4] `LoginAttemptFilter.kt` 신설 — `backend/src/main/kotlin/com/writenote/auth/LoginAttemptFilter.kt` (URL = `POST /api/auth/login` 한정, shouldNotFilter 박음. `CachedBodyHttpServletRequest` 박음 → body 1회 cache + controller 재읽기. `LoginAttemptService.isLocked()` 통과 시 다음 필터, 잠금 시 401 + LOGIN_LOCKED + envelope 직접 응답). T054 의존. **본질 결정**: Spring 의 `ContentCachingRequestWrapper` 는 `getContentAsByteArray()` 만 cache (logging 용), `getInputStream()` 재읽기 미지원 → 커스텀 `CachedBodyHttpServletRequest` 박음
+- [X] T056 [US4] `SecurityConfig.kt` 갱신 — `LoginAttemptFilter` 를 `JwtAuthenticationFilter` 앞 위치에 등록 (contracts/security-filter-chain.md §1)
 
 ### AuthService 결선 + Web 테스트
 
-- [ ] T057 [US4] `AuthService.login()` 갱신 — 성공 시 `loginAttemptService.recordSuccess()`, 실패 시 `loginAttemptService.recordFailure()` 호출. 5회 도달 시 `lockout_until = now() + 30min` 박음. T038/T054 의존
-- [ ] T058 [US4] Filter Web 테스트 — `backend/src/test/kotlin/com/writenote/controller/LoginLockoutWebTest.kt` (5회 실패 → 6번째 LOGIN_LOCKED 응답 + envelope 정합)
+- [X] T057 [US4] `AuthService.login()` 갱신 — placeholder TODO 회수. 성공 시 `loginAttemptService.recordSuccess()`, 실패 시 `loginAttemptService.recordFailure()` 호출. user row 갱신 책임 LoginAttemptService 단일화 (lastLoginAt / failedLoginCount = 0 갱신은 recordSuccess 가 담당). T038/T054 의존
+- [X] T058 [US4] Filter Web 테스트 — `backend/src/test/kotlin/com/writenote/controller/LoginLockoutWebTest.kt` 2 케이스 (5회 실패 → 6번째 LOGIN_LOCKED + envelope 정합 / 잠금 상태에서 정확한 비밀번호도 거부)
 
 **🛑 회귀 게이트**: `./gradlew :backend:test --tests "*LoginAttempt*" --tests "*Lockout*" :backend:ktlintMainSourceSetCheck` GREEN.
 

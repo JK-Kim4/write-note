@@ -4,6 +4,7 @@ import com.writenote.auth.ApiTokenAuthenticationFilter
 import com.writenote.auth.AuthErrorEntryPoint
 import com.writenote.auth.JwtAuthenticationFilter
 import com.writenote.auth.KakaoOAuth2UserService
+import com.writenote.auth.LoginAttemptFilter
 import com.writenote.auth.OAuth2FailureHandler
 import com.writenote.auth.OAuth2SuccessHandler
 import org.springframework.context.annotation.Bean
@@ -24,6 +25,7 @@ class SecurityConfig {
         authErrorEntryPoint: AuthErrorEntryPoint,
         jwtAuthenticationFilter: JwtAuthenticationFilter,
         apiTokenAuthenticationFilter: ApiTokenAuthenticationFilter,
+        loginAttemptFilter: LoginAttemptFilter,
         kakaoOAuth2UserService: KakaoOAuth2UserService,
         oauth2SuccessHandler: OAuth2SuccessHandler,
         oauth2FailureHandler: OAuth2FailureHandler,
@@ -79,5 +81,6 @@ class SecurityConfig {
                     .failureHandler(oauth2FailureHandler)
             }.addFilterBefore(apiTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .addFilterBefore(loginAttemptFilter, JwtAuthenticationFilter::class.java)
             .build()
 }

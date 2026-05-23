@@ -272,6 +272,21 @@ scope = `profile_nickname`, `account_email`. 신규 가입자의 `email_verified
 
 ---
 
+## R-16. Filter 가 request body 1회 cache + controller 재읽기 (Phase 6 R2 의외 결정)
+
+**Decision**: 커스텀 `CachedBodyHttpServletRequest` 박음 (`backend/src/main/kotlin/com/writenote/auth/CachedBodyHttpServletRequest.kt`). HttpServletRequestWrapper 상속 + 생성자에서 `request.inputStream.readAllBytes()` cache + `getInputStream()` override → 매 호출마다 새 `ByteArrayInputStream` 반환.
+
+**Rationale**:
+- LoginAttemptFilter 가 POST /api/auth/login 의 body email 추출 의무 + controller 의 `@RequestBody LoginRequest` 매핑 의무 → body 2회 read 필요.
+- Spring 의 `ContentCachingRequestWrapper` 가 docs 상 "multiple reads" 명시되어 있지만 실제 구현은 `getContentAsByteArray()` 만 cache (logging 용). `getInputStream()` 자체는 1회 read 후 consumed → controller 가 빈 stream 받음 → `@RequestBody` 매핑 fail.
+- 5 fail 회귀로 확인 (AuthControllerWebTest login 5 케이스). 커스텀 wrapper 박은 후 GREEN.
+
+**Alternatives considered**:
+- `ContentCachingRequestWrapper` — 표준 보이지만 본 사용처 부적합 (docs 와 실제 동작 불일치).
+- HandlerInterceptor 패턴 — Filter 미사용. 본 spec contracts/security-filter-chain.md §1 의 LoginAttemptFilter 위치와 충돌.
+
+---
+
 ## R-15. 운영 신호 정합
 
 **Decision**: 본 spec 의 인증 도입 시 `/actuator/health` 의 보안 노출 정책 그대로 (001 박힌 baseline). DB / mail / OAuth client 의 health check 가 DOWN 되면 거슬려서 끄지 말 것 (`~/.claude/rules/shared/observability-signals.md` HARD-GATE).
