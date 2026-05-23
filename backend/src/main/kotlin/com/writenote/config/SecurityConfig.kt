@@ -65,6 +65,10 @@ class SecurityConfig {
                     // 로그인 에러 페이지 (OAuth2FailureHandler 가 redirect) — Security 필터 외부 영역
                     .requestMatchers(HttpMethod.GET, "/auth/login-error")
                     .permitAll()
+                    // 본 spec US6 의 owner-context 교체 영역 — JWT 인증 강제
+                    // (contracts/owner-context-migration.md §3)
+                    .requestMatchers("/api/projects/**")
+                    .authenticated()
                     // 그 외 모든 보호 endpoint — JWT 필요
                     .anyRequest()
                     .authenticated()
