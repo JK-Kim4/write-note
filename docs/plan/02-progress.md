@@ -1,8 +1,8 @@
 # write-note V1 — 작업 진척도
 
-**최종 갱신:** 2026-05-21
-**상태:** Phase 1A (Backend Foundation) + 002 (Frontend Route & Page Scaffold) 자동화 검증 완료 — 사용자 dogfooding 5 영역 + Week 1B 진입 대기
-**SoT 진입점:** 다음 세션 진입 시 본 문서 + [00-stack-and-schedule.md](./00-stack-and-schedule.md) + [01-phase-breakdown.md](./01-phase-breakdown.md) + [specs/001-phase-1a-backend-scaffold/plan.md](../../specs/001-phase-1a-backend-scaffold/plan.md) + [specs/002-frontend-route-scaffold/plan.md](../../specs/002-frontend-route-scaffold/plan.md) 정독으로 컨텍스트 복원
+**최종 갱신:** 2026-05-24
+**상태:** 003 Phase 1B Backend Auth — 80 task 중 **58 완료 (72.5%)**. Phase 6 (US4 5회 실패 + 30분 잠금) GREEN. 다음 = Phase 7 (US5 이메일 ↔ 카카오 추가 연결)
+**SoT 진입점:** 다음 세션 진입 시 본 문서 + [00-stack-and-schedule.md](./00-stack-and-schedule.md) + [01-phase-breakdown.md](./01-phase-breakdown.md) + [specs/003-phase-1b-backend-auth/](../../specs/003-phase-1b-backend-auth/) 정독 + 외부 vault [[02-PROGRESS]] / [[03-ISSUES]] 동기 확인
 
 ---
 
@@ -97,6 +97,24 @@ cd backend
 - `frontend/AGENTS.md` 의 경고 (`node_modules/next/dist/docs/` 정독 의무) 의 docs 디렉토리가 실제 install 에 없음 — 별도 트랙 정리 필요
 - Noto Serif KR / Nanum Myeongjo `next/font/google` 메타데이터가 `subsets: ['latin']` 만 명시 지원 — 폰트 파일 자체의 한국어 글리프 의존, dogfooding 시점 검증
 
+### 003 Phase 1B Backend Auth (2026-05-23 ~ 진행 중)
+
+**브랜치:** `003-phase-1b-backend-auth` (develop 분기, origin 동기)
+**spec/plan/tasks:** [`specs/003-phase-1b-backend-auth/`](../../specs/003-phase-1b-backend-auth/) (spec.md / plan.md / research.md / data-model.md / contracts/auth-endpoints.md / contracts/security-filter-chain.md / contracts/token-formats.md / contracts/owner-context-migration.md / quickstart.md / tasks.md)
+
+| Phase | 영역 | 커밋 |
+|---|---|---|
+| Phase 1 Setup | 의존성 + 환경 변수 yml + `.env` sample (T001~T005) | `4d8ee67` |
+| Phase 2 Foundational | Config 빈 / 에러 코드 / Users V3 마이그레이션 / AuthToken V4 / Component / Principal·필터·SecurityConfig baseline / OpenAPI 보안 schema (T006~T032, R-A~R-G) | `8047969` |
+| Phase 3 US1 P1 MVP | DTO + 이벤트 / Converter / Service (TDD) / Controller + Security 갱신 / Web 테스트 — 이메일·비밀번호 회원가입 + 로그인 + JWT refresh + 본인 정보 조회 (T033~T041) | `59314ee` |
+| 메타 | CLAUDE.md 에 외부 vault SoT 섹션 추가 | `ee9c46a` |
+| Phase 4 US2 R1~R4 | KakaoConflictChecker (T042) + KakaoOAuth2UserService (T043) + OAuth2SuccessHandler (T044) + SecurityConfig oauth2Login 결선 + OAuth2FailureHandler (T045) | `ba809cb` |
+| Phase 4 US2 R5 + 회귀 정리 | T046 AuthOauthCallbackWebTest 3 케이스 + ISSUE-010 부분 fix (AuthTokenRepositoryIT cleanup JPQL named-param + ResponseContractIT addFilters=false) + mockito-kotlin 5.4.0 의존성 + research.md R-3 갱신 | `cad583c` |
+| Phase 5 US3 R1~R5 | 비밀번호 재설정 — 2 DTO + Event + Listener + PasswordResetService + IT 6 케이스 (TDD HARD-GATE) + AuthController 2 endpoint + AuthPasswordResetWebTest 5 케이스 (T047~T053) | `2864ec6` |
+| Phase 6 US4 R1~R4 | 5회 실패 + 30분 잠금 — LoginAttemptService + IT 4 케이스 (TDD HARD-GATE) + LoginAttemptFilter + CachedBodyHttpServletRequest + SecurityConfig + AuthService.login 결선 + LoginLockoutWebTest 2 케이스 (T054~T058). 의외 결정: Spring `ContentCachingRequestWrapper` 한계 발견 → 커스텀 wrapper (research.md R-16) | `7893268` |
+
+**진척 합산:** 80 task 중 58 완료 (72.5%). 미진행 = Phase 7 / 8 / 9 (22 task).
+
 ### 회고 / 룰 (본 세션 누적)
 
 - PoC 0-2 5축 회고 — [`docs/retrospectives/2026-05-19-poc-0-2-spring-postgres.md`](../retrospectives/2026-05-19-poc-0-2-spring-postgres.md). commit `586bdba`
@@ -109,10 +127,11 @@ cd backend
 | 항목 | 값 |
 |---|---|
 | `main` | `53810cd` (변경 0 — 옵션 B 원칙) |
-| `develop` | `<이 progress 문서 commit hash — 본 파일 commit 후 갱신>` (이전: `8a840bb`) |
-| 원격 | `origin/main`, `origin/develop` 둘 다 push 완료 |
+| `develop` | `6eee578` (002 merge 까지) |
+| 현재 브랜치 | `003-phase-1b-backend-auth` (develop 분기, `7893268` 까지 origin 동기) |
+| 원격 | `origin/main`, `origin/develop`, `origin/003-phase-1b-backend-auth` 모두 push 완료 |
 | 워크트리 | 메인 1개 |
-| feature 브랜치 | 모두 정리됨 |
+| 활성 feature 브랜치 | `003-phase-1b-backend-auth` (진행 중) |
 
 ### 본 세션 develop commit history (시간 순)
 
@@ -134,11 +153,34 @@ e808d36 chore: docker-compose + README
 
 ---
 
-## 3. 다음 진입점 — 002 dogfooding 마무리 + Week 1B 인증 기반
+## 3. 다음 진입점 — 003 Phase 7 (US5 이메일 ↔ 카카오 추가 연결)
 
-002 자동화 검증은 완료됐다. 다음은 두 트랙 병행 가능:
+003 Phase 1~6 GREEN. 다음 진입점 = Phase 7. 002 dogfooding 트랙은 보류 (vault [[03-ISSUES]] ISSUE-001).
 
-### 트랙 A — 002 dogfooding 마무리 (P6 + P7)
+### Phase 7 — US5 이메일 ↔ 카카오 추가 연결 (T059~T064, 6 task)
+
+| task | 영역 | LOC 추정 | TDD |
+|---|---|---|---|
+| T059 [P] | 연결 DTO 2종 (LinkEmailRequest / LinkKakaoStateRequest) | ~40 | — |
+| T060 | AccountLinkService + IT — linkEmail / linkKakao (5 케이스) | ~250 | HARD-GATE |
+| T061 | KakaoOAuth2UserService 갱신 — state 분기 박음 | ~60 | — |
+| T062 | AuthController — `/api/auth/link/{kakao,email}` 2 endpoint | ~40 | — |
+| T063 | SecurityConfig — 두 endpoint 보호 (JWT 필수) | ~20 | — |
+| T064 | AccountLinkWebTest 4 케이스 | ~120 | — |
+
+**의존 빈 (이미 박힘):**
+- T042 `KakaoConflictChecker` (이메일 충돌 / 카카오 식별자 충돌 / 추가 연결 분기 결정)
+- T024 `PasswordPolicyValidator`
+- T028 `AuthenticatedPrincipal` (JWT principal)
+
+### 미진행 Phase 8 / 9 (Phase 7 종료 후)
+
+| Phase | User Story | Priority |
+|---|---|---|
+| Phase 8 | US6 본인 정보 조회 + 임시 owner 헤더 정리 (`X-User-Id` 제거) | P6 |
+| Phase 9 | Polish & Cross-Cutting (TokenCleanupService + OpenAPI + dogfooding + 회고 + T080 단일 검증 게이트) | — |
+
+### 002 dogfooding 트랙 (보류 — vault ISSUE-001)
 
 | Task | 작업 | 비고 |
 |---|---|---|
@@ -148,19 +190,7 @@ e808d36 chore: docker-compose + README
 | T053 | 19 surface 1:1 시각 비교 | `designs/wireframe.html` 옆에 띄워 양쪽 비교, 불일치 시 fix |
 | T054 | PWA 홈 화면 추가 | iOS Safari + Android Chrome 메뉴 노출 확인 |
 
-본 트랙 GREEN 완료 시 002 commit + merge 후 Week 1B 진입.
-
-### 트랙 B — Week 1B 인증 기반 (`docs/plan/01-phase-breakdown.md`의 Week 1B 범위):
-
-| Phase | 작업 | 주의 |
-|---|---|---|
-| 1B-1 | Spring Security 인증 구조 확장 | Phase 1A의 permit-all baseline을 실제 인증 filter chain으로 교체 |
-| 1B-2 | JWT access/refresh token | refresh token 저장/폐기 정책 결정 필요 |
-| 1B-3 | Kakao OAuth2 로그인 | redirect URI와 local/prod profile 분리 유지 |
-| 1B-4 | 이메일/비밀번호 로그인 | password hash와 실패 제한 정책 결정 필요 |
-| 1B-5 | Project CRUD owner context 교체 | `X-User-Id` 제거, authenticated principal 기반으로 service 호출 |
-
-Phase 1A 관련 상세 spec/task는 [`specs/001-phase-1a-backend-scaffold`](../../specs/001-phase-1a-backend-scaffold/)에 유지한다.
+003 Phase 1B 마무리 후 / Week 2 진입 전에 본 트랙 완료 의무.
 
 <details>
 <summary>완료된 Phase 1A 진입점 기록</summary>
@@ -208,13 +238,22 @@ Users
 
 ## 4. 보류 트랙 (사용자 결정 영역)
 
-| 트랙 | 상태 | 결정 시점 |
+보류 트랙은 외부 vault [[03-ISSUES]] 로 surfacing. 본 표는 본 repo 내 요약.
+
+| 트랙 | vault entry | 우선순위 |
 |---|---|---|
-| **main 워크트리 untracked 정리** (`.claude/`, `.specify/`, `CLAUDE.md`) | 본 세션 미진행 — 옵션 B (main 변경 0) 원칙 적용. 별도 트랙 필요 시 진입 | 다음 세션 시작 시 또는 V1 release 시점 |
-| **Phase 0 전체 회고** | 본 세션 미진행. PoC 0-2 단독 회고는 박힘. 본 세션 전체 (브랜치 전략 / 셋업 / 3 PoC) 의 회귀·함정 통합 회고는 미수행 | Phase 1A 진입 전 또는 별도 트랙 |
-| **Kotlin 2.3.x 의 Java 25 JVM target 지원 검증** | Kotlin current stable = 2.3.21 (2026-04-23). 지원 시 Java 25 재상승 후보. `docs/poc/0-2-spring-postgres.md §5-1` 명시 | Phase 1A 이후 별도 트랙 |
-| **Spring Boot dependency-management override** | Spring Boot 4.0.6 의 kotlin pinning 이 2.2.x 라 2.3.x 업그레이드 시 `ext["kotlin.version"] = "2.3.21"` 필요 | 위 Kotlin 검증과 함께 |
-| **본 세션 전체 통합 회고** | retrospective 스킬로 본 세션 전반의 회귀 사례 (BE Supabase 단정 회귀 / gh active 계정 misconfig / Spring Initializr 500 / Next.js 16 breaking change 사전 docs 정독 학습) 영구화 | 사용자 결정 영역 |
+| 002 dogfooding 5 영역 미완료 | ISSUE-001 | 003 마무리 후 |
+| 003 Phase 4~9 진행 중 (Phase 1~6 GREEN, Phase 7 진입 대기) | ISSUE-002 | 진행 |
+| `frontend/AGENTS.md` 의 docs 정독 경고 — 실제 디렉토리 부재 | ISSUE-003 | 별도 트랙 |
+| 임시 `X-User-Id` 헤더 — Phase 8 에서 회수 의무 | ISSUE-004 | 003 Phase 8 |
+| Kotlin 2.3.x 의 Java 25 JVM target 지원 검증 | ISSUE-005 | V2 후보 |
+| main 워크트리 untracked 정리 (`.claude/`, `.specify/`, `CLAUDE.md`) | ISSUE-006 | 별도 트랙 |
+| Phase 0 전체 회고 미수행 | ISSUE-007 | 별도 트랙 |
+| 본 세션 전체 통합 회고 (BE Supabase / gh / Spring Initializr / Next.js 16) | ISSUE-008 | 별도 트랙 |
+| 본 vault ↔ 본 repo 02-progress 동기 정책 | ISSUE-009 | 별도 트랙 |
+| 003 Phase 3 회귀 게이트 누락 — 9 test 영구 fail (2 fix / 1 묵인 Phase 8 자연 해결) | ISSUE-010 | 부분 완료 |
+| AuthTokenRepositoryIT stale committed row 환경 결함 | ISSUE-012 | 별도 트랙 |
+| Spring `ContentCachingRequestWrapper` 한계 — 커스텀 wrapper 박음 | ISSUE-013 | 완료 (참고용) |
 
 ---
 
