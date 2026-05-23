@@ -60,6 +60,29 @@ scope = `profile_nickname`, `account_email`. 신규 가입자의 `email_verified
 - 직접 OAuth2 클라이언트 구현 (RestTemplate 으로 token 교환) — 의존성은 줄지만 redirect_uri 검증 / state 검증 / CSRF 보호 등 재구현 비용 큼.
 - 카카오 콜백이 프론트로 가서 프론트가 백엔드 token endpoint 호출 — implicit-flow 비슷한 패턴이지만 client secret 노출 위험.
 
+**STATELESS session ↔ AuthorizationRequestRepository 정합** (2026-05-23 추가):
+
+본 spec 의 SecurityConfig 가 `SessionCreationPolicy.STATELESS` 박음 (JWT 인증 일관성). 그러나 OAuth2 Login flow 는 진입~콜백 사이 `state` 파라미터 보관용 저장소 (`AuthorizationRequestRepository`) 가 필요.
+
+**Decision**: 기본 `HttpSessionOAuth2AuthorizationRequestRepository` (HTTP session 기반) 그대로 사용.
+
+**근거**: Spring Security 의 `STATELESS` 정책 = SecurityContext 를 session 에 저장 X. 단, `HttpServletRequest.getSession(true)` 호출 자체는 막지 않음 — OAuth2 Login filter 의 짧은 state 보관용 session 생성 가능 (정책 위반 아님). V1 본인 1명 dogfooding 환경에서 cookie-based 커스텀 보관소 박는 비용 (~30 LOC + 테스트) 회피.
+
+**Alternatives**: 커스텀 cookie-based `AuthorizationRequestRepository` 박음 — JWT 인증 일관성 강화. V2 외부 사용자 진입 시점에 재검토.
+
+**T046 통합 테스트 mocking 패턴** (2026-05-23 추가):
+
+콜백 endpoint (`GET /api/auth/oauth/kakao/callback`) 통합 테스트는 다음 mock 패턴 적용:
+
+- `@MockitoBean OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest>` — 카카오 token endpoint 호출 우회 + mock token response 반환
+- `@MockitoBean KakaoOAuth2UserService` — 카카오 user info endpoint 호출 우회 + 분기별 결과 mock (NewKakaoUser / ExistingKakaoUser / `OAuth2AuthenticationException` throw)
+- `OAuth2SuccessHandler` / `OAuth2FailureHandler` real — 응답 redirect 형식 검증
+- `MockHttpSession` + 사전 `HttpSessionOAuth2AuthorizationRequestRepository.saveAuthorizationRequest` 호출 — Spring 의 state 매칭 정합 (실제 flow 정합)
+
+**근거**: T046 의 본질 = "콜백 endpoint 의 응답 형식 (redirect URL fragment + 에러 코드 매핑)" 검증. `KakaoOAuth2UserService` 의 분기 로직은 T043 단위 테스트 박힘 (3 분기 케이스). T046 = T043 와 다른 영역 — controller layer 의 mocking 패턴.
+
+**Alternatives**: `KakaoOAuth2UserService` real + 카카오 user info endpoint WireMock — 통합 깊이 강화. T043 와 중복, 비용 큼.
+
 ---
 
 ## R-4. 비밀번호 정책 / BCrypt cost

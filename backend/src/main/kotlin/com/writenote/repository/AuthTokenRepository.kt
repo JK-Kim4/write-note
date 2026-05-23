@@ -30,10 +30,17 @@ interface AuthTokenRepository : JpaRepository<AuthToken, Long> {
         """
         DELETE FROM AuthToken t
          WHERE t.expiresAt < :now
-            OR (t.type IN (com.writenote.enums.AuthTokenType.EMAIL_VERIFY,
-                           com.writenote.enums.AuthTokenType.PASSWORD_RESET)
-                AND t.usedAt IS NOT NULL)
+            OR (t.type IN :usedTypes AND t.usedAt IS NOT NULL)
         """,
     )
-    fun cleanupExpiredAndUsed(now: Instant): Int
+    fun cleanupExpiredAndUsedRaw(
+        now: Instant,
+        usedTypes: Collection<AuthTokenType>,
+    ): Int
+
+    fun cleanupExpiredAndUsed(now: Instant): Int =
+        cleanupExpiredAndUsedRaw(
+            now = now,
+            usedTypes = listOf(AuthTokenType.EMAIL_VERIFY, AuthTokenType.PASSWORD_RESET),
+        )
 }

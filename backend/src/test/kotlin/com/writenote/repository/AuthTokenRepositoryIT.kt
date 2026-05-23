@@ -6,6 +6,7 @@ import com.writenote.enums.AuthTokenType
 import jakarta.persistence.EntityManager
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -34,6 +35,12 @@ class AuthTokenRepositoryIT
             )
 
         private fun futureInstant(): Instant = Instant.now().plusSeconds(3600)
+
+        @BeforeEach
+        fun isolateFromCommittedRows() {
+            authTokenRepository.deleteAll()
+            entityManager.flush()
+        }
 
         @Test
         fun `insert flush clear and findByTokenHashAndType returns token with db default createdAt`() {
