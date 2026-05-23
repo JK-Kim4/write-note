@@ -8,6 +8,43 @@
 
 V1 wireframe 완료, 구현 진입 전.
 
+## 외부 SoT — 옵시디언 vault (HARD-GATE)
+
+본 repo 의 **진척·이슈·개요는 외부 vault** 에 상위 SoT 가 박혀있다. 브랜치 무관 단일 진입점 — 본 repo 내 `docs/plan/02-progress.md` 같은 브랜치 종속 문서가 여러 워크트리에서 누락·conflict 나는 문제를 우회한다.
+
+- vault 경로: `~/obsidian/write-note/`
+- 노트 구성:
+  - `00-INDEX.md` — 단일 진입점 + 본 repo 와의 역할 분리 정책
+  - `01-OVERVIEW.md` — 본질·기술 스택·프로젝트 구조·워크플로우 (본 repo 인용 요약)
+  - `02-PROGRESS.md` — Phase 단위 진척도 (브랜치 무관 요약)
+  - `03-ISSUES.md` — 이슈 트래킹 (발견·우선순위·후속)
+
+### 본 repo 와의 역할 분리
+
+| 정보 | SoT |
+|---|---|
+| 본질 / 스택 / Phase 분해 / 백엔드 요구사항 | 본 repo `DESIGN.md` / `docs/plan/00~03` |
+| 브랜치 내 상세 진척 | 본 repo `docs/plan/02-progress.md` |
+| Phase 별 spec/plan/tasks | 본 repo `specs/NNN-.../` |
+| 회고 / PoC 결과 | 본 repo `docs/retrospectives/` / `docs/poc/` |
+| **Phase 단위 요약 진척 (브랜치 무관)** | **vault `02-PROGRESS.md`** |
+| **이슈 트래킹** | **vault `03-ISSUES.md`** |
+| **외부 진입점 (개요)** | **vault `01-OVERVIEW.md`** |
+
+**충돌 시:** 본 repo SoT 가 우선. vault 는 갱신 의무 (vault 가 본 repo 를 인용·요약·링크하는 구조).
+
+### Claude 참조·갱신 의무
+
+| 시점 | 액션 |
+|---|---|
+| 세션 진입 / "어디까지?" 류 진척 질문 | vault `02-PROGRESS.md` 우선 Read (브랜치 무관 진척) |
+| 이슈 발견 / 보류 결정 surfacing | vault `03-ISSUES.md` 신규 entry 작성 |
+| Phase 완료 / PR merge 직후 | vault `02-PROGRESS.md` §완료 Phase 추가 + §현재 진입점 갱신 |
+| 본 repo `docs/plan/02-progress.md` 갱신 시 | vault `02-PROGRESS.md` 동기 (요약·링크) |
+| 기술 스택 / 본질 결정 변경 시 | vault `01-OVERVIEW.md` 갱신 |
+
+**self-check (HARD-GATE):** 진척·이슈 정보 답변 전 vault 4 노트 중 관련 노트 Read 의무. 본 repo `docs/plan/02-progress.md` 만 읽고 답하면 브랜치 종속 정보로 단정할 위험.
+
 ## 기술 스택
 
 기술 스택의 SoT 는 [docs/plan/00-stack-and-schedule.md §2-1](./docs/plan/00-stack-and-schedule.md) 이다. 본 표는 요약.
@@ -57,7 +94,7 @@ V1 wireframe 완료, 구현 진입 전.
 <!-- SPECKIT START -->
 Current implementation plan:
 
-- [Frontend Route & Page Scaffold](specs/002-frontend-route-scaffold/plan.md)
+- [Phase 1B Backend Auth Foundation](specs/003-phase-1b-backend-auth/plan.md)
 
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan above.

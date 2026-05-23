@@ -24,8 +24,14 @@ class ProjectRepositoryIT
     ) {
         @Test
         fun `insert flush clear and select active projects by owner`() {
-            val owner = userRepository.save(User(email = "owner-${UUID.randomUUID()}@example.com"))
-            val otherUser = userRepository.save(User(email = "other-${UUID.randomUUID()}@example.com"))
+            val owner =
+                userRepository.save(
+                    User(email = "owner-${UUID.randomUUID()}@example.com", passwordHash = "test-fixture-password-hash"),
+                )
+            val otherUser =
+                userRepository.save(
+                    User(email = "other-${UUID.randomUUID()}@example.com", passwordHash = "test-fixture-password-hash"),
+                )
             val activeProject = projectRepository.save(Project(userId = owner.id!!, title = "Active project"))
             val archivedProject = projectRepository.save(Project(userId = owner.id!!, title = "Archived project", archived = true))
             projectRepository.save(Project(userId = otherUser.id!!, title = "Other project"))
@@ -49,8 +55,14 @@ class ProjectRepositoryIT
 
         @Test
         fun `owner scoped lookup hides another users project`() {
-            val owner = userRepository.save(User(email = "owner-${UUID.randomUUID()}@example.com"))
-            val otherUser = userRepository.save(User(email = "other-${UUID.randomUUID()}@example.com"))
+            val owner =
+                userRepository.save(
+                    User(email = "owner-${UUID.randomUUID()}@example.com", passwordHash = "test-fixture-password-hash"),
+                )
+            val otherUser =
+                userRepository.save(
+                    User(email = "other-${UUID.randomUUID()}@example.com", passwordHash = "test-fixture-password-hash"),
+                )
             val project = projectRepository.save(Project(userId = owner.id!!, title = "Scoped project"))
 
             entityManager.flush()

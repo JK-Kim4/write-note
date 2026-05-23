@@ -56,6 +56,12 @@ class GlobalExceptionHandler {
             message = exception.message ?: "Resource conflict",
         )
 
+    @ExceptionHandler(AuthException::class)
+    fun handleAuth(exception: AuthException): ResponseEntity<Result<Nothing>> =
+        ResponseEntity
+            .status(exception.errorCode.httpStatus)
+            .body(Result.failure(exception.errorCode, exception.message))
+
     @ExceptionHandler(Exception::class)
     fun handleUnexpected(exception: Exception): ResponseEntity<Result<Nothing>> =
         errorResponse(

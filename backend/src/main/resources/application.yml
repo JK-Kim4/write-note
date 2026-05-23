@@ -16,6 +16,37 @@ spring:
           time_zone: UTC
   flyway:
     enabled: true
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID:placeholder-set-real-via-env-in-prod}
+            client-secret: ${KAKAO_CLIENT_SECRET:placeholder-set-real-via-env-in-prod}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080/api/auth/oauth/kakao/callback}
+            scope:
+              - profile_nickname
+              - account_email
+            client-name: Kakao
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:25}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 management:
   endpoint:
@@ -35,3 +66,14 @@ logging:
 app:
   cors:
     allowed-origins: http://localhost:3000
+  auth:
+    jwt:
+      secret: ${JWT_SECRET:}
+      access-token-validity-seconds: 3600
+      refresh-token-validity-seconds: 2592000
+  mail:
+    mode: smtp
+    from: ${MAIL_FROM:no-reply@write-note.local}
+    base-url: ${MAIL_BASE_URL:http://localhost:8080}
+  frontend:
+    base-url: ${FRONTEND_BASE_URL:http://localhost:3000}

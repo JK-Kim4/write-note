@@ -1,5 +1,6 @@
 package com.writenote.model.response
 
+import com.writenote.enums.AuthErrorCode
 import com.writenote.error.ErrorCode
 
 data class Result<T>(
@@ -17,6 +18,16 @@ data class Result<T>(
 
         fun failure(
             code: ErrorCode,
+            message: String,
+        ): Result<Nothing> =
+            Result(
+                success = false,
+                data = null,
+                error = ErrorInfo(code = code.name, message = message),
+            )
+
+        fun failure(
+            code: AuthErrorCode,
             message: String,
         ): Result<Nothing> =
             Result(
