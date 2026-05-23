@@ -2,8 +2,8 @@
 
 - 일자: 2026-05-24
 - 워크트리 / 브랜치: `write-note` / `003-phase-1b-backend-auth`
-- 관련 commit: `4d8ee67` (Phase 1) ~ `0b54aaa` (Phase 8) + Phase 9 R1 (본 회고 commit 미포함)
-- 작업 기간 (대략): 2026-05-22 (spec 작성) ~ 2026-05-24 (Phase 8 + Phase 9 R1 GREEN)
+- 관련 commit: `4d8ee67` (Phase 1) ~ `0b54aaa` (Phase 8) ~ `168ed0a` (Phase 9 R1~R6) ~ `2978c75` (ISSUE-014 fix)
+- 작업 기간 (대략): 2026-05-22 (spec 작성) ~ 2026-05-24 (Phase 1~9 + ISSUE-014 fix 모두 GREEN)
 - 산출 spec: `specs/003-phase-1b-backend-auth/` (spec / plan / research / data-model / contracts × 4 / quickstart / tasks)
 
 ---
@@ -49,6 +49,21 @@
 - `./gradlew test --tests "*ProjectController*" --tests "*OwnerCleanup*" --tests "*Auth*"` GREEN
   - ProjectControllerIT: 2/2 / OwnerCleanupTest: 5/5 / AuthControllerWebTest: 15/15 / AuthOauthCallbackWebTest: 3/3 / AuthPasswordResetWebTest: 5/5 / AuthServiceIT: 5/5 / AuthTokenRepositoryIT: 5/5 / KakaoOAuth2UserServiceTest: 3/3 / AuthTokenLifecycleManagerTest: 6/6 / AuthTokenGeneratorTest: 3/3 / OAuth2SuccessHandlerTest: 1/1
 - `./gradlew test --tests "*TokenCleanup*"` GREEN (1/1)
+
+### ISSUE-014 fix (commit `2978c75`, Phase 9 R1~R6 commit 직후)
+
+| 산출물 | commit |
+|---|---|
+| `LoginAttemptService.recordFailure` `@Transactional(propagation = Propagation.REQUIRES_NEW)` 박음 — 호출자 트랜잭션 rollback 영향 차단 + 별도 트랜잭션 commit | `2978c75` |
+| **추가 fix (R-5 정합 회복)**: `AuthService.login` `findByEmailForUpdate` → `findByEmail`. research R-5 = "로그인 시도 결과 갱신" 만 pessimistic lock 의무 — AuthService.login 의 user 조회 lock 의무 X. REQUIRES_NEW 시 같은 user row 이중 lock (deadlock) 회피 | `2978c75` |
+| `LoginAttemptProductionIT` 신설 (비-transactional + `@AfterEach` user cleanup + FK CASCADE) — production stack 정합 검증 (5회 wrong → DB failed_login_count=5 + lockout_until 박힘 + 6번째 LOGIN_LOCKED) | `2978c75` |
+| `LoginLockoutWebTest` 클래스 레벨 `@Transactional` 폐기 + `@AfterEach` cleanup | `2978c75` |
+| `LoginAttemptServiceIT` 클래스 레벨 `@Transactional` 폐기 + `@AfterEach` cleanup (REQUIRES_NEW 와 트랜잭션 정합 회복) | `2978c75` |
+
+### 단일 검증 게이트 최종 (ISSUE-014 fix 후)
+
+- `./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` → **BUILD SUCCESSFUL**
+- **110 tests / 0 fail / 0 error** (이전 Phase 9 R6 = 108, ISSUE-014 fix 시 LoginAttemptProductionIT 2 케이스 추가 → 110)
 
 ---
 
@@ -98,6 +113,11 @@
 - **TokenCleanupService 의 `@Transactional(rollbackFor = Exception::class)` Kotlin 시그니처 미숙** — Kotlin 의 annotation `KClass[]` 인자는 `[Exception::class]` 형식. 기존 5 service 가 모두 `[Exception::class]` 패턴 박혀있었는데 본 라운드 작성 시점에 단일 값 시도 → 컴파일 fail. 회피 가능했던 시점: 다른 service 의 패턴 grep 1회 후 작성. 본 어긋남은 직접 fix (1 라운드 추측 → 1 라운드 검증 → 1 라운드 grep + fix).
 - **spec 명시 ProjectControllerWebTest vs 실제 ProjectControllerIT 파일명** — tasks.md 박힘 시점 (2026-05-22) 의 추측. 본 라운드 진행 시점에 실제 파일명 확인 후 실제 코드 정합. tasks 산출 시점 추측이 본 라운드 진행 시점에 노출됨 — `agent-workflow-discipline.md` §5 의 "본질 정의 문서의 실제 정합성 검증" 영역. 회피 가능했던 시점: tasks.md 작성 시점에 `grep -l ProjectController` 1회.
 - **Bash cwd persist 가정 어긋남** — 첫 `cd backend &&` 호출 후 2번째 호출에서 또 `cd backend` 시도 → `no such file or directory`. 본 라운드에서 2회 시행착오. 회피 = `cd /absolute/path && ./gradlew ...` 패턴 또는 cwd 추적 self-check.
+
+### ISSUE-014 fix 라운드 추가 어긋남 (commit `2978c75`)
+
+- **REQUIRES_NEW 단독 박은 후 IT 6분+ hang — deadlock 발견**: 처음 옵션 1 (`recordFailure` REQUIRES_NEW) 만 박은 후 IT 실행 시 무한 hang. 원인 = `AuthService.login` `findByEmailForUpdate` 가 user row PESSIMISTIC_WRITE lock A 박음 → recordFailure REQUIRES_NEW 가 새 트랜잭션 + 같은 user 의 PESSIMISTIC_WRITE lock B 시도 → **deadlock**. 추가 fix = AuthService.login `findByEmailForUpdate` → `findByEmail` (R-5 정합 회복). 회피 가능했던 시점: Phase 6 R2 (LoginAttemptService 작성) 시 R-5 의 "**로그인 시도 결과 갱신**만 pessimistic lock" 정확 인용 + AuthService.login 의 lock 책임 분리 명시.
+- **5 fail 회귀 발견** — REQUIRES_NEW 박힌 후 회귀 게이트 실행 시 LoginLockoutWebTest 2 + LoginAttemptServiceIT 3 fail. 근본 원인 = 두 IT 모두 클래스 레벨 `@Transactional` 박혀서 user fixture 가 uncommitted state → REQUIRES_NEW 의 별도 트랜잭션이 user 못 찾아 silent return. 두 IT `@Transactional` 폐기 + `@AfterEach` cleanup 박은 후 GREEN. 회피 가능했던 시점: Phase 6 작성 시점에 본 패턴 — "클래스 레벨 `@Transactional` 박힌 IT 가 REQUIRES_NEW 동작 정확 모사 X" 룰 박혀 있었더라면.
 
 ### Phase 1B 전체 누적 어긋남 (이전 라운드 + 본 라운드)
 
@@ -156,5 +176,20 @@
   > - 단일 명령 chain (`&&` 으로 연쇄)
   > - cwd self-check (`pwd` 결과 활용)
 - 근거 회귀 사례: 2026-05-24 본 회고 §4 Bash cwd 2회 시행착오.
+
+**후보 4** (신규 — ISSUE-014 fix 라운드): 클래스 레벨 `@Transactional` 폐기 의무 — production stack 정합 검증 영역
+
+- 갱신 대상: `~/.claude/rules/kotlin/spring/jpa-test-patterns.md` (글로벌 룰)
+- 룰 본문 (추가):
+  > **클래스 레벨 `@Transactional` 폐기 의무 — production stack 정합 검증 영역**: 다음 영역의 IT 작성 시 클래스 레벨 `@Transactional` 박지 X — test 트랜잭션이 production 트랜잭션 흐름 정확 모사 X.
+  > - `@Transactional(propagation = REQUIRES_NEW)` 메서드 호출 흐름
+  > - `@TransactionalEventListener(AFTER_COMMIT)` 이벤트 발행 흐름
+  > - 호출자 트랜잭션 rollback 시 별도 트랜잭션 변경 commit 박는 영역
+  > - 동시 다중 트랜잭션 lock contention
+  >
+  > 격리 패턴: UUID fixture + `@AfterEach` repository.deleteById + FK CASCADE 활용.
+  >
+  > 회귀 사례 (2026-05-24): `LoginLockoutWebTest` 가 클래스 레벨 `@Transactional` 박힌 채 5회 fail → 6번째 LOGIN_LOCKED 검증 → GREEN. 그러나 production stack 에서 동일 시나리오 = 6번째 200 통과 (잠금 정책 무력화, ISSUE-014). 본 회귀를 test 자동화가 못 잡은 첫 신호 = T076 dogfooding 시뮬레이션.
+- 근거 회귀 사례: 2026-05-24 ISSUE-014 LoginAttempt 잠금 production 회귀 + 회고 §4 "ISSUE-014 fix 라운드 추가 어긋남".
 
 **사용자 컨펌 전까지 실제 룰 파일 수정 금지.**

@@ -1,7 +1,7 @@
 # write-note V1 — 작업 진척도
 
 **최종 갱신:** 2026-05-24
-**상태:** 003 Phase 1B Backend Auth — 80 task 중 **74 완료 (92.5%)**. Phase 8 (US6 본인 정보 조회 + 임시 owner 헤더 정리) GREEN + Phase 9 R1 (TokenCleanupService + OpenAPI annotation + yml 정합) GREEN. 다음 = Phase 9 R2~R6 (docs/회고/V3+V4 마이그레이션 적용/curl 시뮬레이션/단일 검증 게이트)
+**상태:** 003 Phase 1B Backend Auth — 80 task 중 **80 완료 (100%)** + ISSUE-014 fix (`2978c75`). T080 단일 검증 게이트 110/0/0 BUILD SUCCESSFUL. **본 spec 자동화 + production stack 정합 모두 GREEN**. 다음 = 사용자 결정 영역 (develop merge / 002 dogfooding / 회고 룰 갱신 후보 4건 컨펌 / Week 2 진입)
 **SoT 진입점:** 다음 세션 진입 시 본 문서 + [00-stack-and-schedule.md](./00-stack-and-schedule.md) + [01-phase-breakdown.md](./01-phase-breakdown.md) + [specs/003-phase-1b-backend-auth/](../../specs/003-phase-1b-backend-auth/) 정독 + 외부 vault [[02-PROGRESS]] / [[03-ISSUES]] 동기 확인
 
 ---
@@ -114,9 +114,10 @@ cd backend
 | Phase 6 US4 R1~R4 | 5회 실패 + 30분 잠금 — LoginAttemptService + IT 4 케이스 (TDD HARD-GATE) + LoginAttemptFilter + CachedBodyHttpServletRequest + SecurityConfig + AuthService.login 결선 + LoginLockoutWebTest 2 케이스 (T054~T058). 의외 결정: Spring `ContentCachingRequestWrapper` 한계 발견 → 커스텀 wrapper (research.md R-16) | `7893268` |
 | Phase 7 US5 R1~R6 | 이메일 ↔ 카카오 추가 연결 — DTO 3종 (LinkEmailRequest / LinkKakaoStateRequest session wrapper / LinkEmailResponse) + AccountLinkService + IT 6 케이스 (TDD HARD-GATE) + KakaoConflictChecker.evaluateForLink + KakaoOAuth2UserService link flow 분기 + OAuth2SuccessHandler link flow 분기 + AuthController 2 endpoint + AccountLinkWebTest 4 케이스 (T059~T064). 본질 결정: HttpSession attribute (`writeNote.linkKakao`) 박음 — STATELESS 정책 위에 OAuth state 보관용 session 재사용 | `ab93d03` |
 | Phase 8 US6 R1~R4 | US6 본인 정보 조회 + X-User-Id 임시 헤더 정리 — T065 UserAuthConverter 이미 정합 확인 (변경 없음, kakaoLinked + activeApiTokenCount=0) + T066 ProjectController 5 endpoint `@AuthenticationPrincipal AuthenticatedPrincipal` 교체 + T067 ProjectControllerIT JWT 헤더 (`Authorization: Bearer`) 패턴 교체 + T068 ProjectControllerOwnerCleanupTest 5 케이스 신설 (TDD HARD-GATE: 인증 200 / 비인증 401 AUTH_TOKEN_MISSING / X-User-Id 변조 무시 / cross-user 404 / DTO body userId 변조 무시) + T069 DTO userId 필드 부재 확인 (Create/UpdateProjectRequest 이미 title 만) + T070 SC-008 `grep -rn X-User-Id backend/src/main/` = 0 line 달성 + T071 SecurityConfig `/api/projects/**` 명시 보호 박음. **ISSUE-010 (a) 자연 해결** | `0b54aaa` |
-| Phase 9 R1 | Polish — T072 TokenCleanupService 신설 + 단위 테스트 1 케이스 (Repository mock 호출 검증) + `@EnableScheduling` BackendApplication 박음 + `@Scheduled(cron = "0 0 0 * * *")` 매일 자정 cleanup + T073 OpenAPI annotation (`@Tag` / `@Operation` / `@SecurityRequirement(BearerJwt)`) AuthController 10 endpoint + ProjectController 5 endpoint 보강 + T074 application*.yml profile 정합 확인 (local/test/prod 갱신 없음, 외부 배포 X 사용자 명시) | (본 라운드 commit 예정) |
+| Phase 9 R1~R6 Polish | T072 TokenCleanupService + 단위 테스트 + `@Scheduled(cron = "0 0 0 * * *")` 매일 자정 + `@EnableScheduling` + T073 OpenAPI annotation (`@Tag` / `@Operation` / `@SecurityRequirement(BearerJwt)`) AuthController 10 endpoint + ProjectController 5 endpoint + T074 yml 정합 확인 (외부 배포 X 사용자 명시, 변경 없음) + T077 본 docs 갱신 + T078 03-backend §6 skip (의외 결정 §1~§5 변경 없음) + T079 5축 회고 + T075 V3+V4 마이그레이션 적용 검증 (`\d users` / `\d auth_tokens` 정합) + T076 dogfooding 시뮬레이션 (6-1 GREEN, 6-2 FAIL → ISSUE-014 발견) + T080 단일 검증 게이트 108/0/0 BUILD SUCCESSFUL. **단 ISSUE-014 LoginAttempt production 회귀 별도 트랙 surfacing** | `168ed0a` |
+| ISSUE-014 fix | LoginAttempt 잠금 production 회귀 fix — `LoginAttemptService.recordFailure` `@Transactional(propagation = Propagation.REQUIRES_NEW)` 박음 + **추가 fix (R-5 정합 회복)**: `AuthService.login` `findByEmailForUpdate` → `findByEmail` (lock 책임 recordFailure 단독, REQUIRES_NEW 시 같은 user row 이중 lock deadlock 회피) + `LoginAttemptProductionIT` 신설 (비-transactional + `@AfterEach` cleanup, production stack 정합) + `LoginLockoutWebTest` + `LoginAttemptServiceIT` 클래스 레벨 `@Transactional` 폐기 + `@AfterEach` cleanup. T080 110/0/0 BUILD SUCCESSFUL | `2978c75` |
 
-**진척 합산:** 80 task 중 74 완료 (92.5%). 미진행 = Phase 9 R2~R6 (T075 마이그레이션 적용 / T076 curl 시뮬레이션 / T077 본 docs 갱신 / T078 03-backend-requirements §6 / T079 5축 회고 / T080 단일 검증 게이트).
+**진척 합산:** 80 task 중 80 완료 (100%) + ISSUE-014 fix. 본 spec 자동화 + production stack 정합 모두 GREEN.
 
 ### 회고 / 룰 (본 세션 누적)
 
@@ -156,24 +157,19 @@ e808d36 chore: docker-compose + README
 
 ---
 
-## 3. 다음 진입점 — 003 Phase 9 R2~R6 (마이그레이션 적용 + dogfooding + 회고 + 단일 검증 게이트)
+## 3. 다음 진입점 — 사용자 결정 영역 (본 spec 자동화 + ISSUE-014 fix 모두 GREEN)
 
-Phase 8 + Phase 9 R1 GREEN. 다음 진입점 = Phase 9 R2~R6. 002 dogfooding 트랙은 보류 (vault [[03-ISSUES]] ISSUE-001).
+003 Phase 1B Backend Auth 본 spec 산출물 100% GREEN + ISSUE-014 (LoginAttempt production 회귀) fix `2978c75`. T080 단일 검증 게이트 110/0/0 BUILD SUCCESSFUL.
 
-### Phase 9 R2~R6 — Polish 마무리 (T075~T080, 6 task)
+남은 영역 = 사용자 결정 영역 (자동 진행 금지):
 
-| task | 영역 | 의존 / 비고 |
+| 영역 | 우선순위 | 비고 |
 |---|---|---|
-| T077 | 본 docs §1 + §3 갱신 (Phase 8 + Phase 9 R1 entry + 다음 진입점) | 본 라운드 진행 중 |
-| T078 | `docs/plan/03-backend-requirements.md` §6 변경 이력 — 의외 결정 발견 시 행 추가 (없으면 skip) | 본 라운드 진행 중 |
-| T075 | V3 + V4 마이그레이션 적용 — `docker compose up -d --wait postgres` + `./gradlew bootRun --args='--spring.profiles.active=local'` + `\d users` / `\d auth_tokens` verification | 사용자 컨펌 = "외부 배포 X, 로컬 개발 수준" 박힘 (external-infra-safety §1 예외) |
-| T076 | quickstart §6 curl 12 endpoint 시뮬레이션 — bootRun 백그라운드 + curl + envelope shape 검증 + bootRun 종료 | T075 의존 |
-| T079 | 5축 회고 — `docs/retrospectives/2026-05-24-phase-1b-backend-auth.md` (Spring CCRW 한계 / HttpSession attribute / pessimistic lock 결정 / ISSUE-010~013 박음) | retrospective skill |
-| T080 | 단일 검증 게이트 GREEN (SC-009) — `./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` 1회 | 본 spec 자동화 완료 신호 |
-
-**의존 빈 (이미 박힘):**
-- T028 `AuthenticatedPrincipal`, T037 `UserAuthConverter`, T022 `AuthTokenRepository.cleanupExpiredAndUsed`
-- ISSUE-010 (a) ProjectControllerIT 8 fail — Phase 8 에서 자연 해결 완료 ✅
+| (a) `003-phase-1b-backend-auth` → `develop` merge | 🟢 권장 | ISSUE-014 fix 박힌 상태로 merge GREEN. 002 dogfooding 트랙 (트랙 A) 보류 영역과 무관 |
+| (b) 002 dogfooding 5 영역 | 🟡 003 마무리 후 | 다크 모드 / 시스템 테마 / placeholder query / 1:1 시각 비교 / PWA 홈 화면 — 본인 환경 의존 |
+| (c) 회고 §5-2 룰 갱신 후보 컨펌 (총 4건) | 🟡 별도 트랙 | (1) Kotlin annotation 배열 패턴 grep / (2) tasks.md 추측 정합 검증 / (3) Bash cwd 절대 경로 prefix / (4) **신규** `jpa-test-patterns.md` 클래스 레벨 `@Transactional` 폐기 의무 |
+| (d) Week 2 진입 (Project / Character CRUD 확장) | 🟡 본 spec 마무리 후 | `docs/plan/01-phase-breakdown.md` Week 2 영역 |
+| (e) frontend X-User-Id 헤더 자동 주입 제거 | 🟡 별도 spec | `contracts/owner-context-migration.md` §6 — 본 spec 외부 영역 |
 
 ### 002 dogfooding 트랙 (보류 — vault ISSUE-001)
 
