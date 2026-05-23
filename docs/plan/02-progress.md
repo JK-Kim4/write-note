@@ -1,7 +1,7 @@
 # write-note V1 — 작업 진척도
 
 **최종 갱신:** 2026-05-24
-**상태:** 003 Phase 1B Backend Auth — 80 task 중 **64 완료 (80%)**. Phase 7 (US5 이메일 ↔ 카카오 추가 연결) GREEN. 다음 = Phase 8 (US6 본인 정보 조회 + 임시 owner 헤더 정리)
+**상태:** 003 Phase 1B Backend Auth — 80 task 중 **74 완료 (92.5%)**. Phase 8 (US6 본인 정보 조회 + 임시 owner 헤더 정리) GREEN + Phase 9 R1 (TokenCleanupService + OpenAPI annotation + yml 정합) GREEN. 다음 = Phase 9 R2~R6 (docs/회고/V3+V4 마이그레이션 적용/curl 시뮬레이션/단일 검증 게이트)
 **SoT 진입점:** 다음 세션 진입 시 본 문서 + [00-stack-and-schedule.md](./00-stack-and-schedule.md) + [01-phase-breakdown.md](./01-phase-breakdown.md) + [specs/003-phase-1b-backend-auth/](../../specs/003-phase-1b-backend-auth/) 정독 + 외부 vault [[02-PROGRESS]] / [[03-ISSUES]] 동기 확인
 
 ---
@@ -112,9 +112,11 @@ cd backend
 | Phase 4 US2 R5 + 회귀 정리 | T046 AuthOauthCallbackWebTest 3 케이스 + ISSUE-010 부분 fix (AuthTokenRepositoryIT cleanup JPQL named-param + ResponseContractIT addFilters=false) + mockito-kotlin 5.4.0 의존성 + research.md R-3 갱신 | `cad583c` |
 | Phase 5 US3 R1~R5 | 비밀번호 재설정 — 2 DTO + Event + Listener + PasswordResetService + IT 6 케이스 (TDD HARD-GATE) + AuthController 2 endpoint + AuthPasswordResetWebTest 5 케이스 (T047~T053) | `2864ec6` |
 | Phase 6 US4 R1~R4 | 5회 실패 + 30분 잠금 — LoginAttemptService + IT 4 케이스 (TDD HARD-GATE) + LoginAttemptFilter + CachedBodyHttpServletRequest + SecurityConfig + AuthService.login 결선 + LoginLockoutWebTest 2 케이스 (T054~T058). 의외 결정: Spring `ContentCachingRequestWrapper` 한계 발견 → 커스텀 wrapper (research.md R-16) | `7893268` |
-| Phase 7 US5 R1~R6 | 이메일 ↔ 카카오 추가 연결 — DTO 3종 (LinkEmailRequest / LinkKakaoStateRequest session wrapper / LinkEmailResponse) + AccountLinkService + IT 6 케이스 (TDD HARD-GATE) + KakaoConflictChecker.evaluateForLink + KakaoOAuth2UserService link flow 분기 + OAuth2SuccessHandler link flow 분기 + AuthController 2 endpoint + AccountLinkWebTest 4 케이스 (T059~T064). 본질 결정: HttpSession attribute (`writeNote.linkKakao`) 박음 — STATELESS 정책 위에 OAuth state 보관용 session 재사용 | (본 라운드 commit 예정) |
+| Phase 7 US5 R1~R6 | 이메일 ↔ 카카오 추가 연결 — DTO 3종 (LinkEmailRequest / LinkKakaoStateRequest session wrapper / LinkEmailResponse) + AccountLinkService + IT 6 케이스 (TDD HARD-GATE) + KakaoConflictChecker.evaluateForLink + KakaoOAuth2UserService link flow 분기 + OAuth2SuccessHandler link flow 분기 + AuthController 2 endpoint + AccountLinkWebTest 4 케이스 (T059~T064). 본질 결정: HttpSession attribute (`writeNote.linkKakao`) 박음 — STATELESS 정책 위에 OAuth state 보관용 session 재사용 | `ab93d03` |
+| Phase 8 US6 R1~R4 | US6 본인 정보 조회 + X-User-Id 임시 헤더 정리 — T065 UserAuthConverter 이미 정합 확인 (변경 없음, kakaoLinked + activeApiTokenCount=0) + T066 ProjectController 5 endpoint `@AuthenticationPrincipal AuthenticatedPrincipal` 교체 + T067 ProjectControllerIT JWT 헤더 (`Authorization: Bearer`) 패턴 교체 + T068 ProjectControllerOwnerCleanupTest 5 케이스 신설 (TDD HARD-GATE: 인증 200 / 비인증 401 AUTH_TOKEN_MISSING / X-User-Id 변조 무시 / cross-user 404 / DTO body userId 변조 무시) + T069 DTO userId 필드 부재 확인 (Create/UpdateProjectRequest 이미 title 만) + T070 SC-008 `grep -rn X-User-Id backend/src/main/` = 0 line 달성 + T071 SecurityConfig `/api/projects/**` 명시 보호 박음. **ISSUE-010 (a) 자연 해결** | `0b54aaa` |
+| Phase 9 R1 | Polish — T072 TokenCleanupService 신설 + 단위 테스트 1 케이스 (Repository mock 호출 검증) + `@EnableScheduling` BackendApplication 박음 + `@Scheduled(cron = "0 0 0 * * *")` 매일 자정 cleanup + T073 OpenAPI annotation (`@Tag` / `@Operation` / `@SecurityRequirement(BearerJwt)`) AuthController 10 endpoint + ProjectController 5 endpoint 보강 + T074 application*.yml profile 정합 확인 (local/test/prod 갱신 없음, 외부 배포 X 사용자 명시) | (본 라운드 commit 예정) |
 
-**진척 합산:** 80 task 중 58 완료 (72.5%). 미진행 = Phase 7 / 8 / 9 (22 task).
+**진척 합산:** 80 task 중 74 완료 (92.5%). 미진행 = Phase 9 R2~R6 (T075 마이그레이션 적용 / T076 curl 시뮬레이션 / T077 본 docs 갱신 / T078 03-backend-requirements §6 / T079 5축 회고 / T080 단일 검증 게이트).
 
 ### 회고 / 룰 (본 세션 누적)
 
@@ -154,32 +156,24 @@ e808d36 chore: docker-compose + README
 
 ---
 
-## 3. 다음 진입점 — 003 Phase 8 (US6 본인 정보 조회 + 임시 owner 헤더 정리)
+## 3. 다음 진입점 — 003 Phase 9 R2~R6 (마이그레이션 적용 + dogfooding + 회고 + 단일 검증 게이트)
 
-003 Phase 1~7 GREEN. 다음 진입점 = Phase 8. 002 dogfooding 트랙은 보류 (vault [[03-ISSUES]] ISSUE-001).
+Phase 8 + Phase 9 R1 GREEN. 다음 진입점 = Phase 9 R2~R6. 002 dogfooding 트랙은 보류 (vault [[03-ISSUES]] ISSUE-001).
 
-### Phase 8 — US6 본인 정보 조회 + 임시 owner 헤더 정리 (T065~T071, 7 task)
+### Phase 9 R2~R6 — Polish 마무리 (T075~T080, 6 task)
 
-| task | 영역 | LOC 추정 | TDD |
-|---|---|---|---|
-| T065 | UserAuthConverter 갱신 — kakaoLinked + activeApiTokenCount=0 | ~20 | — |
-| T066 | ProjectController 갱신 — X-User-Id → @AuthenticationPrincipal 교체 (6 endpoint) | ~80 | — |
-| T067 | ProjectControllerWebTest 갱신 — JWT 헤더 패턴 교체 | ~80 | — |
-| T068 | ProjectControllerOwnerCleanupTest 신설 — owner 변조 무시 5 케이스 | ~200 | HARD-GATE |
-| T069 | DTO 정리 — Create/UpdateProjectRequest 의 userId 필드 제거 | ~20 | — |
-| T070 | SC-008 검증 — `grep -rn "X-User-Id" backend/src/main/` 0 line | — | — |
-| T071 | SecurityConfig 갱신 — `/api/projects/**` 명시 보호 | ~10 | — |
+| task | 영역 | 의존 / 비고 |
+|---|---|---|
+| T077 | 본 docs §1 + §3 갱신 (Phase 8 + Phase 9 R1 entry + 다음 진입점) | 본 라운드 진행 중 |
+| T078 | `docs/plan/03-backend-requirements.md` §6 변경 이력 — 의외 결정 발견 시 행 추가 (없으면 skip) | 본 라운드 진행 중 |
+| T075 | V3 + V4 마이그레이션 적용 — `docker compose up -d --wait postgres` + `./gradlew bootRun --args='--spring.profiles.active=local'` + `\d users` / `\d auth_tokens` verification | 사용자 컨펌 = "외부 배포 X, 로컬 개발 수준" 박힘 (external-infra-safety §1 예외) |
+| T076 | quickstart §6 curl 12 endpoint 시뮬레이션 — bootRun 백그라운드 + curl + envelope shape 검증 + bootRun 종료 | T075 의존 |
+| T079 | 5축 회고 — `docs/retrospectives/2026-05-24-phase-1b-backend-auth.md` (Spring CCRW 한계 / HttpSession attribute / pessimistic lock 결정 / ISSUE-010~013 박음) | retrospective skill |
+| T080 | 단일 검증 게이트 GREEN (SC-009) — `./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` 1회 | 본 spec 자동화 완료 신호 |
 
 **의존 빈 (이미 박힘):**
-- T028 `AuthenticatedPrincipal` (JWT principal)
-- T037 `UserAuthConverter` (User → AuthMeResponse)
-- ISSUE-010 의 ProjectControllerIT 8 fail 본 Phase 에서 자연 해결
-
-### 미진행 Phase 9 (Phase 8 종료 후)
-
-| Phase | 영역 | 비고 |
-|---|---|---|
-| Phase 9 | Polish & Cross-Cutting (TokenCleanupService + OpenAPI + dogfooding + 회고 + T080 단일 검증 게이트) | T072~T080 |
+- T028 `AuthenticatedPrincipal`, T037 `UserAuthConverter`, T022 `AuthTokenRepository.cleanupExpiredAndUsed`
+- ISSUE-010 (a) ProjectControllerIT 8 fail — Phase 8 에서 자연 해결 완료 ✅
 
 ### 002 dogfooding 트랙 (보류 — vault ISSUE-001)
 
@@ -246,13 +240,13 @@ Users
 | 002 dogfooding 5 영역 미완료 | ISSUE-001 | 003 마무리 후 |
 | 003 Phase 4~9 진행 중 (Phase 1~6 GREEN, Phase 7 진입 대기) | ISSUE-002 | 진행 |
 | `frontend/AGENTS.md` 의 docs 정독 경고 — 실제 디렉토리 부재 | ISSUE-003 | 별도 트랙 |
-| 임시 `X-User-Id` 헤더 — Phase 8 에서 회수 의무 | ISSUE-004 | 003 Phase 8 |
+| 임시 `X-User-Id` 헤더 — Phase 8 에서 회수 완료 (`0b54aaa`) | ISSUE-004 ✅ | 완료 |
 | Kotlin 2.3.x 의 Java 25 JVM target 지원 검증 | ISSUE-005 | V2 후보 |
 | main 워크트리 untracked 정리 (`.claude/`, `.specify/`, `CLAUDE.md`) | ISSUE-006 | 별도 트랙 |
 | Phase 0 전체 회고 미수행 | ISSUE-007 | 별도 트랙 |
 | 본 세션 전체 통합 회고 (BE Supabase / gh / Spring Initializr / Next.js 16) | ISSUE-008 | 별도 트랙 |
 | 본 vault ↔ 본 repo 02-progress 동기 정책 | ISSUE-009 | 별도 트랙 |
-| 003 Phase 3 회귀 게이트 누락 — 9 test 영구 fail (2 fix / 1 묵인 Phase 8 자연 해결) | ISSUE-010 | 부분 완료 |
+| 003 Phase 3 회귀 게이트 누락 — 9 test 영구 fail (2 fix Phase 4 / 1 자연 해결 Phase 8 `0b54aaa`) | ISSUE-010 ✅ | 완료 |
 | AuthTokenRepositoryIT stale committed row 환경 결함 | ISSUE-012 | 별도 트랙 |
 | Spring `ContentCachingRequestWrapper` 한계 — 커스텀 wrapper 박음 | ISSUE-013 | 완료 (참고용) |
 
