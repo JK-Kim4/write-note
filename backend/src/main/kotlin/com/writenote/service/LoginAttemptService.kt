@@ -2,6 +2,7 @@ package com.writenote.service
 
 import com.writenote.repository.UserRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import java.time.Duration
 import java.time.Instant
@@ -18,8 +19,13 @@ class LoginAttemptService(
      * 3. count++ + 5회 도달 시 lockout_until = now + 30min
      *
      * 사용자 미존재 시 silent return — 이메일 존재 여부 노출 회피.
+     *
+     * **트랜잭션 propagation = REQUIRES_NEW** (ISSUE-014 fix). 호출자 (AuthService.login)
+     * 가 `@Transactional` 안에서 본 메서드 호출 후 `throw AuthException(LOGIN_FAILED)` 시
+     * 호출자 트랜잭션 rollback 박혀도 본 메서드의 user 변경 사항은 별도 트랜잭션에서
+     * 이미 commit. failed_login_count 누적 + lockout_until 박힘이 DB 에 영구화.
      */
-    @Transactional(rollbackFor = [Exception::class])
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = [Exception::class])
     fun recordFailure(email: String) {
         val user = userRepository.findByEmailForUpdate(email) ?: return
         val currentLockout = user.lockoutUntil

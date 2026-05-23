@@ -118,18 +118,22 @@ class AuthService(
     /**
      * 이메일·비밀번호 로그인 (FR-007 ~ FR-009, FR-013 ~ FR-015).
      *
-     * 1. 비밀번호 검증 (findByEmailForUpdate — pessimistic lock, FR-038)
-     * 2. 실패 시 LoginAttemptService.recordFailure (count++ + 5회 도달 시 lockout)
+     * 1. user 조회 (findByEmail — lock 없음. pessimistic lock 은 R-5 정합으로 recordFailure/recordSuccess 단독)
+     * 2. 비밀번호 검증 — 실패 시 LoginAttemptService.recordFailure (REQUIRES_NEW + lock, count++)
      * 3. 이메일 인증 여부 검증
-     * 4. 성공 시 LoginAttemptService.recordSuccess (count=0 + lastLoginAt 갱신)
+     * 4. 성공 시 LoginAttemptService.recordSuccess (lock, count=0 + lastLoginAt 갱신)
      * 5. REFRESH 토큰 INSERT
      *
      * 잠금 상태 검증 자체는 LoginAttemptFilter 가 controller 진입 전 차단.
+     *
+     * **ISSUE-014 fix**: 본 메서드 자체가 user row 를 lock 박지 않음 — recordFailure 의
+     * REQUIRES_NEW (새 트랜잭션 + 같은 user row PESSIMISTIC_WRITE) 와 deadlock 회피.
+     * R-5 결정 = "로그인 시도 결과 갱신은 row-level pessimistic lock" — 본 spec 정합 회복.
      */
     @Transactional(rollbackFor = [Exception::class])
     fun login(request: LoginRequest): TokenPairResponse {
         val user =
-            userRepository.findByEmailForUpdate(request.email)
+            userRepository.findByEmail(request.email)
                 ?: throw AuthException(AuthErrorCode.LOGIN_FAILED)
         val passwordHash =
             user.passwordHash
