@@ -43,6 +43,27 @@
 - 인터페이스 구현 멤버는 인터페이스 선언 순서대로. 오버로드 인접 배치
 - 팩토리 함수 > 복잡한 오버로드 생성자
 
+## Annotation 인자
+
+### 배열 인자 (`KClass[]`) 일관성
+
+Kotlin annotation 의 배열 인자 (`@Transactional(rollbackFor = ...)`, `@Scheduled`, `@ConditionalOnProperty(name = ...)`, `@SpringBootTest(classes = ...)` 등) 박을 때:
+
+- Kotlin 문법 = `[X::class]` 형식. 단일 값이라도 배열 brackets 의무 (`rollbackFor = Exception::class` 는 컴파일 fail — `Argument type mismatch: actual type is 'KClass<Exception>', but 'Array<KClass<out Throwable>>' was expected`)
+- 새 클래스 작성 전 기존 service grep 1회 의무 — `grep -rn "rollbackFor\|@Scheduled" backend/src/main/kotlin/` 으로 패턴 정합
+
+```kotlin
+// 잘못된 예 — Kotlin 컴파일 fail
+@Transactional(rollbackFor = Exception::class)
+
+// 올바른 예
+@Transactional(rollbackFor = [Exception::class])
+```
+
+회피 가능 시점: 신규 service 작성 시 ktlint 또는 build 진입 전 grep 1회.
+
+회귀 사례 (2026-05-24): TokenCleanupService (Phase 9 R1) 컴파일 fail. 5 service (AuthService / LoginAttemptService / PasswordResetService / AccountLinkService 등) 가 모두 `[Exception::class]` 박혔는데 신규 service 가 단일 값 시도 → fail → grep 후 fix.
+
 ## 문자열 / 파일
 
 - 템플릿 `"$name"` > concatenation, 멀티라인은 `"""...""".trimIndent()`

@@ -193,3 +193,16 @@
 - 근거 회귀 사례: 2026-05-24 ISSUE-014 LoginAttempt 잠금 production 회귀 + 회고 §4 "ISSUE-014 fix 라운드 추가 어긋남".
 
 **사용자 컨펌 전까지 실제 룰 파일 수정 금지.**
+
+---
+
+### 룰 갱신 컨펌 박힘 (2026-05-24)
+
+사용자 명시 컨펌 "go" — 4 후보 모두 갱신 적용.
+
+| 후보 | 적용 파일 | 위치 |
+|---|---|---|
+| 1 Kotlin annotation 배열 인자 | `.claude/rules/kotlin/code-quality.md` | `## Annotation 인자` 섹션 신설 |
+| 2 tasks.md 추측 정합 검증 | `.claude/rules/shared/agent-workflow-discipline.md` | `## 6.` 신설 |
+| 3 Bash cwd persist 의존 금지 | `~/.claude/rules/shared/long-running-bash.md` | `## Bash cwd persist 의존 금지` 신설 |
+| 4 클래스 레벨 `@Transactional` 폐기 의무 | `~/.claude/rules/kotlin/spring/jpa-test-patterns.md` | `## 3.` 신설 (기존 `## 3. Testcontainers vs docker-compose` 가 `## 4.` 로 swap) |
