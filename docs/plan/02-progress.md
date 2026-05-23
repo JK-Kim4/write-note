@@ -129,7 +129,7 @@ cd backend
 |---|---|
 | `main` | `53810cd` (변경 0 — 옵션 B 원칙) |
 | `develop` | `6eee578` (002 merge 까지) |
-| 현재 브랜치 | `003-phase-1b-backend-auth` (develop 분기, Phase 7 commit 박은 후 갱신) |
+| 현재 브랜치 | `003-phase-1b-backend-auth` (develop 분기, `ab93d03` 까지 origin 동기) |
 | 원격 | `origin/main`, `origin/develop`, `origin/003-phase-1b-backend-auth` 모두 push 완료 |
 | 워크트리 | 메인 1개 |
 | 활성 feature 브랜치 | `003-phase-1b-backend-auth` (진행 중) |
