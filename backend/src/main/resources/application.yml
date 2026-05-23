@@ -25,7 +25,7 @@ spring:
             client-secret: ${KAKAO_CLIENT_SECRET:placeholder-set-real-via-env-in-prod}
             client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
-            redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080/login/oauth2/code/kakao}
+            redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080/api/auth/oauth/kakao/callback}
             scope:
               - profile_nickname
               - account_email

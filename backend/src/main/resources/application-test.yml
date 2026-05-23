@@ -15,7 +15,7 @@ spring:
           kakao:
             client-id: test-placeholder-not-used
             client-secret: test-placeholder-not-used
-            redirect-uri: http://localhost:0/test-callback
+            redirect-uri: http://localhost:0/api/auth/oauth/kakao/callback
             scope:
               - profile_nickname
               - account_email
@@ -26,5 +26,8 @@ app:
   auth:
     jwt:
       secret: d24tdGVzdC1kZXRlcm1pbmlzdGljLWp3dC0zMmJ5dGU=
+  frontend:
+    base-url: http://localhost:3000
   mail:
     mode: log
+    base-url: http://localhost:8080

@@ -3,6 +3,9 @@ package com.writenote.config
 import com.writenote.auth.ApiTokenAuthenticationFilter
 import com.writenote.auth.AuthErrorEntryPoint
 import com.writenote.auth.JwtAuthenticationFilter
+import com.writenote.auth.KakaoOAuth2UserService
+import com.writenote.auth.OAuth2FailureHandler
+import com.writenote.auth.OAuth2SuccessHandler
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
@@ -21,6 +24,9 @@ class SecurityConfig {
         authErrorEntryPoint: AuthErrorEntryPoint,
         jwtAuthenticationFilter: JwtAuthenticationFilter,
         apiTokenAuthenticationFilter: ApiTokenAuthenticationFilter,
+        kakaoOAuth2UserService: KakaoOAuth2UserService,
+        oauth2SuccessHandler: OAuth2SuccessHandler,
+        oauth2FailureHandler: OAuth2FailureHandler,
     ): SecurityFilterChain =
         http
             .csrf { csrf -> csrf.disable() }
@@ -54,6 +60,9 @@ class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**")
                     .permitAll()
+                    // 로그인 에러 페이지 (OAuth2FailureHandler 가 redirect) — Security 필터 외부 영역
+                    .requestMatchers(HttpMethod.GET, "/auth/login-error")
+                    .permitAll()
                     // 그 외 모든 보호 endpoint — JWT 필요
                     .anyRequest()
                     .authenticated()
@@ -61,10 +70,14 @@ class SecurityConfig {
                 handler.authenticationEntryPoint(authErrorEntryPoint)
             }.httpBasic { basic -> basic.disable() }
             .formLogin { form -> form.disable() }
-            // 임시 — US2 (Phase 4) 진입 시 oauth2Login 활성. 본 spec 진입 시점 placeholder client-id lazy fail 방지.
-            // TODO(#us2-kakao-oauth) US2: oauth2Login 활성 + KakaoOAuth2UserService 결선
-            .oauth2Login { oauth2 -> oauth2.disable() }
-            .addFilterBefore(apiTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .oauth2Login { oauth2 ->
+                oauth2
+                    .authorizationEndpoint { it.baseUri("/api/auth/oauth") }
+                    .redirectionEndpoint { it.baseUri("/api/auth/oauth/*/callback") }
+                    .userInfoEndpoint { it.userService(kakaoOAuth2UserService) }
+                    .successHandler(oauth2SuccessHandler)
+                    .failureHandler(oauth2FailureHandler)
+            }.addFilterBefore(apiTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .build()
 }
