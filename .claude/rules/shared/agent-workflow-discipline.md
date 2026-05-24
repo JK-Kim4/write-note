@@ -105,6 +105,34 @@ spec / implement 진입 시 본질 정의 문서 (`AGENTS.md`, `CLAUDE.md`, fram
 - 본 spec implement 는 docs 정독 없이 진행 가능 영역만 직접 (Phase 1~5 의 라우트 골격 + 정적 외관) + 추측 위험 영역 (server-client 경계 / 폰트 메타데이터) 은 즉시 발견 → fix
 - 회피 가능했던 시점: speckit-specify 또는 plan 단계의 research 에 `frontend/AGENTS.md` 의 인용 경로 실제 존재 검증 task 박았더라면
 
+## 6. tasks.md 명시 영역 (파일명 / endpoint 수 / 메서드 시그니처) — implement 진입 직전 실제 코드 grep 의무 (HARD-GATE)
+
+`tasks.md` 의 파일명 / endpoint 수 / 메서드 시그니처 명시는 **spec/plan 산출 시점 추측**이다. 산출 시점과 implement 시점 사이에 코드 변경 박힐 수 있고, spec 작성 시점에 정확 카운트 안 박힌 채 추정 박을 수 있다. implement 시점에 본 추측이 본질 결정 영역에 영향 미치면 회귀.
+
+### 회피 절차 (implement 진입 직전)
+
+1. `tasks.md` 에 명시된 모든 파일 이름 / endpoint 카운트 / 클래스 명을 발췌
+2. 다음 검증 명령 실행:
+   - `grep -l <ClassName> backend/src/main/kotlin backend/src/test/kotlin` — 실제 파일 존재 + 정확한 경로
+   - `grep -c "@\(Get\|Post\|Put\|Patch\|Delete\)Mapping" <ControllerFile>` — endpoint 수
+   - 신규 작성 영역: `find backend/src/main/kotlin -name "*<Suffix>*.kt"` — 동일 suffix 패턴 일관성
+3. 불일치 발견 시:
+   - 단순 파일명 오타 (`ProjectControllerWebTest` vs `ProjectControllerIT`) → 실제 코드 정합으로 진행 + tasks.md 갱신 (또는 회고 §4 어긋남 박음)
+   - endpoint 카운트 차이 ("6 endpoint" vs 실제 5) → 본 spec 의 본질 결정 영역 확인 (contracts 정독) + 실제 코드 정합으로 진행
+   - 시그니처 차이 (파라미터 수 / 타입) → spec 의 contracts 정독 + 본질 결정 영역 확인 + 사용자 컨펌
+
+### 적용 시점
+
+- `/speckit-implement` 또는 implement 진입 직전 첫 task 작업 전
+- 신규 라운드 진입 시 — 라운드의 의존 빈 / 산출물 명시 확인
+
+### 회귀 사례 — 2026-05-24 003 Phase 8
+
+- `tasks.md` T066 명시 "6 endpoint 모두" — 실제 `ProjectController` 5 endpoint (createProject / listProjects / getProject / updateProject / archiveProject)
+- `tasks.md` T067 명시 `ProjectControllerWebTest.kt` — 실제 파일명 `ProjectControllerIT.kt`
+- implement 진입 시점에 실제 코드 정합으로 진행 + 회고 §4 어긋남 박음. 큰 영향 없었으나 spec 추측 vs 실제 코드 격차가 본질 결정 영역에 잠재 영향
+- 회피 가능했던 시점: tasks.md 작성 시점 (speckit-tasks) 에 `grep -l ProjectController` + endpoint 카운트 1회
+
 ## 메타 — 본 룰의 누적 정책
 
 본 룰은 **회고 회귀 사례에서 도출** 된 항목을 누적한다. 새 항목 추가 절차:
