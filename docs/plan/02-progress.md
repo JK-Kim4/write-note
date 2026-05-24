@@ -1,7 +1,7 @@
 # write-note V1 — 작업 진척도
 
 **최종 갱신:** 2026-05-24
-**상태:** 003 Phase 1B Backend Auth — 80 task 중 **80 완료 (100%)** + ISSUE-014 fix (`2978c75`). T080 단일 검증 게이트 110/0/0 BUILD SUCCESSFUL. **본 spec 자동화 + production stack 정합 모두 GREEN**. 다음 = 사용자 결정 영역 (develop merge / 002 dogfooding / 회고 룰 갱신 후보 4건 컨펌 / Week 2 진입)
+**상태:** 003 Phase 1B Backend Auth **종료** — 80/80 + ISSUE-014 fix + 룰 갱신 4건. develop 동기 (`eb06b55`) + 브랜치 삭제. 다음 진입점 = 002 dogfooding 5 영역 또는 Week 2 (Project/Character CRUD 확장) — 사용자 결정 영역
 **SoT 진입점:** 다음 세션 진입 시 본 문서 + [00-stack-and-schedule.md](./00-stack-and-schedule.md) + [01-phase-breakdown.md](./01-phase-breakdown.md) + [specs/003-phase-1b-backend-auth/](../../specs/003-phase-1b-backend-auth/) 정독 + 외부 vault [[02-PROGRESS]] / [[03-ISSUES]] 동기 확인
 
 ---
@@ -131,11 +131,18 @@ cd backend
 | 항목 | 값 |
 |---|---|
 | `main` | `53810cd` (변경 0 — 옵션 B 원칙) |
-| `develop` | `6eee578` (002 merge 까지) |
-| 현재 브랜치 | `003-phase-1b-backend-auth` (develop 분기, `ab93d03` 까지 origin 동기) |
-| 원격 | `origin/main`, `origin/develop`, `origin/003-phase-1b-backend-auth` 모두 push 완료 |
+| `develop` | `eb06b55` (003 merge 2회 + 룰 갱신 follow-up 머지 박힘) |
+| 현재 브랜치 | `develop` (003 작업 종료 후 복귀) |
+| 원격 | `origin/main`, `origin/develop` push 완료. `origin/003-phase-1b-backend-auth` **삭제** (2026-05-24) |
 | 워크트리 | 메인 1개 |
-| 활성 feature 브랜치 | `003-phase-1b-backend-auth` (진행 중) |
+| 활성 feature 브랜치 | (없음 — 003 종료 + 브랜치 삭제) |
+
+### 003 Phase 1B Backend Auth 마무리 (2026-05-24)
+
+- 본 spec 모든 산출물 develop 동기 (`052ae33` 1차 머지 16 commits + `eb06b55` 2차 머지 1 commit)
+- 로컬 + 원격 `003-phase-1b-backend-auth` 브랜치 둘 다 삭제
+- ISSUE-014 fix (`2978c75`) 박힘 + T080 단일 검증 게이트 110/0/0 BUILD SUCCESSFUL
+- 회고 §5-2 룰 갱신 후보 4건 컨펌 후 적용 (`d092c2e` — 본 repo 2 / 글로벌 2)
 
 ### 본 세션 develop commit history (시간 순)
 
