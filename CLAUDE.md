@@ -94,7 +94,7 @@ V1 wireframe 완료, 구현 진입 전.
 <!-- SPECKIT START -->
 Current implementation plan:
 
-- [Phase 1B Backend Auth Foundation](specs/003-phase-1b-backend-auth/plan.md)
+- [Phase 2 Backend — Project Metadata & Character CRUD](specs/004-phase-2-backend-project-character/plan.md)
 
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan above.
