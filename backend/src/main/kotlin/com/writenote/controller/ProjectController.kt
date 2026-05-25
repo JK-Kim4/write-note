@@ -14,6 +14,7 @@ import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -41,32 +42,53 @@ class ProjectController(
             .body(Result.success(projectService.createProject(principal.userId, request)))
 
     @GetMapping
-    @Operation(summary = "프로젝트 목록", description = "본인 프로젝트 (archived = false) 페이지네이션 조회")
+    @Operation(summary = "프로젝트 목록", description = "?archived=false (활성, default) / true (보관함) 분리 조회")
     fun listProjects(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @RequestParam(defaultValue = "false") archived: Boolean,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
-    ): Result<PageResponse<ProjectResponse>> = Result.success(projectService.listProjects(principal.userId, page, size))
+    ): Result<PageResponse<ProjectResponse>> = Result.success(projectService.listProjects(principal.userId, page, size, archived))
 
     @GetMapping("/{projectId}")
-    @Operation(summary = "프로젝트 단건 조회", description = "본인 프로젝트만. 다른 사용자 리소스 접근 시 404 NOT_FOUND")
+    @Operation(summary = "프로젝트 단건 조회", description = "본인 프로젝트만 (보관 상태 무관). 다른 사용자 리소스 접근 시 404 NOT_FOUND")
     fun getProject(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable projectId: Long,
     ): Result<ProjectResponse> = Result.success(projectService.getProject(principal.userId, projectId))
 
     @PatchMapping("/{projectId}")
-    @Operation(summary = "프로젝트 제목 수정", description = "본인 프로젝트만 (archived = false)")
+    @Operation(summary = "프로젝트 메타 부분 수정", description = "본인 프로젝트만. null 필드는 미변경, 명시값은 갱신")
     fun updateProject(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable projectId: Long,
         @Valid @RequestBody request: UpdateProjectRequest,
     ): Result<ProjectResponse> = Result.success(projectService.updateProject(principal.userId, projectId, request))
 
-    @PatchMapping("/{projectId}/archive")
-    @Operation(summary = "프로젝트 보관", description = "본인 프로젝트 archived = true 박음 — 목록에서 제외")
+    @PostMapping("/{projectId}/archive")
+    @Operation(summary = "프로젝트 보관", description = "본인 프로젝트 archivedAt = now 박음. 멱등 — 이미 보관 상태면 시각 유지")
     fun archiveProject(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable projectId: Long,
     ): Result<ProjectResponse> = Result.success(projectService.archiveProject(principal.userId, projectId))
+
+    @PostMapping("/{projectId}/unarchive")
+    @Operation(summary = "프로젝트 보관 해제", description = "본인 프로젝트 archivedAt = null 박음. 멱등 — 미보관 상태에서 호출 시 no-op")
+    fun unarchiveProject(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @PathVariable projectId: Long,
+    ): Result<ProjectResponse> = Result.success(projectService.unarchiveProject(principal.userId, projectId))
+
+    @DeleteMapping("/{projectId}")
+    @Operation(
+        summary = "프로젝트 영구 삭제",
+        description = "본인 프로젝트 영구 삭제 — DB FK CASCADE 로 자식 (characters / documents) 자동 정리",
+    )
+    fun deleteProject(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @PathVariable projectId: Long,
+    ): ResponseEntity<Void> {
+        projectService.deleteProject(principal.userId, projectId)
+        return ResponseEntity.noContent().build()
+    }
 }

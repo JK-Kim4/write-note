@@ -8,30 +8,29 @@ import jakarta.persistence.Id
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
+import jakarta.persistence.Version
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 import java.time.Instant
 
 @Entity
-@Table(name = "projects")
-class Project(
+@Table(name = "documents")
+class Document(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    @Column(name = "user_id", nullable = false)
-    var userId: Long = 0,
+    @Column(name = "project_id", nullable = false, unique = true)
+    var projectId: Long = 0,
     @Column(nullable = false, length = 120)
     var title: String = "",
-    @Column(length = 100)
-    var genre: String? = null,
-    @Column(name = "target_length")
-    var targetLength: Int? = null,
-    @Column(name = "tone_notes", columnDefinition = "TEXT")
-    var toneNotes: String? = null,
-    @Column(columnDefinition = "TEXT")
-    var synopsis: String? = null,
-    @Column(name = "world_notes", columnDefinition = "TEXT")
-    var worldNotes: String? = null,
-    @Column(name = "archived_at")
-    var archivedAt: Instant? = null,
+    @Column(nullable = false, columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    var body: String = EMPTY_DOC_JSON,
+    @Column(name = "word_count", nullable = false)
+    var wordCount: Int = 0,
+    @Version
+    @Column(nullable = false)
+    var version: Int = 0,
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: Instant? = null,
     @Column(name = "updated_at", nullable = false)
@@ -53,15 +52,7 @@ class Project(
         updatedAt = Instant.now()
     }
 
-    fun isArchived(): Boolean = archivedAt != null
-
-    fun archive(now: Instant) {
-        if (archivedAt == null) {
-            archivedAt = now
-        }
-    }
-
-    fun unarchive() {
-        archivedAt = null
+    companion object {
+        const val EMPTY_DOC_JSON: String = """{"type":"doc","content":[]}"""
     }
 }

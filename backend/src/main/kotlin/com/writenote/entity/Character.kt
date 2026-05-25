@@ -11,27 +11,21 @@ import jakarta.persistence.Table
 import java.time.Instant
 
 @Entity
-@Table(name = "projects")
-class Project(
+@Table(name = "characters")
+class Character(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    @Column(name = "user_id", nullable = false)
-    var userId: Long = 0,
-    @Column(nullable = false, length = 120)
-    var title: String = "",
-    @Column(length = 100)
-    var genre: String? = null,
-    @Column(name = "target_length")
-    var targetLength: Int? = null,
-    @Column(name = "tone_notes", columnDefinition = "TEXT")
-    var toneNotes: String? = null,
+    @Column(name = "project_id", nullable = false)
+    var projectId: Long = 0,
+    @Column(nullable = false, length = 80)
+    var name: String = "",
+    @Column(name = "short_description", length = 255)
+    var shortDescription: String? = null,
     @Column(columnDefinition = "TEXT")
-    var synopsis: String? = null,
-    @Column(name = "world_notes", columnDefinition = "TEXT")
-    var worldNotes: String? = null,
-    @Column(name = "archived_at")
-    var archivedAt: Instant? = null,
+    var notes: String? = null,
+    @Column(name = "display_order", nullable = false)
+    var displayOrder: Int = 0,
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: Instant? = null,
     @Column(name = "updated_at", nullable = false)
@@ -51,17 +45,5 @@ class Project(
     @PreUpdate
     fun preUpdate() {
         updatedAt = Instant.now()
-    }
-
-    fun isArchived(): Boolean = archivedAt != null
-
-    fun archive(now: Instant) {
-        if (archivedAt == null) {
-            archivedAt = now
-        }
-    }
-
-    fun unarchive() {
-        archivedAt = null
     }
 }

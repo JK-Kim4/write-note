@@ -12,6 +12,7 @@ import com.writenote.repository.UserRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Service
 class ProjectService(
@@ -19,13 +20,24 @@ class ProjectService(
     private val userRepository: UserRepository,
     private val projectMapper: ProjectMapper,
 ) {
-    @Transactional
+    @Transactional(rollbackFor = [Exception::class])
     fun createProject(
         userId: Long,
         request: CreateProjectRequest,
     ): ProjectResponse {
         requireExistingUser(userId)
-        val project = projectRepository.save(Project(userId = userId, title = request.title.trim()))
+        val project =
+            projectRepository.save(
+                Project(
+                    userId = userId,
+                    title = request.title.trim(),
+                    genre = request.genre,
+                    targetLength = request.targetLength,
+                    toneNotes = request.toneNotes,
+                    synopsis = request.synopsis,
+                    worldNotes = request.worldNotes,
+                ),
+            )
         return projectMapper.toResponse(project)
     }
 
@@ -34,17 +46,21 @@ class ProjectService(
         userId: Long,
         page: Int,
         size: Int,
+        archived: Boolean,
     ): PageResponse<ProjectResponse> {
         requireExistingUser(userId)
         require(page >= 0) { "page must be greater than or equal to 0" }
         require(size in 1..100) { "size must be between 1 and 100" }
 
+        val pageable = PageRequest.of(page, size)
         val projects =
-            projectRepository
-                .findByUserIdAndArchivedFalseOrderByUpdatedAtDesc(userId, PageRequest.of(page, size))
-                .map(projectMapper::toResponse)
+            if (archived) {
+                projectRepository.findByUserIdAndArchivedAtIsNotNullOrderByArchivedAtDesc(userId, pageable)
+            } else {
+                projectRepository.findByUserIdAndArchivedAtIsNullOrderByUpdatedAtDesc(userId, pageable)
+            }
 
-        return PageResponse.from(projects)
+        return PageResponse.from(projects.map(projectMapper::toResponse))
     }
 
     @Transactional(readOnly = true)
@@ -53,40 +69,64 @@ class ProjectService(
         projectId: Long,
     ): ProjectResponse =
         projectRepository
-            .findByIdAndUserIdAndArchivedFalse(projectId, userId)
+            .findByIdAndUserId(projectId, userId)
             .map(projectMapper::toResponse)
             .orElseThrow { ResourceNotFoundException("Project not found") }
 
-    @Transactional
+    @Transactional(rollbackFor = [Exception::class])
     fun updateProject(
         userId: Long,
         projectId: Long,
         request: UpdateProjectRequest,
     ): ProjectResponse {
-        val project =
-            projectRepository
-                .findByIdAndUserIdAndArchivedFalse(projectId, userId)
-                .orElseThrow { ResourceNotFoundException("Project not found") }
+        val project = requireOwnedProject(userId, projectId)
 
-        project.title = request.title.trim()
+        request.title?.let { project.title = it.trim() }
+        request.genre?.let { project.genre = it }
+        request.targetLength?.let { project.targetLength = it }
+        request.toneNotes?.let { project.toneNotes = it }
+        request.synopsis?.let { project.synopsis = it }
+        request.worldNotes?.let { project.worldNotes = it }
 
         return projectMapper.toResponse(project)
     }
 
-    @Transactional
+    @Transactional(rollbackFor = [Exception::class])
     fun archiveProject(
         userId: Long,
         projectId: Long,
     ): ProjectResponse {
-        val project =
-            projectRepository
-                .findByIdAndUserId(projectId, userId)
-                .orElseThrow { ResourceNotFoundException("Project not found") }
-
-        project.archived = true
-
+        val project = requireOwnedProject(userId, projectId)
+        project.archive(Instant.now())
         return projectMapper.toResponse(project)
     }
+
+    @Transactional(rollbackFor = [Exception::class])
+    fun unarchiveProject(
+        userId: Long,
+        projectId: Long,
+    ): ProjectResponse {
+        val project = requireOwnedProject(userId, projectId)
+        project.unarchive()
+        return projectMapper.toResponse(project)
+    }
+
+    @Transactional(rollbackFor = [Exception::class])
+    fun deleteProject(
+        userId: Long,
+        projectId: Long,
+    ) {
+        val project = requireOwnedProject(userId, projectId)
+        projectRepository.delete(project)
+    }
+
+    fun requireOwnedProject(
+        userId: Long,
+        projectId: Long,
+    ): Project =
+        projectRepository
+            .findByIdAndUserId(projectId, userId)
+            .orElseThrow { ResourceNotFoundException("Project not found") }
 
     private fun requireExistingUser(userId: Long) {
         if (!userRepository.existsById(userId)) {

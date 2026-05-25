@@ -12,12 +12,12 @@ interface ProjectRepository : JpaRepository<Project, Long> {
         userId: Long,
     ): Optional<Project>
 
-    fun findByIdAndUserIdAndArchivedFalse(
-        id: Long,
+    fun findByUserIdAndArchivedAtIsNullOrderByUpdatedAtDesc(
         userId: Long,
-    ): Optional<Project>
+        pageable: Pageable,
+    ): Page<Project>
 
-    fun findByUserIdAndArchivedFalseOrderByUpdatedAtDesc(
+    fun findByUserIdAndArchivedAtIsNotNullOrderByArchivedAtDesc(
         userId: Long,
         pageable: Pageable,
     ): Page<Project>

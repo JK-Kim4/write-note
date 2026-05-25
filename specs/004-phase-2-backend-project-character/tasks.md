@@ -20,9 +20,9 @@
 
 **Purpose**: 본 spec 작업 진입 직전 디렉토리 / 파일 placeholder 신설. 본 spec 영역 의존성 변경 없음 (plan.md Technical Context 정합).
 
-- [ ] T001 [P] Verify backend dependency 변경 영역 없음 by running `cd backend && grep -n 'oauth2-client\|starter-data-jpa\|starter-validation' build.gradle.kts` — 본 spec 신규 의존성 0건 정합 (plan.md 정합)
-- [ ] T002 [P] Create components/characters/ 디렉토리 by writing placeholder file `backend/src/main/kotlin/com/writenote/components/characters/.gitkeep`
-- [ ] T003 [P] Create test fixture 디렉토리 by writing `backend/src/test/kotlin/com/writenote/components/characters/.gitkeep`
+- [X] T001 [P] Verify backend dependency 변경 영역 없음 by running `cd backend && grep -n 'oauth2-client\|starter-data-jpa\|starter-validation' build.gradle.kts` — 본 spec 신규 의존성 0건 정합 (plan.md 정합)
+- [X] T002 [P] Create components/characters/ 디렉토리 by writing placeholder file `backend/src/main/kotlin/com/writenote/components/characters/.gitkeep`
+- [X] T003 [P] Create test fixture 디렉토리 by writing `backend/src/test/kotlin/com/writenote/components/characters/.gitkeep`
 
 **Checkpoint**: 디렉토리 신설 완료, V5 마이그레이션 작성 진입 가능.
 
@@ -36,36 +36,36 @@
 
 ### Migration (외부 인프라 안전 HARD-GATE — 적용은 사용자 컨펌)
 
-- [ ] T004 Create V5 마이그레이션 SQL in `backend/src/main/resources/db/migration/V5__expand_projects_and_create_character_document.sql` per data-model.md §4 (projects 메타 5 컬럼 + archived → archived_at 변환 + characters/documents 테이블 신설 + 인덱스 교체)
-- [ ] T005 사용자 명시 컨펌 of V5 마이그레이션 적용 (`.claude/rules/infra/external-infra-safety.md` HARD-GATE) — 컨펌 후 `cd backend && ./gradlew bootRun --args='--spring.profiles.active=local'` 자동 적용
+- [X] T004 Create V5 마이그레이션 SQL in `backend/src/main/resources/db/migration/V5__expand_projects_and_create_character_document.sql` per data-model.md §4 (projects 메타 5 컬럼 + archived → archived_at 변환 + characters/documents 테이블 신설 + 인덱스 교체)
+- [X] T005 사용자 명시 컨펌 of V5 마이그레이션 적용 (`.claude/rules/infra/external-infra-safety.md` HARD-GATE) — 컨펌 후 `cd backend && ./gradlew bootRun --args='--spring.profiles.active=local'` 자동 적용
 
 ### Entity (data-model.md §1~3 정합)
 
-- [ ] T006 [P] Extend Project entity by editing `backend/src/main/kotlin/com/writenote/entity/Project.kt` — genre / targetLength / toneNotes / synopsis / worldNotes / archivedAt 6 필드 추가 + `archived BOOLEAN` 폐기 + `archive(now)` / `unarchive()` / `applyMetadata(req)` 메서드 + `isArchived()` helper
-- [ ] T007 [P] Create Character entity in `backend/src/main/kotlin/com/writenote/entity/Character.kt` per data-model.md §2-3 — id / projectId / name / shortDescription / notes / displayOrder / createdAt / updatedAt
-- [ ] T008 [P] Create Document entity in `backend/src/main/kotlin/com/writenote/entity/Document.kt` per data-model.md §3-3 — id / projectId UNIQUE / title / body JSONB (`@JdbcTypeCode(SqlTypes.JSON)`) / wordCount / version (`@Version`) / created_at / updated_at
+- [X] T006 [P] Extend Project entity by editing `backend/src/main/kotlin/com/writenote/entity/Project.kt` — genre / targetLength / toneNotes / synopsis / worldNotes / archivedAt 6 필드 추가 + `archived BOOLEAN` 폐기 + `archive(now)` / `unarchive()` / `applyMetadata(req)` 메서드 + `isArchived()` helper
+- [X] T007 [P] Create Character entity in `backend/src/main/kotlin/com/writenote/entity/Character.kt` per data-model.md §2-3 — id / projectId / name / shortDescription / notes / displayOrder / createdAt / updatedAt
+- [X] T008 [P] Create Document entity in `backend/src/main/kotlin/com/writenote/entity/Document.kt` per data-model.md §3-3 — id / projectId UNIQUE / title / body JSONB (`@JdbcTypeCode(SqlTypes.JSON)`) / wordCount / version (`@Version`) / created_at / updated_at
 
 ### Repository (plan.md §"Source Code" 정합)
 
-- [ ] T009 Extend ProjectRepository in `backend/src/main/kotlin/com/writenote/repository/ProjectRepository.kt` — `findAllByUserIdAndArchivedAtIsNull(userId, Pageable)` / `findAllByUserIdAndArchivedAtIsNotNull(userId, Pageable)` / `findByIdAndUserId(id, userId)` 메서드 (기존 grep 후 정합 확인)
-- [ ] T010 [P] Create CharacterRepository in `backend/src/main/kotlin/com/writenote/repository/CharacterRepository.kt` — `findAllByProjectIdOrderByDisplayOrderAscCreatedAtAsc(projectId, Pageable)` / `findByIdAndProjectId(id, projectId)` / `deleteByIdAndProjectId(id, projectId)`
-- [ ] T011 [P] Create DocumentRepository in `backend/src/main/kotlin/com/writenote/repository/DocumentRepository.kt` — `findByProjectId(projectId)` (1:1 lookup)
+- [X] T009 Extend ProjectRepository in `backend/src/main/kotlin/com/writenote/repository/ProjectRepository.kt` — `findAllByUserIdAndArchivedAtIsNull(userId, Pageable)` / `findAllByUserIdAndArchivedAtIsNotNull(userId, Pageable)` / `findByIdAndUserId(id, userId)` 메서드 (기존 grep 후 정합 확인)
+- [X] T010 [P] Create CharacterRepository in `backend/src/main/kotlin/com/writenote/repository/CharacterRepository.kt` — `findAllByProjectIdOrderByDisplayOrderAscCreatedAtAsc(projectId, Pageable)` / `findByIdAndProjectId(id, projectId)` / `deleteByIdAndProjectId(id, projectId)`
+- [X] T011 [P] Create DocumentRepository in `backend/src/main/kotlin/com/writenote/repository/DocumentRepository.kt` — `findByProjectId(projectId)` (1:1 lookup)
 
 ### DTO (contracts/ 정합)
 
-- [ ] T012 [P] Extend CreateProjectRequest in `backend/src/main/kotlin/com/writenote/model/request/CreateProjectRequest.kt` — 메타 5 필드 추가 (모두 nullable) + Validation 어노테이션 per data-model.md §6
-- [ ] T013 [P] Extend UpdateProjectRequest in `backend/src/main/kotlin/com/writenote/model/request/UpdateProjectRequest.kt` — 메타 5 필드 nullable (null = 미변경 정합)
-- [ ] T014 [P] Extend ProjectResponse in `backend/src/main/kotlin/com/writenote/model/response/ProjectResponse.kt` — 메타 5 필드 + archivedAt + `from(project: Project)` factory
-- [ ] T015 [P] Create CreateCharacterRequest in `backend/src/main/kotlin/com/writenote/model/request/CreateCharacterRequest.kt` — name (필수) / shortDescription / notes / displayOrder (nullable)
-- [ ] T016 [P] Create UpdateCharacterRequest in `backend/src/main/kotlin/com/writenote/model/request/UpdateCharacterRequest.kt` — 모든 필드 nullable (null = 미변경)
-- [ ] T017 [P] Create ReorderCharactersRequest in `backend/src/main/kotlin/com/writenote/model/request/ReorderCharactersRequest.kt` — `characterIds: List<Long>` (전체 인물 순서 일괄)
-- [ ] T018 [P] Create CharacterResponse in `backend/src/main/kotlin/com/writenote/model/response/CharacterResponse.kt` per contracts/character-endpoints.md #20 양식 + `from(character: Character)` factory
+- [X] T012 [P] Extend CreateProjectRequest in `backend/src/main/kotlin/com/writenote/model/request/CreateProjectRequest.kt` — 메타 5 필드 추가 (모두 nullable) + Validation 어노테이션 per data-model.md §6
+- [X] T013 [P] Extend UpdateProjectRequest in `backend/src/main/kotlin/com/writenote/model/request/UpdateProjectRequest.kt` — 메타 5 필드 nullable (null = 미변경 정합)
+- [X] T014 [P] Extend ProjectResponse in `backend/src/main/kotlin/com/writenote/model/response/ProjectResponse.kt` — 메타 5 필드 + archivedAt + `from(project: Project)` factory
+- [X] T015 [P] Create CreateCharacterRequest in `backend/src/main/kotlin/com/writenote/model/request/CreateCharacterRequest.kt` — name (필수) / shortDescription / notes / displayOrder (nullable)
+- [X] T016 [P] Create UpdateCharacterRequest in `backend/src/main/kotlin/com/writenote/model/request/UpdateCharacterRequest.kt` — 모든 필드 nullable (null = 미변경)
+- [X] T017 [P] Create ReorderCharactersRequest in `backend/src/main/kotlin/com/writenote/model/request/ReorderCharactersRequest.kt` — `characterIds: List<Long>` (전체 인물 순서 일괄)
+- [X] T018 [P] Create CharacterResponse in `backend/src/main/kotlin/com/writenote/model/response/CharacterResponse.kt` per contracts/character-endpoints.md #20 양식 + `from(character: Character)` factory
 
 ### Repository IT (RED 의무 — TDD HARD-GATE, JPA 1차 캐시 우회 패턴)
 
-- [ ] T019 [P] Create ProjectRepositoryIT in `backend/src/test/kotlin/com/writenote/repository/ProjectRepositoryIT.kt` — `findAllByUserIdAndArchivedAtIsNull` / `findAllByUserIdAndArchivedAtIsNotNull` 분리 조회 케이스 + `flush() + clear()` 후 SELECT 검증 + N+1 회피 assertion
-- [ ] T020 [P] Create CharacterRepositoryIT in `backend/src/test/kotlin/com/writenote/repository/CharacterRepositoryIT.kt` — display_order 오름차순 + 동순위 created_at ASC 정렬 케이스 + `flush() + clear()` 후 SELECT
-- [ ] T021 [P] Create DocumentRepositoryIT in `backend/src/test/kotlin/com/writenote/repository/DocumentRepositoryIT.kt` — 1:1 lookup + body JSONB DB DEFAULT 검증 (`{"type":"doc","content":[]}`) + `flush() + clear()` 후 SELECT
+- [X] T019 [P] Create ProjectRepositoryIT in `backend/src/test/kotlin/com/writenote/repository/ProjectRepositoryIT.kt` — `findAllByUserIdAndArchivedAtIsNull` / `findAllByUserIdAndArchivedAtIsNotNull` 분리 조회 케이스 + `flush() + clear()` 후 SELECT 검증 + N+1 회피 assertion
+- [X] T020 [P] Create CharacterRepositoryIT in `backend/src/test/kotlin/com/writenote/repository/CharacterRepositoryIT.kt` — display_order 오름차순 + 동순위 created_at ASC 정렬 케이스 + `flush() + clear()` 후 SELECT
+- [X] T021 [P] Create DocumentRepositoryIT in `backend/src/test/kotlin/com/writenote/repository/DocumentRepositoryIT.kt` — 1:1 lookup + body JSONB DB DEFAULT 검증 (`{"type":"doc","content":[]}`) + `flush() + clear()` 후 SELECT
 
 **Checkpoint**: V5 마이그레이션 적용 완료 + entity / repository / DTO 모두 컴파일 + Repository IT GREEN. User Story 작업 진입 가능.
 
@@ -79,14 +79,14 @@
 
 ### Tests for User Story 1 (TDD RED 의무)
 
-- [ ] T022 [P] [US1] Create ProjectServiceTest in `backend/src/test/kotlin/com/writenote/service/ProjectServiceTest.kt` — 메타 부분 수정 매핑 케이스 (null = 미변경 / 명시값 = 갱신 / 빈 문자열 = 빈 문자열 저장) MockK 단위 테스트 (`eq()` / `match {}` 정확값)
-- [ ] T023 [P] [US1] Extend ProjectControllerIT in `backend/src/test/kotlin/com/writenote/controller/ProjectControllerIT.kt` — POST 메타 5 필드 영속 happy / PATCH 부분 수정 / `title` 누락 400 / 길이 초과 400 / 다른 사용자 404 케이스 (003 의 기존 IT 위에 추가)
+- [X] T022 [P] [US1] Create ProjectServiceTest in `backend/src/test/kotlin/com/writenote/service/ProjectServiceTest.kt` — 메타 부분 수정 매핑 케이스 (null = 미변경 / 명시값 = 갱신 / 빈 문자열 = 빈 문자열 저장) MockK 단위 테스트 (`eq()` / `match {}` 정확값)
+- [X] T023 [P] [US1] Extend ProjectControllerIT in `backend/src/test/kotlin/com/writenote/controller/ProjectControllerIT.kt` — POST 메타 5 필드 영속 happy / PATCH 부분 수정 / `title` 누락 400 / 길이 초과 400 / 다른 사용자 404 케이스 (003 의 기존 IT 위에 추가)
 
 ### Implementation for User Story 1
 
-- [ ] T024 [US1] Extend ProjectService in `backend/src/main/kotlin/com/writenote/service/ProjectService.kt` — `createProject(userId, req)` 가 메타 5 필드 처리 / `updateProject(userId, id, req)` 가 `Project.applyMetadata(req)` 호출 (entity 위임)
-- [ ] T025 [US1] Update ProjectController in `backend/src/main/kotlin/com/writenote/controller/ProjectController.kt` — `createProject` / `updateProject` 메서드 시그니처 갱신 (메타 5 필드 처리 + 003 의 `@AuthenticationPrincipal` 정합 유지)
-- [ ] T026 [US1] Run targeted verification by executing `cd backend && ./gradlew test --tests "*ProjectServiceTest" --tests "*ProjectControllerIT"` — Phase 3 GREEN 확인
+- [X] T024 [US1] Extend ProjectService in `backend/src/main/kotlin/com/writenote/service/ProjectService.kt` — `createProject(userId, req)` 가 메타 5 필드 처리 / `updateProject(userId, id, req)` 가 `Project.applyMetadata(req)` 호출 (entity 위임)
+- [X] T025 [US1] Update ProjectController in `backend/src/main/kotlin/com/writenote/controller/ProjectController.kt` — `createProject` / `updateProject` 메서드 시그니처 갱신 (메타 5 필드 처리 + 003 의 `@AuthenticationPrincipal` 정합 유지)
+- [X] T026 [US1] Run targeted verification by executing `cd backend && ./gradlew test --tests "*ProjectServiceTest" --tests "*ProjectControllerIT"` — Phase 3 GREEN 확인
 
 **Checkpoint**: US1 완료 — 메타 5 필드 영속 + 부분 수정 + 검증 + ownership 격리 모두 GREEN. 단독 dogfooding 가능 (quickstart.md §3-1).
 
@@ -100,16 +100,16 @@
 
 ### Tests for User Story 2 (TDD RED 의무)
 
-- [ ] T027 [P] [US2] Extend ProjectServiceTest in `backend/src/test/kotlin/com/writenote/service/ProjectServiceTest.kt` — archive / unarchive 멱등성 단위 케이스 + delete 가 DB FK CASCADE 위임 검증 (Service 내부 명시 자식 삭제 없음 확인)
-- [ ] T028 [P] [US2] Extend ProjectControllerIT in `backend/src/test/kotlin/com/writenote/controller/ProjectControllerIT.kt` — `?archived=false/true` 분리 조회 / POST archive 멱등 / POST unarchive no-op / DELETE 204 / DELETE 후 404 / 다른 사용자 404 케이스
-- [ ] T029 [P] [US2] Extend ProjectControllerOwnerCleanupTest in `backend/src/test/kotlin/com/writenote/controller/ProjectControllerOwnerCleanupTest.kt` (003 박힘) — 본 spec 의 7 endpoint (003 의 5 endpoint + archive/unarchive/delete) 모두 owner 격리 회귀 케이스 추가
+- [X] T027 [P] [US2] Extend ProjectServiceTest in `backend/src/test/kotlin/com/writenote/service/ProjectServiceTest.kt` — archive / unarchive 멱등성 단위 케이스 + delete 가 DB FK CASCADE 위임 검증 (Service 내부 명시 자식 삭제 없음 확인)
+- [X] T028 [P] [US2] Extend ProjectControllerIT in `backend/src/test/kotlin/com/writenote/controller/ProjectControllerIT.kt` — `?archived=false/true` 분리 조회 / POST archive 멱등 / POST unarchive no-op / DELETE 204 / DELETE 후 404 / 다른 사용자 404 케이스
+- [X] T029 [P] [US2] Extend ProjectControllerOwnerCleanupTest in `backend/src/test/kotlin/com/writenote/controller/ProjectControllerOwnerCleanupTest.kt` (003 박힘) — 본 spec 의 7 endpoint (003 의 5 endpoint + archive/unarchive/delete) 모두 owner 격리 회귀 케이스 추가
 
 ### Implementation for User Story 2
 
-- [ ] T030 [US2] Extend ProjectService in `backend/src/main/kotlin/com/writenote/service/ProjectService.kt` — `archiveProject(userId, id)` (멱등 — 이미 archived 상태면 시각 유지) / `unarchiveProject(userId, id)` (no-op 허용) / `deleteProject(userId, id)` (`projectRepository.delete(project)` 호출, DB FK CASCADE 위임) per cascade-and-auto-provisioning.md §2-3
-- [ ] T031 [US2] Update ProjectController in `backend/src/main/kotlin/com/writenote/controller/ProjectController.kt` — `POST /api/projects/{id}/archive` / `POST /api/projects/{id}/unarchive` / `DELETE /api/projects/{id}` 3 endpoint 신설 per contracts/project-endpoints.md #17~#19
-- [ ] T032 [US2] Update SecurityConfig in `backend/src/main/kotlin/com/writenote/config/SecurityConfig.kt` if needed — 003 의 `/api/projects/**` 매핑이 본 spec 의 3 신규 endpoint 자동 포함되는지 grep 의무 (별도 매핑 불필요 시 T032 skip)
-- [ ] T033 [US2] Run targeted verification by executing `cd backend && ./gradlew test --tests "*ProjectServiceTest" --tests "*ProjectControllerIT" --tests "*ProjectControllerOwnerCleanupTest"`
+- [X] T030 [US2] Extend ProjectService in `backend/src/main/kotlin/com/writenote/service/ProjectService.kt` — `archiveProject(userId, id)` (멱등 — 이미 archived 상태면 시각 유지) / `unarchiveProject(userId, id)` (no-op 허용) / `deleteProject(userId, id)` (`projectRepository.delete(project)` 호출, DB FK CASCADE 위임) per cascade-and-auto-provisioning.md §2-3
+- [X] T031 [US2] Update ProjectController in `backend/src/main/kotlin/com/writenote/controller/ProjectController.kt` — `POST /api/projects/{id}/archive` / `POST /api/projects/{id}/unarchive` / `DELETE /api/projects/{id}` 3 endpoint 신설 per contracts/project-endpoints.md #17~#19
+- [X] T032 [US2] Update SecurityConfig in `backend/src/main/kotlin/com/writenote/config/SecurityConfig.kt` if needed — 003 의 `/api/projects/**` 매핑이 본 spec 의 3 신규 endpoint 자동 포함되는지 grep 의무 (별도 매핑 불필요 시 T032 skip)
+- [X] T033 [US2] Run targeted verification by executing `cd backend && ./gradlew test --tests "*ProjectServiceTest" --tests "*ProjectControllerIT" --tests "*ProjectControllerOwnerCleanupTest"`
 
 **Checkpoint**: US2 완료 — Project lifecycle 3 endpoint + 멱등성 + ownership 격리 GREEN. cascade 자식 정리 검증은 Phase 8 cross-cutting (Character / Document 신설 후 가능).
 

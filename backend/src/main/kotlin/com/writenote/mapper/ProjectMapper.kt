@@ -10,7 +10,12 @@ class ProjectMapper {
         ProjectResponse(
             id = requireNotNull(project.id),
             title = project.title,
-            archived = project.archived,
+            genre = project.genre,
+            targetLength = project.targetLength,
+            toneNotes = project.toneNotes,
+            synopsis = project.synopsis,
+            worldNotes = project.worldNotes,
+            archivedAt = project.archivedAt,
             createdAt = requireNotNull(project.createdAt),
             updatedAt = requireNotNull(project.updatedAt),
         )
