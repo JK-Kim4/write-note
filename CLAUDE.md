@@ -86,6 +86,42 @@ V1 wireframe 완료, 구현 진입 전.
   - 작업 트랙 누적 시 "기존 N 보류 / 신규 M 진행" 명시 트랜잭션 분기 보고
   - Subagent dispatch prompt 체크리스트 (verbose 통제 / tool_uses cap / 안전 장치) 자동 적용
 
+## 사용자 인터뷰 지침 (HARD-GATE)
+
+명세 명확화 / 의사결정 / 컨펌을 사용자에게 송출하기 **직전** 의무.
+본 지침의 근본 전제: 사용자가 본 인터뷰의 전후 문맥 / 코드베이스 세부 구현 / 본 도메인의 약어와 축약 표현을 **모르는 상태로 진입**한다고 항상 가정한다 (사용자가 "익숙한 영역이니 짧게 가도 OK" 명시 컨펌 전엔 풀어쓰기 default).
+
+1. **결정의 전후 문맥 명시 의무**
+   - 인터뷰 텍스트마다 (a) 무엇을 결정해야 하는가 한 줄, (b) 왜 지금 본 결정이 필요한가 (이전 작업의 어떤 산출물 / 다음 작업의 어떤 진입점이 본 결정에 의존하는지), (c) 결정 후 어떤 흐름으로 이어지는지 명시
+   - 사용자가 "내가 지금 왜 이걸 결정해야 하지?" 의문 갖는 인터뷰는 송출 금지 — 의도 surfacing 박은 후 송출
+
+2. **약어 / 축약 표현 금지 — 1회 풀어쓴 후 사용은 OK**
+   - 메소드 / 필드 / 클래스 / 함수명 / DB 컬럼 인용 시 **그 값이 어떤 목적의 값인지 인라인 정의 의무**. 예: `createdAt` 단독 인용 X → "`createdAt` (entity 생성 시각, DB DEFAULT NOW() 채움)" 박음
+   - 본 프로젝트 도메인 용어 (`BC`, `SoT`, `vault`, `phase`, `dogfooding` 등) 도 첫 사용 시 풀어쓰기. 같은 인터뷰 안에서 2회차부터 약어 OK
+
+3. **선택지 = 전후 문맥 + 영향 범위 + default 의무**
+   - 옵션·선택지마다 (a) 전후 문맥 1줄, (b) 선택 시 영향 범위 (어떤 파일 / 어떤 동작 / 어떤 비용·시간), (c) 무응답 시 진행할 default 명시
+   - 메뉴 강요 (A1~An 일괄 컨펌) 대신 본질 질문 1~2개로 압축 가능한지 self-check. 압축 가능하면 메뉴 X
+
+상세 SoT: 글로벌 [`~/.claude/rules/shared/user-interview-quality.md`](file:///Users/jongwan-air/.claude/rules/shared/user-interview-quality.md) — 본 섹션은 본 프로젝트 한정 보강이며, 글로벌 룰의 self-check 와 함께 적용.
+
+## 작업 실행 지침 (HARD-GATE)
+
+### 빌드 / 테스트 = 포어그라운드 실행 의무
+
+`./gradlew test`, `./gradlew build`, `pnpm build`, `pnpm test`, `pytest` 등 **빌드 / 테스트 명령은 포어그라운드 (Bash 도구의 `run_in_background=false`) 로 실행** 의무.
+
+**근거**:
+- 빌드 / 테스트 결과 (GREEN/RED / 회귀 발견 / 빌드 fail 메시지) 는 본 작업의 **본질 결정 신호** — Claude 가 직접 확인 후 다음 단계 진입 결정 의무
+- 백그라운드 실행 시 (a) Claude 가 결과 미확인 채 다음 진입 → 회귀 silent 누적 (b) 세션 lock / 무한 wait 위험 (TestContainers 재시도 / 자동 retry 루프 / 환경 문제로 인한 hang)
+
+**금지**:
+- 빌드 / 테스트를 `run_in_background=true` 로 실행 후 결과 미확인 채 다음 작업 진입
+- "곧 끝나겠지" 추측으로 다음 단계 진행
+- 백그라운드 실행 후 `sleep` polling 으로 회피
+
+timeout / cap 룰은 글로벌 [`~/.claude/rules/shared/long-running-bash.md`](file:///Users/jongwan-air/.claude/rules/shared/long-running-bash.md) 와 정합.
+
 ## 회고 스킬
 
 - 작업 마무리 시점 5축 회고: [.claude/skills/retrospective/SKILL.md](.claude/skills/retrospective/SKILL.md)
