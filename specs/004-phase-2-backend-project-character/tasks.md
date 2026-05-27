@@ -143,16 +143,16 @@
 
 ### Tests for User Story 4 (TDD RED 의무)
 
-- [ ] T038 [P] [US4] Create CharacterServiceTest in `backend/src/test/kotlin/com/writenote/service/CharacterServiceTest.kt` — CRUD 단위 케이스 + ownership 검증 helper 호출 (`eq(userId)` / `eq(projectId)` 정확값)
-- [ ] T039 [P] [US4] Create CharacterControllerIT in `backend/src/test/kotlin/com/writenote/controller/CharacterControllerIT.kt` — 5 endpoint (#20 GET 목록 / #21 GET 단건 / #22 POST / #23 PATCH / #25 DELETE) × happy / 다른 사용자 404 / 다른 프로젝트 인물 404 / 미존재 404 / 검증 fail 400 케이스 per contracts/character-endpoints.md
+- [X] T038 [P] [US4] Create CharacterServiceTest in `backend/src/test/kotlin/com/writenote/service/CharacterServiceTest.kt` — CRUD 단위 케이스 + ownership 검증 helper 호출 (`eq(userId)` / `eq(projectId)` 정확값)
+- [X] T039 [P] [US4] Create CharacterControllerIT in `backend/src/test/kotlin/com/writenote/controller/CharacterControllerIT.kt` — 5 endpoint (#20 GET 목록 / #21 GET 단건 / #22 POST / #23 PATCH / #25 DELETE) × happy / 다른 사용자 404 / 검증 fail 400 / 인증 401 케이스 per contracts/character-endpoints.md
 
 ### Implementation for User Story 4
 
-- [ ] T040 [US4] Create CharacterService in `backend/src/main/kotlin/com/writenote/service/CharacterService.kt` — `listCharacters(userId, projectId, Pageable)` / `getCharacter(userId, projectId, id)` / `createCharacter(userId, projectId, req)` / `updateCharacter(userId, projectId, id, req)` / `deleteCharacter(userId, projectId, id)` — 모두 ownership 검증 의무 (projectId → userId)
-- [ ] T041 [US4] Extend ProjectService in `backend/src/main/kotlin/com/writenote/service/ProjectService.kt` — `requireProjectOwnership(userId, projectId)` helper 신설 (`projectRepository.findByIdAndUserId(projectId, userId) ?: throw ResourceNotFoundException()`) — CharacterService 가 호출
-- [ ] T042 [US4] Create CharacterController in `backend/src/main/kotlin/com/writenote/controller/CharacterController.kt` — 5 endpoint (#20~#23, #25) per contracts/character-endpoints.md. `@AuthenticationPrincipal` 정합 (003)
-- [ ] T043 [US4] Verify SecurityConfig in `backend/src/main/kotlin/com/writenote/config/SecurityConfig.kt` — 003 의 `/api/projects/**` 매핑이 `/api/projects/{pId}/characters/**` 자동 포함되는지 grep + 명시 매핑 필요 시 추가
-- [ ] T044 [US4] Run targeted verification by executing `cd backend && ./gradlew test --tests "*CharacterServiceTest" --tests "*CharacterControllerIT"`
+- [X] T040 [US4] Create CharacterService in `backend/src/main/kotlin/com/writenote/service/CharacterService.kt` — `listCharacters` / `getCharacter` / `createCharacter` / `updateCharacter` / `deleteCharacter` 5 메서드 — 모두 ownership 검증 의무 (`projectService.requireOwnedProject` 재사용 — default A) + CharacterMapper 신설 + `requireOwnedCharacter` private helper
+- [X] T041 [US4] **default A 채택** — 기존 `ProjectService.requireOwnedProject(userId, projectId)` 재사용 (`requireProjectOwnership` 신설 X, DRY 원칙 + 중복 회피)
+- [X] T042 [US4] Create CharacterController in `backend/src/main/kotlin/com/writenote/controller/CharacterController.kt` — 5 endpoint (#20~#23, #25) per contracts/character-endpoints.md. `@AuthenticationPrincipal AuthenticatedPrincipal` + `Result.success` 패턴 정합 (ProjectController 정합)
+- [X] T043 [US4] SecurityConfig grep 확인 — 003 의 `anyRequest().authenticated()` 정책이 `/api/projects/{pId}/characters/**` 자동 보호 (별도 매핑 불필요)
+- [X] T044 [US4] Run targeted verification — `./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` BUILD SUCCESSFUL (cross-suite 회귀 0건)
 
 **Checkpoint**: US4 완료 — Character CRUD 5 endpoint + ownership 격리 GREEN. reorder 는 Phase 7.
 
