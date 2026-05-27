@@ -1,5 +1,6 @@
 package com.writenote.service
 
+import com.writenote.entity.Document
 import com.writenote.entity.Project
 import com.writenote.error.ResourceNotFoundException
 import com.writenote.mapper.ProjectMapper
@@ -7,6 +8,7 @@ import com.writenote.model.request.CreateProjectRequest
 import com.writenote.model.request.UpdateProjectRequest
 import com.writenote.model.response.PageResponse
 import com.writenote.model.response.ProjectResponse
+import com.writenote.repository.DocumentRepository
 import com.writenote.repository.ProjectRepository
 import com.writenote.repository.UserRepository
 import org.springframework.data.domain.PageRequest
@@ -19,6 +21,7 @@ class ProjectService(
     private val projectRepository: ProjectRepository,
     private val userRepository: UserRepository,
     private val projectMapper: ProjectMapper,
+    private val documentRepository: DocumentRepository,
 ) {
     @Transactional(rollbackFor = [Exception::class])
     fun createProject(
@@ -38,6 +41,7 @@ class ProjectService(
                     worldNotes = request.worldNotes,
                 ),
             )
+        documentRepository.save(Document(projectId = requireNotNull(project.id)))
         return projectMapper.toResponse(project)
     }
 

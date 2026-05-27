@@ -123,13 +123,13 @@
 
 ### Tests for User Story 3 (TDD RED 의무)
 
-- [ ] T034 [P] [US3] Extend ProjectServiceTest in `backend/src/test/kotlin/com/writenote/service/ProjectServiceTest.kt` — createProject 호출 시 documentRepository.save 가 동일 트랜잭션 안에서 호출되는지 MockK 검증 (`eq(projectId)` 매칭)
-- [ ] T035 [P] [US3] Create ProjectServiceIT in `backend/src/test/kotlin/com/writenote/service/ProjectServiceIT.kt` — happy: POST /api/projects 성공 → `documents.project_id` 일치 행 1개 + `body = {"type":"doc","content":[]}` / 실패: documentRepository.save 강제 fail → `projects` 행도 0 (트랜잭션 롤백) per cascade-and-auto-provisioning.md §1-3
+- [X] T034 [P] [US3] Extend ProjectServiceTest in `backend/src/test/kotlin/com/writenote/service/ProjectServiceTest.kt` — createProject 호출 시 documentRepository.save 가 동일 트랜잭션 안에서 호출되는지 MockK 검증 (`eq(projectId)` 매칭)
+- [X] T035 [P] [US3] Create ProjectServiceIT in `backend/src/test/kotlin/com/writenote/service/ProjectServiceIT.kt` (happy 경로, 클래스 레벨 `@Transactional`) + `ProjectAutoProvisioningFailureIT.kt` (failure 경로, 비-transactional + `@MockitoBean DocumentRepository` + `@AfterEach` cleanup — production stack rollback 정합, ISSUE-014 회귀 회피) — happy: POST /api/projects 성공 → `documents.project_id` 일치 행 1개 + `body = {"type":"doc","content":[]}` (Postgres JSONB normalize 정합 JSON parse 비교) / 실패: documentRepository.save mock throws → `projects` 행도 0 (트랜잭션 롤백) per cascade-and-auto-provisioning.md §1-3
 
 ### Implementation for User Story 3
 
-- [ ] T036 [US3] Extend ProjectService.createProject in `backend/src/main/kotlin/com/writenote/service/ProjectService.kt` — `@Transactional(rollbackFor = [Exception::class])` 안에서 `documentRepository.save(Document(projectId = project.id!!))` 호출 per cascade-and-auto-provisioning.md §1-2
-- [ ] T037 [US3] Run targeted verification by executing `cd backend && ./gradlew test --tests "*ProjectServiceTest" --tests "*ProjectServiceIT"`
+- [X] T036 [US3] Extend ProjectService.createProject in `backend/src/main/kotlin/com/writenote/service/ProjectService.kt` — `@Transactional(rollbackFor = [Exception::class])` 안에서 `documentRepository.save(Document(projectId = project.id!!))` 호출 per cascade-and-auto-provisioning.md §1-2
+- [X] T037 [US3] Run targeted verification by executing `cd backend && ./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` — BUILD SUCCESSFUL 확인 (cross-suite 회귀 검증 포함, 003 ISSUE-010 회피)
 
 **Checkpoint**: US3 완료 — Project 생성 시 Document 자동 행 + 트랜잭션 정합 + 롤백 GREEN. Project 삭제 시 Document cascade 는 Phase 8 cross-cutting IT 에서 검증.
 
