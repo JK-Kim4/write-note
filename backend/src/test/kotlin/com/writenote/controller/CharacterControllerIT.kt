@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delet
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.UUID
@@ -192,6 +193,88 @@ class CharacterControllerIT {
     }
 
     @Test
+    @DisplayName("reorder happy — 3명 permutation 박은 후 응답 순서 변경 반영 (FR-016 / #24)")
+    fun `reorder updates displayOrder and returns new order`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+        val projectId = createProject(bearer, "reorder draft")
+        val id1 = createCharacter(bearer, projectId, "민지")
+        val id2 = createCharacter(bearer, projectId, "할머니")
+        val id3 = createCharacter(bearer, projectId, "옆집")
+
+        mockMvc
+            .perform(
+                put("/api/projects/{projectId}/characters/reorder", projectId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"characterIds":[$id2,$id1,$id3]}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.totalElements").value(3))
+            .andExpect(jsonPath("$.data.content[0].id").value(id2))
+            .andExpect(jsonPath("$.data.content[0].displayOrder").value(0))
+            .andExpect(jsonPath("$.data.content[1].id").value(id1))
+            .andExpect(jsonPath("$.data.content[1].displayOrder").value(1))
+            .andExpect(jsonPath("$.data.content[2].id").value(id3))
+            .andExpect(jsonPath("$.data.content[2].displayOrder").value(2))
+    }
+
+    @Test
+    @DisplayName("reorder — 인물 ID 누락 400")
+    fun `reorder rejects missing ids`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+        val projectId = createProject(bearer, "reorder draft")
+        val id1 = createCharacter(bearer, projectId, "민지")
+        createCharacter(bearer, projectId, "할머니")
+        createCharacter(bearer, projectId, "옆집")
+
+        mockMvc
+            .perform(
+                put("/api/projects/{projectId}/characters/reorder", projectId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"characterIds":[$id1]}"""),
+            ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"))
+    }
+
+    @Test
+    @DisplayName("reorder — 빈 배열 + 인물 0명 200 no-op (#24 Edge case)")
+    fun `reorder empty body with zero characters is no-op`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+        val projectId = createProject(bearer, "empty draft")
+
+        mockMvc
+            .perform(
+                put("/api/projects/{projectId}/characters/reorder", projectId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"characterIds":[]}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.totalElements").value(0))
+    }
+
+    @Test
+    @DisplayName("reorder — 다른 사용자 projectId 시도 404")
+    fun `reorder cross user returns 404`() {
+        val ownerA = createUser()
+        val ownerB = createUser()
+        val bearerA = bearerFor(ownerA)
+        val bearerB = bearerFor(ownerB)
+        val projectIdA = createProject(bearerA, "A draft")
+        createCharacter(bearerA, projectIdA, "비밀 인물")
+
+        mockMvc
+            .perform(
+                put("/api/projects/{projectId}/characters/reorder", projectIdA)
+                    .header("Authorization", bearerB)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"characterIds":[]}"""),
+            ).andExpect(status().isNotFound)
+    }
+
+    @Test
     @DisplayName("인증 없이 호출 — 401")
     fun `unauthenticated request returns 401`() {
         val owner = createUser()
@@ -228,6 +311,23 @@ class CharacterControllerIT {
             .response
             .contentAsString
             .let(::extractProjectId)
+
+    private fun createCharacter(
+        bearer: String,
+        projectId: Long,
+        name: String,
+    ): Long =
+        mockMvc
+            .perform(
+                post("/api/projects/{projectId}/characters", projectId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"name":"$name"}"""),
+            ).andExpect(status().isCreated)
+            .andReturn()
+            .response
+            .contentAsString
+            .let(::extractCharacterId)
 
     private fun extractProjectId(body: String): Long = extractId(body, "project")
 
