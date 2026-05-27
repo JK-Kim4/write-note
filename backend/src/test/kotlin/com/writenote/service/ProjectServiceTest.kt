@@ -1,11 +1,13 @@
 package com.writenote.service
 
+import com.writenote.entity.Document
 import com.writenote.entity.Project
 import com.writenote.error.ResourceNotFoundException
 import com.writenote.mapper.ProjectMapper
 import com.writenote.model.request.CreateProjectRequest
 import com.writenote.model.request.UpdateProjectRequest
 import com.writenote.model.response.ProjectResponse
+import com.writenote.repository.DocumentRepository
 import com.writenote.repository.ProjectRepository
 import com.writenote.repository.UserRepository
 import io.mockk.every
@@ -24,6 +26,7 @@ class ProjectServiceTest {
     private lateinit var projectRepository: ProjectRepository
     private lateinit var userRepository: UserRepository
     private lateinit var projectMapper: ProjectMapper
+    private lateinit var documentRepository: DocumentRepository
     private lateinit var service: ProjectService
 
     @BeforeEach
@@ -31,7 +34,8 @@ class ProjectServiceTest {
         projectRepository = mockk()
         userRepository = mockk()
         projectMapper = mockk()
-        service = ProjectService(projectRepository, userRepository, projectMapper)
+        documentRepository = mockk()
+        service = ProjectService(projectRepository, userRepository, projectMapper, documentRepository)
     }
 
     private fun stubMapper(project: Project): ProjectResponse {
@@ -58,6 +62,7 @@ class ProjectServiceTest {
         every { userRepository.existsById(eq(1L)) } returns true
         val captured = slot<Project>()
         every { projectRepository.save(capture(captured)) } answers { firstArg<Project>().apply { id = 100L } }
+        every { documentRepository.save(any<Document>()) } answers { firstArg() }
 
         val request =
             CreateProjectRequest(
@@ -80,6 +85,21 @@ class ProjectServiceTest {
         assertThat(saved.toneNotes).isEqualTo("잔잔")
         assertThat(saved.synopsis).isEqualTo("할머니")
         assertThat(saved.worldNotes).isEqualTo("1990s")
+    }
+
+    @Test
+    @DisplayName("createProject — documentRepository.save 가 같은 projectId 로 호출됨 (US3 / FR-009)")
+    fun `createProject auto-provisions document with same projectId`() {
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { projectRepository.save(any()) } answers { firstArg<Project>().apply { id = 100L } }
+        val capturedDoc = slot<Document>()
+        every { documentRepository.save(capture(capturedDoc)) } answers { firstArg() }
+        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+
+        service.createProject(1L, CreateProjectRequest(title = "test"))
+
+        verify(exactly = 1) { documentRepository.save(match<Document> { it.projectId == 100L }) }
+        assertThat(capturedDoc.captured.projectId).isEqualTo(100L)
     }
 
     @Test
