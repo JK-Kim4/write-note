@@ -5,6 +5,10 @@ spring:
     password: writenote-local-dev
     hikari:
       maximum-pool-size: 3
+  jpa:
+    properties:
+      hibernate:
+        generate_statistics: true
   test:
     database:
       replace: none

@@ -5,6 +5,8 @@ import com.writenote.entity.Project
 import com.writenote.entity.User
 import jakarta.persistence.EntityManager
 import org.assertj.core.api.Assertions.assertThat
+import org.hibernate.SessionFactory
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -83,6 +85,35 @@ class CharacterRepositoryIT
             entityManager.clear()
 
             assertThat(characterRepository.findAllByProjectIdOrderByDisplayOrderAscCreatedAtAsc(project.id!!)).isEmpty()
+        }
+
+        @Test
+        @DisplayName("N+1 회피 — 인물 목록 페이지 조회 시 SELECT 1 + COUNT 1 외 추가 쿼리 0 (FR-019 / SC-009)")
+        fun `character list query avoids N+1`() {
+            val owner =
+                userRepository.save(
+                    User(email = "char-n1-${UUID.randomUUID()}@example.com", passwordHash = "test-fixture-password-hash"),
+                )
+            val project = projectRepository.save(Project(userId = owner.id!!, title = "N+1 test"))
+            repeat(5) { idx ->
+                characterRepository.save(
+                    Character(projectId = project.id!!, name = "char-$idx", displayOrder = idx),
+                )
+            }
+            entityManager.flush()
+            entityManager.clear()
+
+            val sessionFactory = entityManager.entityManagerFactory.unwrap(SessionFactory::class.java)
+            sessionFactory.statistics.clear()
+
+            val page =
+                characterRepository.findAllByProjectIdOrderByDisplayOrderAscCreatedAtAsc(
+                    project.id!!,
+                    PageRequest.of(0, 10),
+                )
+            assertThat(page.content).hasSize(5)
+
+            assertThat(sessionFactory.statistics.prepareStatementCount).isLessThanOrEqualTo(2)
         }
 
         @Test

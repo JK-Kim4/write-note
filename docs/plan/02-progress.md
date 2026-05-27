@@ -119,6 +119,23 @@ cd backend
 
 **진척 합산:** 80 task 중 80 완료 (100%) + ISSUE-014 fix. 본 spec 자동화 + production stack 정합 모두 GREEN.
 
+### 004 Phase 2 Backend Project Metadata & Character (2026-05-25 ~ 2026-05-27, ✅ 종료)
+
+**spec/plan/tasks:** [`specs/004-phase-2-backend-project-character/`](../../specs/004-phase-2-backend-project-character/)
+**브랜치:** (모두 develop merge 후 삭제 — 004-phase-5 / -6 / -7 / -8)
+
+| Phase | 영역 | Merge |
+|---|---|---|
+| Phase 1+2+3+4 MVP | Project 메타 5 필드 + Character/Document entity + lifecycle (T001~T033, 33 task) | `527ce5c` |
+| Phase 5 US3 | Document auto-provisioning (T034~T037, 4 task) — failure rollback IT 분리 패턴 (ISSUE-014 정합 비-transactional) + Postgres JSONB normalize 발견 (JsonMapper parse) | `17c215d` |
+| Phase 6 US4 | Character CRUD 5 endpoint (T038~T044, 7 task) — ownership = ProjectService.requireOwnedProject 재사용 + entity-level delete | `1992624` |
+| Phase 7 US5 | Character reorder + ValidationException 신설 (T045~T051, 7 task) — CharacterReorderValidator 4 검증 + 400 VALIDATION_FAILED 매핑 (contracts #24 정합) | `6a24439` |
+| Phase 8 Polish | Cascade IT (T052) + N+1 Hibernate Statistics (T053+T054) + OpenAPI @ApiResponse 13 endpoint (T055+T056) + docs 갱신 (T057+T058+T059) + 회고 (T060) + 단일 검증 게이트 (T061) | TBD |
+
+**진척:** 61/62 task (T062 사용자 dogfooding 영역 분리). 본 spec scope 종료.
+
+**다음 진입 = 005 Phase 2 Frontend Views** (홈 view / 새 프로젝트 흐름 / 메타 카드 UI / 등장인물 페이지 — `01-phase-breakdown.md §5 Phase 2-4~2-7`)
+
 ### 회고 / 룰 (본 세션 누적)
 
 - PoC 0-2 5축 회고 — [`docs/retrospectives/2026-05-19-poc-0-2-spring-postgres.md`](../retrospectives/2026-05-19-poc-0-2-spring-postgres.md). commit `586bdba`
@@ -164,19 +181,19 @@ e808d36 chore: docker-compose + README
 
 ---
 
-## 3. 다음 진입점 — 사용자 결정 영역 (본 spec 자동화 + ISSUE-014 fix 모두 GREEN)
+## 3. 다음 진입점 — 사용자 결정 영역 (004 Phase 2 Backend 종료 + frontend trigger)
 
-003 Phase 1B Backend Auth 본 spec 산출물 100% GREEN + ISSUE-014 (LoginAttempt production 회귀) fix `2978c75`. T080 단일 검증 게이트 110/0/0 BUILD SUCCESSFUL.
+004 Phase 2 Backend Project Metadata & Character 본 spec 산출물 GREEN (61/62 task, T062 dogfooding 분리). Phase 5/6/7/8 모두 develop merge 박힘.
 
 남은 영역 = 사용자 결정 영역 (자동 진행 금지):
 
 | 영역 | 우선순위 | 비고 |
 |---|---|---|
-| (a) `003-phase-1b-backend-auth` → `develop` merge | 🟢 권장 | ISSUE-014 fix 박힌 상태로 merge GREEN. 002 dogfooding 트랙 (트랙 A) 보류 영역과 무관 |
-| (b) 002 dogfooding 5 영역 | 🟡 003 마무리 후 | 다크 모드 / 시스템 테마 / placeholder query / 1:1 시각 비교 / PWA 홈 화면 — 본인 환경 의존 |
-| (c) 회고 §5-2 룰 갱신 후보 컨펌 (총 4건) | 🟡 별도 트랙 | (1) Kotlin annotation 배열 패턴 grep / (2) tasks.md 추측 정합 검증 / (3) Bash cwd 절대 경로 prefix / (4) **신규** `jpa-test-patterns.md` 클래스 레벨 `@Transactional` 폐기 의무 |
-| (d) Week 2 진입 (Project / Character CRUD 확장) | 🟡 본 spec 마무리 후 | `docs/plan/01-phase-breakdown.md` Week 2 영역 |
-| (e) frontend X-User-Id 헤더 자동 주입 제거 | 🟡 별도 spec | `contracts/owner-context-migration.md` §6 — 본 spec 외부 영역 |
+| (a) **005 Phase 2 Frontend Views 진입** | 🟢 권장 | 본 spec Assumptions §2 정합. 홈 view / 새 프로젝트 흐름 / 메타 카드 UI / 등장인물 페이지 (`01-phase-breakdown.md §5 Phase 2-4~2-7`) |
+| (b) 004 T062 사용자 dogfooding | 🟡 005 진입 전 | `specs/004-phase-2-backend-project-character/quickstart.md §3-1~§3-9` curl 9건 직접 검증 (SC-001 ~ SC-010) |
+| (c) 002 dogfooding 5 영역 | 🟡 별도 트랙 | 다크 모드 / 시스템 테마 / placeholder query / 1:1 시각 비교 / PWA 홈 화면 — vault ISSUE-001 |
+| (d) Week 3 본문 입력 진입 (Document CRUD) | 🟡 005 종료 후 | `docs/plan/01-phase-breakdown.md` Week 3 영역 |
+| (e) Week 4 메모 큐레이션 / Week 5 세션 노트 | 🟡 별도 spec | Memo / SessionNote / MemoProject entity 신설 영역 |
 
 ### 002 dogfooding 트랙 (보류 — vault ISSUE-001)
 
