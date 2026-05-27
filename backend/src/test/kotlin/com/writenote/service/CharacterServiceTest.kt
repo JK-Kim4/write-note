@@ -1,10 +1,12 @@
 package com.writenote.service
 
+import com.writenote.components.characters.CharacterReorderValidator
 import com.writenote.entity.Character
 import com.writenote.entity.Project
 import com.writenote.error.ResourceNotFoundException
 import com.writenote.mapper.CharacterMapper
 import com.writenote.model.request.CreateCharacterRequest
+import com.writenote.model.request.ReorderCharactersRequest
 import com.writenote.model.request.UpdateCharacterRequest
 import com.writenote.model.response.CharacterResponse
 import com.writenote.repository.CharacterRepository
@@ -26,6 +28,7 @@ class CharacterServiceTest {
     private lateinit var characterRepository: CharacterRepository
     private lateinit var projectService: ProjectService
     private lateinit var characterMapper: CharacterMapper
+    private lateinit var reorderValidator: CharacterReorderValidator
     private lateinit var service: CharacterService
 
     @BeforeEach
@@ -33,7 +36,8 @@ class CharacterServiceTest {
         characterRepository = mockk()
         projectService = mockk()
         characterMapper = mockk()
-        service = CharacterService(characterRepository, projectService, characterMapper)
+        reorderValidator = mockk(relaxed = true)
+        service = CharacterService(characterRepository, projectService, characterMapper, reorderValidator)
     }
 
     private fun newProject(
@@ -211,6 +215,61 @@ class CharacterServiceTest {
         service.deleteCharacter(userId = 1L, projectId = 10L, characterId = 100L)
 
         verify(exactly = 1) { characterRepository.delete(eq(character)) }
+    }
+
+    @Test
+    @DisplayName("reorderCharacters — ownership + Validator 호출 + displayOrder = index 일괄 갱신 (FR-016)")
+    fun `reorderCharacters updates displayOrder by index`() {
+        val project = newProject()
+        val char1 = newCharacter(id = 101L, displayOrder = 0)
+        val char2 = newCharacter(id = 102L, name = "할머니", displayOrder = 1)
+        val char3 = newCharacter(id = 103L, name = "옆집", displayOrder = 2)
+        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
+        every {
+            characterRepository.findAllByProjectIdOrderByDisplayOrderAscCreatedAtAsc(eq(10L))
+        } returns listOf(char1, char2, char3)
+        every { characterMapper.toResponse(any()) } answers { stubMapper(firstArg<Character>()) }
+
+        // new order = [102, 101, 103] → 102 = 0, 101 = 1, 103 = 2
+        val response =
+            service.reorderCharacters(
+                userId = 1L,
+                projectId = 10L,
+                request = ReorderCharactersRequest(characterIds = listOf(102L, 101L, 103L)),
+            )
+
+        verify(exactly = 1) {
+            reorderValidator.validate(
+                match { it.characterIds == listOf(102L, 101L, 103L) },
+                eq(listOf(char1, char2, char3)),
+            )
+        }
+        assertThat(char2.displayOrder).isEqualTo(0)
+        assertThat(char1.displayOrder).isEqualTo(1)
+        assertThat(char3.displayOrder).isEqualTo(2)
+        assertThat(response.totalElements).isEqualTo(3)
+        // 응답 순서 = 새 순서 (contracts #24)
+        assertThat(response.content.map { it.id }).containsExactly(102L, 101L, 103L)
+    }
+
+    @Test
+    @DisplayName("reorderCharacters — 빈 배열 + 인물 0명 = no-op (contracts #24 Edge case)")
+    fun `reorderCharacters no-op for empty project`() {
+        val project = newProject()
+        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
+        every {
+            characterRepository.findAllByProjectIdOrderByDisplayOrderAscCreatedAtAsc(eq(10L))
+        } returns emptyList()
+
+        val response =
+            service.reorderCharacters(
+                userId = 1L,
+                projectId = 10L,
+                request = ReorderCharactersRequest(characterIds = emptyList()),
+            )
+
+        assertThat(response.totalElements).isEqualTo(0)
+        assertThat(response.content).isEmpty()
     }
 
     @Test

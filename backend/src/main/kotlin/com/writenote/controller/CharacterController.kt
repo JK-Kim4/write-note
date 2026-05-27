@@ -2,6 +2,7 @@ package com.writenote.controller
 
 import com.writenote.auth.AuthenticatedPrincipal
 import com.writenote.model.request.CreateCharacterRequest
+import com.writenote.model.request.ReorderCharactersRequest
 import com.writenote.model.request.UpdateCharacterRequest
 import com.writenote.model.response.CharacterResponse
 import com.writenote.model.response.PageResponse
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -65,6 +67,14 @@ class CharacterController(
         @PathVariable characterId: Long,
         @Valid @RequestBody request: UpdateCharacterRequest,
     ): Result<CharacterResponse> = Result.success(characterService.updateCharacter(principal.userId, projectId, characterId, request))
+
+    @PutMapping("/reorder")
+    @Operation(summary = "인물 표시 순서 일괄 갱신", description = "전체 인물 ID permutation 전송 — null/누락/중복/외부ID 시 400")
+    fun reorderCharacters(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @PathVariable projectId: Long,
+        @Valid @RequestBody request: ReorderCharactersRequest,
+    ): Result<PageResponse<CharacterResponse>> = Result.success(characterService.reorderCharacters(principal.userId, projectId, request))
 
     @DeleteMapping("/{characterId}")
     @Operation(summary = "인물 삭제")

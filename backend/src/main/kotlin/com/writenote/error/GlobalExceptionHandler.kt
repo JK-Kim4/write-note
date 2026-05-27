@@ -48,6 +48,14 @@ class GlobalExceptionHandler {
             message = exception.message ?: "Resource not found",
         )
 
+    @ExceptionHandler(ValidationException::class)
+    fun handleDomainValidation(exception: ValidationException): ResponseEntity<Result<Nothing>> =
+        errorResponse(
+            status = HttpStatus.BAD_REQUEST,
+            code = ErrorCode.VALIDATION_FAILED,
+            message = exception.message ?: "Validation failed",
+        )
+
     @ExceptionHandler(DataIntegrityViolationException::class)
     fun handleConflict(exception: DataIntegrityViolationException): ResponseEntity<Result<Nothing>> =
         errorResponse(

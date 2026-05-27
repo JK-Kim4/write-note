@@ -166,16 +166,16 @@
 
 ### Tests for User Story 5 (TDD RED 의무)
 
-- [ ] T045 [P] [US5] Create CharacterReorderValidatorTest in `backend/src/test/kotlin/com/writenote/components/characters/CharacterReorderValidatorTest.kt` — 누락 / 중복 / 외부 ID / 빈 배열 + happy 5 케이스 (`eq()` 정확값)
-- [ ] T046 [P] [US5] Extend CharacterServiceTest in `backend/src/test/kotlin/com/writenote/service/CharacterServiceTest.kt` — reorder 일괄 갱신 트랜잭션 정합 (N rows UPDATE 단일 트랜잭션 + ReorderValidator 호출 검증)
-- [ ] T047 [P] [US5] Extend CharacterControllerIT in `backend/src/test/kotlin/com/writenote/controller/CharacterControllerIT.kt` — #24 PUT reorder happy / 누락 400 / 중복 400 / 외부 ID 400 / 빈 배열 (인물 0명 프로젝트) 200 + no-op 케이스 per contracts/character-endpoints.md #24
+- [X] T045 [P] [US5] Create CharacterReorderValidatorTest in `backend/src/test/kotlin/com/writenote/components/characters/CharacterReorderValidatorTest.kt` — 누락 / 중복 / 외부 ID / 빈 배열 + happy 5 케이스
+- [X] T046 [P] [US5] Extend CharacterServiceTest in `backend/src/test/kotlin/com/writenote/service/CharacterServiceTest.kt` — reorder 일괄 갱신 트랜잭션 정합 (happy + no-op 2 케이스 — ReorderValidator 호출 검증)
+- [X] T047 [P] [US5] Extend CharacterControllerIT in `backend/src/test/kotlin/com/writenote/controller/CharacterControllerIT.kt` — #24 PUT reorder happy / 누락 400 / 빈 배열 200 / cross-user 404 (중복/외부ID 는 ValidatorTest 단위 영역 cover)
 
 ### Implementation for User Story 5
 
-- [ ] T048 [US5] Create CharacterReorderValidator in `backend/src/main/kotlin/com/writenote/components/characters/CharacterReorderValidator.kt` — 4 검증 (누락 / 중복 / 외부 ID / 빈 배열 = no-op) per research R-4
-- [ ] T049 [US5] Extend CharacterService in `backend/src/main/kotlin/com/writenote/service/CharacterService.kt` — `reorderCharacters(userId, projectId, req)` 메서드. `@Transactional(rollbackFor = [Exception::class])` 안에서 (a) ownership 검증 (b) Validator 호출 (c) 정렬 순서대로 displayOrder = index 갱신
-- [ ] T050 [US5] Extend CharacterController in `backend/src/main/kotlin/com/writenote/controller/CharacterController.kt` — `PUT /api/projects/{projectId}/characters/reorder` endpoint 신설 per contracts/character-endpoints.md #24
-- [ ] T051 [US5] Run targeted verification by executing `cd backend && ./gradlew test --tests "*CharacterReorderValidatorTest" --tests "*CharacterServiceTest" --tests "*CharacterControllerIT"`
+- [X] T048 [US5] Create CharacterReorderValidator in `backend/src/main/kotlin/com/writenote/components/characters/CharacterReorderValidator.kt` — 4 검증 (누락 / 중복 / 외부 ID / 빈 배열 = no-op) per research R-4. `ValidationException` 신설 + GlobalExceptionHandler 매핑 (400 VALIDATION_FAILED — contracts #24 정합)
+- [X] T049 [US5] Extend CharacterService.reorderCharacters in `backend/src/main/kotlin/com/writenote/service/CharacterService.kt` — `@Transactional(rollbackFor = [Exception::class])` 안에서 (a) ownership 검증 (b) Validator 호출 (c) 정렬 순서대로 displayOrder = index 갱신 + PageResponse 반환 (contracts #24)
+- [X] T050 [US5] Extend CharacterController PUT `/reorder` endpoint per contracts #24
+- [X] T051 [US5] Run targeted verification — `./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` BUILD SUCCESSFUL (cross-suite 회귀 0건)
 
 **Checkpoint**: US5 완료 — reorder + 4 검증 GREEN. 모든 US (5개) 독립 동작.
 
