@@ -8,6 +8,8 @@ import com.writenote.model.response.ProjectResponse
 import com.writenote.model.response.Result
 import com.writenote.service.ProjectService
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
@@ -32,7 +34,15 @@ class ProjectController(
     private val projectService: ProjectService,
 ) {
     @PostMapping
-    @Operation(summary = "프로젝트 생성", description = "JWT principal 의 userId 를 owner 로 새 프로젝트 생성")
+    @Operation(summary = "프로젝트 생성", description = "JWT principal 의 userId 를 owner 로 새 프로젝트 + 빈 본문 1:1 자동 행 생성 (FR-009/010)")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "201", description = "생성 성공 (Document 자동 행 박힘)"),
+            ApiResponse(responseCode = "400", description = "VALIDATION_FAILED — title 누락 / 길이 초과 / 메타 필드 범위 초과"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_MISSING / INVALID / EXPIRED"),
+            ApiResponse(responseCode = "500", description = "INTERNAL_ERROR — Document 자동 행 박기 실패 시 트랜잭션 롤백"),
+        ],
+    )
     fun createProject(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @Valid @RequestBody request: CreateProjectRequest,
@@ -43,6 +53,13 @@ class ProjectController(
 
     @GetMapping
     @Operation(summary = "프로젝트 목록", description = "?archived=false (활성, default) / true (보관함) 분리 조회")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공 (페이지네이션 envelope)"),
+            ApiResponse(responseCode = "400", description = "VALIDATION_FAILED — size > 100"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+        ],
+    )
     fun listProjects(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @RequestParam(defaultValue = "false") archived: Boolean,
@@ -52,6 +69,13 @@ class ProjectController(
 
     @GetMapping("/{projectId}")
     @Operation(summary = "프로젝트 단건 조회", description = "본인 프로젝트만 (보관 상태 무관). 다른 사용자 리소스 접근 시 404 NOT_FOUND")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND — 본인 소유 아님 / 미존재"),
+        ],
+    )
     fun getProject(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable projectId: Long,
@@ -59,6 +83,14 @@ class ProjectController(
 
     @PatchMapping("/{projectId}")
     @Operation(summary = "프로젝트 메타 부분 수정", description = "본인 프로젝트만. null 필드는 미변경, 명시값은 갱신")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공"),
+            ApiResponse(responseCode = "400", description = "VALIDATION_FAILED — 명시된 필드의 검증 실패"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND"),
+        ],
+    )
     fun updateProject(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable projectId: Long,
@@ -67,6 +99,13 @@ class ProjectController(
 
     @PostMapping("/{projectId}/archive")
     @Operation(summary = "프로젝트 보관", description = "본인 프로젝트 archivedAt = now 박음. 멱등 — 이미 보관 상태면 시각 유지")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공 (archivedAt 박힘)"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND"),
+        ],
+    )
     fun archiveProject(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable projectId: Long,
@@ -74,6 +113,13 @@ class ProjectController(
 
     @PostMapping("/{projectId}/unarchive")
     @Operation(summary = "프로젝트 보관 해제", description = "본인 프로젝트 archivedAt = null 박음. 멱등 — 미보관 상태에서 호출 시 no-op")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공 (archivedAt = null)"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND"),
+        ],
+    )
     fun unarchiveProject(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable projectId: Long,
@@ -83,6 +129,13 @@ class ProjectController(
     @Operation(
         summary = "프로젝트 영구 삭제",
         description = "본인 프로젝트 영구 삭제 — DB FK CASCADE 로 자식 (characters / documents) 자동 정리",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "204", description = "성공 — body 없음"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND"),
+        ],
     )
     fun deleteProject(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,

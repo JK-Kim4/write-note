@@ -9,6 +9,9 @@ import com.writenote.model.response.PageResponse
 import com.writenote.model.response.Result
 import com.writenote.service.CharacterService
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
@@ -28,11 +31,19 @@ import org.springframework.web.bind.annotation.RestController
 @Tag(name = "Character", description = "프로젝트 등장인물 CRUD — owner 식별은 JWT principal 에서만 도출")
 @RestController
 @RequestMapping("/api/projects/{projectId}/characters")
+@SecurityRequirement(name = "BearerJwt")
 class CharacterController(
     private val characterService: CharacterService,
 ) {
     @GetMapping
     @Operation(summary = "인물 목록", description = "display_order ASC + created_at ASC 정렬")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공 (페이지네이션 envelope)"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND — 본인 소유 projectId 아님 / 미존재"),
+        ],
+    )
     fun listCharacters(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable projectId: Long,
@@ -42,6 +53,13 @@ class CharacterController(
 
     @GetMapping("/{characterId}")
     @Operation(summary = "인물 단건 조회")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND — 본인 소유 projectId 아님 / 인물 미존재 / 다른 프로젝트 인물"),
+        ],
+    )
     fun getCharacter(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable projectId: Long,
@@ -50,6 +68,14 @@ class CharacterController(
 
     @PostMapping
     @Operation(summary = "인물 추가")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "201", description = "성공"),
+            ApiResponse(responseCode = "400", description = "VALIDATION_FAILED — name 누락 / 길이 초과"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND — 본인 소유 projectId 아님"),
+        ],
+    )
     fun createCharacter(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable projectId: Long,
@@ -61,6 +87,14 @@ class CharacterController(
 
     @PatchMapping("/{characterId}")
     @Operation(summary = "인물 부분 수정", description = "null = 미변경, 명시값 = 갱신")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공"),
+            ApiResponse(responseCode = "400", description = "VALIDATION_FAILED — 명시된 필드의 검증 실패"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND"),
+        ],
+    )
     fun updateCharacter(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable projectId: Long,
@@ -70,6 +104,14 @@ class CharacterController(
 
     @PutMapping("/reorder")
     @Operation(summary = "인물 표시 순서 일괄 갱신", description = "전체 인물 ID permutation 전송 — null/누락/중복/외부ID 시 400")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공 (새 순서 응답)"),
+            ApiResponse(responseCode = "400", description = "VALIDATION_FAILED — 누락 / 중복 / 외부 ID"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND — 본인 소유 projectId 아님"),
+        ],
+    )
     fun reorderCharacters(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable projectId: Long,
@@ -78,6 +120,13 @@ class CharacterController(
 
     @DeleteMapping("/{characterId}")
     @Operation(summary = "인물 삭제")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "204", description = "성공 — body 없음"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND"),
+        ],
+    )
     fun deleteCharacter(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable projectId: Long,

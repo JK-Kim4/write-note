@@ -187,29 +187,29 @@
 
 ### Cross-Cutting IT (US2 cascade 완성)
 
-- [ ] T052 Extend ProjectServiceIT in `backend/src/test/kotlin/com/writenote/service/ProjectServiceIT.kt` — Project 영구 삭제 cascade 통합 검증: 인물 N명 + 본문 1행 보유 Project DELETE → `projects` / `characters` / `documents` 모두 0행 (DB FK CASCADE 정합) per cascade-and-auto-provisioning.md §2-4
+- [X] T052 Extend ProjectServiceIT in `backend/src/test/kotlin/com/writenote/service/ProjectServiceIT.kt` — Project 영구 삭제 cascade 통합 검증: 인물 3명 + 본문 1행 보유 Project DELETE → `projects` / `characters` / `documents` 모두 0행 (DB FK CASCADE 정합)
 
 ### N+1 회피 검증 (FR-019, SC-009)
 
-- [ ] T053 Extend ProjectRepositoryIT in `backend/src/test/kotlin/com/writenote/repository/ProjectRepositoryIT.kt` — Project 목록 조회 시 Hibernate SQL 카운트 assertion (메인 쿼리 1회 + 페이지 카운트 1회 외 추가 쿼리 0회)
-- [ ] T054 Extend CharacterRepositoryIT in `backend/src/test/kotlin/com/writenote/repository/CharacterRepositoryIT.kt` — Character 목록 조회 시 SQL 카운트 assertion
+- [X] T053 Extend ProjectRepositoryIT — Hibernate Statistics API (`generate_statistics: true` application-test.yml 추가) + Project 목록 조회 시 `prepareStatementCount <= 2` (메인 + COUNT 외 추가 0)
+- [X] T054 Extend CharacterRepositoryIT — Character 목록 조회 시 동일 Statistics assertion
 
 ### OpenAPI 문서
 
-- [ ] T055 [P] Extend ProjectController in `backend/src/main/kotlin/com/writenote/controller/ProjectController.kt` — 7 endpoint 모두에 `@Tag` / `@Operation(summary, description)` / `@ApiResponse` 보강 (003 패턴 정합)
-- [ ] T056 [P] Extend CharacterController in `backend/src/main/kotlin/com/writenote/controller/CharacterController.kt` — 6 endpoint 모두에 OpenAPI annotation 보강
+- [X] T055 [P] Extend ProjectController — 7 endpoint 모두에 `@Tag` + `@Operation` + `@SecurityRequirement(BearerJwt)` + `@ApiResponses` 보강 (응답 코드 명시 — 200/201/204 + 400/401/404/500)
+- [X] T056 [P] Extend CharacterController — 6 endpoint 모두에 동일 OpenAPI annotation 보강 + 클래스 레벨 `@SecurityRequirement` 추가
 
 ### Docs / SoT 갱신
 
-- [ ] T057 Update SoT 변경 이력 in `docs/plan/03-backend-requirements.md` §6 — research R-1 (archived 마이그레이션) / R-2 (메타 검증 규칙) / R-3 (Document body default) / R-4 (Character display_order) 결정 행 추가
-- [ ] T058 Update progress in `docs/plan/02-progress.md` §1 — 004 완료 항목 추가 + §"다음 진입점" 에 후속 frontend spec (예: `005-phase-2-frontend-views`) 진입 명시 (spec.md Assumptions §2 정합)
-- [ ] T059 Update external vault in `~/obsidian/write-note/02-PROGRESS.md` — §1 완료 Phase 에 004 추가 + §2 "다음 진입점" 에 frontend spec 진입 명시 (CLAUDE.md "외부 SoT — 옵시디언 vault HARD-GATE" 정합)
+- [X] T057 Update SoT 변경 이력 in `docs/plan/03-backend-requirements.md` §6 — 004 R-1~R-4 결정 4행 + Phase 7 ValidationException 결정 1행 추가
+- [X] T058 Update progress in `docs/plan/02-progress.md` §1 — 004 완료 항목 (Phase 1+2+3+4 MVP + Phase 5+6+7+8) 추가 + §3 다음 진입점 = 005 Frontend Views 명시
+- [X] T059 Update external vault in `~/obsidian/write-note/02-PROGRESS.md` — 상태 한 줄 갱신 + §1 004 완료 항목 + §2 "다음 진입점 = 005" 신설 + §3 git 상태 갱신 + 본 세션 본질 결정 / 회귀 사례 6건 박음
 
 ### Retrospective + 검증 게이트
 
-- [ ] T060 Create retrospective in `docs/retrospectives/2026-05-NN-004-phase-2-backend.md` — 5축 회고 (무엇/어떻게/잘된점/어긋난점/교훈) per `.claude/skills/retrospective/SKILL.md`. §5-2 룰 갱신 후보 박음
-- [ ] T061 Run single verification gate by executing `cd backend && ./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` — BUILD SUCCESSFUL 의무 (SC-007)
-- [ ] T062 사용자 dogfooding execution per quickstart.md §3-1 ~ §3-9 — SC-001 ~ SC-010 직접 검증 통과 보고
+- [X] T060 Create retrospective in `docs/retrospectives/2026-05-27-004-phase-2-backend.md` — 5축 회고 (무엇/어떻게/잘된점/어긋난점/교훈) + §5-2 룰 갱신 후보 4건 박음 (Edit fail 검증 / JSONB roundtrip / agent-workflow-discipline §6 강조 / vault § 단위 정합)
+- [X] T061 단일 검증 게이트 — `./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` BUILD SUCCESSFUL (P8-R6 시점 실행)
+- [ ] T062 사용자 dogfooding execution per quickstart.md §3-1 ~ §3-9 — **사용자 영역 분리** (Claude 단독 실행 불가, curl 9건 + 본인 환경 검증 의무)
 
 **Checkpoint**: 본 spec 의 자동 + 수동 dogfooding 모두 GREEN. 후속 frontend spec 진입 트리거 박힘.
 

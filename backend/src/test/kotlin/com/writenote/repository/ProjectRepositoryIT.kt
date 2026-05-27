@@ -4,6 +4,8 @@ import com.writenote.entity.Project
 import com.writenote.entity.User
 import jakarta.persistence.EntityManager
 import org.assertj.core.api.Assertions.assertThat
+import org.hibernate.SessionFactory
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -90,6 +92,33 @@ class ProjectRepositoryIT
             entityManager.clear()
 
             assertThat(projectRepository.findByIdAndUserId(project.id!!, otherUser.id!!)).isEmpty()
+        }
+
+        @Test
+        @DisplayName("N+1 회피 — 활성 목록 조회 시 메인 SELECT 1 + COUNT 1 외 추가 쿼리 0 (FR-019 / SC-009)")
+        fun `active list query avoids N+1`() {
+            val owner =
+                userRepository.save(
+                    User(email = "owner-${UUID.randomUUID()}@example.com", passwordHash = "test-fixture-password-hash"),
+                )
+            repeat(5) { idx ->
+                projectRepository.save(Project(userId = owner.id!!, title = "Project $idx"))
+            }
+            entityManager.flush()
+            entityManager.clear()
+
+            val sessionFactory = entityManager.entityManagerFactory.unwrap(SessionFactory::class.java)
+            sessionFactory.statistics.clear()
+
+            val page =
+                projectRepository.findByUserIdAndArchivedAtIsNullOrderByUpdatedAtDesc(
+                    owner.id!!,
+                    PageRequest.of(0, 10),
+                )
+            assertThat(page.content).hasSize(5)
+
+            // 페이지네이션 = SELECT content 1 + COUNT 1. N+1 발생 시 3+ 박힘
+            assertThat(sessionFactory.statistics.prepareStatementCount).isLessThanOrEqualTo(2)
         }
 
         @Test

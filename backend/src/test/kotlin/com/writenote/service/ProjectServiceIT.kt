@@ -1,9 +1,12 @@
 package com.writenote.service
 
+import com.writenote.entity.Character
 import com.writenote.entity.Document
 import com.writenote.entity.User
 import com.writenote.model.request.CreateProjectRequest
+import com.writenote.repository.CharacterRepository
 import com.writenote.repository.DocumentRepository
+import com.writenote.repository.ProjectRepository
 import com.writenote.repository.UserRepository
 import jakarta.persistence.EntityManager
 import org.assertj.core.api.Assertions.assertThat
@@ -36,8 +39,10 @@ class ProjectServiceIT
     @Autowired
     constructor(
         private val projectService: ProjectService,
+        private val projectRepository: ProjectRepository,
         private val userRepository: UserRepository,
         private val documentRepository: DocumentRepository,
+        private val characterRepository: CharacterRepository,
         private val passwordEncoder: PasswordEncoder,
         private val entityManager: EntityManager,
     ) {
@@ -81,5 +86,48 @@ class ProjectServiceIT
             assertThat(document.version).isEqualTo(0)
             assertThat(document.createdAt).isNotNull()
             assertThat(document.updatedAt).isNotNull()
+        }
+
+        @Test
+        @DisplayName("deleteProject — cascade 로 characters / documents 모두 0행 (FR-007/011 / SC-002)")
+        fun `deleteProject cascades to characters and documents`() {
+            val user = savedUser()
+            val response =
+                projectService.createProject(
+                    requireNotNull(user.id),
+                    CreateProjectRequest(title = "cascade test"),
+                )
+            val projectId = response.id
+
+            // 인물 3명 추가
+            listOf("민지", "할머니", "옆집").forEach { name ->
+                characterRepository.saveAndFlush(
+                    Character(
+                        projectId = projectId,
+                        name = name,
+                        displayOrder = 0,
+                    ),
+                )
+            }
+            entityManager.flush()
+            entityManager.clear()
+
+            // 삭제 전 sanity check
+            assertThat(
+                characterRepository.findAllByProjectIdOrderByDisplayOrderAscCreatedAtAsc(projectId),
+            ).hasSize(3)
+            assertThat(documentRepository.findByProjectId(projectId)).isPresent
+
+            // 영구 삭제
+            projectService.deleteProject(requireNotNull(user.id), projectId)
+            entityManager.flush()
+            entityManager.clear()
+
+            // cascade 검증 — DB FK ON DELETE CASCADE (research R-5)
+            assertThat(projectRepository.findById(projectId)).isEmpty
+            assertThat(
+                characterRepository.findAllByProjectIdOrderByDisplayOrderAscCreatedAtAsc(projectId),
+            ).isEmpty()
+            assertThat(documentRepository.findByProjectId(projectId)).isEmpty
         }
     }
