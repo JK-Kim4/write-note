@@ -1,8 +1,8 @@
 # write-note V1 — 작업 진척도
 
 **최종 갱신:** 2026-05-28
-**상태:** 004 Phase 2 Backend Project Metadata & Character **종료** — 61/62 task (T062 dogfooding 사용자 영역 분리). Phase 5/6/7/8 모두 develop merge 완료 (Phase 8 merge `8090547` + docs `4261671`, origin 동기). 다음 진입점 = 005 Phase 2 Frontend Views — 사용자 결정 영역
-**SoT 진입점:** 다음 세션 진입 시 본 문서 + [00-stack-and-schedule.md](./00-stack-and-schedule.md) + [01-phase-breakdown.md](./01-phase-breakdown.md) + [specs/004-phase-2-backend-project-character/](../../specs/004-phase-2-backend-project-character/) 정독 + 외부 vault [[02-PROGRESS]] / [[03-ISSUES]] 동기 확인
+**상태:** 004 Phase 2 Backend **종료** (61/62, Phase 5/6/7/8 develop merge — `8090547` + docs `4261671`, origin 동기) + 002 frontend dogfooding **종료** (4건 사용자 통과, T051 은 frontend↔backend 인증 drift 로 ISSUE-015 → 005 이연). GitHub 보드 #8·#10 Done 정합. **다음 세션 진입점 = 005 Phase 2 Frontend Views** (홈 view / 새 프로젝트 흐름 / 메타 카드 UI / 등장인물 페이지 + ISSUE-015 frontend 인증 연동)
+**SoT 진입점:** 다음 세션 = **005 Phase 2 Frontend Views 진입** (spec 신설 의무). 본 문서 + [01-phase-breakdown.md](./01-phase-breakdown.md) §5 Phase 2-4~2-7 + [002 spec](../../specs/002-frontend-route-scaffold/) (frontend 골격) + 외부 vault [[02-PROGRESS]] / [[03-ISSUES]] (ISSUE-015 frontend 인증 연동) 정독
 
 ---
 
@@ -65,11 +65,11 @@ cd backend
 - Week 1B에서 `X-User-Id`를 authenticated principal user id로 교체해야 하며, 클라이언트가 owner id를 직접 제어하지 못하게 해야 한다.
 - Project CRUD는 최소 필드(`id`, `userId`, `title`, `archived`, `createdAt`, `updatedAt`)만 구현했다. genre/target length/tone/synopsis/world notes는 Week 2 범위.
 
-### 002 Frontend Route & Page Scaffold (2026-05-21, 자동화 검증 완료 / dogfooding 대기)
+### 002 Frontend Route & Page Scaffold (2026-05-21~28, ✅ 종료 — 자동화 GREEN + develop merge `6eee578` + dogfooding 4건 통과)
 
 | Phase | 상태 | 산출물 |
 |---|---|---|
-| 002 Frontend Route & Page Scaffold | 🟡 (자동화 GREEN / dogfooding 5 영역 대기) | wireframe 전체 (12 인증 + 6 메인 view + H0) 라우트 골격 + 공유 인프라 (디자인 토큰 / 다크 모드 / React Query / Zustand / fetch 기반 API client + 임시 X-User-Id) + PoC 검증용 `/poc/*` 폐기 + production PWA manifest+sw-register 유지 |
+| 002 Frontend Route & Page Scaffold | ✅ 종료 (4건 dogfooding 통과 / T051 → ISSUE-015 005 이연) | wireframe 전체 (12 인증 + 6 메인 view + H0) 라우트 골격 + 공유 인프라 (디자인 토큰 / 다크 모드 / React Query / Zustand / fetch 기반 API client + 임시 X-User-Id) + PoC 검증용 `/poc/*` 폐기 + production PWA manifest+sw-register 유지 |
 
 **spec/plan/tasks:** [`specs/002-frontend-route-scaffold/`](../../specs/002-frontend-route-scaffold/) (spec.md / plan.md / research.md / data-model.md / contracts/route-surfaces.md / contracts/api-client.md / quickstart.md / tasks.md / checklists/requirements.md)
 
@@ -85,12 +85,12 @@ cd backend
 - 가드 적용 — `requireAnon`: `auth/layout.tsx` / `requireAuth`: `page.tsx`, `memos/page.tsx`, `settings/page.tsx`, `write/layout.tsx` ✓
 - `pnpm lint` + `pnpm build` GREEN — 21 static page 생성 (19 surface + manifest + auto not-found) ✓
 
-**사용자 dogfooding 대기 (Phase 6 + Phase 7 일부):**
-- T049 다크 모드 19 surface 일관 (라이트↔다크 토글 + surface 간 이동 시 선호 유지)
-- T050 시스템 테마 따라가기 (`theme === 'system'` + OS 변경)
-- T051 placeholder query 동작 (backend `bootRun` + `useProjects` 호출 + envelope unwrap)
-- T053 19 surface 1:1 시각 비교 (`pnpm dev` + `designs/wireframe.html` 옆 비교)
-- T054 PWA "홈 화면 추가" (iOS Safari + Android Chrome)
+**사용자 dogfooding 결과 (2026-05-28, ✅ 4건 통과 / T051 → ISSUE-015 005 이연):**
+- T049 다크 모드 19 surface 일관 (라이트↔다크 토글 + surface 간 이동 시 선호 유지) — ✅ 통과
+- T050 시스템 테마 따라가기 (`theme === 'system'` + OS 변경) — ✅ 통과
+- T051 placeholder query 동작 (backend `bootRun` + `useProjects` 호출 + envelope unwrap) — ⏭️ 005 이연 (frontend `X-User-Id` ↔ backend JWT drift, 실측 `401 AUTH_TOKEN_MISSING`. ISSUE-015)
+- T053 19 surface 1:1 시각 비교 (`pnpm dev` + `designs/wireframe.html` 옆 비교) — ✅ 통과
+- T054 PWA "홈 화면 추가" (iOS Safari + Android Chrome) — ✅ 통과
 
 **중요한 구현 결정:**
 - Next.js 16 Server → Client component 로 `onSubmit` 핸들러 직접 전달 불가 발견 → form 컴포넌트 4 종에 `'use client'` 추가
