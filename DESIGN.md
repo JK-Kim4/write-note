@@ -1,9 +1,9 @@
 # write-note — 컨텍스트가 안 죽는 작가용 작업공간
 
-**날짜:** 2026-05-17 (초안), 2026-05-17 UI/UX 검토 추가
-**상태:** UI/UX 검토 완료 — 구현 대기
+**날짜:** 2026-05-17 (초안), 2026-05-17 UI/UX 검토 추가, 2026-05-27 상태 갱신
+**상태:** 구현 진행 중 — Week 1A Backend Foundation (001) + Week 1B Backend Auth (003) + Week 2 Backend Project Metadata & Character (004) 종료. 다음 진입 = Week 2 Frontend Views (005)
 **모드:** Builder (취미 글쓰기 사이드 프로젝트)
-**브랜치:** claude/focused-hermann-9418d9
+**브랜치:** develop
 **Wireframe:** [`designs/wireframe.html`](designs/wireframe.html) — 7개 view 비교 가능
 
 ---

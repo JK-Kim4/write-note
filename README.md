@@ -13,7 +13,9 @@
 
 ## 상태
 
-🟢 Week 1A backend foundation 완료. 다음: Week 1B 인증 기반(Spring Security + JWT + Kakao OAuth2 + 이메일/비밀번호 로그인).
+🟢 Week 1A Backend Foundation (001) + Week 1B Backend Auth (003 — Spring Security + JWT + Kakao OAuth2 + 이메일/비밀번호 로그인 + 5회 실패 잠금 + 비밀번호 재설정) + Week 2 Backend Project Metadata & Character (004 — Project 메타 5 필드 + Document auto-provisioning + Character CRUD 5 endpoint + Character reorder) 종료. 다음 = Week 2 Frontend Views (005 — 홈 view / 새 프로젝트 흐름 / 메타 카드 UI / 등장인물 페이지).
+
+🟡 002 Frontend Route Scaffold — 자동화 GREEN / dogfooding 5 영역 대기 (vault ISSUE-001).
 
 ## 디렉토리
 

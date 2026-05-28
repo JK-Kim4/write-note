@@ -6,7 +6,7 @@
 
 컨텍스트가 안 죽는 작가용 작업공간. 메모와 글쓰기 에디터가 같은 시스템에 살면서, 세션이 끊겨도 컨텍스트가 영속하게 만드는 사이드 프로젝트.
 
-V1 wireframe 완료, 구현 진입 전.
+V1 wireframe 완료 + 구현 진행 중 — 001 Phase 1A Backend Foundation / 002 Frontend Route Scaffold (자동화 GREEN, dogfooding 대기) / 003 Phase 1B Backend Auth / 004 Phase 2 Backend Project Metadata & Character 종료. 다음 진입 = 005 Phase 2 Frontend Views (홈 view / 새 프로젝트 흐름 / 메타 카드 UI / 등장인물 페이지).
 
 ## 외부 SoT — 옵시디언 vault (HARD-GATE)
 
