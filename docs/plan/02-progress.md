@@ -1,8 +1,8 @@
 # write-note V1 — 작업 진척도
 
-**최종 갱신:** 2026-05-24
-**상태:** 003 Phase 1B Backend Auth **종료** — 80/80 + ISSUE-014 fix + 룰 갱신 4건. develop 동기 (`eb06b55`) + 브랜치 삭제. 다음 진입점 = 002 dogfooding 5 영역 또는 Week 2 (Project/Character CRUD 확장) — 사용자 결정 영역
-**SoT 진입점:** 다음 세션 진입 시 본 문서 + [00-stack-and-schedule.md](./00-stack-and-schedule.md) + [01-phase-breakdown.md](./01-phase-breakdown.md) + [specs/003-phase-1b-backend-auth/](../../specs/003-phase-1b-backend-auth/) 정독 + 외부 vault [[02-PROGRESS]] / [[03-ISSUES]] 동기 확인
+**최종 갱신:** 2026-05-28
+**상태:** 004 Phase 2 Backend Project Metadata & Character **종료** — 61/62 task (T062 dogfooding 사용자 영역 분리). Phase 5/6/7/8 모두 develop merge 완료 (Phase 8 merge `8090547` + docs `4261671`, origin 동기). 다음 진입점 = 005 Phase 2 Frontend Views — 사용자 결정 영역
+**SoT 진입점:** 다음 세션 진입 시 본 문서 + [00-stack-and-schedule.md](./00-stack-and-schedule.md) + [01-phase-breakdown.md](./01-phase-breakdown.md) + [specs/004-phase-2-backend-project-character/](../../specs/004-phase-2-backend-project-character/) 정독 + 외부 vault [[02-PROGRESS]] / [[03-ISSUES]] 동기 확인
 
 ---
 
@@ -130,7 +130,7 @@ cd backend
 | Phase 5 US3 | Document auto-provisioning (T034~T037, 4 task) — failure rollback IT 분리 패턴 (ISSUE-014 정합 비-transactional) + Postgres JSONB normalize 발견 (JsonMapper parse) | `17c215d` |
 | Phase 6 US4 | Character CRUD 5 endpoint (T038~T044, 7 task) — ownership = ProjectService.requireOwnedProject 재사용 + entity-level delete | `1992624` |
 | Phase 7 US5 | Character reorder + ValidationException 신설 (T045~T051, 7 task) — CharacterReorderValidator 4 검증 + 400 VALIDATION_FAILED 매핑 (contracts #24 정합) | `6a24439` |
-| Phase 8 Polish | Cascade IT (T052) + N+1 Hibernate Statistics (T053+T054) + OpenAPI @ApiResponse 13 endpoint (T055+T056) + docs 갱신 (T057+T058+T059) + 회고 (T060) + 단일 검증 게이트 (T061) | TBD |
+| Phase 8 Polish | Cascade IT (T052) + N+1 Hibernate Statistics (T053+T054) + OpenAPI @ApiResponse 13 endpoint (T055+T056) + docs 갱신 (T057+T058+T059) + 회고 (T060) + 단일 검증 게이트 (T061) | `8090547` (+ docs `4261671`) |
 
 **진척:** 61/62 task (T062 사용자 dogfooding 영역 분리). 본 spec scope 종료.
 
@@ -148,11 +148,17 @@ cd backend
 | 항목 | 값 |
 |---|---|
 | `main` | `53810cd` (변경 0 — 옵션 B 원칙) |
-| `develop` | `eb06b55` (003 merge 2회 + 룰 갱신 follow-up 머지 박힘) |
-| 현재 브랜치 | `develop` (003 작업 종료 후 복귀) |
-| 원격 | `origin/main`, `origin/develop` push 완료. `origin/003-phase-1b-backend-auth` **삭제** (2026-05-24) |
+| `develop` | `4261671` (004 Phase 5/6/7/8 merge + docs 종료 박힘. origin 동기 — ahead/behind 0/0) |
+| 현재 브랜치 | `develop` (004 작업 종료 후 복귀) |
+| 원격 | `origin/main`, `origin/develop` push 완료 (동기). 002 는 develop merge 완료 (`6eee578`), `002-frontend-route-scaffold` (`bafbb08`) 브랜치는 미삭제 잔존 (dogfooding 4건 대기). 004 feature 브랜치 4종 (-5/-6/-7/-8) merge 후 삭제 |
 | 워크트리 | 메인 1개 |
-| 활성 feature 브랜치 | (없음 — 003 종료 + 브랜치 삭제) |
+| 활성 feature 브랜치 | (없음 — 004 종료 + 브랜치 삭제. 002 는 dogfooding 대기 별도 트랙) |
+
+### 004 Phase 2 Backend Project Metadata & Character 마무리 (2026-05-27 ~ 2026-05-28)
+
+- 본 spec 산출물 develop 동기 — Phase 5 `17c215d` / Phase 6 `1992624` / Phase 7 `6a24439` / Phase 8 `8090547` + docs 종료 `4261671`
+- 004 feature 브랜치 4종 (-5/-6/-7/-8) 모두 develop merge 후 삭제 (로컬 잔존 0 확인)
+- 61/62 task 완료 (T062 dogfooding 사용자 영역 분리). T061 단일 검증 게이트 GREEN
 
 ### 003 Phase 1B Backend Auth 마무리 (2026-05-24)
 
@@ -191,21 +197,21 @@ e808d36 chore: docker-compose + README
 |---|---|---|
 | (a) **005 Phase 2 Frontend Views 진입** | 🟢 권장 | 본 spec Assumptions §2 정합. 홈 view / 새 프로젝트 흐름 / 메타 카드 UI / 등장인물 페이지 (`01-phase-breakdown.md §5 Phase 2-4~2-7`) |
 | (b) 004 T062 사용자 dogfooding | 🟡 005 진입 전 | `specs/004-phase-2-backend-project-character/quickstart.md §3-1~§3-9` curl 9건 직접 검증 (SC-001 ~ SC-010) |
-| (c) 002 dogfooding 5 영역 | 🟡 별도 트랙 | 다크 모드 / 시스템 테마 / placeholder query / 1:1 시각 비교 / PWA 홈 화면 — vault ISSUE-001 |
+| (c) 002 dogfooding | ✅ 완료 (2026-05-28) | 4건 (다크모드/시스템테마/1:1 시각비교/PWA) 사용자 통과. T051 placeholder query 는 frontend↔backend 인증 drift 로 005 이연 — vault ISSUE-001 ✅ / ISSUE-015 |
 | (d) Week 3 본문 입력 진입 (Document CRUD) | 🟡 005 종료 후 | `docs/plan/01-phase-breakdown.md` Week 3 영역 |
 | (e) Week 4 메모 큐레이션 / Week 5 세션 노트 | 🟡 별도 spec | Memo / SessionNote / MemoProject entity 신설 영역 |
 
-### 002 dogfooding 트랙 (보류 — vault ISSUE-001)
+### 002 dogfooding 트랙 (✅ 완료 — vault ISSUE-001)
 
-| Task | 작업 | 비고 |
+| Task | 작업 | 결과 |
 |---|---|---|
-| T049 | 다크 모드 19 surface 일관 검증 | `pnpm dev` + ThemeToggle 라이트/다크 19 surface 모두 확인 |
-| T050 | 시스템 테마 따라가기 | `theme === 'system'` 일 때 OS 다크 모드 토글 → 자동 따라가기 |
-| T051 | placeholder query 동작 | backend `bootRun` + 홈 진입 시 `useProjects` 호출 + envelope unwrap |
-| T053 | 19 surface 1:1 시각 비교 | `designs/wireframe.html` 옆에 띄워 양쪽 비교, 불일치 시 fix |
-| T054 | PWA 홈 화면 추가 | iOS Safari + Android Chrome 메뉴 노출 확인 |
+| T049 | 다크 모드 19 surface 일관 검증 | ✅ 통과 (2026-05-28) |
+| T050 | 시스템 테마 따라가기 | ✅ 통과 (2026-05-28) |
+| T051 | placeholder query 동작 | ⏭️ 005 이연 — frontend `X-User-Id` ↔ backend JWT drift (실측 `401 AUTH_TOKEN_MISSING`). vault ISSUE-015 |
+| T053 | 19 surface 1:1 시각 비교 | ✅ 통과 (2026-05-28) |
+| T054 | PWA 홈 화면 추가 | ✅ 통과 (2026-05-28) |
 
-003 Phase 1B 마무리 후 / Week 2 진입 전에 본 트랙 완료 의무.
+4건 사용자 dogfooding 통과로 트랙 종료. T051 은 005 Frontend Views 의 frontend↔backend 인증 통합에서 재검증.
 
 <details>
 <summary>완료된 Phase 1A 진입점 기록</summary>
@@ -257,8 +263,9 @@ Users
 
 | 트랙 | vault entry | 우선순위 |
 |---|---|---|
-| 002 dogfooding 5 영역 미완료 | ISSUE-001 | 003 마무리 후 |
-| 003 Phase 4~9 진행 중 (Phase 1~6 GREEN, Phase 7 진입 대기) | ISSUE-002 | 진행 |
+| 002 dogfooding — 4건 통과 ✅ / T051 → ISSUE-015 (005 이연) | ISSUE-001 ✅ | 완료 (2026-05-28) |
+| frontend `X-User-Id` ↔ backend JWT 인증 drift (T051 차단) | ISSUE-015 🆕 | 🟠 005 진입 시 |
+| 003 Phase 4~9 — 003 종료로 완료 (`eb06b55` merge + ISSUE-014 fix) | ISSUE-002 ✅ | 완료 |
 | `frontend/AGENTS.md` 의 docs 정독 경고 — 실제 디렉토리 부재 | ISSUE-003 | 별도 트랙 |
 | 임시 `X-User-Id` 헤더 — Phase 8 에서 회수 완료 (`0b54aaa`) | ISSUE-004 ✅ | 완료 |
 | Kotlin 2.3.x 의 Java 25 JVM target 지원 검증 | ISSUE-005 | V2 후보 |
