@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { QueryProvider } from "@/lib/query/QueryProvider";
 import { useThemeEffect } from "@/components/theme/ThemeToggle";
+import { QuickCaptureModal } from "@/components/memos/QuickCaptureModal";
 
 /**
  * Providers — RootLayout 의 client component 경계.
@@ -12,10 +13,16 @@ import { useThemeEffect } from "@/components/theme/ThemeToggle";
  * 역할:
  * - QueryProvider 주입 (React Query)
  * - useThemeEffect — preferences.theme 에 따라 :root.dark 클래스 toggle
+ * - QuickCaptureModal — 전역 ⌘+N 단축키 + 빠른 메모 캡처 (006 US3 T047)
  *
  * Root layout 은 server component 유지 → 본 wrapper 가 client boundary 담당.
  */
 export function Providers({ children }: { children: ReactNode }) {
     useThemeEffect();
-    return <QueryProvider>{children}</QueryProvider>;
+    return (
+        <QueryProvider>
+            {children}
+            <QuickCaptureModal />
+        </QueryProvider>
+    );
 }

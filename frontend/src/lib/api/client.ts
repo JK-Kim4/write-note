@@ -9,6 +9,7 @@ import type { Result } from "@/types/api";
  * - `credentials: "include"` — httpOnly 쿠키 자동 전송. 임시 사용자 식별 헤더 주입 폐기(003/005).
  * - 401 reactive refresh: 보호 요청 401 → `POST /api/auth/refresh`(쿠키의 refresh_token) 1회 → 성공 시 원요청 재시도.
  *   refresh 자체 / 인증 흐름(login·logout 등)은 `retryOnAuthFailure: false` 로 무한 루프 방지.
+ * - 409 DOCUMENT_VERSION_CONFLICT: `ConflictError` throw — currentVersion/currentBody 포함 (006 US1 자동저장).
  */
 
 const REFRESH_PATH = "/api/auth/refresh";
@@ -20,6 +21,21 @@ export class ApiError extends Error {
         super(message);
         this.name = "ApiError";
         this.code = code;
+    }
+}
+
+/** 문서 버전 충돌(409) 전용 에러 — currentVersion 과 currentBody 포함 (006 US1). */
+export class ConflictError extends Error {
+    code: string;
+    currentVersion: number;
+    currentBody: string;
+
+    constructor(currentVersion: number, currentBody: string) {
+        super("문서가 다른 곳에서 변경되었습니다.");
+        this.name = "ConflictError";
+        this.code = "DOCUMENT_VERSION_CONFLICT";
+        this.currentVersion = currentVersion;
+        this.currentBody = currentBody;
     }
 }
 
@@ -48,6 +64,29 @@ const tryRefresh = async (): Promise<boolean> => {
 const unwrap = async <T>(response: Response): Promise<T> => {
     if (response.status === 204) {
         return undefined as T;
+    }
+    // 409 충돌 — DOCUMENT_VERSION_CONFLICT 만 ConflictError(currentVersion/currentBody).
+    // EMAIL_ALREADY_REGISTERED / KAKAO_ALREADY_LINKED 등 다른 409 는 기존 ApiError 흐름 유지(회귀 방지).
+    if (response.status === 409) {
+        let body: unknown;
+        try {
+            body = await response.json();
+        } catch {
+            throw new ApiError("CONFLICT", "충돌이 발생했습니다.");
+        }
+        const b = body as Record<string, unknown>;
+        const error = b["error"] as Record<string, unknown> | null | undefined;
+        const code = typeof error?.["code"] === "string" ? error["code"] : undefined;
+        if (code === "DOCUMENT_VERSION_CONFLICT") {
+            const data = b["data"] as Record<string, unknown> | null | undefined;
+            const currentVersion = typeof data?.["currentVersion"] === "number" ? data["currentVersion"] : 0;
+            const currentBody = typeof data?.["currentBody"] === "string" ? data["currentBody"] : "";
+            throw new ConflictError(currentVersion, currentBody);
+        }
+        throw new ApiError(
+            code ?? "CONFLICT",
+            typeof error?.["message"] === "string" ? error["message"] : "충돌이 발생했습니다.",
+        );
     }
     let parsed: Result<T>;
     try {

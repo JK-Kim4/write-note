@@ -207,7 +207,7 @@ ApiToken (모바일 캡처용 — 본 세션 신설)
 
 | 항목 | 마주칠 시점 | 비고 |
 |---|---|---|
-| 다중 디바이스 동시 편집 충돌 정책 | Week 3 (에디터 자동 저장 시점) | 기본 가정: last-write-wins + 경고 토스트 |
+| 다중 디바이스 동시 편집 충돌 정책 | Week 3 (에디터 자동 저장 시점) | ✅ 해소: optimistic lock(Document.version) + 409 Conflict + 다시 로드/덮어쓰기 **사용자 선택 UI** (03-backend §6 ②-8 C / spec 006 정합). ~~기본 가정 last-write-wins~~ 폐기 |
 | 메모 핀 위치 추적 구체 구현 | Week 5 (메모-본문 핀) | TipTap custom mark + ProseMirror step.mapping. 핀이 가리키는 텍스트 삭제 시 핀도 사라지는 동작이 자연스러움 |
 | 5회 로그인 실패 → 30분 제한 구현 방식 | Week 1B (인증 마무리) | Postgres 함수 vs Spring Filter 둘 다 가능. DESIGN.md 361줄에 UI는 명시됨 |
 | 모바일 화면 우선순위 | Week 4 (모바일 캡처) | 휴대폰에서 어디까지 사용 가능하게 할지 (캡처만? 메모 조회까지?) |
