@@ -176,11 +176,11 @@ description: "Task list — 005 Phase 2 Frontend Views & Auth Integration"
 ## Phase 9: Polish & Cross-Cutting Concerns
 
 - [X] T050 [P] 에러 code → 한국어 메시지 매핑 일관화 — `frontend/src/lib/`(공통 매핑). (FR-012)
-- [ ] T051 [P] 다크 모드 + 디자인 토큰 일관성 검증 — 신규 화면 5종 라이트/다크 dogfooding. (SC-009, 한국어 cadence HARD-GATE)
+- [X] T051 [P] 다크 모드 + 디자인 토큰 일관성 검증 — 신규 화면 5종 라이트/다크 dogfooding. (SC-009, 한국어 cadence HARD-GATE) — 사용자 dogfooding 완료 처리(2026-05-30)
 - [X] T052 SC-008 검증 — `grep -rn "X-User-Id" frontend/src` = 0건
 - [X] T053 전체 검증 게이트 — frontend `pnpm lint && pnpm typecheck && pnpm test && pnpm build` + backend `./gradlew ktlint* checkstyleMain test build`
-- [ ] T054 quickstart dogfooding 전체 — `quickstart.md §3-1~§3-10` 직접 검증(SC-001~009). 카카오 제약 영역 명시
-- [ ] T055 docs/plan/02-progress.md + vault `02-PROGRESS`/`03-ISSUES`(ISSUE-015 종료) 갱신 + 5축 회고
+- [X] T054 quickstart dogfooding 전체 — `quickstart.md §3-1~§3-10` 직접 검증(SC-001~009). 카카오 제약 영역 명시 — 사용자 dogfooding 완료 처리(2026-05-30, 카카오는 외부 인가 제약 영역)
+- [X] T055 docs/plan/02-progress.md + vault `02-PROGRESS`/`03-ISSUES`(ISSUE-015 종료) 갱신 + 5축 회고 — 완료(`3e8ecc9`)
 
 ---
 

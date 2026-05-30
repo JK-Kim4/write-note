@@ -1,7 +1,7 @@
 # write-note V1 — 작업 진척도
 
 **최종 갱신:** 2026-05-30
-**상태:** **005 Phase 2 Frontend Views & Auth Integration — 자동화 전 task 완료 (T001~T050, T052, T053 = 49/55 + Polish 3).** MVP(US1 로그인+홈) 사용자 직접 검증 통과(SC-001/002/003/005) 후 US2~US6 전부 frontend 구현 + 양쪽 게이트 GREEN — R1 인증 httpOnly 쿠키 전환(backend+frontend, refresh·logout 쿠키 fallback 보완) / US2 새 프로젝트 / US3 메타카드·편집·생명주기 / US4 등장인물 CRUD·reorder / US5 가입·이메일인증·재설정(메일 링크 frontend 라우트 재설계) / US6 카카오(외부 인가 검증 제약). frontend 17 테스트 GREEN(vitest3+vite5+jsdom26, vault [[03-ISSUES]] ISSUE-016) / backend BUILD SUCCESSFUL(003/004 회귀 GREEN). US별 단위 커밋 6종(`6161184` R1 backend → `496745c` Polish). **남은 것:** T051(신규 화면 다크모드 직접점검) / T054(quickstart 전체 직접점검) — 사용자 브라우저 영역 + T055 문서 갱신(본 작업). 004 Phase 2 Backend ✅ 종료(`8090547`) / 002 frontend dogfooding ✅ 종료(4건 통과).
+**상태:** **005 Phase 2 Frontend Views & Auth Integration — ✅ 전체 종료 (T001~T055, 55/55).** MVP(US1 로그인+홈) 사용자 직접 검증 통과(SC-001/002/003/005) 후 US2~US6 전부 frontend 구현 + 양쪽 게이트 GREEN — R1 인증 httpOnly 쿠키 전환(backend+frontend, refresh·logout 쿠키 fallback 보완) / US2 새 프로젝트 / US3 메타카드·편집·생명주기 / US4 등장인물 CRUD·reorder / US5 가입·이메일인증·재설정(메일 링크 frontend 라우트 재설계) / US6 카카오(외부 인가 검증 제약). frontend 17 테스트 GREEN(vitest3+vite5+jsdom26, vault [[03-ISSUES]] ISSUE-016) / backend BUILD SUCCESSFUL(003/004 회귀 GREEN). dogfooding(T051 다크모드 / T054 quickstart §3) 사용자 완료 처리(2026-05-30, 카카오는 외부 인가 제약). US별 단위 커밋 6종(`6161184` R1 backend → `496745c` Polish) + 문서/회고(`3e8ecc9`). 004 Phase 2 Backend ✅ 종료(`8090547`) / 002 frontend dogfooding ✅ 종료(4건 통과).
 **SoT 진입점:** **`specs/005-phase-2-frontend-views/HANDOFF.md`** (브랜치 내 작업 인수문서 — 현재 상태 + 남은 작업 상세 + 다음 세션 첫 프롬프트 + 환경 메모 + 미커밋 변경 목록). 추가 정독: [005 spec.md](../../specs/005-phase-2-frontend-views/spec.md) Clarifications(same-origin 프록시) + [tasks.md](../../specs/005-phase-2-frontend-views/tasks.md) [X 마킹] + 외부 vault [[02-PROGRESS]] §2 / [[03-ISSUES]] ISSUE-015 ✅(코드·테스트 해소 — 쿠키 전환 + X-User-Id 폐기, 최종 dogfooding T054 잔존) · ISSUE-016 ✅
 
 ---
@@ -187,7 +187,7 @@ e808d36 chore: docker-compose + README
 
 ---
 
-## 3. 다음 진입점 — 005 자동화 완료 / dogfooding(T051·T054) + 문서 갱신 잔존
+## 3. 005 ✅ 전체 종료 (T001~T055) — 다음 진입점 = V1 후속 (Week 3~)
 
 `/speckit-{specify,clarify,plan,tasks,implement}` 까지 진입 (2026-05-28~30). **사용자 합의 (2026-05-29) = MVP 단위 (R1 인증 쿠키 전환 + US1 로그인+홈) 진행 → 검증 후 US2~US6 결정**. 본 spec 은 frontend + backend 혼합 phase (이전 phase 와 다름) — 인증 전체 동작 + httpOnly 쿠키(same-origin 프록시) + 별도 페이지.
 
@@ -199,7 +199,7 @@ e808d36 chore: docker-compose + README
 | **R1 frontend (T014~T021)** | ✅ `next.config.ts` rewrites (`/api/:path*` → backend) + `client.ts` swap (X-User-Id 제거 + same-origin + `credentials:'include'` + 401 reactive refresh) + `authPlaceholder` 폐기 + `lib/api/auth.ts` 신설 + `useAuthGuard` /me 기반 전환 + types/api 확장 + frontend 게이트 GREEN |
 | **US1 MVP (T022~T026)** | ✅ `LoginForm` 실동작 + 홈 `page.tsx` 실데이터(에러/빈 상태 분리) + 가드 redirect + **T051 재검증** GREEN(이전 401 해소, SC-002). **MVP 사용자 직접 검증 통과(SC-001/002/003/005)** |
 | **US2~US6 + Polish (T027~T053)** | ✅ 전부 frontend 구현 + 양쪽 게이트 GREEN — US2 새 프로젝트 / US3 메타카드·편집·생명주기 / US4 등장인물 CRUD·reorder / US5 가입·이메일인증·재설정(메일 링크 frontend 라우트 재설계) / US6 카카오(외부 인가 제약) / Polish(에러 code 한국어 매핑 공통화, SC-008 grep=0). frontend 17 테스트 GREEN |
-| **잔존 (사용자 브라우저 영역)** | 🔲 T051 신규 화면 5종 라이트/다크 + T054 quickstart §3 전체 dogfooding (카카오는 외부 인가 제약). 메일 링크 변경 반영 위해 점검 전 backend 재시작 필요 |
+| **dogfooding (T051/T054)** | ✅ 사용자 완료 처리(2026-05-30) — T051 신규 화면 5종 라이트/다크 + T054 quickstart §3 전체. 카카오(US6)는 외부 인가 화면·redirect_uri 의존으로 제약 영역 |
 | **다음 세션 진입점** | **[`specs/005-phase-2-frontend-views/HANDOFF.md`](../../specs/005-phase-2-frontend-views/HANDOFF.md)** — 브랜치 내 작업 인수문서. §0 에 다음 세션 첫 프롬프트 박힘 |
 | (보조) 004 T062 사용자 dogfooding | 🟡 사용자 영역, 미완 — `specs/004-phase-2-backend-project-character/quickstart.md §3-1~§3-9` curl 9건 |
 | (V1 후속) Week 3 본문 입력 / Week 4 메모 / Week 5 세션노트 | 🟡 005 종료 후 — `01-phase-breakdown.md` Week 3~5 |
