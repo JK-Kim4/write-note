@@ -1,5 +1,6 @@
 package com.writenote.error
 
+import com.writenote.model.response.DocumentConflictResponse
 import com.writenote.model.response.Result
 import jakarta.validation.ConstraintViolationException
 import org.springframework.dao.DataIntegrityViolationException
@@ -63,6 +64,30 @@ class GlobalExceptionHandler {
             code = ErrorCode.CONFLICT,
             message = exception.message ?: "Resource conflict",
         )
+
+    @ExceptionHandler(DocumentConflictException::class)
+    fun handleDocumentConflict(exception: DocumentConflictException): ResponseEntity<Result<DocumentConflictResponse>> {
+        val body =
+            DocumentConflictResponse(
+                code = "DOCUMENT_VERSION_CONFLICT",
+                message = exception.message ?: "Document version conflict",
+                currentVersion = exception.currentVersion,
+                currentBody = exception.currentBody,
+            )
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(
+                Result(
+                    success = false,
+                    data = body,
+                    error =
+                        com.writenote.model.response.ErrorInfo(
+                            code = "DOCUMENT_VERSION_CONFLICT",
+                            message = exception.message ?: "Document version conflict",
+                        ),
+                ),
+            )
+    }
 
     @ExceptionHandler(AuthException::class)
     fun handleAuth(exception: AuthException): ResponseEntity<Result<Nothing>> =

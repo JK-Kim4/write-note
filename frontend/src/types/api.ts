@@ -63,3 +63,30 @@ export interface CharacterResponse {
     createdAt: string;
     updatedAt: string;
 }
+
+/** 문서 응답 (006 US1) — GET /api/projects/{projectId}/document, GET /api/documents/{id} */
+export interface DocumentResponse {
+    id: number;
+    projectId: number;
+    title: string;
+    body: string; // ProseMirror JSON 문자열
+    wordCount: number;
+    version: number;
+    updatedAt: string;
+}
+
+/** PUT /api/documents/{id} 성공 응답 */
+export interface DocumentSaveResponse {
+    id: number;
+    body: string;
+    wordCount: number;
+    version: number;
+    updatedAt: string;
+}
+
+/** PATCH /api/documents/{id}/title 성공 응답 */
+export interface DocumentTitleResponse {
+    id: number;
+    title: string;
+    updatedAt: string;
+}

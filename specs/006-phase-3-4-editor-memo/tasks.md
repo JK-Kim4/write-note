@@ -15,8 +15,8 @@
 
 ## Phase 1: Setup (공유 인프라)
 
-- [ ] T001 frontend 신규 디렉토리 생성 — `frontend/src/components/editor/`, `frontend/src/components/memos/`, `frontend/src/hooks/`
-- [ ] T002 [P] backend 신규 컨트롤러/서비스 패키지 위치 확인 (`backend/src/main/kotlin/com/writenote/{controller,service,components}` 기존 재사용)
+- [x] T001 frontend 신규 디렉토리 생성 — `frontend/src/components/editor/`, `frontend/src/components/memos/`, `frontend/src/hooks/`
+- [x] T002 [P] backend 신규 컨트롤러/서비스 패키지 위치 확인 (`backend/src/main/kotlin/com/writenote/{controller,service,components}` 기존 재사용)
 
 ---
 
@@ -24,8 +24,8 @@
 
 **⚠️ MVP(US1)를 막지 않도록 최소화. Document 는 기존(V5) 재사용이라 US1 은 본 phase 의존 없음.**
 
-- [ ] T003 [P] frontend `frontend/src/types/api.ts` 에 본 spec 응답 타입 추가 — `DocumentResponse` / `MemoResponse` / `ApiTokenResponse` / 큐레이션 DTO 타입
-- [ ] T004 [P] frontend `frontend/src/test/msw/` 핸들러 베이스 확장 (document/memo/apiToken mock 엔드포인트 골격)
+- [x] T003 [P] frontend `frontend/src/types/api.ts` 에 본 spec 응답 타입 추가 — `DocumentResponse` / `MemoResponse` / `ApiTokenResponse` / 큐레이션 DTO 타입
+- [x] T004 [P] frontend `frontend/src/test/msw/` 핸들러 베이스 확장 (document/memo/apiToken mock 엔드포인트 골격)
 
 ---
 
@@ -36,29 +36,29 @@
 
 ### Tests (RED 먼저)
 
-- [ ] T005 [P] [US1] DocumentService word_count(공백제외) 계산 + 저장 테스트 — `backend/src/test/kotlin/com/writenote/service/DocumentServiceTest.kt`
-- [ ] T006 [P] [US1] DocumentService optimistic lock 409 충돌(currentVersion/currentBody) IT — `backend/src/test/kotlin/com/writenote/service/DocumentServiceConflictIT.kt`
-- [ ] T007 [P] [US1] DocumentController D1~D4 WebTest (nested 조회/단건/PUT 200·409/PATCH title) — `backend/src/test/kotlin/com/writenote/controller/DocumentControllerWebTest.kt`
-- [ ] T008 [P] [US1] frontend useAutoSave debounce 800ms + 409 분기 단위 테스트 — `frontend/src/hooks/useAutoSave.test.ts`
-- [ ] T009 [P] [US1] frontend 자수/진행률 계산 단위 테스트 — `frontend/src/components/editor/wordCount.test.ts`
+- [x] T005 [P] [US1] DocumentService word_count(공백제외) 계산 + 저장 테스트 — `backend/src/test/kotlin/com/writenote/service/DocumentServiceTest.kt`
+- [x] T006 [P] [US1] DocumentService optimistic lock 409 충돌(currentVersion/currentBody) IT — `backend/src/test/kotlin/com/writenote/service/DocumentServiceConflictIT.kt`
+- [x] T007 [P] [US1] DocumentController D1~D4 WebTest (nested 조회/단건/PUT 200·409/PATCH title) — `backend/src/test/kotlin/com/writenote/controller/DocumentControllerWebTest.kt`
+- [x] T008 [P] [US1] frontend useAutoSave debounce 800ms + 409 분기 단위 테스트 — `frontend/src/hooks/useAutoSave.test.ts`
+- [x] T009 [P] [US1] frontend 자수/진행률 계산 단위 테스트 — `frontend/src/components/editor/wordCount.test.ts`
 
 ### Backend (GREEN)
 
-- [ ] T010 [US1] Document DTO — `DocumentResponse`/`SaveDocumentRequest`/`DocumentSaveResponse`/`UpdateDocumentTitleRequest`/`DocumentConflictResponse` in `backend/src/main/kotlin/com/writenote/model/{request,response}/`
-- [ ] T011 [US1] DocumentService — `findByProjectId` 조회 + 저장(version/word_count 서버계산) + 409 매핑 in `backend/src/main/kotlin/com/writenote/service/DocumentService.kt`
-- [ ] T012 [US1] DocumentController D1~D4 (nested 조회 + 단건 + PUT 409 + PATCH title) in `backend/src/main/kotlin/com/writenote/controller/DocumentController.kt`
-- [ ] T013 [US1] SecurityConfig `/api/documents/**` + `/api/projects/*/document` JWT 보호 확인 in `backend/src/main/kotlin/com/writenote/config/SecurityConfig.kt`
+- [x] T010 [US1] Document DTO — `DocumentResponse`/`SaveDocumentRequest`/`DocumentSaveResponse`/`UpdateDocumentTitleRequest`/`DocumentConflictResponse` in `backend/src/main/kotlin/com/writenote/model/{request,response}/`
+- [x] T011 [US1] DocumentService — `findByProjectId` 조회 + 저장(version/word_count 서버계산) + 409 매핑 in `backend/src/main/kotlin/com/writenote/service/DocumentService.kt`
+- [x] T012 [US1] DocumentController D1~D4 (nested 조회 + 단건 + PUT 409 + PATCH title) in `backend/src/main/kotlin/com/writenote/controller/DocumentController.kt`
+- [x] T013 [US1] SecurityConfig `/api/documents/**` + `/api/projects/*/document` JWT 보호 확인 in `backend/src/main/kotlin/com/writenote/config/SecurityConfig.kt`
 - [ ] T014 [US1] 03-backend §3-4 + §6 변경이력에 nested `GET /api/projects/{projectId}/document` 신설 기록 — `docs/plan/03-backend-requirements.md`
 
 ### Frontend (GREEN)
 
-- [ ] T015 [US1] document API 훅 (nested GET / PUT / PATCH title, React Query) in `frontend/src/lib/api/document.ts`
-- [ ] T016 [US1] useAutoSave hook (800ms debounce + 409 → 충돌 상태 노출) in `frontend/src/hooks/useAutoSave.ts`
-- [ ] T017 [US1] TipTap 에디터 컴포넌트 (`StarterKit` + `immediatelyRender:false`, PoC 0-1 기준선) in `frontend/src/components/editor/Editor.tsx`
-- [ ] T018 [US1] 자수 카운터 + 진행률 ring (ProgressRing 재사용) in `frontend/src/components/editor/WordCount.tsx`
-- [ ] T019 [US1] 충돌 선택 UI (다시 불러오기/덮어쓰기) in `frontend/src/components/editor/ConflictDialog.tsx`
-- [ ] T020 [US1] write page 에디터 모드 실데이터 + 활성 프로젝트 `?projectId=` search param in `frontend/src/app/write/page.tsx`
-- [ ] T021 [US1] write layout 사이드 패널 실데이터(프로젝트 메타 + 등장인물) in `frontend/src/app/write/layout.tsx`
+- [x] T015 [US1] document API 훅 (nested GET / PUT / PATCH title, React Query) in `frontend/src/lib/api/document.ts`
+- [x] T016 [US1] useAutoSave hook (800ms debounce + 409 → 충돌 상태 노출) in `frontend/src/hooks/useAutoSave.ts`
+- [x] T017 [US1] TipTap 에디터 컴포넌트 (`StarterKit` + `immediatelyRender:false`, PoC 0-1 기준선) in `frontend/src/components/editor/Editor.tsx`
+- [x] T018 [US1] 자수 카운터 + 진행률 ring (ProgressRing 재사용) in `frontend/src/components/editor/WordCount.tsx`
+- [x] T019 [US1] 충돌 선택 UI (다시 불러오기/덮어쓰기) in `frontend/src/components/editor/ConflictDialog.tsx`
+- [x] T020 [US1] write page 에디터 모드 실데이터 + 활성 프로젝트 `?projectId=` search param in `frontend/src/app/write/page.tsx`
+- [x] T021 [US1] write layout 사이드 패널 실데이터(프로젝트 메타 + 등장인물) in `frontend/src/app/write/layout.tsx`
 
 ### 검증
 
