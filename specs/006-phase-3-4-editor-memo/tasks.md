@@ -184,7 +184,7 @@
 - [x] T075 frontend 전체 게이트 — `pnpm lint && pnpm typecheck && pnpm test && pnpm build` (RSC 경계 검출)
 - [x] T076 [P] `docs/plan/02-progress.md` + `01-phase-breakdown.md` §6/§7 진척 갱신 (Week 3/4 ✅)
 - [ ] T077 [P] vault `~/obsidian/write-note/02-PROGRESS.md` §완료+진입점 + `03-ISSUES.md`(발견 시) 갱신
-- [ ] T078 [P] 5축 회고 — `docs/retrospectives/2026-XX-XX-006-editor-memo.md`
+- [x] T078 [P] 5축 회고 — `docs/retrospectives/2026-XX-XX-006-editor-memo.md`
 - [x] T079 SC 전체 매핑 확인 (SC-001~008) + SC-008 해지 토큰 거부 실측
 
 ---

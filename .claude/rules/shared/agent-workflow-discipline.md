@@ -66,6 +66,7 @@
 - **사전 경고 의무** — 시그니처 변경 / 신규 BC 의존 / cross-BC port 등
 - **출력 verbose 통제** — "최종 보고 5~10줄 이하" 명시
 - **안전 장치** — 같은 에러 3회 재시도 금지 / tool_uses 50 초과 시 중단
+- **lint 정합** — backend Kotlin 위임 시 `ktlintFormat`(main+test **양쪽**) 명시 / frontend 위임 시 작성 직후 `pnpm build`(RSC 경계 검출) 명시
 
 체크리스트 항목 일부 누락 시 호출 비용 · verbose · 재시도 증가. **누락은 회고 §"어긋난 점" 으로 surfacing 의무** — 다음 회귀 예방의 영구 신호.
 
@@ -74,6 +75,11 @@
 - dispatch prompt 에 "200~400 라인 이하 / 추측 금지 / 출처 URL 명시" 만 포함. verbose 통제 / tool_uses cap / 안전 장치 일부 누락
 - 결과: tool_uses 4 / ~59K 토큰 / 100초 — 적정 범위 내
 - 명시 적용 시 더 짧은 보고 가능했음. 본 사례는 작업 규모가 작아 비용 차이 미미했으나, 큰 작업에서 동일 누락 시 비용 폭증 위험
+
+### 회귀 사례 — 2026-05-31 006 ktlint test 소스셋 누락
+
+- US3/US4 backend subagent 가 `ktlintFormat` 을 main 소스셋만 적용, test 소스셋 누락 → 전체 게이트(`ktlintTestSourceSetCheck`)에서 chain-method-continuation 위반 → advisor 후처리(`ktlintFormat`) 2회
+- 회피 가능했던 시점: dispatch prompt 의 "lint 정합" 항목에 "ktlintFormat main+test 양쪽" 명시
 
 ## 5. 프로젝트 본질 정의 문서의 실제 정합성 검증 (HARD-GATE)
 
@@ -132,6 +138,23 @@ spec / implement 진입 시 본질 정의 문서 (`AGENTS.md`, `CLAUDE.md`, fram
 - `tasks.md` T067 명시 `ProjectControllerWebTest.kt` — 실제 파일명 `ProjectControllerIT.kt`
 - implement 진입 시점에 실제 코드 정합으로 진행 + 회고 §4 어긋남 박음. 큰 영향 없었으나 spec 추측 vs 실제 코드 격차가 본질 결정 영역에 잠재 영향
 - 회피 가능했던 시점: tasks.md 작성 시점 (speckit-tasks) 에 `grep -l ProjectController` + endpoint 카운트 1회
+
+## 7. Subagent 자기진단 ("기존 회귀 / 내 변경 아님") 무검증 수용 금지 (HARD-GATE)
+
+subagent 가 테스트 실패 / 회귀를 "기존부터 존재 / 내 변경과 무관" 으로 보고하면, advisor 는 수용 **이전** 직접 검증 의무:
+
+1. 해당 실패 테스트를 직접 재현 (`pnpm test <파일>` / `./gradlew test --tests "*X*"`)
+2. subagent 변경 파일과 실패의 인과 확인 — 공용 레이어 변경이면 도메인 횡단 회귀 의심
+3. 특히 **공용 레이어**(`client.ts` / `SecurityConfig` / 전역 필터 / 공유 컴포넌트 / envelope·인터셉터) 변경 라운드에서 의무
+
+subagent 의 자기진단은 본인 변경의 영향을 과소평가하는 경향이 있다 — "기존 회귀" 주장은 **검증 신호**이지 수용 근거가 아니다.
+
+### 회귀 사례 — 2026-05-31 006 US1 client.ts 409 오분류
+
+- frontend subagent 가 `SignupEmailForm` 테스트 실패를 "이 작업 이전부터 존재하는 기존 회귀" 로 단정 보고
+- 실제: subagent 가 추가한 `client.ts` 409 분기가 **모든 409 를 `DOCUMENT_VERSION_CONFLICT` 로 오분류** → `EMAIL_ALREADY_REGISTERED`(409) 회원가입을 깨뜨린 신규 회귀
+- advisor 가 직접 재현 → 신규 회귀 규명 → `error.code` 기준 분기 수정 → GREEN. 무검증 수용 시 회귀 merge 위험
+- 회피 가능했던 시점: subagent "기존 회귀" 보고 직후 직접 재현 (본 사례는 실제로 차단함 — 룰로 영구화)
 
 ## 메타 — 본 룰의 누적 정책
 

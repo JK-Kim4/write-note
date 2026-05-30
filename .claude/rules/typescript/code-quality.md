@@ -75,6 +75,17 @@
 - `?.` + `??` 활용 — `??` 는 null/undefined 만 (`||` 와 구분)
 - 주석은 "why" 만. 공개 API 는 TSDoc. 임시 코드 `TODO(이슈번호)` + *"임시 — {언제} swap"*
 
+### 공용 fetch 래퍼 status 분기 — error.code 기준 (HARD-GATE)
+
+공용 HTTP 클라이언트(`client.ts` 등)에서 HTTP status(409 / 400 등)로 분기할 때, **같은 status 에 여러 도메인 에러코드가 공존**하므로 status 단독 분기 금지 — 응답 `error.code` 로 분기한다. 신규 status 분기 추가 시 **해당 status 를 쓰는 기존 에러코드 grep 의무**(`docs/plan/03-backend-requirements.md` §3-1 에러 코드 매트릭스 확인).
+
+#### 회귀 사례 — 2026-05-31 006 US1 client.ts 409 오분류
+
+- `client.ts` 에 자동저장 충돌용 409 분기를 추가하며 **모든 409 를 `DOCUMENT_VERSION_CONFLICT`(ConflictError) 로 던짐**
+- 그러나 409 는 `EMAIL_ALREADY_REGISTERED` / `KAKAO_ALREADY_LINKED` 도 공유 → 이메일 중복 회원가입(`SignupEmailForm`)이 깨짐
+- fix: 409 분기를 `error.code === "DOCUMENT_VERSION_CONFLICT"` 일 때만 ConflictError, 그 외는 기존 `ApiError(code, message)` 흐름 복원
+- 회피 가능했던 시점: 409 분기 작성 시 03-backend 에러 매트릭스의 409 행(3개 코드) grep
+
 ## 도구 / 검증
 
 - ESLint (룰) + Prettier (포매팅), `eslint-config-prettier` extends 마지막
