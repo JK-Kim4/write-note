@@ -6,6 +6,34 @@
 
 ---
 
+## 0-A. 작업 분리 단위 한눈 보기 (Week × Phase 진척 대시보드)
+
+> SoT: 작업 분리 단위 = [`01-phase-breakdown.md`](./01-phase-breakdown.md) (Week 0~7 / 총 52 phase). 본 표는 **develop 머지 코드 실측 기준** 진척 시각화. 상태 기호: ✅ 구현 완료 / 🟡 부분(라우트 골격·일부만) / ⬜ 미착수.
+
+| Week | 영역 | Phase 수 | spec | 진척 | 상태 |
+|---|---|---|---|---|---|
+| 0 | PoC 3종 (TipTap·Spring·PWA) | 3 | — | `██████████` 100% | ✅ |
+| 1A | Backend Foundation | 6 | 001 | `██████████` 100% | ✅ |
+| 1B | 인증 (가입·로그인·JWT·카카오·재설정) | 5 | 003 | `██████████` 100% | ✅ |
+| 2 | Project 메타 + Character (BE) / 화면 (FE) | 8 | 004·005 | `██████████` 100% | ✅ |
+| 3 | 에디터 + 원고지 (TipTap 통합) | 6 | — | `░░░░░░░░░░` 0% | 🟡¹ |
+| 4 | 메모 캡처 (CRUD·iOS Shortcut) | 6 | — | `░░░░░░░░░░` 0% | 🟡² |
+| 5 | 세션 노트 + 메모 핀 + 검색 | 6 | — | `░░░░░░░░░░` 0% | 🟡² |
+| 6 | 미리보기 + 다크 + 설정 + PWA | 6 | (002) | `███░░░░░░░` ~30% | 🟡³ |
+| 7 | 통합 + dogfooding + 출시 | 6 | — | `░░░░░░░░░░` 0% | ⬜ |
+
+**전체: 22 / 52 phase 구현 완료 (≈42%)** — Week 0~2 클로즈, Week 3~7 미착수.
+
+- ¹ Week 3 — `frontend/src/app/write/page.tsx` / `write/preview` 는 **002 정적 셸**(주석 "TipTap 통합은 Week 3"). 에디터 로직 0건.
+- ² Week 4/5 — UI 미착수. **단 DB 스키마는 선반영됨**(아래 격차 메모).
+- ³ Week 6 — 다크모드·디자인 토큰·PWA manifest/sw 는 002 에서 구축. 미리보기/설정 완성·반응형·크로스브라우저는 미착수.
+
+### ⚠️ DB 스키마 ↔ 구현 코드 격차 (검증 발견, 2026-05-30)
+
+마이그레이션 `V16~V24` (capture_tokens / outbox_events / **memos** / session_notes / memo_pins / session_note_links / capture_aliases / **memos_fts**) 가 단일 커밋 `ed808c11`("commit on develop", 2026-05-23) 로 **선반영**됐으나, 이를 사용하는 service/controller/entity 는 **0건**(`grep -ic "memo|session|capture|outbox" = 0`). 즉 **Week 4/5 의 DB 스키마만 미리 박혀 있고 기능 구현은 미착수**. Week 4/5 진입 시 기존 스키마와 정합 확인 의무 — vault [[03-ISSUES]] 신규 entry 후보.
+
+---
+
 ## 0. 본 문서의 위치
 
 ```
@@ -97,7 +125,7 @@ cd backend
 - `frontend/AGENTS.md` 의 경고 (`node_modules/next/dist/docs/` 정독 의무) 의 docs 디렉토리가 실제 install 에 없음 — 별도 트랙 정리 필요
 - Noto Serif KR / Nanum Myeongjo `next/font/google` 메타데이터가 `subsets: ['latin']` 만 명시 지원 — 폰트 파일 자체의 한국어 글리프 의존, dogfooding 시점 검증
 
-### 003 Phase 1B Backend Auth (2026-05-23 ~ 진행 중)
+### 003 Phase 1B Backend Auth (2026-05-23 ~ 2026-05-24, ✅ 종료)
 
 **브랜치:** `003-phase-1b-backend-auth` (develop 분기, origin 동기)
 **spec/plan/tasks:** [`specs/003-phase-1b-backend-auth/`](../../specs/003-phase-1b-backend-auth/) (spec.md / plan.md / research.md / data-model.md / contracts/auth-endpoints.md / contracts/security-filter-chain.md / contracts/token-formats.md / contracts/owner-context-migration.md / quickstart.md / tasks.md)
