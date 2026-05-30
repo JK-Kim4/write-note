@@ -33,12 +33,11 @@ class JwtAuthenticationFilter(
         response: HttpServletResponse,
         filterChain: FilterChain,
     ) {
-        val header = request.getHeader(AUTHORIZATION_HEADER)
-        if (header == null || !header.startsWith(BEARER_JWT_PREFIX)) {
+        val token = resolveToken(request)
+        if (token == null) {
             filterChain.doFilter(request, response)
             return
         }
-        val token = header.substring(BEARER_PREFIX_LENGTH)
         try {
             val principal = jwtTokenProvider.parseAccessToken(token)
             val authentication =
@@ -53,6 +52,22 @@ class JwtAuthenticationFilter(
             SecurityContextHolder.clearContext()
             writeErrorResponse(response, ex)
         }
+    }
+
+    /**
+     * 토큰 해석 — `Authorization: Bearer` 헤더 우선, 부재 시 `access_token` 쿠키 fallback.
+     *
+     * 헤더 우선은 003 의 헤더 기반 인증 회귀를 보존하기 위함 (005 research R-3).
+     */
+    private fun resolveToken(request: HttpServletRequest): String? {
+        val header = request.getHeader(AUTHORIZATION_HEADER)
+        if (header != null && header.startsWith(BEARER_JWT_PREFIX)) {
+            return header.substring(BEARER_PREFIX_LENGTH)
+        }
+        return request.cookies
+            ?.firstOrNull { it.name == AuthCookieFactory.ACCESS_TOKEN_COOKIE }
+            ?.value
+            ?.takeIf { it.isNotBlank() }
     }
 
     private fun writeErrorResponse(

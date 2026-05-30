@@ -9,21 +9,20 @@ import com.writenote.repository.AuthTokenRepository
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.HttpHeaders
 import org.springframework.security.core.Authentication
 import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler
 import org.springframework.stereotype.Component
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Instant
 
 /**
- * 카카오 OAuth2 로그인 성공 시 JWT access + refresh 발급 + 프론트로 URL fragment redirect.
+ * 카카오 OAuth2 로그인 성공 시 JWT access + refresh 발급 + httpOnly 쿠키로 내린 뒤 프론트 홈으로 redirect.
  *
- * 응답: `302 Found` Location:
- * `{frontend}/auth/success#access=<jwt>&refresh=<plaintext>&accessExpiresIn=<sec>&refreshExpiresIn=<sec>`
+ * 응답: `302 Found` — `Set-Cookie: access_token`/`refresh_token` (httpOnly+SameSite=Lax) + Location `{frontend}/`.
+ * link flow(`linkUserId`) 는 토큰 발급 없이 `{frontend}/auth/link-success` redirect.
  *
- * Fragment 사용 — 토큰이 서버 로그·리퍼러에 남지 않는 표준 패턴 (research.md R-3).
+ * 쿠키 사용 — 이메일 로그인(AuthController)과 동일 인증 매체로 통일 (005 R-5, 헤더/fragment 폐기).
  */
 @Component
 class OAuth2SuccessHandler(
@@ -31,6 +30,7 @@ class OAuth2SuccessHandler(
     private val authTokenGenerator: AuthTokenGenerator,
     private val authTokenRepository: AuthTokenRepository,
     private val jwtProperties: JwtProperties,
+    private val authCookieFactory: AuthCookieFactory,
     @Value("\${app.frontend.base-url}") private val frontendBaseUrl: String,
 ) : AuthenticationSuccessHandler {
     override fun onAuthenticationSuccess(
@@ -66,20 +66,14 @@ class OAuth2SuccessHandler(
             ),
         )
 
-        response.sendRedirect(buildRedirectUrl(accessToken, refreshPair.plaintext))
+        response.addHeader(
+            HttpHeaders.SET_COOKIE,
+            authCookieFactory.accessTokenCookie(accessToken).toString(),
+        )
+        response.addHeader(
+            HttpHeaders.SET_COOKIE,
+            authCookieFactory.refreshTokenCookie(refreshPair.plaintext).toString(),
+        )
+        response.sendRedirect("$frontendBaseUrl/")
     }
-
-    private fun buildRedirectUrl(
-        accessToken: String,
-        refreshToken: String,
-    ): String =
-        buildString {
-            append(frontendBaseUrl)
-            append("/auth/success#access=")
-            append(URLEncoder.encode(accessToken, UTF_8))
-            append("&refresh=")
-            append(URLEncoder.encode(refreshToken, UTF_8))
-            append("&accessExpiresIn=").append(jwtProperties.accessTokenValiditySeconds)
-            append("&refreshExpiresIn=").append(jwtProperties.refreshTokenValiditySeconds)
-        }
 }

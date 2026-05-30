@@ -7,3 +7,5 @@ spring:
 app:
   cors:
     allowed-origins: ${FRONTEND_ORIGINS}
+  cookie:
+    secure: true
