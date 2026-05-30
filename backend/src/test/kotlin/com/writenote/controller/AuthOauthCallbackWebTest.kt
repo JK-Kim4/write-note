@@ -33,6 +33,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
@@ -42,8 +43,8 @@ import java.util.UUID
 /**
  * T046 — 카카오 OAuth2 콜백 endpoint 통합 테스트.
  *
- * 3 케이스 (contracts/auth-endpoints.md §5):
- * - happy: `KakaoOAuth2UserService` 가 OAuth2User 반환 → SuccessHandler → `/auth/success#access=...`
+ * 3 케이스 (contracts/auth-endpoints.md §5 + 005 R-5 쿠키화):
+ * - happy: `KakaoOAuth2UserService` 가 OAuth2User 반환 → SuccessHandler → access/refresh httpOnly 쿠키 + 홈(`/`) redirect
  * - `KAKAO_EMAIL_ALREADY_REGISTERED`: KakaoOAuth2UserService 가 OAuth2AuthenticationException throw → FailureHandler → `/auth/login-error?code=KAKAO_EMAIL_ALREADY_REGISTERED`
  * - `OAUTH_FAILED`: `OAuth2AccessTokenResponseClient` 가 OAuth2AuthenticationException throw → FailureHandler → `/auth/login-error?code=OAUTH_FAILED`
  *
@@ -102,7 +103,7 @@ class AuthOauthCallbackWebTest
         }
 
         @Test
-        fun `콜백 happy — JWT 발급 + auth_success URL fragment redirect`() {
+        fun `콜백 happy — JWT 발급 + access_token·refresh_token 쿠키 + 홈 redirect`() {
             val user =
                 userRepository.save(
                     User(
@@ -133,9 +134,11 @@ class AuthOauthCallbackWebTest
                         .param(OAuth2ParameterNames.STATE, savedState)
                         .session(savedSession),
                 ).andExpect(status().is3xxRedirection)
-                .andExpect(header().string("Location", org.hamcrest.Matchers.startsWith("http://localhost:3000/auth/success#")))
-                .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("access=")))
-                .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("refresh=")))
+                .andExpect(header().string("Location", "http://localhost:3000/"))
+                .andExpect(cookie().exists("access_token"))
+                .andExpect(cookie().httpOnly("access_token", true))
+                .andExpect(cookie().exists("refresh_token"))
+                .andExpect(cookie().httpOnly("refresh_token", true))
         }
 
         @Test

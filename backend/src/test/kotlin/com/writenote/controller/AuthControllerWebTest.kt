@@ -13,6 +13,7 @@ import com.writenote.model.request.VerifyEmailRequest
 import com.writenote.repository.AuthTokenRepository
 import com.writenote.repository.UserRepository
 import jakarta.persistence.EntityManager
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -23,6 +24,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
@@ -306,6 +308,31 @@ class AuthControllerWebTest
                 .andExpect(jsonPath("$.error.code").value("LOGIN_FAILED"))
         }
 
+        @Test
+        fun `login 성공 — access_token + refresh_token httpOnly 쿠키 발급 (값은 body 토큰과 일치)`() {
+            val user = createVerifiedUser("login-cookie")
+            val request = LoginRequest(email = user.email, password = "Strong!Pass123")
+            val response =
+                mockMvc
+                    .perform(
+                        post("/api/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)),
+                    ).andExpect(status().isOk)
+                    .andExpect(cookie().exists("access_token"))
+                    .andExpect(cookie().httpOnly("access_token", true))
+                    .andExpect(cookie().path("access_token", "/"))
+                    .andExpect(cookie().exists("refresh_token"))
+                    .andExpect(cookie().httpOnly("refresh_token", true))
+                    .andReturn()
+                    .response
+            val body = response.contentAsString
+            assertThat(response.getCookie("access_token")?.value)
+                .isEqualTo(extractJsonField(body, "accessToken"))
+            assertThat(response.getCookie("refresh_token")?.value)
+                .isEqualTo(extractJsonField(body, "refreshToken"))
+        }
+
         // ─── refresh + logout ─────────────────────────────────────────────────────
 
         @Test
@@ -335,6 +362,126 @@ class AuthControllerWebTest
                 ).andExpect(status().isOk)
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.accessToken").isNotEmpty)
+        }
+
+        @Test
+        fun `refresh 성공 — 회전된 새 access_token + refresh_token 쿠키 발급`() {
+            val user = createVerifiedUser("refresh-cookie")
+            val loginRequest = LoginRequest(email = user.email, password = "Strong!Pass123")
+            val loginResponse =
+                mockMvc
+                    .perform(
+                        post("/api/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(loginRequest)),
+                    ).andExpect(status().isOk)
+                    .andReturn()
+                    .response
+                    .contentAsString
+            val refreshToken = extractJsonField(loginResponse, "refreshToken")
+            mockMvc
+                .perform(
+                    post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            objectMapper.writeValueAsString(
+                                RefreshTokenRequest(refreshToken = refreshToken),
+                            ),
+                        ),
+                ).andExpect(status().isOk)
+                .andExpect(cookie().exists("access_token"))
+                .andExpect(cookie().httpOnly("access_token", true))
+                .andExpect(cookie().exists("refresh_token"))
+                .andExpect(cookie().httpOnly("refresh_token", true))
+        }
+
+        @Test
+        fun `refresh — body 없이 refresh_token 쿠키만으로 회전 (reactive refresh, 005 R-4)`() {
+            val user = createVerifiedUser("refresh-cookie-only")
+            val loginRequest = LoginRequest(email = user.email, password = "Strong!Pass123")
+            val refreshCookie =
+                mockMvc
+                    .perform(
+                        post("/api/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(loginRequest)),
+                    ).andExpect(status().isOk)
+                    .andReturn()
+                    .response
+                    .getCookie("refresh_token")!!
+            mockMvc
+                .perform(post("/api/auth/refresh").cookie(refreshCookie))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.accessToken").isNotEmpty)
+                .andExpect(cookie().exists("access_token"))
+                .andExpect(cookie().httpOnly("access_token", true))
+        }
+
+        @Test
+        fun `refresh — body·쿠키 모두 부재 — 401 AUTH_TOKEN_MISSING`() {
+            mockMvc
+                .perform(post("/api/auth/refresh"))
+                .andExpect(status().isUnauthorized)
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("AUTH_TOKEN_MISSING"))
+        }
+
+        @Test
+        fun `logout 성공 — access_token + refresh_token 만료 쿠키 (Max-Age=0)`() {
+            val user = createVerifiedUser("logout-cookie")
+            val loginRequest = LoginRequest(email = user.email, password = "Strong!Pass123")
+            val loginResponse =
+                mockMvc
+                    .perform(
+                        post("/api/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(loginRequest)),
+                    ).andExpect(status().isOk)
+                    .andReturn()
+                    .response
+                    .contentAsString
+            val accessToken = extractJsonField(loginResponse, "accessToken")
+            val refreshToken = extractJsonField(loginResponse, "refreshToken")
+            mockMvc
+                .perform(
+                    post("/api/auth/logout")
+                        .header("Authorization", "Bearer $accessToken")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            objectMapper.writeValueAsString(
+                                LogoutRequest(refreshToken = refreshToken),
+                            ),
+                        ),
+                ).andExpect(status().isOk)
+                .andExpect(cookie().maxAge("access_token", 0))
+                .andExpect(cookie().maxAge("refresh_token", 0))
+        }
+
+        @Test
+        fun `logout — body 없이 access·refresh 쿠키만으로 인증·폐기 후 refresh revoked`() {
+            val user = createVerifiedUser("logout-cookie-only")
+            val loginRequest = LoginRequest(email = user.email, password = "Strong!Pass123")
+            val loginResponse =
+                mockMvc
+                    .perform(
+                        post("/api/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(loginRequest)),
+                    ).andExpect(status().isOk)
+                    .andReturn()
+                    .response
+            val accessCookie = loginResponse.getCookie("access_token")!!
+            val refreshCookie = loginResponse.getCookie("refresh_token")!!
+            mockMvc
+                .perform(post("/api/auth/logout").cookie(accessCookie, refreshCookie))
+                .andExpect(status().isOk)
+                .andExpect(cookie().maxAge("refresh_token", 0))
+            // 폐기된 refresh 쿠키로 재시도 → revoked
+            mockMvc
+                .perform(post("/api/auth/refresh").cookie(refreshCookie))
+                .andExpect(status().isUnauthorized)
+                .andExpect(jsonPath("$.error.code").value("AUTH_TOKEN_REVOKED"))
         }
 
         @Test

@@ -1,6 +1,9 @@
 package com.writenote.controller
 
+import com.writenote.auth.AuthCookieFactory
 import com.writenote.auth.AuthenticatedPrincipal
+import com.writenote.enums.AuthErrorCode
+import com.writenote.error.AuthException
 import com.writenote.model.request.LinkEmailRequest
 import com.writenote.model.request.LinkKakaoStateRequest
 import com.writenote.model.request.LoginRequest
@@ -23,6 +26,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.Valid
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -39,6 +43,7 @@ class AuthController(
     private val authService: AuthService,
     private val passwordResetService: PasswordResetService,
     private val accountLinkService: AccountLinkService,
+    private val authCookieFactory: AuthCookieFactory,
 ) {
     @PostMapping("/signup/email")
     @Operation(summary = "이메일 회원가입", description = "이메일·비밀번호로 신규 계정 생성 + 이메일 인증 토큰 발송")
@@ -62,23 +67,35 @@ class AuthController(
     @Operation(summary = "이메일 로그인", description = "이메일·비밀번호 검증 + JWT access/refresh 발급. 5회 실패 시 30분 잠금.")
     fun login(
         @Valid @RequestBody request: LoginRequest,
-    ): ResponseEntity<Result<TokenPairResponse>> = ResponseEntity.ok(Result.success(authService.login(request)))
+    ): ResponseEntity<Result<TokenPairResponse>> = tokenPairResponse(authService.login(request))
 
     @PostMapping("/refresh")
-    @Operation(summary = "토큰 갱신", description = "refresh token 으로 새 access/refresh 발급. 회전 정책 — 직전 refresh 즉시 폐기")
+    @Operation(
+        summary = "토큰 갱신",
+        description = "refresh token 으로 새 access/refresh 발급. 입력은 body(003 호환) 우선, 부재 시 refresh_token 쿠키(005 R-4)",
+    )
     fun refresh(
-        @Valid @RequestBody request: RefreshTokenRequest,
-    ): ResponseEntity<Result<TokenPairResponse>> = ResponseEntity.ok(Result.success(authService.refresh(request)))
+        @RequestBody(required = false) request: RefreshTokenRequest?,
+        httpRequest: HttpServletRequest,
+    ): ResponseEntity<Result<TokenPairResponse>> =
+        tokenPairResponse(
+            authService.refresh(RefreshTokenRequest(resolveRefreshToken(request?.refreshToken, httpRequest))),
+        )
 
     @PostMapping("/logout")
     @Operation(summary = "로그아웃", description = "전달된 refresh token 폐기 — 이후 사용 시 AUTH_TOKEN_REVOKED")
     @SecurityRequirement(name = "BearerJwt")
     fun logout(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
-        @Valid @RequestBody request: LogoutRequest,
+        @RequestBody(required = false) request: LogoutRequest?,
+        httpRequest: HttpServletRequest,
     ): ResponseEntity<Result<Nothing?>> {
-        authService.logout(request.refreshToken)
-        return ResponseEntity.ok(Result.success<Nothing?>(null))
+        authService.logout(resolveRefreshToken(request?.refreshToken, httpRequest))
+        return ResponseEntity
+            .ok()
+            .header(HttpHeaders.SET_COOKIE, authCookieFactory.expiredAccessTokenCookie().toString())
+            .header(HttpHeaders.SET_COOKIE, authCookieFactory.expiredRefreshTokenCookie().toString())
+            .body(Result.success<Nothing?>(null))
     }
 
     @GetMapping("/me")
@@ -155,4 +172,33 @@ class AuthController(
             ),
         )
     }
+
+    /**
+     * refresh token 입력 source 결정 (refresh/logout 공용).
+     *
+     * body(`RefreshTokenRequest`/`LogoutRequest`, 003 호환) 우선, 부재 시 `refresh_token` 쿠키 read (005 R-4 reactive refresh).
+     * frontend 는 httpOnly 쿠키라 JS 로 refresh token 을 읽을 수 없으므로 빈 body + 쿠키로 호출. 둘 다 부재 시 AUTH_TOKEN_MISSING.
+     */
+    private fun resolveRefreshToken(
+        bodyToken: String?,
+        httpRequest: HttpServletRequest,
+    ): String =
+        bodyToken?.takeIf { it.isNotBlank() }
+            ?: httpRequest.cookies
+                ?.firstOrNull { it.name == AuthCookieFactory.REFRESH_TOKEN_COOKIE }
+                ?.value
+                ?.takeIf { it.isNotBlank() }
+            ?: throw AuthException(AuthErrorCode.AUTH_TOKEN_MISSING)
+
+    /**
+     * access/refresh 토큰을 httpOnly 쿠키로 내려주는 응답 빌더 (login/refresh 공용).
+     *
+     * body 의 [TokenPairResponse] 는 003 호환 위해 유지하되, frontend 는 쿠키에 의존 (005 R-4).
+     */
+    private fun tokenPairResponse(pair: TokenPairResponse): ResponseEntity<Result<TokenPairResponse>> =
+        ResponseEntity
+            .ok()
+            .header(HttpHeaders.SET_COOKIE, authCookieFactory.accessTokenCookie(pair.accessToken).toString())
+            .header(HttpHeaders.SET_COOKIE, authCookieFactory.refreshTokenCookie(pair.refreshToken).toString())
+            .body(Result.success(pair))
 }

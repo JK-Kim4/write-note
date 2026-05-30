@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.springframework.http.HttpHeaders
 import org.springframework.security.core.Authentication
 import org.springframework.security.oauth2.core.user.OAuth2User
 
@@ -26,17 +27,19 @@ class OAuth2SuccessHandlerTest {
             accessTokenValiditySeconds = 3600L,
             refreshTokenValiditySeconds = 2592000L,
         )
+    private val authCookieFactory = AuthCookieFactory(jwtProperties, secure = false)
     private val handler =
         OAuth2SuccessHandler(
             jwtTokenProvider = jwtTokenProvider,
             authTokenGenerator = authTokenGenerator,
             authTokenRepository = authTokenRepository,
             jwtProperties = jwtProperties,
+            authCookieFactory = authCookieFactory,
             frontendBaseUrl = "http://localhost:3000",
         )
 
     @Test
-    fun `OAuth 성공 시 JWT 발급 + REFRESH AuthToken INSERT + URL fragment redirect`() {
+    fun `OAuth 성공 시 JWT 발급 + REFRESH AuthToken INSERT + 세션 쿠키 발급 + 홈 redirect`() {
         val oauth2User =
             mockk<OAuth2User>().also {
                 every { it.attributes } returns
@@ -61,6 +64,8 @@ class OAuth2SuccessHandlerTest {
 
         val savedToken = slot<AuthToken>()
         every { authTokenRepository.save(capture(savedToken)) } answers { savedToken.captured }
+        val cookieHeaders = mutableListOf<String>()
+        every { response.addHeader(eq(HttpHeaders.SET_COOKIE), capture(cookieHeaders)) } returns Unit
         val redirectedUrl = slot<String>()
         every { response.sendRedirect(capture(redirectedUrl)) } returns Unit
 
@@ -72,13 +77,16 @@ class OAuth2SuccessHandlerTest {
         assertThat(savedToken.captured.tokenHash).isEqualTo("sha256-hex")
         assertThat(savedToken.captured.expiresAt).isAfter(java.time.Instant.now())
 
-        // redirect URL fragment 정합
-        assertThat(redirectedUrl.captured)
-            .startsWith("http://localhost:3000/auth/success#")
-            .contains("access=fake.jwt.access")
-            .contains("refresh=plain-refresh-token")
-            .contains("accessExpiresIn=3600")
-            .contains("refreshExpiresIn=2592000")
+        // 세션 쿠키 발급 검증 (URL fragment → Set-Cookie 전환)
+        assertThat(cookieHeaders).anyMatch {
+            it.startsWith("access_token=fake.jwt.access") && it.contains("HttpOnly")
+        }
+        assertThat(cookieHeaders).anyMatch {
+            it.startsWith("refresh_token=plain-refresh-token") && it.contains("SameSite=Lax")
+        }
+
+        // fragment 없는 홈 redirect
+        assertThat(redirectedUrl.captured).isEqualTo("http://localhost:3000/")
 
         verify(exactly = 1) { authTokenRepository.save(any<AuthToken>()) }
         verify(exactly = 1) { response.sendRedirect(any()) }

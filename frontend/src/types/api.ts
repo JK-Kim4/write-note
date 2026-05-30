@@ -35,7 +35,31 @@ export interface Page<T> {
 export interface ProjectResponse {
     id: number;
     title: string;
-    archived: boolean;
+    genre: string | null;
+    targetLength: number | null;
+    toneNotes: string | null;
+    synopsis: string | null;
+    worldNotes: string | null;
+    archivedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface AuthMeResponse {
+    userId: number;
+    email: string;
+    kakaoLinked: boolean;
+    emailVerifiedAt: string | null;
+    activeApiTokenCount: number;
+}
+
+export interface CharacterResponse {
+    id: number;
+    projectId: number;
+    name: string;
+    shortDescription: string | null;
+    notes: string | null;
+    displayOrder: number;
     createdAt: string;
     updatedAt: string;
 }

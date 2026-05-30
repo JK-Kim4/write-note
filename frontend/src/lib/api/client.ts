@@ -1,21 +1,17 @@
-import type { ErrorInfo, Result } from "@/types/api";
-import { useAuthPlaceholder } from "@/stores/authPlaceholder";
+import type { Result } from "@/types/api";
 
 /**
- * Frontend API client — Phase 1A backend envelope unwrap + 임시 X-User-Id 자동 주입.
+ * Frontend API client — backend `Result<T>` envelope unwrap + httpOnly 쿠키 인증 (005 R-7/R-9).
  *
- * Spec reference: contracts/api-client.md §4 + spec.md §FR-019
+ * Spec reference: contracts/proxy-and-client.md §2
  *
- * 임시 — Week 1B-5 진입 시 X-User-Id 제거 + Authorization Bearer <jwt> swap.
- * 본 client 한 파일 수정으로 전 호출 swap 가능 (단일 책임).
+ * - same-origin 상대 경로(`/api/...`) — Next rewrites 가 backend 로 프록시 (next.config.ts).
+ * - `credentials: "include"` — httpOnly 쿠키 자동 전송. 임시 사용자 식별 헤더 주입 폐기(003/005).
+ * - 401 reactive refresh: 보호 요청 401 → `POST /api/auth/refresh`(쿠키의 refresh_token) 1회 → 성공 시 원요청 재시도.
+ *   refresh 자체 / 인증 흐름(login·logout 등)은 `retryOnAuthFailure: false` 로 무한 루프 방지.
  */
 
-const DEFAULT_BASE_URL = "http://localhost:8080";
-
-const baseUrl = (): string => {
-    const envBase = process.env.NEXT_PUBLIC_API_BASE_URL;
-    return envBase && envBase.length > 0 ? envBase : DEFAULT_BASE_URL;
-};
+const REFRESH_PATH = "/api/auth/refresh";
 
 export class ApiError extends Error {
     code: string;
@@ -27,59 +23,58 @@ export class ApiError extends Error {
     }
 }
 
-export class UnauthenticatedError extends ApiError {
-    constructor() {
-        super("UNAUTHENTICATED", "인증이 필요합니다");
-        this.name = "UnauthenticatedError";
-    }
-}
-
-const withAuthHeaders = (headers?: HeadersInit): HeadersInit => {
-    const merged = new Headers(headers);
-    if (!merged.has("Content-Type")) {
-        merged.set("Content-Type", "application/json");
-    }
-    const userId = useAuthPlaceholder.getState().userId;
-    if (userId) {
-        merged.set("X-User-Id", userId);
-    }
-    return merged;
+export type ApiFetchOptions = RequestInit & {
+    /** 401 시 reactive refresh 후 재시도 여부 (default true). 인증 흐름 endpoint 는 false. */
+    retryOnAuthFailure?: boolean;
 };
 
-export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-    const userId = useAuthPlaceholder.getState().userId;
-    if (!userId) {
-        throw new UnauthenticatedError();
+const rawFetch = (path: string, init: RequestInit): Promise<Response> => {
+    const headers = new Headers(init.headers);
+    if (init.body !== undefined && !headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
     }
+    return fetch(path, { ...init, headers, credentials: "include" });
+};
+
+const tryRefresh = async (): Promise<boolean> => {
+    try {
+        const res = await rawFetch(REFRESH_PATH, { method: "POST" });
+        return res.ok;
+    } catch {
+        return false;
+    }
+};
+
+const unwrap = async <T>(response: Response): Promise<T> => {
+    if (response.status === 204) {
+        return undefined as T;
+    }
+    let parsed: Result<T>;
+    try {
+        parsed = (await response.json()) as Result<T>;
+    } catch {
+        throw new ApiError(`HTTP_${response.status}`, response.statusText || "요청 실패");
+    }
+    if (parsed.success) {
+        return parsed.data;
+    }
+    throw new ApiError(parsed.error.code, parsed.error.message);
+};
+
+export async function apiFetch<T>(path: string, init: ApiFetchOptions = {}): Promise<T> {
+    const { retryOnAuthFailure = true, ...requestInit } = init;
 
     let response: Response;
     try {
-        response = await fetch(`${baseUrl()}${path}`, {
-            ...init,
-            headers: withAuthHeaders(init?.headers),
-            credentials: "omit",
-        });
+        response = await rawFetch(path, requestInit);
+        if (response.status === 401 && retryOnAuthFailure && path !== REFRESH_PATH) {
+            if (await tryRefresh()) {
+                response = await rawFetch(path, requestInit);
+            }
+        }
     } catch (err: unknown) {
         throw new ApiError("NETWORK_ERROR", err instanceof Error ? err.message : String(err));
     }
 
-    if (!response.ok) {
-        throw new ApiError(`HTTP_${response.status}`, response.statusText || "Request failed");
-    }
-
-    let parsed: Result<T>;
-    try {
-        parsed = (await response.json()) as Result<T>;
-    } catch (err: unknown) {
-        throw new ApiError(
-            "PARSE_ERROR",
-            err instanceof Error ? err.message : "응답 파싱 실패",
-        );
-    }
-
-    if (parsed.success) {
-        return parsed.data;
-    }
-    const errorInfo: ErrorInfo = parsed.error;
-    throw new ApiError(errorInfo.code, errorInfo.message);
+    return unwrap<T>(response);
 }

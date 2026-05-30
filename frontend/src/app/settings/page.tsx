@@ -1,24 +1,34 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
+import { fetchMe, logout } from "@/lib/api/auth";
 import { TopBar } from "@/components/shell/TopBar";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { usePreferences, type ManuscriptSize, type WritingMode } from "@/stores/preferences";
-import { useAuthPlaceholder } from "@/stores/authPlaceholder";
 
 /**
  * Settings page — DESIGN.md §7 분리 원칙 의 환경 preferences.
  *
  * Spec reference: contracts/route-surfaces.md §2-4
  * 작성 모드 / 원고지 크기 / 테마 → preferences store 갱신
- * dev 영역: Auth placeholder userId 설정 (Week 1B 진입 시 폐기)
+ * 계정 영역: 쿠키 세션(`/me`) 본인 정보 표시 + 로그아웃
  */
 
 export default function SettingsPage() {
     useAuthGuard("requireAuth");
+    const router = useRouter();
+    const queryClient = useQueryClient();
     const { writingMode, setWritingMode, manuscriptSize, setManuscriptSize } = usePreferences();
-    const userId = useAuthPlaceholder((s) => s.userId);
-    const clear = useAuthPlaceholder((s) => s.clear);
+    const meQuery = useQuery({ queryKey: ["auth", "me"], queryFn: fetchMe, retry: false });
+    const logoutMutation = useMutation({
+        mutationFn: logout,
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+            router.replace("/auth/login");
+        },
+    });
 
     return (
         <div className="flex flex-col min-h-screen" style={{ backgroundColor: "var(--w-parchment)" }}>
@@ -64,7 +74,7 @@ export default function SettingsPage() {
                 </SettingsGroup>
 
                 <SettingsGroup title="계정">
-                    <Field label="현재 placeholder userId">
+                    <Field label="이메일">
                         <code
                             style={{
                                 fontFamily: "var(--w-font-ui)",
@@ -75,11 +85,34 @@ export default function SettingsPage() {
                                 color: "var(--w-ink)",
                             }}
                         >
-                            {userId ?? "(none)"}
+                            {meQuery.data?.email ?? "—"}
                         </code>
                     </Field>
-                    <Field label="로그아웃 (placeholder)">
-                        <PillButton onClick={clear}>로그아웃</PillButton>
+                    <Field label="카카오 연결">
+                        {meQuery.data?.kakaoLinked ? (
+                            <span style={{ color: "var(--w-ink)", opacity: 0.7, fontSize: "14px" }}>연결됨</span>
+                        ) : (
+                            <form action="/api/auth/link/kakao" method="post">
+                                <button
+                                    type="submit"
+                                    className="px-3 py-1.5 rounded-button-pill text-sm font-semibold"
+                                    style={{
+                                        backgroundColor: "var(--w-canvas)",
+                                        color: "var(--w-ink)",
+                                        border: "1px solid var(--w-hairline)",
+                                    }}
+                                >
+                                    카카오 연결
+                                </button>
+                            </form>
+                        )}
+                    </Field>
+                    <Field label="로그아웃">
+                        <PillButton
+                            onClick={() => logoutMutation.mutate()}
+                        >
+                            로그아웃
+                        </PillButton>
                     </Field>
                 </SettingsGroup>
             </main>
