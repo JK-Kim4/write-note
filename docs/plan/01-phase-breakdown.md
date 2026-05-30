@@ -97,7 +97,7 @@
 | 3-5 | 원고지 매수 카운팅 (200 ↔ 400 ↔ 1000 자동 변환) | DESIGN.md 252줄 |
 | 3-6 | 작성 모드 분기 (설정 기반 — 에디터 vs 원고지) | DESIGN.md 243-247줄 |
 | 3-7 | 에디터 사이드 패널 골격 (프로젝트 메타 + 등장인물 카드, 메모는 Week 4) | DESIGN.md 87-90줄 |
-| 3-8 | 자동 저장 debounce 800ms 클라이언트 hook + 충돌 정책 last-write-wins (00-stack §7 보류 결정) | 00-stack §7 |
+| 3-8 | 자동 저장 debounce 800ms 클라이언트 hook + 충돌 정책 = optimistic lock + 409 + 다시 로드/덮어쓰기 **사용자 선택 UI** (03-backend §6 ②-8 C / spec 006 정합. last-write-wins 폐기) | 03-backend §3-4 |
 
 ---
 
