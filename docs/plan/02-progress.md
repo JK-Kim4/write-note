@@ -8,29 +8,27 @@
 
 ## 0-A. 작업 분리 단위 한눈 보기 (Week × Phase 진척 대시보드)
 
-> SoT: 작업 분리 단위 = [`01-phase-breakdown.md`](./01-phase-breakdown.md) (Week 0~7 / 총 52 phase). 본 표는 **develop 머지 코드 실측 기준** 진척 시각화. 상태 기호: ✅ 구현 완료 / 🟡 부분(라우트 골격·일부만) / ⬜ 미착수.
+> SoT: 작업 분리 단위 = [`01-phase-breakdown.md`](./01-phase-breakdown.md) (Week 0~7 / 총 **56 phase**, §12). 본 표는 **develop 머지 코드 실측 기준**(2026-05-30) 진척 시각화. 상태 기호: ✅ 구현 완료 / 🟡 부분(라우트 골격·일부만) / ⬜ 미착수.
 
 | Week | 영역 | Phase 수 | spec | 진척 | 상태 |
 |---|---|---|---|---|---|
 | 0 | PoC 3종 (TipTap·Spring·PWA) | 3 | — | `██████████` 100% | ✅ |
-| 1A | Backend Foundation | 6 | 001 | `██████████` 100% | ✅ |
-| 1B | 인증 (가입·로그인·JWT·카카오·재설정) | 5 | 003 | `██████████` 100% | ✅ |
-| 2 | Project 메타 + Character (BE) / 화면 (FE) | 8 | 004·005 | `██████████` 100% | ✅ |
-| 3 | 에디터 + 원고지 (TipTap 통합) | 6 | — | `░░░░░░░░░░` 0% | 🟡¹ |
-| 4 | 메모 캡처 (CRUD·iOS Shortcut) | 6 | — | `░░░░░░░░░░` 0% | 🟡² |
-| 5 | 세션 노트 + 메모 핀 + 검색 | 6 | — | `░░░░░░░░░░` 0% | 🟡² |
-| 6 | 미리보기 + 다크 + 설정 + PWA | 6 | (002) | `███░░░░░░░` ~30% | 🟡³ |
-| 7 | 통합 + dogfooding + 출시 | 6 | — | `░░░░░░░░░░` 0% | ⬜ |
+| 1A | Backend Foundation | 5 | 001 | `██████████` 100% | ✅ |
+| 1B | 인증 (가입·로그인·JWT·카카오·재설정) | 8 | 003 | `██████████` 100% | ✅ |
+| 2 | Project 메타 + Character (BE) / 화면 (FE) | 7 | 004·005 | `██████████` 100% | ✅ |
+| 3 | 에디터 + 원고지 (TipTap 통합) | 8 | — | `░░░░░░░░░░` 0% | 🟡¹ |
+| 4 | 메모 캡처 (CRUD·iOS Shortcut) | 8 | — | `░░░░░░░░░░` 0% | 🟡² |
+| 5 | 세션 노트 + 메모 핀 + 검색 | 7 | — | `░░░░░░░░░░` 0% | ⬜ |
+| 6 | 미리보기 + 다크 + 설정 + PWA | 5 | (002) | `███░░░░░░░` 일부 | 🟡³ |
+| 7 | 통합 + dogfooding + 출시 | 5 | — | `░░░░░░░░░░` 0% | ⬜ |
 
-**전체: 22 / 52 phase 구현 완료 (≈42%)** — Week 0~2 클로즈, Week 3~7 미착수.
+**전체: 23 / 56 phase 구현 완료 (≈41%)** — Week 0~2 클로즈, Week 3~7 미착수.
 
-- ¹ Week 3 — `frontend/src/app/write/page.tsx` / `write/preview` 는 **002 정적 셸**(주석 "TipTap 통합은 Week 3"). 에디터 로직 0건.
-- ² Week 4/5 — UI 미착수. **단 DB 스키마는 선반영됨**(아래 격차 메모).
-- ³ Week 6 — 다크모드·디자인 토큰·PWA manifest/sw 는 002 에서 구축. 미리보기/설정 완성·반응형·크로스브라우저는 미착수.
+- ¹ Week 3 — `frontend/src/app/write/page.tsx` / `write/preview` 는 **002 정적 셸**(주석 "TipTap 통합은 Week 3 영역"). 에디터 로직·Document API 0건.
+- ² Week 4 — `frontend/src/app/memos/page.tsx` 정적 placeholder(주석 "큐레이션 동작은 Week 4 영역"). 메모 API·entity 0건.
+- ³ Week 6 — 다크모드(6-2)·디자인 토큰·PWA manifest/sw(6-4)는 002 에서 골격 구축, 설정/미리보기 라우트는 정적 셸. 완성·반응형·크로스브라우저 미착수.
 
-### ⚠️ DB 스키마 ↔ 구현 코드 격차 (검증 발견, 2026-05-30)
-
-마이그레이션 `V16~V24` (capture_tokens / outbox_events / **memos** / session_notes / memo_pins / session_note_links / capture_aliases / **memos_fts**) 가 단일 커밋 `ed808c11`("commit on develop", 2026-05-23) 로 **선반영**됐으나, 이를 사용하는 service/controller/entity 는 **0건**(`grep -ic "memo|session|capture|outbox" = 0`). 즉 **Week 4/5 의 DB 스키마만 미리 박혀 있고 기능 구현은 미착수**. Week 4/5 진입 시 기존 스키마와 정합 확인 의무 — vault [[03-ISSUES]] 신규 entry 후보.
+> **실측 근거:** backend 컨트롤러 = `Auth`/`Character`/`Health`/`Project` 4종(메모·세션·캡처 0건) / 마이그레이션 = `V1~V5`(메모·세션 스키마 미생성) / frontend `page.tsx` 23개 중 `write`·`memos`·`write/preview` 는 정적 셸.
 
 ---
 
