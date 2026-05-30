@@ -75,6 +75,18 @@ export interface DocumentResponse {
     updatedAt: string;
 }
 
+/** 메모 응답 (006 US3) — GET /api/memos, POST /api/memos */
+export interface MemoResponse {
+    id: number;
+    body: string;
+    source: string;
+    capturedAt: string;
+    activeProjectAtCapture: number | null;
+    reasonNote: string | null;
+    tags: string[];
+    projects: number[];
+}
+
 /** PUT /api/documents/{id} 성공 응답 */
 export interface DocumentSaveResponse {
     id: number;

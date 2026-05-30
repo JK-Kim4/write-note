@@ -1,29 +1,84 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
+import { listMemos } from "@/lib/api/memo";
 import { TopBar } from "@/components/shell/TopBar";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import type { MemoResponse } from "@/types/api";
 
 /**
- * Memo inbox page — wireframe.html 의 "메모 inbox" 탭 정적 외관.
+ * 메모 inbox page — 실데이터 결선 (006 US3 T048).
+ *
+ * - GET /api/memos 기본 목록 렌더 (페이지 0, size 50)
+ * - 필터 칩 외관 유지 (실제 필터링은 US4 영역)
+ * - 빈 상태 / 에러 상태 처리
  *
  * Spec reference: contracts/route-surfaces.md §2-3
- * 본 spec 단계는 정적 placeholder. 실제 큐레이션 동작은 Week 4 영역.
  */
 
 const FILTER_CHIPS = [
-    { id: "all", label: "전체", count: 0 },
-    { id: "unsorted", label: "미분류", count: 0 },
-    { id: "today", label: "오늘", count: 0 },
+    { id: "all", label: "전체" },
+    { id: "unsorted", label: "미분류" },
+    { id: "today", label: "오늘" },
 ];
 
-const PLACEHOLDER_MEMOS = [
-    { id: 1, body: "할머니가 손녀에게 옛 사진을 건네는 장면.", source: "📱", at: "어제 23:11" },
-    { id: 2, body: "지하철에서 본 두 노인의 대화 — 톤이 따뜻한데 끝이 쓸쓸함.", source: "💻", at: "그제 09:42" },
-];
+const SOURCE_LABEL: Record<string, string> = {
+    DESKTOP: "💻",
+    MOBILE: "📱",
+};
+
+const formatCapturedAt = (isoString: string): string => {
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+
+    if (diffHours < 24 && date.getDate() === now.getDate()) {
+        return `오늘 ${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
+    }
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (date.getDate() === yesterday.getDate() && date.getMonth() === yesterday.getMonth()) {
+        return `어제 ${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
+    }
+    return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
+};
+
+function MemoCard({ memo }: { memo: MemoResponse }) {
+    return (
+        <li
+            className="p-5 rounded-card-memo"
+            style={{
+                backgroundColor: "var(--w-canvas)",
+                border: "1px solid var(--w-hairline)",
+            }}
+        >
+            <p style={{ color: "var(--w-ink)", lineHeight: 1.6 }}>{memo.body}</p>
+            <div
+                className="flex items-center gap-3 mt-3"
+                style={{ fontSize: "12px", color: "var(--w-ink)", opacity: 0.5 }}
+            >
+                <span>{SOURCE_LABEL[memo.source] ?? memo.source}</span>
+                <span>{formatCapturedAt(memo.capturedAt)}</span>
+                <span style={{ marginLeft: "auto" }}>분류하기 →</span>
+            </div>
+        </li>
+    );
+}
 
 export default function MemosPage() {
     useAuthGuard("requireAuth");
+
+    const memosQuery = useQuery({
+        queryKey: ["memos", { page: 0, size: 50 }],
+        queryFn: () => listMemos({ page: 0, size: 50 }),
+        retry: false,
+    });
+
+    const memos = memosQuery.data?.content ?? [];
+    const total = memosQuery.data?.totalElements ?? 0;
+
     return (
         <div className="flex flex-col min-h-screen" style={{ backgroundColor: "var(--w-parchment)" }}>
             <TopBar title="메모 inbox" actions={<ThemeToggle />} />
@@ -42,32 +97,51 @@ export default function MemosPage() {
                             }}
                         >
                             {chip.label}
-                            <span style={{ marginLeft: 6, opacity: 0.7 }}>{chip.count}</span>
+                            {idx === 0 && (
+                                <span style={{ marginLeft: 6, opacity: 0.7 }}>{total}</span>
+                            )}
                         </button>
                     ))}
                 </div>
-                <ul className="flex flex-col gap-3">
-                    {PLACEHOLDER_MEMOS.map((m) => (
-                        <li
-                            key={m.id}
-                            className="p-5 rounded-card-memo"
-                            style={{
-                                backgroundColor: "var(--w-canvas)",
-                                border: "1px solid var(--w-hairline)",
-                            }}
+
+                {memosQuery.isLoading && (
+                    <p style={{ color: "var(--w-ink)", opacity: 0.5, textAlign: "center", marginTop: "4rem" }}>
+                        불러오는 중…
+                    </p>
+                )}
+
+                {memosQuery.isError && (
+                    <div style={{ textAlign: "center", marginTop: "4rem" }}>
+                        <p style={{ color: "var(--w-ink)", opacity: 0.7 }}>메모를 불러오지 못했습니다.</p>
+                        <button
+                            type="button"
+                            onClick={() => void memosQuery.refetch()}
+                            className="mt-4 px-6 py-2 rounded-button-pill text-sm font-semibold"
+                            style={{ backgroundColor: "var(--w-accent)", color: "var(--w-canvas)" }}
                         >
-                            <p style={{ color: "var(--w-ink)", lineHeight: 1.6 }}>{m.body}</p>
-                            <div
-                                className="flex items-center gap-3 mt-3"
-                                style={{ fontSize: "12px", color: "var(--w-ink)", opacity: 0.5 }}
-                            >
-                                <span>{m.source}</span>
-                                <span>{m.at}</span>
-                                <span style={{ marginLeft: "auto" }}>분류하기 →</span>
-                            </div>
-                        </li>
-                    ))}
-                </ul>
+                            다시 시도
+                        </button>
+                    </div>
+                )}
+
+                {!memosQuery.isLoading && !memosQuery.isError && memos.length === 0 && (
+                    <div style={{ textAlign: "center", marginTop: "4rem" }}>
+                        <p style={{ color: "var(--w-ink)", opacity: 0.6, fontSize: "15px" }}>
+                            아직 메모가 없습니다.
+                        </p>
+                        <p style={{ color: "var(--w-ink)", opacity: 0.4, fontSize: "13px", marginTop: "0.5rem" }}>
+                            ⌘+N 으로 빠르게 캡처해 보세요.
+                        </p>
+                    </div>
+                )}
+
+                {memos.length > 0 && (
+                    <ul className="flex flex-col gap-3">
+                        {memos.map((m) => (
+                            <MemoCard key={m.id} memo={m} />
+                        ))}
+                    </ul>
+                )}
             </main>
         </div>
     );

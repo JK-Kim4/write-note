@@ -89,35 +89,35 @@
 
 ### Entity + 마이그레이션 (Foundational for US3/4/5)
 
-- [ ] T029 [US3] V6 마이그레이션 작성 (`memos`/`memo_projects`/`memo_project_characters`/`api_tokens`, 핀 컬럼 제외) — `backend/src/main/resources/db/migration/V6__create_memos_and_api_tokens.sql` **(적용은 사용자 컨펌 — HARD-GATE)**
-- [ ] T030 [P] [US3] Memo entity (tags `TEXT[]`↔`List<String>`) in `backend/src/main/kotlin/com/writenote/entity/Memo.kt`
-- [ ] T031 [P] [US3] MemoProject entity in `backend/src/main/kotlin/com/writenote/entity/MemoProject.kt`
-- [ ] T032 [P] [US3] MemoProjectCharacter entity in `backend/src/main/kotlin/com/writenote/entity/MemoProjectCharacter.kt`
-- [ ] T033 [P] [US3] ApiToken entity in `backend/src/main/kotlin/com/writenote/entity/ApiToken.kt`
-- [ ] T034 [P] [US3] MemoRepository / MemoProjectRepository / ApiTokenRepository in `backend/src/main/kotlin/com/writenote/repository/`
+- [x] T029 [US3] V6 마이그레이션 작성 (`memos`/`memo_projects`/`memo_project_characters`/`api_tokens`, 핀 컬럼 제외) — `backend/src/main/resources/db/migration/V6__create_memos_and_api_tokens.sql` **(적용은 사용자 컨펌 — HARD-GATE)**
+- [x] T030 [P] [US3] Memo entity (tags `TEXT[]`↔`List<String>`) in `backend/src/main/kotlin/com/writenote/entity/Memo.kt`
+- [x] T031 [P] [US3] MemoProject entity in `backend/src/main/kotlin/com/writenote/entity/MemoProject.kt`
+- [x] T032 [P] [US3] MemoProjectCharacter entity in `backend/src/main/kotlin/com/writenote/entity/MemoProjectCharacter.kt`
+- [x] T033 [P] [US3] ApiToken entity in `backend/src/main/kotlin/com/writenote/entity/ApiToken.kt`
+- [x] T034 [P] [US3] MemoRepository / MemoProjectRepository / ApiTokenRepository in `backend/src/main/kotlin/com/writenote/repository/`
 
 ### Tests (RED)
 
-- [ ] T035 [P] [US3] IdempotencyCache 5분 TTL 단위 테스트 — `backend/src/test/kotlin/com/writenote/components/IdempotencyCacheTest.kt`
-- [ ] T036 [P] [US3] MemoService 캡처(source MOBILE/DESKTOP 분기 + active_project) 테스트 — `backend/src/test/kotlin/com/writenote/service/MemoCaptureServiceTest.kt`
-- [ ] T037 [P] [US3] ApiTokenAuthenticationFilter 검증(유효/해지/형식오류 → 401) IT — `backend/src/test/kotlin/com/writenote/auth/ApiTokenAuthenticationFilterIT.kt`
-- [ ] T038 [P] [US3] CaptureController 멱등(같은 Idempotency-Key → 1건) WebTest — `backend/src/test/kotlin/com/writenote/controller/CaptureControllerWebTest.kt`
+- [x] T035 [P] [US3] IdempotencyCache 5분 TTL 단위 테스트 — `backend/src/test/kotlin/com/writenote/components/IdempotencyCacheTest.kt`
+- [x] T036 [P] [US3] MemoService 캡처(source MOBILE/DESKTOP 분기 + active_project) 테스트 — `backend/src/test/kotlin/com/writenote/service/MemoCaptureServiceTest.kt`
+- [x] T037 [P] [US3] ApiTokenAuthenticationFilter 검증(유효/해지/형식오류 → 401) IT — `backend/src/test/kotlin/com/writenote/auth/ApiTokenAuthenticationFilterIT.kt`
+- [x] T038 [P] [US3] CaptureController 멱등(같은 Idempotency-Key → 1건) WebTest — `backend/src/test/kotlin/com/writenote/controller/CaptureControllerWebTest.kt`
 
 ### Backend (GREEN)
 
-- [ ] T039 [US3] IdempotencyCache 컴포넌트 (5분 메모리 TTL) in `backend/src/main/kotlin/com/writenote/components/IdempotencyCache.kt`
-- [ ] T040 [US3] ApiTokenHasher 컴포넌트 (SHA-256 검증 + last_used 갱신용) in `backend/src/main/kotlin/com/writenote/components/ApiTokenHasher.kt`
-- [ ] T041 [US3] ApiTokenAuthenticationFilter stub → 실제 결선 (Repository 주입 + 검증 + SecurityContext) in `backend/src/main/kotlin/com/writenote/auth/ApiTokenAuthenticationFilter.kt`
-- [ ] T042 [US3] Memo 캡처 DTO (`MemoResponse`/`CaptureMemoRequest`/`MobileCaptureRequest`) in `backend/src/main/kotlin/com/writenote/model/`
-- [ ] T043 [US3] MemoService 캡처(데스크탑 JWT / 모바일) in `backend/src/main/kotlin/com/writenote/service/MemoService.kt`
-- [ ] T044 [US3] MemoController M3 (데스크탑 캡처 `POST /api/memos`) in `backend/src/main/kotlin/com/writenote/controller/MemoController.kt`
-- [ ] T045 [US3] CaptureController M6 (`POST /api/capture` + Idempotency-Key) in `backend/src/main/kotlin/com/writenote/controller/CaptureController.kt`
+- [x] T039 [US3] IdempotencyCache 컴포넌트 (5분 메모리 TTL) in `backend/src/main/kotlin/com/writenote/components/IdempotencyCache.kt`
+- [x] T040 [US3] ApiTokenHasher 컴포넌트 (SHA-256 검증 + last_used 갱신용) in `backend/src/main/kotlin/com/writenote/components/ApiTokenHasher.kt`
+- [x] T041 [US3] ApiTokenAuthenticationFilter stub → 실제 결선 (Repository 주입 + 검증 + SecurityContext) in `backend/src/main/kotlin/com/writenote/auth/ApiTokenAuthenticationFilter.kt`
+- [x] T042 [US3] Memo 캡처 DTO (`MemoResponse`/`CaptureMemoRequest`/`MobileCaptureRequest`) in `backend/src/main/kotlin/com/writenote/model/`
+- [x] T043 [US3] MemoService 캡처(데스크탑 JWT / 모바일) in `backend/src/main/kotlin/com/writenote/service/MemoService.kt`
+- [x] T044 [US3] MemoController M3 (데스크탑 캡처 `POST /api/memos`) in `backend/src/main/kotlin/com/writenote/controller/MemoController.kt`
+- [x] T045 [US3] CaptureController M6 (`POST /api/capture` + Idempotency-Key) in `backend/src/main/kotlin/com/writenote/controller/CaptureController.kt`
 
 ### Frontend (GREEN)
 
-- [ ] T046 [US3] memo API 훅 (capture/list) in `frontend/src/lib/api/memo.ts`
-- [ ] T047 [US3] ⌘+N 전역 단축키 hook + 빠른 입력 모달 in `frontend/src/hooks/useGlobalShortcut.ts` + `frontend/src/components/memos/QuickCaptureModal.tsx`
-- [ ] T048 [US3] memos page inbox 실데이터 결선 in `frontend/src/app/memos/page.tsx`
+- [x] T046 [US3] memo API 훅 (capture/list) in `frontend/src/lib/api/memo.ts`
+- [x] T047 [US3] ⌘+N 전역 단축키 hook + 빠른 입력 모달 in `frontend/src/hooks/useGlobalShortcut.ts` + `frontend/src/components/memos/QuickCaptureModal.tsx`
+- [x] T048 [US3] memos page inbox 실데이터 결선 in `frontend/src/app/memos/page.tsx`
 - [ ] T049 [US3] **dogfooding R3** — 데스크탑/모바일 캡처 + 멱등(quickstart §3 R3)
 
 ---
