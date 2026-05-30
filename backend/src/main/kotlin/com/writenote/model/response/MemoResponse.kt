@@ -18,5 +18,5 @@ data class MemoResponse(
     val reasonNote: String?,
     val tags: List<String>,
     /** 큐레이션된 프로젝트 목록 — 캡처 직후 빈 배열 */
-    val projects: List<Any> = emptyList(),
+    val projects: List<MemoProjectResponse> = emptyList(),
 )

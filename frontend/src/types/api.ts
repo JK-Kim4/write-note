@@ -75,7 +75,20 @@ export interface DocumentResponse {
     updatedAt: string;
 }
 
-/** 메모 응답 (006 US3) — GET /api/memos, POST /api/memos */
+/** 메모에 연결된 등장인물 (006 US4) — MemoProjectResponse.characters 원소 */
+export interface MemoCharacterResponse {
+    characterId: number;
+    name: string;
+}
+
+/** 메모에 연결된 프로젝트 (006 US4) — MemoResponse.projects 원소 */
+export interface MemoProjectResponse {
+    projectId: number;
+    title: string;
+    characters: MemoCharacterResponse[];
+}
+
+/** 메모 응답 (006 US3/US4) — GET /api/memos, POST /api/memos, PUT /api/memos/{id}/curation */
 export interface MemoResponse {
     id: number;
     body: string;
@@ -84,7 +97,7 @@ export interface MemoResponse {
     activeProjectAtCapture: number | null;
     reasonNote: string | null;
     tags: string[];
-    projects: number[];
+    projects: MemoProjectResponse[];
 }
 
 /** PUT /api/documents/{id} 성공 응답 */

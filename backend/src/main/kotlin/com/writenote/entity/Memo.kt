@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
+import jakarta.persistence.OneToMany
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
@@ -49,6 +50,10 @@ class Memo(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "active_project_at_capture", insertable = false, updatable = false)
     var activeProject: Project? = null
+
+    /** 큐레이션된 프로젝트 연결 목록 (LAZY, N+1 JOIN FETCH 대상) */
+    @OneToMany(mappedBy = "memo", fetch = FetchType.LAZY)
+    var memoProjects: List<MemoProject> = emptyList()
 
     @PrePersist
     fun prePersist() {

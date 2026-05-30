@@ -129,24 +129,24 @@
 
 ### Tests (RED)
 
-- [ ] T050 [P] [US4] 큐레이션 차이 계산 + 단일 트랜잭션 IT — `backend/src/test/kotlin/com/writenote/service/MemoCurationServiceIT.kt`
-- [ ] T051 [P] [US4] 인물-프로젝트 무결성(불일치 400 VALIDATION_FAILED) 테스트 — `backend/src/test/kotlin/com/writenote/components/MemoCharacterIntegrityValidatorTest.kt`
-- [ ] T052 [P] [US4] 메모 목록 N+1 회피(Hibernate Statistics 쿼리 카운트) IT — `backend/src/test/kotlin/com/writenote/repository/MemoListN1IT.kt`
-- [ ] T053 [P] [US4] frontend 큐레이션 차이 계산 단위 테스트 — `frontend/src/components/memos/curation.test.ts`
+- [x] T050 [P] [US4] 큐레이션 차이 계산 + 단일 트랜잭션 IT — `backend/src/test/kotlin/com/writenote/service/MemoCurationServiceIT.kt`
+- [x] T051 [P] [US4] 인물-프로젝트 무결성(불일치 400 VALIDATION_FAILED) 테스트 — `backend/src/test/kotlin/com/writenote/components/MemoCharacterIntegrityValidatorTest.kt`
+- [x] T052 [P] [US4] 메모 목록 N+1 회피(Hibernate Statistics 쿼리 카운트) IT — `backend/src/test/kotlin/com/writenote/repository/MemoListN1IT.kt`
+- [x] T053 [P] [US4] frontend 큐레이션 차이 계산 단위 테스트 — `frontend/src/components/memos/curation.test.ts`
 
 ### Backend (GREEN)
 
-- [ ] T054 [US4] 인물-프로젝트 무결성 validator in `backend/src/main/kotlin/com/writenote/components/MemoCharacterIntegrityValidator.kt`
-- [ ] T055 [US4] MemoRepository `@EntityGraph` 필터 조회 (unclassified/projectId/characterId/tag/q + Pageable) in `backend/src/main/kotlin/com/writenote/repository/MemoRepository.kt`
-- [ ] T056 [US4] 큐레이션/수정 DTO (`UpdateMemoRequest`/`CurateMemoRequest`/`ProjectConnectionDto`) in `backend/src/main/kotlin/com/writenote/model/`
-- [ ] T057 [US4] MemoCurationService 차이 계산(add/remove 단일 트랜잭션) in `backend/src/main/kotlin/com/writenote/service/MemoCurationService.kt`
-- [ ] T058 [US4] MemoController M1/M2/M4/M5/M7 (목록필터/단건/수정/삭제/큐레이션) in `backend/src/main/kotlin/com/writenote/controller/MemoController.kt`
+- [x] T054 [US4] 인물-프로젝트 무결성 validator in `backend/src/main/kotlin/com/writenote/components/MemoCharacterIntegrityValidator.kt`
+- [x] T055 [US4] MemoRepository `@EntityGraph` 필터 조회 (unclassified/projectId/characterId/tag/q + Pageable) in `backend/src/main/kotlin/com/writenote/repository/MemoRepository.kt`
+- [x] T056 [US4] 큐레이션/수정 DTO (`UpdateMemoRequest`/`CurateMemoRequest`/`ProjectConnectionDto`) in `backend/src/main/kotlin/com/writenote/model/`
+- [x] T057 [US4] MemoCurationService 차이 계산(add/remove 단일 트랜잭션) in `backend/src/main/kotlin/com/writenote/service/MemoCurationService.kt`
+- [x] T058 [US4] MemoController M1/M2/M4/M5/M7 (목록필터/단건/수정/삭제/큐레이션) in `backend/src/main/kotlin/com/writenote/controller/MemoController.kt`
 
 ### Frontend (GREEN)
 
-- [ ] T059 [US4] 큐레이션 카드 (프로젝트 다중 + 인물 합집합 + 태그 + 이유, 800ms 슬라이드) in `frontend/src/components/memos/CurationCard.tsx`
-- [ ] T060 [US4] 필터 칩 + overlap 카운트 in `frontend/src/components/memos/FilterChips.tsx`
-- [ ] T061 [US4] memos page 큐레이션/필터 결선 in `frontend/src/app/memos/page.tsx`
+- [x] T059 [US4] 큐레이션 카드 (프로젝트 다중 + 인물 합집합 + 태그 + 이유, 800ms 슬라이드) in `frontend/src/components/memos/CurationCard.tsx`
+- [x] T060 [US4] 필터 칩 + overlap 카운트 in `frontend/src/components/memos/FilterChips.tsx`
+- [x] T061 [US4] memos page 큐레이션/필터 결선 in `frontend/src/app/memos/page.tsx`
 - [ ] T062 [US4] **dogfooding R4** — 큐레이션 + 필터 + 연결 해제 cascade(quickstart §3 R4)
 
 ---
