@@ -46,6 +46,9 @@ const tryRefresh = async (): Promise<boolean> => {
 };
 
 const unwrap = async <T>(response: Response): Promise<T> => {
+    if (response.status === 204) {
+        return undefined as T;
+    }
     let parsed: Result<T>;
     try {
         parsed = (await response.json()) as Result<T>;

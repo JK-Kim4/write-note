@@ -30,3 +30,44 @@ export function listProjects(params: ListProjectsParams = {}): Promise<Page<Proj
         method: "GET",
     });
 }
+
+export interface CreateProjectInput {
+    title: string;
+    genre?: string | null;
+    targetLength?: number | null;
+    toneNotes?: string | null;
+    synopsis?: string | null;
+    worldNotes?: string | null;
+}
+
+export function createProject(input: CreateProjectInput): Promise<ProjectResponse> {
+    return apiFetch<ProjectResponse>("/api/projects", {
+        method: "POST",
+        body: JSON.stringify(input),
+    });
+}
+
+export function getProject(id: number): Promise<ProjectResponse> {
+    return apiFetch<ProjectResponse>(`/api/projects/${id}`, { method: "GET" });
+}
+
+export type UpdateProjectInput = Partial<CreateProjectInput>;
+
+export function updateProject(id: number, input: UpdateProjectInput): Promise<ProjectResponse> {
+    return apiFetch<ProjectResponse>(`/api/projects/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+    });
+}
+
+export function archiveProject(id: number): Promise<ProjectResponse> {
+    return apiFetch<ProjectResponse>(`/api/projects/${id}/archive`, { method: "POST" });
+}
+
+export function unarchiveProject(id: number): Promise<ProjectResponse> {
+    return apiFetch<ProjectResponse>(`/api/projects/${id}/unarchive`, { method: "POST" });
+}
+
+export function deleteProject(id: number): Promise<void> {
+    return apiFetch<void>(`/api/projects/${id}`, { method: "DELETE" });
+}

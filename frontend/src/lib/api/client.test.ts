@@ -47,6 +47,16 @@ describe("apiFetch", () => {
         expect(meCalls).toBe(2);
     });
 
+    it("204 No Content 응답은 undefined 를 반환한다 (DELETE)", async () => {
+        server.use(
+            http.delete(`${ORIGIN}/api/projects/9`, () => new HttpResponse(null, { status: 204 })),
+        );
+
+        const data = await apiFetch<void>("/api/projects/9", { method: "DELETE" });
+
+        expect(data).toBeUndefined();
+    });
+
     it("보호 요청 401 → refresh 도 401 → ApiError 를 throw 한다", async () => {
         server.use(
             http.get(`${ORIGIN}/api/auth/me`, () =>

@@ -88,8 +88,8 @@ description: "Task list — 005 Phase 2 Frontend Views & Auth Integration"
 - [X] T022 [P] [US1] `LoginForm` 실동작 — `frontend/src/components/auth/LoginForm.tsx`(`'use client'`). `login` mutation + 성공 시 `['auth','me']` 무효화 + 홈 이동 + 에러 code(EMAIL_NOT_VERIFIED/LOGIN_FAILED/LOGIN_LOCKED) 메시지. (contracts/screen-data-flow.md §5)
 - [X] T023 [P] [US1] `LoginForm` 테스트 — `frontend/src/components/auth/LoginForm.test.tsx`. 성공 흐름 + 실패 code 표시 (msw). (RED→GREEN)
 - [X] T024 [US1] 홈 `page.tsx` 실데이터 — `frontend/src/app/page.tsx`. 기존 `listProjects` query 검증 + **에러 상태와 빈 상태 분리**(현재 isError→empty 취급 → 에러는 재시도 표시). (FR-013/014/026)
-- [ ] T025 [US1] 인증 가드 redirect 검증 — 비로그인 홈 접근 → `/auth/login`. (FR-025, SC-005)
-- [ ] T026 [US1] **T051 재검증** — quickstart §3-3. 로그인 쿠키 세션으로 홈 목록 unwrap GREEN(이전 401). (SC-002)
+- [X] T025 [US1] 인증 가드 redirect 검증 — 비로그인 홈 접근 → `/auth/login`. (FR-025, SC-005)
+- [X] T026 [US1] **T051 재검증** — quickstart §3-3. 로그인 쿠키 세션으로 홈 목록 unwrap GREEN(이전 401). (SC-002)
 
 **Checkpoint**: 로그인 → 홈 (MVP). 독립 동작·테스트 가능.
 
@@ -101,10 +101,10 @@ description: "Task list — 005 Phase 2 Frontend Views & Auth Integration"
 
 **Independent Test**: 새 프로젝트 진입 → 제목 입력 생성 → 목록/상세 반영. 제목 누락 시 검증 메시지.
 
-- [ ] T027 [P] [US2] `projects.ts` createProject — `frontend/src/lib/api/projects.ts`. POST /api/projects. (contracts/proxy-and-client.md §4)
-- [ ] T028 [US2] `/projects/new` 폼 — `frontend/src/app/projects/new/page.tsx`(`'use client'`). title(필수) + 메타 5필드(선택). (FR-016)
-- [ ] T029 [US2] 생성 성공 흐름 — `['projects']` 무효화 + `/projects/{id}` 이동. (FR-017)
-- [ ] T030 [P] [US2] 새 프로젝트 폼 테스트 — `frontend/src/app/projects/new/page.test.tsx`. title 누락 검증 + 생성 후 이동(msw). (FR-018, RED→GREEN)
+- [X] T027 [P] [US2] `projects.ts` createProject — `frontend/src/lib/api/projects.ts`. POST /api/projects. (contracts/proxy-and-client.md §4)
+- [X] T028 [US2] `/projects/new` 폼 — `frontend/src/app/projects/new/page.tsx`(`'use client'`). title(필수) + 메타 5필드(선택). (FR-016)
+- [X] T029 [US2] 생성 성공 흐름 — `['projects']` 무효화 + `/projects/{id}` 이동. (FR-017)
+- [X] T030 [P] [US2] 새 프로젝트 폼 테스트 — `frontend/src/app/projects/new/page.test.tsx`. title 누락 검증 + 생성 후 이동(msw). (FR-018, RED→GREEN)
 
 **Checkpoint**: US1 + US2 독립 동작.
 
@@ -116,12 +116,12 @@ description: "Task list — 005 Phase 2 Frontend Views & Auth Integration"
 
 **Independent Test**: 메타 카드 표시 → 편집 일부 수정 반영 → 보관/해제/삭제 동작.
 
-- [ ] T031 [P] [US3] `projects.ts` get/patch/archive/unarchive/delete — `frontend/src/lib/api/projects.ts`
-- [ ] T032 [P] [US3] `MetaCard` 표시 컴포넌트 — `frontend/src/components/projects/MetaCard.tsx`. 메타 6필드(빈 필드 표시). (FR-019)
-- [ ] T033 [US3] `/projects/[id]` page — `frontend/src/app/projects/[id]/page.tsx`. `getProject` + MetaCard + 액션(편집/보관/삭제/등장인물 링크) + 404 안내
-- [ ] T034 [US3] `/projects/[id]/edit` 편집 폼 — `frontend/src/app/projects/[id]/edit/page.tsx`(`'use client'`). PATCH(null=미변경) + 성공 시 `['project',id]`+`['projects']` 무효화 + 복귀. (FR-020)
-- [ ] T035 [US3] lifecycle 동작 — archive/unarchive/delete(확인 모달) + 목록 무효화. (FR-021)
-- [ ] T036 [P] [US3] 편집/lifecycle 테스트 — `frontend/src/app/projects/[id]/edit/page.test.tsx`. 부분 수정 + 삭제 확인(msw). (RED→GREEN)
+- [X] T031 [P] [US3] `projects.ts` get/patch/archive/unarchive/delete — `frontend/src/lib/api/projects.ts`
+- [X] T032 [P] [US3] `MetaCard` 표시 컴포넌트 — `frontend/src/components/projects/MetaCard.tsx`. 메타 6필드(빈 필드 표시). (FR-019)
+- [X] T033 [US3] `/projects/[id]` page — `frontend/src/app/projects/[id]/page.tsx`. `getProject` + MetaCard + 액션(편집/보관/삭제/등장인물 링크) + 404 안내
+- [X] T034 [US3] `/projects/[id]/edit` 편집 폼 — `frontend/src/app/projects/[id]/edit/page.tsx`(`'use client'`). PATCH(null=미변경) + 성공 시 `['project',id]`+`['projects']` 무효화 + 복귀. (FR-020)
+- [X] T035 [US3] lifecycle 동작 — archive/unarchive/delete(확인 모달) + 목록 무효화. (FR-021)
+- [X] T036 [P] [US3] 편집/lifecycle 테스트 — `frontend/src/app/projects/[id]/edit/page.test.tsx`. 부분 수정 + 삭제 확인(msw). (RED→GREEN)
 
 **Checkpoint**: US1~US3 독립 동작.
 
@@ -133,11 +133,11 @@ description: "Task list — 005 Phase 2 Frontend Views & Auth Integration"
 
 **Independent Test**: 인물 추가 → 목록 표시 → 편집/삭제 → 재정렬 후 새로고침 순서 유지.
 
-- [ ] T037 [P] [US4] `characters.ts` 신설 — `frontend/src/lib/api/characters.ts`. list/get/create/patch/reorder/delete. (contracts/proxy-and-client.md §4)
-- [ ] T038 [P] [US4] `CharacterList` 표시 컴포넌트 — `frontend/src/components/projects/CharacterList.tsx`. 표시 순서대로. (FR-022)
-- [ ] T039 [US4] `/projects/[id]/characters` page — `frontend/src/app/projects/[id]/characters/page.tsx`(`'use client'`). 목록 + 생성(name 필수) + 편집 + 삭제. (FR-022/023)
-- [ ] T040 [US4] reorder 동작 — 응답 목록으로 갱신(별도 GET 불필요) + 빈 배열 no-op. (FR-024)
-- [ ] T041 [P] [US4] 등장인물 테스트 — `frontend/src/app/projects/[id]/characters/page.test.tsx`. 생성/reorder 응답 갱신 + 검증 실패(누락/중복/외부 ID) 400 표시(msw). (RED→GREEN, SC-006)
+- [X] T037 [P] [US4] `characters.ts` 신설 — `frontend/src/lib/api/characters.ts`. list/get/create/patch/reorder/delete. (contracts/proxy-and-client.md §4)
+- [X] T038 [P] [US4] `CharacterList` 표시 컴포넌트 — `frontend/src/components/projects/CharacterList.tsx`. 표시 순서대로. (FR-022)
+- [X] T039 [US4] `/projects/[id]/characters` page — `frontend/src/app/projects/[id]/characters/page.tsx`(`'use client'`). 목록 + 생성(name 필수) + 편집 + 삭제. (FR-022/023)
+- [X] T040 [US4] reorder 동작 — 응답 목록으로 갱신(별도 GET 불필요) + 빈 배열 no-op. (FR-024)
+- [X] T041 [P] [US4] 등장인물 테스트 — `frontend/src/app/projects/[id]/characters/page.test.tsx`. 생성/reorder 응답 갱신 + 검증 실패(누락/중복/외부 ID) 400 표시(msw). (RED→GREEN, SC-006)
 
 **Checkpoint**: US1~US4 독립 동작.
 
