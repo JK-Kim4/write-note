@@ -73,11 +73,11 @@
 **Goal**: 원고지 모드 격자/마커/행번호 + 매수 자동계산 + 크기 변환 무손실.
 **Independent Test**: 설정 원고지 400 → 격자 표시 → 입력 → 매수 → 200 변환 무손실(SC-006).
 
-- [ ] T023 [P] [US2] 원고지 매수 계산(200/400/1000 + 크기 변환) 단위 테스트 — `frontend/src/components/editor/manuscript.test.ts`
-- [ ] T024 [US2] 매수 카운팅 + 크기 변환 로직 in `frontend/src/components/editor/manuscript.ts`
-- [ ] T025 [US2] 원고지 격자 오버레이 컴포넌트 (CSS, 칸/마커 5·10·15·20/행번호) in `frontend/src/components/editor/ManuscriptGrid.tsx`
-- [ ] T026 [US2] write page 원고지 모드 분기 (preferences `writingMode`/`manuscriptSize` 재사용) in `frontend/src/app/write/page.tsx`
-- [ ] T027 [US2] 설정 작성 모드/원고지 크기 선택 UI 결선 in `frontend/src/app/settings/page.tsx`
+- [x] T023 [P] [US2] 원고지 매수 계산(200/400/1000 + 크기 변환) 단위 테스트 — `frontend/src/components/editor/manuscript.test.ts`
+- [x] T024 [US2] 매수 카운팅 + 크기 변환 로직 in `frontend/src/components/editor/manuscript.ts`
+- [x] T025 [US2] 원고지 격자 오버레이 컴포넌트 (CSS, 칸/마커 5·10·15·20/행번호) in `frontend/src/components/editor/ManuscriptGrid.tsx`
+- [x] T026 [US2] write page 원고지 모드 분기 (preferences `writingMode`/`manuscriptSize` 재사용) in `frontend/src/app/write/page.tsx`
+- [x] T027 [US2] 설정 작성 모드/원고지 크기 선택 UI 결선 in `frontend/src/app/settings/page.tsx`
 - [ ] T028 [US2] **dogfooding R2** — 한글 칸 정렬 라이트/다크 + 200/400/1000 (research R-2 미검증 리스크 검증, 정렬 실패 시 완화 모드 fallback)
 
 ---

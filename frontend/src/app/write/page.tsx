@@ -9,6 +9,8 @@ import { Editor } from "@/components/editor/Editor";
 import { WordCount } from "@/components/editor/WordCount";
 import { ConflictDialog } from "@/components/editor/ConflictDialog";
 import { useAutoSave } from "@/hooks/useAutoSave";
+import { ManuscriptGrid } from "@/components/editor/ManuscriptGrid";
+import { countCharsForManuscript, calcManuscriptPages } from "@/components/editor/manuscript";
 
 /**
  * Write page — preferences.writingMode 에 따라 manuscript vs editor layout 분기.
@@ -33,26 +35,88 @@ function WritePageInner() {
 }
 
 function ManuscriptLayout() {
+    const projectIdParam = useSearchParams().get("projectId");
+    const projectId = projectIdParam != null ? parseInt(projectIdParam, 10) : null;
+    const manuscriptSize = usePreferences((s) => s.manuscriptSize);
+
+    const { data: doc } = useQuery({
+        queryKey: ["document", "byProject", projectId],
+        queryFn: () => {
+            if (projectId == null || isNaN(projectId)) {
+                return Promise.reject(new Error("projectId 없음"));
+            }
+            return getProjectDocument(projectId);
+        },
+        enabled: projectId != null && !isNaN(projectId),
+        retry: false,
+    });
+
+    const [body, setBody] = useState<string | null>(null);
+    const docBody = doc?.body ?? null;
+    const currentBody = body ?? docBody ?? JSON.stringify({ type: "doc", content: [] });
+
+    const handleBodyChange = useCallback((newBody: string) => {
+        setBody(newBody);
+    }, []);
+
+    const chars = countCharsForManuscript(currentBody);
+    const pages = calcManuscriptPages(chars, manuscriptSize);
+    const displayPages = Math.max(1, pages);
+
     return (
-        <div className="px-6 py-10 max-w-4xl mx-auto">
+        <div className="px-6 py-10 max-w-5xl mx-auto w-full">
+            {/* 상단 매수 / 자수 표시 */}
             <div
-                className="rounded-card-mode p-8"
-                style={{
-                    backgroundColor: "var(--w-manuscript-cream)",
-                    border: "1px solid var(--w-hairline)",
-                    fontFamily: "var(--w-font-manuscript)",
-                    color: "var(--w-ink)",
-                    lineHeight: 2,
-                    fontSize: "18px",
-                    minHeight: "70vh",
-                }}
+                className="flex items-center gap-4 mb-6"
+                style={{ fontSize: "13px", color: "var(--w-ink)", opacity: 0.6 }}
             >
-                <div className="text-xs mb-6" style={{ opacity: 0.5 }}>
-                    400 자 격자 · 20×20 · 컬럼 마커 5/10/15/20 · 행 번호 (placeholder — US2)
+                <span>
+                    {manuscriptSize}자 원고지
+                </span>
+                <span>·</span>
+                <span>{chars.toLocaleString()}자</span>
+                <span>·</span>
+                <span>{displayPages}매</span>
+            </div>
+
+            {/* 격자 오버레이 + 본문 에디터 (같은 Document body 공유) */}
+            <div style={{ position: "relative" }}>
+                {/* 표시 전용 격자 레이어 */}
+                <div
+                    style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 0,
+                        pointerEvents: "none",
+                    }}
+                >
+                    <ManuscriptGrid size={manuscriptSize} pages={displayPages} />
                 </div>
-                <p style={{ opacity: 0.6 }}>
-                    원고지 격자 본문은 US2 에서 합류합니다.
-                </p>
+
+                {/* 에디터 본문 — 격자 위에 위치, 고정폭 한글 폰트 */}
+                <div
+                    style={{
+                        position: "relative",
+                        zIndex: 1,
+                        fontFamily: "var(--w-font-manuscript)",
+                        fontSize: "1.6em",
+                        lineHeight: "1.6em",
+                        color: "var(--w-ink)",
+                        // 완화 모드: 글자가 격자를 정확히 안 채워도 깨지지 않게
+                        // 실제 칸 정렬 정밀 검증은 dogfooding(T028) 영역
+                        letterSpacing: "0.1em",
+                        wordBreak: "break-all",
+                        padding: "24px 24px 24px 58px",
+                        backgroundColor: "transparent",
+                    }}
+                >
+                    <Editor
+                        initialContent={currentBody}
+                        onBodyChange={handleBodyChange}
+                    />
+                </div>
             </div>
         </div>
     );
