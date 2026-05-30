@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { login } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
+import { resolveErrorMessage } from "@/lib/api/errors";
 import { FormInput } from "@/components/ui/FormInput";
 import { KakaoButton } from "@/components/auth/KakaoButton";
 import { PanelLink } from "@/components/auth/PanelLink";
@@ -23,12 +24,6 @@ interface LoginFormProps {
     state?: "default" | "loading";
 }
 
-const LOGIN_ERROR_MESSAGES: Record<string, string> = {
-    EMAIL_NOT_VERIFIED: "이메일 인증이 필요합니다. 메일함을 확인해주세요.",
-    LOGIN_FAILED: "이메일 또는 비밀번호가 올바르지 않습니다.",
-    LOGIN_LOCKED: "로그인 시도가 너무 많아 계정이 잠겼습니다. 30분 후 다시 시도해주세요.",
-};
-
 export function LoginForm({ state = "default" }: LoginFormProps) {
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -46,7 +41,7 @@ export function LoginForm({ state = "default" }: LoginFormProps) {
     const dim = state === "loading" || loginMutation.isPending;
     const errorMessage = loginMutation.isError
         ? loginMutation.error instanceof ApiError
-            ? (LOGIN_ERROR_MESSAGES[loginMutation.error.code] ?? loginMutation.error.message)
+            ? resolveErrorMessage(loginMutation.error.code, loginMutation.error.message)
             : "로그인에 실패했습니다."
         : null;
 

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { confirmPasswordReset } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
+import { resolveErrorMessage } from "@/lib/api/errors";
 import { FormInput } from "@/components/ui/FormInput";
 import { FormError } from "@/components/ui/FormError";
 import { PanelLink } from "@/components/auth/PanelLink";
@@ -29,9 +30,10 @@ export function ResetNewForm() {
 
     const serverError = confirmMutation.isError
         ? confirmMutation.error instanceof ApiError
-            ? confirmMutation.error.code === "PASSWORD_TOO_WEAK"
-                ? "비밀번호가 너무 약합니다. 8자 이상, 숫자·문자 조합을 사용하세요."
-                : "재설정 링크가 만료되었거나 유효하지 않습니다. 다시 요청해주세요."
+            ? resolveErrorMessage(
+                  confirmMutation.error.code,
+                  "재설정 링크가 만료되었거나 유효하지 않습니다. 다시 요청해주세요.",
+              )
             : "재설정 중 문제가 발생했습니다."
         : null;
 

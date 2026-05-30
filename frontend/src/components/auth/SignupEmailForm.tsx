@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { signupEmail } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
+import { resolveErrorMessage } from "@/lib/api/errors";
 import { FormInput } from "@/components/ui/FormInput";
 import { FormError } from "@/components/ui/FormError";
 import { PanelLink } from "@/components/auth/PanelLink";
@@ -16,12 +17,6 @@ import { PanelLink } from "@/components/auth/PanelLink";
  *   - EMAIL_ALREADY_REGISTERED(409) → 이메일 에러 + 로그인 링크
  *   - PASSWORD_TOO_WEAK / EMAIL_INVALID_FORMAT / VALIDATION_FAILED(400) → 해당 메시지
  */
-
-const PASSWORD_ERROR_CODES: Record<string, string> = {
-    PASSWORD_TOO_WEAK: "비밀번호가 너무 약합니다. 8자 이상, 숫자·문자 조합을 사용하세요.",
-    EMAIL_INVALID_FORMAT: "이메일 형식이 올바르지 않습니다.",
-    VALIDATION_FAILED: "입력값을 확인해주세요.",
-};
 
 export function SignupEmailForm() {
     const router = useRouter();
@@ -41,7 +36,7 @@ export function SignupEmailForm() {
     const emailError = emailAlreadyRegistered ? "이미 가입된 이메일입니다." : null;
     const passwordError =
         errorCode && !emailAlreadyRegistered
-            ? (PASSWORD_ERROR_CODES[errorCode] ?? (signupMutation.error as ApiError).message)
+            ? resolveErrorMessage(errorCode, (signupMutation.error as ApiError).message)
             : null;
 
     const handleSubmit = (e: React.FormEvent) => {
