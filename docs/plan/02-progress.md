@@ -1,8 +1,8 @@
 # write-note V1 — 작업 진척도
 
 **최종 갱신:** 2026-05-30
-**상태:** **005 Phase 2 Frontend Views & Auth Integration 구현 진행 중** — `/speckit-{specify,clarify,plan,tasks,implement}` 진입 (2026-05-28~30). Setup ✓ (frontend 테스트 인프라 신설, vitest3+vite5+plugin-react4 — Node v20.10 제약 정정, vault [[03-ISSUES]] ISSUE-016) + Foundational R1 backend 코어 ✓ (T005~T009/T011/T012 — `AuthCookieFactory` 신설 + `JwtAuthenticationFilter` 쿠키 read 병존(헤더 우선) + `AuthController` Set-Cookie + `OAuth2SuccessHandler` 쿠키화. 신규 단위 3종 10케이스 GREEN). **사용자 합의 = MVP 단위 (R1 + US1) → 검증 후 US2~6 결정**. 남은 MVP: T010 (AuthControllerWebTest 쿠키 케이스) → T013 backend 전체 게이트 (docker postgres 필요) → R1 frontend (T014~T021) → US1 (T022~T026). working tree 16 파일 미커밋. 004 Phase 2 Backend ✅ 종료(`8090547` + docs `4261671`) / 002 frontend dogfooding ✅ 종료(4건 통과, T051 → 005 SC-002 재검증).
-**SoT 진입점:** **`specs/005-phase-2-frontend-views/HANDOFF.md`** (브랜치 내 작업 인수문서 — 현재 상태 + 남은 작업 상세 + 다음 세션 첫 프롬프트 + 환경 메모 + 미커밋 변경 목록). 추가 정독: [005 spec.md](../../specs/005-phase-2-frontend-views/spec.md) Clarifications(same-origin 프록시) + [tasks.md](../../specs/005-phase-2-frontend-views/tasks.md) [X 마킹] + 외부 vault [[02-PROGRESS]] §2 / [[03-ISSUES]] ISSUE-015 ⏳ · ISSUE-016 ✅
+**상태:** **005 Phase 2 Frontend Views & Auth Integration — 자동화 전 task 완료 (T001~T050, T052, T053 = 49/55 + Polish 3).** MVP(US1 로그인+홈) 사용자 직접 검증 통과(SC-001/002/003/005) 후 US2~US6 전부 frontend 구현 + 양쪽 게이트 GREEN — R1 인증 httpOnly 쿠키 전환(backend+frontend, refresh·logout 쿠키 fallback 보완) / US2 새 프로젝트 / US3 메타카드·편집·생명주기 / US4 등장인물 CRUD·reorder / US5 가입·이메일인증·재설정(메일 링크 frontend 라우트 재설계) / US6 카카오(외부 인가 검증 제약). frontend 17 테스트 GREEN(vitest3+vite5+jsdom26, vault [[03-ISSUES]] ISSUE-016) / backend BUILD SUCCESSFUL(003/004 회귀 GREEN). US별 단위 커밋 6종(`6161184` R1 backend → `496745c` Polish). **남은 것:** T051(신규 화면 다크모드 직접점검) / T054(quickstart 전체 직접점검) — 사용자 브라우저 영역 + T055 문서 갱신(본 작업). 004 Phase 2 Backend ✅ 종료(`8090547`) / 002 frontend dogfooding ✅ 종료(4건 통과).
+**SoT 진입점:** **`specs/005-phase-2-frontend-views/HANDOFF.md`** (브랜치 내 작업 인수문서 — 현재 상태 + 남은 작업 상세 + 다음 세션 첫 프롬프트 + 환경 메모 + 미커밋 변경 목록). 추가 정독: [005 spec.md](../../specs/005-phase-2-frontend-views/spec.md) Clarifications(same-origin 프록시) + [tasks.md](../../specs/005-phase-2-frontend-views/tasks.md) [X 마킹] + 외부 vault [[02-PROGRESS]] §2 / [[03-ISSUES]] ISSUE-015 ✅(코드·테스트 해소 — 쿠키 전환 + X-User-Id 폐기, 최종 dogfooding T054 잔존) · ISSUE-016 ✅
 
 ---
 
@@ -187,7 +187,7 @@ e808d36 chore: docker-compose + README
 
 ---
 
-## 3. 다음 진입점 — 005 MVP 구현 진행 중 (Setup ✓ + R1 backend 코어 ✓)
+## 3. 다음 진입점 — 005 자동화 완료 / dogfooding(T051·T054) + 문서 갱신 잔존
 
 `/speckit-{specify,clarify,plan,tasks,implement}` 까지 진입 (2026-05-28~30). **사용자 합의 (2026-05-29) = MVP 단위 (R1 인증 쿠키 전환 + US1 로그인+홈) 진행 → 검증 후 US2~US6 결정**. 본 spec 은 frontend + backend 혼합 phase (이전 phase 와 다름) — 인증 전체 동작 + httpOnly 쿠키(same-origin 프록시) + 별도 페이지.
 
@@ -195,9 +195,11 @@ e808d36 chore: docker-compose + README
 |---|---|
 | **Setup (T001~T004)** | ✅ frontend 테스트 인프라 신설 — `vitest 3.2.4 + vite 5.4.21 + @vitejs/plugin-react 4.7.0 + @testing-library/{react,jest-dom,user-event} + msw 2.14 + jsdom 29`. Node v20.10 제약으로 vitest 4 / vite 7 비호환 정정 (vault [[03-ISSUES]] ISSUE-016 — 회고 후보). `frontend/vitest.config.ts` + `src/test/setup.ts` + `src/test/msw/server.ts` + `package.json` scripts (`test`/`typecheck`) |
 | **R1 backend 코어 (T005~T009, T011, T012)** | ✅ `AuthCookieFactory` 신설 (Spring `ResponseCookie`, SameSite=Lax+HttpOnly+Path=/+Secure(env)+Max-Age) / `JwtAuthenticationFilter` 쿠키 read 병존 (헤더 `Bearer eyJ` 우선, 부재 시 `access_token` 쿠키 — **003 헤더 회귀 보존**) / `JwtAuthenticationFilterTest` 신규 5케이스 / `AuthController` login·refresh Set-Cookie + logout 만료 (body `TokenPairResponse` 유지) / `OAuth2SuccessHandler` URL fragment → Set-Cookie + 홈 redirect / `OAuth2SuccessHandlerTest` 쿠키 케이스 갱신 / `SecurityConfig` csrf disable 유지 확인 / `application.yml` `app.cookie.secure` env. **신규 단위 3종 10케이스 GREEN** |
-| **남은 R1 backend** | ⏳ T010 `AuthControllerWebTest` 쿠키 케이스 추가 (003 body 케이스 GREEN 유지) → T013 backend 전체 게이트 (`ktlint* + checkstyleMain + test + build`, docker postgres 필요, 003/004 회귀 + 신규) |
-| **R1 frontend (T014~T021)** | ⏳ `next.config.ts` rewrites (`/api/:path*` → backend) + `client.ts` swap (X-User-Id 제거 + same-origin + `credentials:'include'` + 401 reactive refresh) + `authPlaceholder` 폐기 + `lib/api/auth.ts` 신설 + `useAuthGuard` /me 기반 전환 + types/api 확장 + frontend 게이트 |
-| **US1 MVP (T022~T026)** | ⏳ `LoginForm` 실동작 + 홈 `page.tsx` 실데이터 + 가드 redirect + **T051 재검증** (홈 placeholder query GREEN, SC-002) |
+| **남은 R1 backend** | ✅ T010 `AuthControllerWebTest` 쿠키 케이스 + T013 backend 전체 게이트 (`ktlint* + checkstyleMain + test + build`) BUILD SUCCESSFUL — 003/004 회귀 GREEN. 이후 refresh·logout 쿠키 fallback 보완(httpOnly 라 JS 가 refresh token 을 body 에 못 넣음 발견) |
+| **R1 frontend (T014~T021)** | ✅ `next.config.ts` rewrites (`/api/:path*` → backend) + `client.ts` swap (X-User-Id 제거 + same-origin + `credentials:'include'` + 401 reactive refresh) + `authPlaceholder` 폐기 + `lib/api/auth.ts` 신설 + `useAuthGuard` /me 기반 전환 + types/api 확장 + frontend 게이트 GREEN |
+| **US1 MVP (T022~T026)** | ✅ `LoginForm` 실동작 + 홈 `page.tsx` 실데이터(에러/빈 상태 분리) + 가드 redirect + **T051 재검증** GREEN(이전 401 해소, SC-002). **MVP 사용자 직접 검증 통과(SC-001/002/003/005)** |
+| **US2~US6 + Polish (T027~T053)** | ✅ 전부 frontend 구현 + 양쪽 게이트 GREEN — US2 새 프로젝트 / US3 메타카드·편집·생명주기 / US4 등장인물 CRUD·reorder / US5 가입·이메일인증·재설정(메일 링크 frontend 라우트 재설계) / US6 카카오(외부 인가 제약) / Polish(에러 code 한국어 매핑 공통화, SC-008 grep=0). frontend 17 테스트 GREEN |
+| **잔존 (사용자 브라우저 영역)** | 🔲 T051 신규 화면 5종 라이트/다크 + T054 quickstart §3 전체 dogfooding (카카오는 외부 인가 제약). 메일 링크 변경 반영 위해 점검 전 backend 재시작 필요 |
 | **다음 세션 진입점** | **[`specs/005-phase-2-frontend-views/HANDOFF.md`](../../specs/005-phase-2-frontend-views/HANDOFF.md)** — 브랜치 내 작업 인수문서. §0 에 다음 세션 첫 프롬프트 박힘 |
 | (보조) 004 T062 사용자 dogfooding | 🟡 사용자 영역, 미완 — `specs/004-phase-2-backend-project-character/quickstart.md §3-1~§3-9` curl 9건 |
 | (V1 후속) Week 3 본문 입력 / Week 4 메모 / Week 5 세션노트 | 🟡 005 종료 후 — `01-phase-breakdown.md` Week 3~5 |
@@ -267,7 +269,7 @@ Users
 | 트랙 | vault entry | 우선순위 |
 |---|---|---|
 | 002 dogfooding — 4건 통과 ✅ / T051 → ISSUE-015 (005 SC-002 재검증) | ISSUE-001 ✅ | 완료 (2026-05-28) |
-| frontend `X-User-Id` ↔ backend JWT 인증 drift — 005 흡수 후 backend 쿠키 전환 동반으로 확대 | ISSUE-015 ⏳ | 🟠 005 진행 중 |
+| frontend `X-User-Id` ↔ backend JWT 인증 drift — 005 쿠키 전환으로 해소 (client.ts swap + X-User-Id 폐기 grep=0, T026 재검증 GREEN) | ISSUE-015 ✅ | 코드·테스트 해소 / 최종 dogfooding T054 잔존 |
 | **vitest 4 / vite 7 — Node v20.10 비호환 (Setup 정정, 회고 후보)** | **ISSUE-016 ✅** | **완료 (2026-05-29)** |
 | 003 Phase 4~9 — 003 종료로 완료 (`eb06b55` merge + ISSUE-014 fix) | ISSUE-002 ✅ | 완료 |
 | `frontend/AGENTS.md` 의 docs 정독 경고 — 디렉토리 부재 → 005 plan R-10 재검증 결과 존재 확인 (정합성 회복) | ISSUE-003 ✅ | 완료 (2026-05-28) |
