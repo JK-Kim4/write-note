@@ -48,7 +48,7 @@
 - [x] T011 [US1] DocumentService — `findByProjectId` 조회 + 저장(version/word_count 서버계산) + 409 매핑 in `backend/src/main/kotlin/com/writenote/service/DocumentService.kt`
 - [x] T012 [US1] DocumentController D1~D4 (nested 조회 + 단건 + PUT 409 + PATCH title) in `backend/src/main/kotlin/com/writenote/controller/DocumentController.kt`
 - [x] T013 [US1] SecurityConfig `/api/documents/**` + `/api/projects/*/document` JWT 보호 확인 in `backend/src/main/kotlin/com/writenote/config/SecurityConfig.kt`
-- [ ] T014 [US1] 03-backend §3-4 + §6 변경이력에 nested `GET /api/projects/{projectId}/document` 신설 기록 — `docs/plan/03-backend-requirements.md`
+- [x] T014 [US1] 03-backend §3-4 + §6 변경이력에 nested `GET /api/projects/{projectId}/document` 신설 기록 — `docs/plan/03-backend-requirements.md`
 
 ### Frontend (GREEN)
 
@@ -178,14 +178,14 @@
 
 ## Phase 8: Polish & Cross-Cutting
 
-- [ ] T072 [P] OpenAPI annotation (`@Tag`/`@Operation`/`@SecurityRequirement`) — Document/Memo/Capture/ApiToken Controller in `backend/.../controller/`
-- [ ] T073 [P] 03-backend §6 변경이력 — Week 4 entity(Memo/MemoProject/MemoProjectCharacter/ApiToken) + 핀·세션노트 제외 명시 in `docs/plan/03-backend-requirements.md`
-- [ ] T074 backend 전체 검증 게이트 — `./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` (003/004/005 회귀 GREEN)
-- [ ] T075 frontend 전체 게이트 — `pnpm lint && pnpm typecheck && pnpm test && pnpm build` (RSC 경계 검출)
-- [ ] T076 [P] `docs/plan/02-progress.md` + `01-phase-breakdown.md` §6/§7 진척 갱신 (Week 3/4 ✅)
+- [x] T072 [P] OpenAPI annotation (`@Tag`/`@Operation`/`@SecurityRequirement`) — Document/Memo/Capture/ApiToken Controller in `backend/.../controller/`
+- [x] T073 [P] 03-backend §6 변경이력 — Week 4 entity(Memo/MemoProject/MemoProjectCharacter/ApiToken) + 핀·세션노트 제외 명시 in `docs/plan/03-backend-requirements.md`
+- [x] T074 backend 전체 검증 게이트 — `./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` (003/004/005 회귀 GREEN)
+- [x] T075 frontend 전체 게이트 — `pnpm lint && pnpm typecheck && pnpm test && pnpm build` (RSC 경계 검출)
+- [x] T076 [P] `docs/plan/02-progress.md` + `01-phase-breakdown.md` §6/§7 진척 갱신 (Week 3/4 ✅)
 - [ ] T077 [P] vault `~/obsidian/write-note/02-PROGRESS.md` §완료+진입점 + `03-ISSUES.md`(발견 시) 갱신
 - [ ] T078 [P] 5축 회고 — `docs/retrospectives/2026-XX-XX-006-editor-memo.md`
-- [ ] T079 SC 전체 매핑 확인 (SC-001~008) + SC-008 해지 토큰 거부 실측
+- [x] T079 SC 전체 매핑 확인 (SC-001~008) + SC-008 해지 토큰 거부 실측
 
 ---
 

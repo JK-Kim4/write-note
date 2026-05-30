@@ -1,6 +1,6 @@
 # write-note V1 — 작업 진척도
 
-**최종 갱신:** 2026-05-30
+**최종 갱신:** 2026-05-31 — **006 Week3+4(에디터·원고지 + 메모 캡처) 구현 완료** (US1~US5 자동화 GREEN, backend ktlint+checkstyle+test+build / frontend lint+typecheck+test+build, 003/004/005 회귀 0. dogfooding 사용자 영역). 이하 005 기록.
 **상태:** **005 Phase 2 Frontend Views & Auth Integration — ✅ 전체 종료 (T001~T055, 55/55).** MVP(US1 로그인+홈) 사용자 직접 검증 통과(SC-001/002/003/005) 후 US2~US6 전부 frontend 구현 + 양쪽 게이트 GREEN — R1 인증 httpOnly 쿠키 전환(backend+frontend, refresh·logout 쿠키 fallback 보완) / US2 새 프로젝트 / US3 메타카드·편집·생명주기 / US4 등장인물 CRUD·reorder / US5 가입·이메일인증·재설정(메일 링크 frontend 라우트 재설계) / US6 카카오(외부 인가 검증 제약). frontend 17 테스트 GREEN(vitest3+vite5+jsdom26, vault [[03-ISSUES]] ISSUE-016) / backend BUILD SUCCESSFUL(003/004 회귀 GREEN). dogfooding(T051 다크모드 / T054 quickstart §3) 사용자 완료 처리(2026-05-30, 카카오는 외부 인가 제약). US별 단위 커밋 6종(`6161184` R1 backend → `496745c` Polish) + 문서/회고(`3e8ecc9`). 004 Phase 2 Backend ✅ 종료(`8090547`) / 002 frontend dogfooding ✅ 종료(4건 통과).
 **SoT 진입점:** **`specs/005-phase-2-frontend-views/HANDOFF.md`** (브랜치 내 작업 인수문서 — 현재 상태 + 남은 작업 상세 + 다음 세션 첫 프롬프트 + 환경 메모 + 미커밋 변경 목록). 추가 정독: [005 spec.md](../../specs/005-phase-2-frontend-views/spec.md) Clarifications(same-origin 프록시) + [tasks.md](../../specs/005-phase-2-frontend-views/tasks.md) [X 마킹] + 외부 vault [[02-PROGRESS]] §2 / [[03-ISSUES]] ISSUE-015 ✅(코드·테스트 해소 — 쿠키 전환 + X-User-Id 폐기, 최종 dogfooding T054 잔존) · ISSUE-016 ✅
 
@@ -18,16 +18,16 @@
 | 1A | Backend Foundation | 5 | 001 | `██████████` 100% | ✅ |
 | 1B | 인증 (가입·로그인·JWT·카카오·재설정) | 8 | 003 | `██████████` 100% | ✅ |
 | 2 | Project 메타 + Character (BE) / 화면 (FE) | 7 | 004·005 | `██████████` 100% | ✅ |
-| 3 | 에디터 + 원고지 (TipTap 통합) | 8 | — | `░░░░░░░░░░` 0% | 🟡¹ |
-| 4 | 메모 캡처 (CRUD·iOS Shortcut) | 8 | — | `░░░░░░░░░░` 0% | 🟡² |
+| 3 | 에디터 + 원고지 (TipTap 통합) | 8 | 006 | `██████████` 100% | ✅¹ |
+| 4 | 메모 캡처 (CRUD·iOS Shortcut) | 8 | 006 | `██████████` 100% | ✅² |
 | 5 | 세션 노트 + 메모 핀 + 검색 | 7 | — | `░░░░░░░░░░` 0% | ⬜ |
 | 6 | 미리보기 + 다크 + 설정 + PWA | 5 | (002) | `███░░░░░░░` 일부 | 🟡³ |
 | 7 | 통합 + dogfooding + 출시 | 5 | — | `░░░░░░░░░░` 0% | ⬜ |
 
-**전체: 23 / 56 phase 구현 완료 (≈41%)** — Week 0~2 클로즈, Week 3~7 미착수.
+**전체: 39 / 56 phase 구현 완료 (≈70%)** — Week 0~4 클로즈(006 자동화 GREEN, dogfooding 사용자 대기), Week 5~7 미착수.
 
-- ¹ Week 3 — `frontend/src/app/write/page.tsx` / `write/preview` 는 **002 정적 셸**(주석 "TipTap 통합은 Week 3 영역"). 에디터 로직·Document API 0건.
-- ² Week 4 — `frontend/src/app/memos/page.tsx` 정적 placeholder(주석 "큐레이션 동작은 Week 4 영역"). 메모 API·entity 0건.
+- ¹ Week 3 — 006 에서 구현: Document 자동저장 API(nested 조회 + PUT 409 + title) + TipTap 에디터 + 자수/진행률 + 원고지 격자/매수. dogfooding(T022/T028) 사용자 영역.
+- ² Week 4 — 006 에서 구현: Memo/MemoProject/MemoProjectCharacter/ApiToken(V6) + 캡처(데스크탑·모바일 멱등) + 큐레이션(차이계산·N+1) + 토큰 관리. 메모 핀·세션노트는 Week 5 제외. dogfooding(T049/T062/T071) 사용자 영역.
 - ³ Week 6 — 다크모드(6-2)·디자인 토큰·PWA manifest/sw(6-4)는 002 에서 골격 구축, 설정/미리보기 라우트는 정적 셸. 완성·반응형·크로스브라우저 미착수.
 
 > **실측 근거:** backend 컨트롤러 = `Auth`/`Character`/`Health`/`Project` 4종(메모·세션·캡처 0건) / 마이그레이션 = `V1~V5`(메모·세션 스키마 미생성) / frontend `page.tsx` 23개 중 `write`·`memos`·`write/preview` 는 정적 셸.

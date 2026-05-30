@@ -10,6 +10,11 @@ import com.writenote.service.MemoCurationService
 import com.writenote.service.MemoEditService
 import com.writenote.service.MemoQueryService
 import com.writenote.service.MemoService
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
@@ -33,8 +38,10 @@ import org.springframework.web.bind.annotation.RestController
  *
  * M3 데스크탑 캡처 (US3) + M1/M2/M4/M5/M7 (US4).
  */
+@Tag(name = "메모", description = "메모 목록·단건 조회, 수정, 삭제, 큐레이션 — owner 식별은 JWT principal 에서만 도출")
 @RestController
 @RequestMapping("/api/memos")
+@SecurityRequirement(name = "BearerJwt")
 class MemoController(
     private val memoService: MemoService,
     private val memoQueryService: MemoQueryService,
@@ -43,6 +50,17 @@ class MemoController(
 ) {
     /** M1 — 메모 목록 (필터 + 페이지네이션, N+1 회피). */
     @GetMapping
+    @Operation(
+        summary = "메모 목록",
+        description = "필터(unclassified / projectId / characterId / tag / q) + 페이지네이션. size 범위 1~100.",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공 — Page<MemoResponse>"),
+            ApiResponse(responseCode = "400", description = "VALIDATION_FAILED — size 범위 초과"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+        ],
+    )
     fun listMemos(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @RequestParam(defaultValue = "false") unclassified: Boolean,
@@ -70,6 +88,14 @@ class MemoController(
 
     /** M2 — 단건 조회. */
     @GetMapping("/{id}")
+    @Operation(summary = "메모 단건 조회", description = "본인 소유 메모만. 타인·미존재 시 404.")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND — 본인 소유 아님 / 미존재"),
+        ],
+    )
     fun getMemo(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable id: Long,
@@ -90,6 +116,14 @@ class MemoController(
 
     /** M4 — 본문/reasonNote/tags 부분 수정. null = 미변경. */
     @PatchMapping("/{id}")
+    @Operation(summary = "메모 부분 수정", description = "body / reasonNote / tags 중 전달된 필드만 갱신. null = 미변경.")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND — 본인 소유 아님 / 미존재"),
+        ],
+    )
     fun updateMemo(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable id: Long,
@@ -101,6 +135,17 @@ class MemoController(
 
     /** M5 — 삭제 (cascade: MemoProject/MemoProjectCharacter 정리). */
     @DeleteMapping("/{id}")
+    @Operation(
+        summary = "메모 삭제",
+        description = "본인 메모 영구 삭제 — MemoProject / MemoProjectCharacter cascade 정리.",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "204", description = "삭제 성공 — body 없음"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND — 본인 소유 아님 / 미존재"),
+        ],
+    )
     fun deleteMemo(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable id: Long,
@@ -111,6 +156,17 @@ class MemoController(
 
     /** M7 — 큐레이션 (선언적 전체 상태, 차이 계산 + 단일 트랜잭션). */
     @PutMapping("/{id}/curation")
+    @Operation(
+        summary = "메모 큐레이션",
+        description = "projectIds / characterIds 를 선언적 전체 상태로 전달 → 차이 계산 후 단일 트랜잭션 반영.",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND — 메모 / 프로젝트 / 등장인물 본인 소유 아님 또는 미존재"),
+        ],
+    )
     fun curateMemo(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable id: Long,
