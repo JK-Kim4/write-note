@@ -1,63 +1,88 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { login } from "@/lib/api/auth";
+import { ApiError } from "@/lib/api/client";
 import { FormInput } from "@/components/ui/FormInput";
 import { KakaoButton } from "@/components/auth/KakaoButton";
 import { PanelLink } from "@/components/auth/PanelLink";
 import { SubmitLoading } from "@/components/ui/SubmitLoading";
-import { useAuthPlaceholder } from "@/stores/authPlaceholder";
 
 /**
- * LoginForm — 로그인 폼 (login / login-error / login-loading 공용).
+ * LoginForm — 이메일 로그인 폼 (US1, contracts/screen-data-flow.md §5).
  *
- * Spec reference: contracts/route-surfaces.md §1 (login 행) + DESIGN.md §핵심 인증 UX 결정 §3
- * 본 spec 단계는 정적 외관만. 실제 submit / 검증은 Week 1B 영역.
+ * 성공: 쿠키 발급 → `['auth','me']` 무효화 → 홈(`/`) 이동.
+ * 실패: 401 code(EMAIL_NOT_VERIFIED / LOGIN_FAILED / LOGIN_LOCKED) → 한국어 메시지.
+ *
+ * `state` prop 은 데모 라우트(login-loading)용 외관 제어. 실제 진행 상태는 mutation.isPending.
  */
 
 interface LoginFormProps {
     state?: "default" | "loading";
 }
 
+const LOGIN_ERROR_MESSAGES: Record<string, string> = {
+    EMAIL_NOT_VERIFIED: "이메일 인증이 필요합니다. 메일함을 확인해주세요.",
+    LOGIN_FAILED: "이메일 또는 비밀번호가 올바르지 않습니다.",
+    LOGIN_LOCKED: "로그인 시도가 너무 많아 계정이 잠겼습니다. 30분 후 다시 시도해주세요.",
+};
+
 export function LoginForm({ state = "default" }: LoginFormProps) {
-    const dim = state === "loading";
-    const setUserId = useAuthPlaceholder((s) => s.setUserId);
-    const isDev = process.env.NODE_ENV !== "production";
+    const router = useRouter();
+    const queryClient = useQueryClient();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+
+    const loginMutation = useMutation({
+        mutationFn: () => login({ email, password }),
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+            router.push("/");
+        },
+    });
+
+    const dim = state === "loading" || loginMutation.isPending;
+    const errorMessage = loginMutation.isError
+        ? loginMutation.error instanceof ApiError
+            ? (LOGIN_ERROR_MESSAGES[loginMutation.error.code] ?? loginMutation.error.message)
+            : "로그인에 실패했습니다."
+        : null;
+
     return (
         <form
             className="flex flex-col gap-4"
             style={{ opacity: dim ? 0.6 : 1, pointerEvents: dim ? "none" : "auto" }}
-            onSubmit={(e) => e.preventDefault()}
+            onSubmit={(e) => {
+                e.preventDefault();
+                loginMutation.mutate();
+            }}
         >
-            {isDev ? (
-                /* 임시 — Week 1B-1~2 진입 시 폐기. JWT cookie 기반 세션으로 swap.
-                 * dogfooding 시점에 placeholder userId 박아 메인 surface 진입 가능하게.
-                 */
-                <button
-                    type="button"
-                    onClick={() => setUserId(`dev-user-${Date.now()}`)}
-                    className="w-full py-2 rounded-button-utility text-sm font-semibold"
-                    style={{
-                        backgroundColor: "color-mix(in srgb, var(--w-accent) 8%, transparent)",
-                        color: "var(--w-accent)",
-                        border: "1px dashed var(--w-accent)",
-                    }}
-                >
-                    [DEV] 임시 사용자로 진입 →
-                </button>
-            ) : null}
             <FormInput
                 name="email"
                 type="email"
                 label="이메일"
                 placeholder="you@example.com"
                 autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
             />
             <FormInput
                 name="password"
                 type="password"
                 label="비밀번호"
                 autoComplete="current-password"
+                error={errorMessage !== null}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
             />
-            {state === "loading" ? (
+            {errorMessage ? (
+                <p role="alert" style={{ color: "var(--w-error)", fontSize: "14px" }}>
+                    {errorMessage}
+                </p>
+            ) : null}
+            {dim ? (
                 <SubmitLoading label="로그인 중…" />
             ) : (
                 <button

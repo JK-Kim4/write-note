@@ -40,7 +40,8 @@ export default function HomePage() {
 
     const isEmpty =
         !projectsQuery.isLoading &&
-        (projectsQuery.data?.totalElements === 0 || projectsQuery.isError);
+        !projectsQuery.isError &&
+        projectsQuery.data?.totalElements === 0;
 
     return (
         <div className="flex flex-col min-h-screen" style={{ backgroundColor: "var(--w-parchment)" }}>
@@ -48,7 +49,22 @@ export default function HomePage() {
                 title="write-note"
                 actions={<ThemeToggle />}
             />
-            {isEmpty ? (
+            {projectsQuery.isError ? (
+                <EmptyHero
+                    title="프로젝트를 불러오지 못했습니다"
+                    lede="네트워크 또는 세션 문제일 수 있습니다. 다시 시도해 주세요."
+                    cta={
+                        <button
+                            type="button"
+                            onClick={() => projectsQuery.refetch()}
+                            className="px-8 py-4 rounded-card-mode font-semibold"
+                            style={{ backgroundColor: "var(--w-accent)", color: "var(--w-canvas)" }}
+                        >
+                            다시 시도
+                        </button>
+                    }
+                />
+            ) : isEmpty ? (
                 <EmptyHero
                     title="환영합니다"
                     lede="첫 프로젝트를 만들어 작가의 작업공간을 시작해 보세요."
