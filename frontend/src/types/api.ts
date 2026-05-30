@@ -100,6 +100,35 @@ export interface MemoResponse {
     projects: MemoProjectResponse[];
 }
 
+/** 토큰 목록 항목 — GET /api/api-tokens 응답 원소 (token 필드 없음) */
+export interface ApiTokenListItem {
+    id: number;
+    tokenPrefix: string;
+    label: string | null;
+    lastUsedAt: string | null;
+    createdAt: string;
+    revokedAt: string | null;
+}
+
+/** 토큰 발급 응답 — POST /api/api-tokens (원본 token 1회만 포함) */
+export interface ApiTokenIssueResponse {
+    id: number;
+    token: string; // "wnt_..." — 이 응답에서만 노출, 재조회 불가
+    tokenPrefix: string;
+    label: string | null;
+    createdAt: string;
+}
+
+/** label 수정 응답 — PATCH /api/api-tokens/{id} */
+export interface ApiTokenResponse {
+    id: number;
+    tokenPrefix: string;
+    label: string | null;
+    lastUsedAt: string | null;
+    createdAt: string;
+    revokedAt: string | null;
+}
+
 /** PUT /api/documents/{id} 성공 응답 */
 export interface DocumentSaveResponse {
     id: number;

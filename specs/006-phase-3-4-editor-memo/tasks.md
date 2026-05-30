@@ -158,20 +158,20 @@
 
 ### Tests (RED)
 
-- [ ] T063 [P] [US5] ApiTokenService 발급(원본 1회/해시 저장) + 해지 테스트 — `backend/src/test/kotlin/com/writenote/service/ApiTokenServiceTest.kt`
+- [x] T063 [P] [US5] ApiTokenService 발급(원본 1회/해시 저장) + 해지 테스트 — `backend/src/test/kotlin/com/writenote/service/ApiTokenServiceTest.kt`
 
 ### Backend (GREEN)
 
-- [ ] T064 [US5] ApiTokenService (base62 32자 생성 + SHA-256 + 목록/label/해지) in `backend/src/main/kotlin/com/writenote/service/ApiTokenService.kt`
-- [ ] T065 [US5] ApiToken DTO (`CreateApiTokenRequest`/`ApiTokenCreatedResponse`/`ApiTokenResponse`) in `backend/src/main/kotlin/com/writenote/model/`
-- [ ] T066 [US5] ApiTokenController T1~T4 (발급/목록/label/해지) in `backend/src/main/kotlin/com/writenote/controller/ApiTokenController.kt`
-- [ ] T067 [US5] `/api/auth/me` 활성 ApiToken 수 정합 확인 (003 UserAuthConverter) in `backend/src/main/kotlin/com/writenote/...`
+- [x] T064 [US5] ApiTokenService (base62 32자 생성 + SHA-256 + 목록/label/해지) in `backend/src/main/kotlin/com/writenote/service/ApiTokenService.kt`
+- [x] T065 [US5] ApiToken DTO (`CreateApiTokenRequest`/`ApiTokenCreatedResponse`/`ApiTokenResponse`) in `backend/src/main/kotlin/com/writenote/model/`
+- [x] T066 [US5] ApiTokenController T1~T4 (발급/목록/label/해지) in `backend/src/main/kotlin/com/writenote/controller/ApiTokenController.kt`
+- [x] T067 [US5] `/api/auth/me` 활성 ApiToken 수 정합 확인 (003 UserAuthConverter) in `backend/src/main/kotlin/com/writenote/...`
 
 ### Frontend (GREEN)
 
-- [ ] T068 [P] [US5] apiToken API 훅 in `frontend/src/lib/api/apiToken.ts`
-- [ ] T069 [US5] 설정 토큰 관리 UI (발급 모달 1회 표시 + 복사 경고 + 목록 + 해지) in `frontend/src/app/settings/page.tsx`
-- [ ] T070 [US5] iOS Shortcut 셋업 가이드 (설정 링크 + quickstart §5) in `frontend/src/app/settings/page.tsx`
+- [x] T068 [P] [US5] apiToken API 훅 in `frontend/src/lib/api/apiToken.ts`
+- [x] T069 [US5] 설정 토큰 관리 UI (발급 모달 1회 표시 + 복사 경고 + 목록 + 해지) in `frontend/src/app/settings/page.tsx`
+- [x] T070 [US5] iOS Shortcut 셋업 가이드 (설정 링크 + quickstart §5) in `frontend/src/app/settings/page.tsx`
 - [ ] T071 [US5] **dogfooding R5** — 발급/캡처/해지(quickstart §3 R5)
 
 ---
