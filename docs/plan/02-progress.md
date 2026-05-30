@@ -9,6 +9,8 @@
 ## 0-A. 작업 분리 단위 한눈 보기 (Week × Phase 진척 대시보드)
 
 > SoT: 작업 분리 단위 = [`01-phase-breakdown.md`](./01-phase-breakdown.md) (Week 0~7 / 총 **56 phase**, §12). 본 표는 **develop 머지 코드 실측 기준**(2026-05-30) 진척 시각화. 상태 기호: ✅ 구현 완료 / 🟡 부분(라우트 골격·일부만) / ⬜ 미착수.
+>
+> 🖥 **시각화 HTML**: [`progress-dashboard.html`](./progress-dashboard.html) — 브라우저로 열면 진행바·spec 매핑·다음 진입점을 라이트/다크 양쪽으로 렌더. 데이터 갱신 시 본 §0-A 와 동기 의무.
 
 | Week | 영역 | Phase 수 | spec | 진척 | 상태 |
 |---|---|---|---|---|---|
