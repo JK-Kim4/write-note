@@ -130,7 +130,7 @@ timeout / cap 룰은 글로벌 [`~/.claude/rules/shared/long-running-bash.md`](f
 <!-- SPECKIT START -->
 Current implementation plan:
 
-- [005 Phase 2 Frontend Views & Auth Integration](specs/005-phase-2-frontend-views/plan.md)
+- [006 에디터·원고지 + 메모 캡처 (Week 3+4 통합)](specs/006-phase-3-4-editor-memo/plan.md)
 
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan above.
