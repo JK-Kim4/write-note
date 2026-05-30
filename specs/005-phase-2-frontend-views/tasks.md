@@ -149,10 +149,10 @@ description: "Task list — 005 Phase 2 Frontend Views & Auth Integration"
 
 **Independent Test**: 신규 가입 → 인증 → 로그인. 재설정 요청 → 새 비번 → 로그인.
 
-- [ ] T042 [P] [US5] `SignupEmailForm` 실동작 — `frontend/src/components/auth/SignupEmailForm.tsx`. signupEmail + 인증 메일 안내 + 409/400 code. (FR-009)
-- [ ] T043 [US5] 이메일 인증 흐름 — `frontend/src/app/auth/verify-pending/` + `verify-done/`. verifyEmail(token) 연동. (FR-009)
-- [ ] T044 [US5] 비밀번호 재설정 4단계 — `frontend/src/components/auth/ResetRequestForm.tsx` + `ResetNewForm.tsx` + `frontend/src/app/auth/reset-*`. request/confirm 연동. (FR-010)
-- [ ] T045 [P] [US5] 가입/재설정 테스트 — 성공 + 주요 실패 code(msw). (RED→GREEN)
+- [X] T042 [P] [US5] `SignupEmailForm` 실동작 — `frontend/src/components/auth/SignupEmailForm.tsx`. signupEmail + 인증 메일 안내 + 409/400 code. (FR-009)
+- [X] T043 [US5] 이메일 인증 흐름 — `frontend/src/app/auth/verify-pending/` + `verify-done/`. verifyEmail(token) 연동. (FR-009)
+- [X] T044 [US5] 비밀번호 재설정 4단계 — `frontend/src/components/auth/ResetRequestForm.tsx` + `ResetNewForm.tsx` + `frontend/src/app/auth/reset-*`. request/confirm 연동. (FR-010)
+- [X] T045 [P] [US5] 가입/재설정 테스트 — 성공 + 주요 실패 code(msw). (RED→GREEN)
 
 **Checkpoint**: US1~US5 독립 동작.
 
@@ -164,10 +164,10 @@ description: "Task list — 005 Phase 2 Frontend Views & Auth Integration"
 
 **Independent Test**: 카카오 로그인 → 콜백 쿠키 → 홈. 이메일 로그인 상태 카카오 추가 연결.
 
-- [ ] T046 [US6] `KakaoButton` 진입 — `frontend/src/components/auth/KakaoButton.tsx`. `/api/auth/oauth/kakao` 브라우저 네비게이션. (FR-011)
-- [ ] T047 [US6] 카카오 콜백 도착 처리 — `/auth/success` 라우트 신설 또는 홈 redirect(OAuth2SuccessHandler T011 redirect 대상과 정합). (research R-5)
-- [ ] T048 [US6] 카카오 추가 연결 — `POST /api/auth/link/kakao` 진입 + `/auth/link-success` + 충돌(KAKAO_ALREADY_LINKED/KAKAO_LINK_CONFLICT) 안내. (FR-011)
-- [ ] T049 [US6] 카카오 dogfooding(제약) — 외부 카카오 인가 화면 + 앱 redirect_uri 설정 의존. quickstart §3 주석대로 범위 명시 검증. (SC-007)
+- [X] T046 [US6] `KakaoButton` 진입 — `frontend/src/components/auth/KakaoButton.tsx`. `/api/auth/oauth/kakao` 브라우저 네비게이션. (FR-011)
+- [X] T047 [US6] 카카오 콜백 도착 처리 — `/auth/success` 라우트 신설 또는 홈 redirect(OAuth2SuccessHandler T011 redirect 대상과 정합). (research R-5)
+- [X] T048 [US6] 카카오 추가 연결 — `POST /api/auth/link/kakao` 진입 + `/auth/link-success` + 충돌(KAKAO_ALREADY_LINKED/KAKAO_LINK_CONFLICT) 안내. (FR-011)
+- [X] T049 [US6] 카카오 dogfooding(제약) — 외부 카카오 인가 화면 + 앱 redirect_uri 설정 의존. quickstart §3 주석대로 범위 명시 검증. (SC-007)
 
 **Checkpoint**: US1~US6 모두 독립 동작.
 

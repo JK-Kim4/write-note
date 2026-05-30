@@ -1,8 +1,10 @@
+"use client";
+
 /**
- * KakaoButton — Kakao OAuth2 진입 CTA (placeholder).
+ * KakaoButton — Kakao OAuth2 진입 CTA (US6, contracts/screen-data-flow.md §5).
  *
- * Spec reference: DESIGN.md §핵심 인증 UX 결정 §1 (Kakao 단독 소셜) + §5 (full redirect)
- * 본 spec 단계는 정적 외관만. 실제 OAuth redirect 는 Week 1B-3 영역.
+ * 클릭 시 `/api/auth/oauth/kakao` 로 브라우저 전체 네비게이션(same-origin 프록시 → backend OAuth).
+ * 콜백 성공 시 backend(OAuth2SuccessHandler)가 쿠키 발급 + 홈(`/`) redirect.
  */
 
 interface KakaoButtonProps {
@@ -18,6 +20,9 @@ export function KakaoButton({ label = "Kakao 로 시작하기", disabled = false
         <button
             type="button"
             disabled={disabled}
+            onClick={() => {
+                window.location.href = "/api/auth/oauth/kakao";
+            }}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-button-pill font-semibold"
             style={{
                 backgroundColor: KAKAO_YELLOW,

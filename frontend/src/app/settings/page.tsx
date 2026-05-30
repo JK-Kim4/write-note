@@ -88,6 +88,25 @@ export default function SettingsPage() {
                             {meQuery.data?.email ?? "—"}
                         </code>
                     </Field>
+                    <Field label="카카오 연결">
+                        {meQuery.data?.kakaoLinked ? (
+                            <span style={{ color: "var(--w-ink)", opacity: 0.7, fontSize: "14px" }}>연결됨</span>
+                        ) : (
+                            <form action="/api/auth/link/kakao" method="post">
+                                <button
+                                    type="submit"
+                                    className="px-3 py-1.5 rounded-button-pill text-sm font-semibold"
+                                    style={{
+                                        backgroundColor: "var(--w-canvas)",
+                                        color: "var(--w-ink)",
+                                        border: "1px solid var(--w-hairline)",
+                                    }}
+                                >
+                                    카카오 연결
+                                </button>
+                            </form>
+                        )}
+                    </Field>
                     <Field label="로그아웃">
                         <PillButton
                             onClick={() => logoutMutation.mutate()}
