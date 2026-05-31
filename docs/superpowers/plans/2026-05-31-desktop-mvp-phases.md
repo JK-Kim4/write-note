@@ -124,7 +124,7 @@ git commit -m "feat(desktop): scaffold Electron app"
 
 **포함 작업:**
 
-- Electron에서 사용할 로컬 DB library를 확정한다.
+- 로컬 DB library = `better-sqlite3` (2026-05-31 결정, 설계 문서 §결정된 후속 사항). Electron v39+ prebuild 빌드 실패 이슈로 `better-sqlite3@12.9.0` 고정 + `@electron/rebuild`(postinstall) + 패키징 `asarUnpack`. DB 접근은 main process 한정, renderer 는 IPC 만.
 - `Project`, `Document`, `Memo`, `AppSetting` schema를 만든다.
 - sync-friendly ID 생성 방식을 확정한다.
 - main process에 DB 접근 모듈을 둔다.
@@ -254,6 +254,7 @@ git commit -m "feat(desktop): add editor autosave"
 **포함 작업:**
 
 - 앱 내부 quick capture modal 또는 panel 구현.
+- OS 전역 단축키 캡처 (2026-05-31 결정, 설계 문서 §결정된 후속 사항): Electron `globalShortcut` 등록 + 백그라운드에서도 뜨는 별도 경량 캡처 윈도우. 본 phase 범위에 포함.
 - active project가 있으면 memo의 기본 연결 project로 기록한다.
 - active project가 없으면 unlinked memo로 저장한다.
 - Memo Inbox 화면 구현.

@@ -221,11 +221,19 @@ Keep the first implementation conservative:
 - Keep the data access boundary explicit so future sync can replace or extend local persistence.
 - Do not implement manuscript mode in the first MVP even though it is a core product feature.
 
-## Open Follow-Ups
+## Resolved Follow-Ups
 
-These should be resolved during implementation planning:
+Decided 2026-05-31 (interview + web verification). DB facts verified via web search; see Sources.
 
-1. Exact local DB library choice for Electron.
-2. Whether the first quick capture uses only an in-app modal or also a global shortcut.
-3. Whether `Project.summary`, `tone`, and `targetLength` are all shown in the first UI or only stored for later.
-4. Whether desktop phase 2 starts with manuscript mode or with richer memo curation.
+1. **Local DB library = `better-sqlite3`.** Mature, synchronous, de-facto standard for Electron desktop SQLite. DB access lives in the main process only; the renderer talks to it via IPC (renderer cannot access SQLite directly). Implementation notes from verification: Electron v39+ prebuilds currently fail to build, so pin to `better-sqlite3@12.9.0` for now; rebuild the native module against Electron headers with `@electron/rebuild` (postinstall hook) and `asarUnpack` it for packaging. The future server-sync path is added later behind the explicit data-access boundary — `libsql`/Turso embedded replicas were considered for built-in sync but deferred (async API switch + 2025 Windows embedded-replica issues + free-plan replica limits).
+2. **Quick capture = in-app modal AND global shortcut.** Beyond the design default, the first version also registers an OS-level global shortcut (Electron `globalShortcut` + a dedicated lightweight capture window) so a thought can be captured while the app is in the background. This expands Phase 5 scope accordingly.
+3. **First UI exposes `title` + `summary` only.** `tone` and `targetLength` stay in the data model but are not surfaced in the first creation/edit UI (revealed later). Keeps the Focus Studio screen minimal.
+4. **Desktop Phase 2 priority decided at Phase 8 (review gate).** Manuscript mode vs richer memo curation is chosen from real-session dogfooding records rather than guessed now (design default).
+
+### Sources (DB verification)
+
+- [better-sqlite3 — npm](https://www.npmjs.com/package/better-sqlite3)
+- [better-sqlite3 + Electron integration guide](https://dev.to/arindam1997007/a-step-by-step-guide-to-integrating-better-sqlite3-with-electron-js-app-using-create-react-app-3k16)
+- [node:sqlite — Node.js docs (Stability 1.2 Release Candidate, still experimental)](https://nodejs.org/api/sqlite.html)
+- [libsql-js — better-sqlite3 compatible API for libSQL](https://github.com/tursodatabase/libsql-js)
+- [Turso embedded replicas](https://docs.turso.tech/features/embedded-replicas/introduction)
