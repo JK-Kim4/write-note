@@ -110,7 +110,7 @@ git commit -m "docs: pause web track for desktop MVP"
 
 **디자인 결정 기준:**
 
-- 기본 톤은 **Native Studio**: macOS native에 가까운 조용한 데스크탑 도구.
+- 기본 톤은 **Focus Studio**: macOS native에 가까운 조용한 데스크탑 도구 (시각 톤 + 에디터 중심 레이아웃 구조를 포괄하는 단일 명칭).
 - 에디터 page에만 아주 약한 종이 감각을 허용한다.
 - blue는 primary action과 focus state에만 제한한다.
 - dashboard card 과잉, hero section, 과한 beige, 기본 dark UI, 장식용 gradient는 금지한다.
@@ -133,7 +133,7 @@ find docs/design/desktop -maxdepth 1 -type f | sort
 수동 검증:
 
 - `docs/design/desktop/wireframes.html`을 브라우저에서 열어 4개 핵심 화면 확인.
-- 각 화면이 Native Studio 톤과 Focus Studio 구조를 유지하는지 확인.
+- 각 화면이 Focus Studio 톤(조용한 macOS native 외관)과 구조(에디터 중심 + 얇은 보조 panel)를 유지하는지 확인.
 - Projects 화면에서 새 프로젝트 작성 블럭이 main body에, project index가 우측에 있는지 확인.
 
 **권장 커밋:**
