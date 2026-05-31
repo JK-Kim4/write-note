@@ -12,6 +12,7 @@
 | Phase | 디렉터리 | 목표 | 상태 |
 |---|---|---|---|
 | 0 | `00-web-pause/` | WEB 개발 일시 중단과 desktop 트랙 기준선 명시 | ✅ 완료 |
+| 0.5 | `00-5-desktop-design-definition/` | 구현 전 desktop MVP 디자인 기준 확정 | ⬜ 대기 |
 | 1 | `01-desktop-scaffold/` | Electron/Vite desktop app 최소 실행 환경 구축 | ⬜ 대기 |
 | 2 | `02-local-persistence/` | 로컬 저장 경계와 Project/Document/Memo persistence 확정 | ⬜ 대기 |
 | 3 | `03-projects-workspace/` | 프로젝트 생성/선택 workspace 구현 | ⬜ 대기 |
@@ -23,6 +24,7 @@
 
 ## 운용 원칙
 
+- Phase 0.5가 완료되고 사용자 승인을 받기 전에는 Phase 1 구현에 들어가지 않는다.
 - Phase 7까지 완료되면 “사용 가능한 데스크탑 앱 프로토타입”으로 판정한다.
 - 각 phase는 독립 커밋 단위로 남긴다.
 - 기존 `frontend/`와 `backend/`는 desktop MVP 구현 중 기능 수정하지 않는다.
