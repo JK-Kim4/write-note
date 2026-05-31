@@ -42,3 +42,16 @@ git status --short
 ```bash
 git commit -m "docs: pause web track for desktop MVP"
 ```
+
+## 진행 상태
+
+✅ **Phase 0 완료 (2026-05-31).**
+
+| 완료 기준 | 산출물 |
+|---|---|
+| active track 이 desktop MVP 임을 명시 | `docs/STATUS.md` + `docs/plan/README.md` paused 배너 |
+| desktop 설계/계획을 기준 문서로 연결 | `docs/STATUS.md` 기준 문서 표 |
+| WEB 작업물 삭제/이동 없음 | `frontend/`·`backend/`·`specs/00x-*` 변경 0 |
+| phase 진행 추적 표기 | `docs/STATUS.md` + `docs/phase/README.md` 상태 컬럼 |
+
+다음 진입 = **Phase 1** (`../01-desktop-scaffold/`).

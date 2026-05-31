@@ -9,17 +9,17 @@
 
 ## Phase 목록
 
-| Phase | 디렉터리 | 목표 |
-|---|---|---|
-| 0 | `00-web-pause/` | WEB 개발 일시 중단과 desktop 트랙 기준선 명시 |
-| 1 | `01-desktop-scaffold/` | Electron/Vite desktop app 최소 실행 환경 구축 |
-| 2 | `02-local-persistence/` | 로컬 저장 경계와 Project/Document/Memo persistence 확정 |
-| 3 | `03-projects-workspace/` | 프로젝트 생성/선택 workspace 구현 |
-| 4 | `04-write-studio-autosave/` | 일반 에디터와 로컬 자동 저장 구현 |
-| 5 | `05-memo-capture-inbox/` | 빠른 메모 캡처와 inbox 구현 |
-| 6 | `06-memo-linking-side-panel/` | 메모-프로젝트 연결과 작성 화면 side panel 구현 |
-| 7 | `07-prototype-usability/` | 실제 사용 가능한 prototype polish |
-| 8 | `08-mvp-review/` | desktop MVP review gate와 다음 phase 결정 |
+| Phase | 디렉터리 | 목표 | 상태 |
+|---|---|---|---|
+| 0 | `00-web-pause/` | WEB 개발 일시 중단과 desktop 트랙 기준선 명시 | ✅ 완료 |
+| 1 | `01-desktop-scaffold/` | Electron/Vite desktop app 최소 실행 환경 구축 | ⬜ 대기 |
+| 2 | `02-local-persistence/` | 로컬 저장 경계와 Project/Document/Memo persistence 확정 | ⬜ 대기 |
+| 3 | `03-projects-workspace/` | 프로젝트 생성/선택 workspace 구현 | ⬜ 대기 |
+| 4 | `04-write-studio-autosave/` | 일반 에디터와 로컬 자동 저장 구현 | ⬜ 대기 |
+| 5 | `05-memo-capture-inbox/` | 빠른 메모 캡처와 inbox 구현 | ⬜ 대기 |
+| 6 | `06-memo-linking-side-panel/` | 메모-프로젝트 연결과 작성 화면 side panel 구현 | ⬜ 대기 |
+| 7 | `07-prototype-usability/` | 실제 사용 가능한 prototype polish | ⬜ 대기 |
+| 8 | `08-mvp-review/` | desktop MVP review gate와 다음 phase 결정 | ⬜ 대기 |
 
 ## 운용 원칙
 
