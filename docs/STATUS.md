@@ -1,6 +1,6 @@
 # 프로젝트 상태 — Active Track
 
-**최종 갱신:** 2026-05-31
+**최종 갱신:** 2026-06-01
 
 > 이 문서는 repository를 처음 보는 사람이 "지금 무엇이 active track인지" 한 번에 알 수 있게 하는 단일 진입점이다.
 
@@ -19,6 +19,8 @@
 
 | 문서 | 내용 |
 |---|---|
+| [전략 PRODUCT.md](../PRODUCT.md) | 누가/무엇을/왜 (register=product) |
+| [비주얼 DESIGN.md](./DESIGN.md) | 색·타이포·컴포넌트 SoT (활성). ⚠️ 루트 DESIGN.md는 web-legacy |
 | [설계 (영문)](./superpowers/specs/2026-05-31-desktop-mvp-design.md) | Desktop MVP 설계 원문 |
 | [설계 (한글)](./superpowers/specs/2026-05-31-desktop-mvp-design.ko.md) | 설계 한글본 |
 | [Phase 계획](./superpowers/plans/2026-05-31-desktop-mvp-phases.md) | Phase 0~8 분해 + 검증·커밋 기준 |
@@ -29,7 +31,8 @@
 | Phase | 목표 | 상태 |
 |---|---|---|
 | 0 | WEB 일시 중단 선언 + Desktop 트랙 기준선 | ✅ 완료 |
-| 1 | Electron/Vite desktop app scaffold | ⬜ 대기 |
+| 0.5 | 디자인 정의(따뜻한 문학 작업실) — PRODUCT.md/DESIGN.md + 집필실 목업 | 🟡 진행 중 (집필실 확정, 나머지 3화면 대기) |
+| 1 | Electron/Vite desktop app scaffold | 🟡 일부 — 렌더러 프로토타입 `desktop/`(React+TipTap). Electron 패키징 대기 |
 | 2 | 로컬 persistence (Project/Document/Memo) | ⬜ 대기 |
 | 3 | Projects workspace | ⬜ 대기 |
 | 4 | Write Studio + 일반 에디터 autosave | ⬜ 대기 |
