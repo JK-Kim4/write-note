@@ -6,7 +6,10 @@
 
 ## 문서
 
-- [DESIGN.md](./DESIGN.md) — 설계 문서, UI/UX 결정, 디자인 시스템 컴포넌트
+- [docs/STATUS.md](./docs/STATUS.md) — **현재 active track 진입점** (Desktop MVP)
+- [PRODUCT.md](./PRODUCT.md) — desktop 전략 (누가/무엇을/왜)
+- [docs/DESIGN.md](./docs/DESIGN.md) — **desktop** 비주얼 시스템 SoT (활성)
+- [DESIGN.web-legacy.md](./DESIGN.web-legacy.md) — web 트랙(paused) 설계·UI/UX 기록
 - [docs/plan/00-stack-and-schedule.md](./docs/plan/00-stack-and-schedule.md) — 기술 스택 SoT + 일정 + 보류 결정
 - [docs/plan/01-phase-breakdown.md](./docs/plan/01-phase-breakdown.md) — Week → Phase 분해 (총 56 Phase)
 - [designs/wireframe.html](./designs/wireframe.html) — 인터랙티브 wireframe (메인 9개 view + 인증 12개 패널)
@@ -21,11 +24,15 @@
 
 ```
 write-note/
-├── frontend/           Next.js 16 (App Router + TS + Tailwind)
-├── backend/            Spring Boot 4.0.6 (Kotlin + Gradle Kotlin DSL)
-├── docs/plan/          기술 스택 + Phase 분해
-├── designs/            wireframe.html
-├── DESIGN.md           본질 + UI/UX 결정
+├── desktop/            Desktop MVP 렌더러 프로토타입 (Vite + React + TipTap) — 활성
+├── frontend/           Next.js 16 (web 트랙, paused)
+├── backend/            Spring Boot 4.0.6 (web 트랙, paused)
+├── PRODUCT.md          desktop 전략 (누가/무엇을/왜)
+├── docs/DESIGN.md      desktop 비주얼 시스템 SoT (활성)
+├── docs/STATUS.md      현재 active track 진입점
+├── docs/plan/          기술 스택 + Phase 분해 (web 트랙)
+├── designs/            wireframe.html (web 트랙)
+├── DESIGN.web-legacy.md  web 트랙(paused) 설계 기록
 └── docker-compose.yml  로컬 인프라 (Postgres 17)
 ```
 
