@@ -18,13 +18,15 @@ function initialParam<T extends string>(key: string, allowed: readonly T[], fall
 export function App() {
   const [theme, setTheme] = useState<Theme>(() => initialParam("theme", ["light", "dark"], "light"));
   const [screen, setScreen] = useState<Screen>(() =>
-    initialParam("screen", ["projects", "write", "memo", "log"], "write"),
+    initialParam("screen", ["projects", "write", "memo", "log"], "projects"),
   );
   const [save, setSave] = useState<SaveState>("saved");
   const [count, setCount] = useState(0);
   const [memos, setMemos] = useState<MemoState>("loaded");
   const [panelOpen, setPanelOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
+  // 선택된 작품 — Phase 3 는 진입 + 제목 표시까지. 문서 본문 결선은 Phase 4.
+  const [activeProject, setActiveProject] = useState<{ id: string; title: string } | null>(null);
   const togglePanel = () => setPanelOpen((o) => !o);
   const timer = useRef<number | undefined>(undefined);
 
@@ -47,10 +49,16 @@ export function App() {
       <Rail active={screen} onNavigate={setScreen} onCapture={() => setCaptureOpen(true)} />
 
       {screen === "projects" && (
-        <ProjectsScreen onOpenProject={() => setScreen("write")} panelOpen={panelOpen} onTogglePanel={togglePanel} />
+        <ProjectsScreen
+          onOpenProject={(p) => {
+            setActiveProject({ id: p.id, title: p.title });
+            setScreen("write");
+          }}
+        />
       )}
       {screen === "write" && (
         <WriteStudioScreen
+          projectTitle={activeProject?.title}
           save={save}
           count={count}
           memos={memos}

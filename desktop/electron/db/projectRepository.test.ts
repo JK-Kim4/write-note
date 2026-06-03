@@ -50,4 +50,32 @@ describe("ProjectRepository", () => {
   it("should_return_null_when_updating_missing_project", () => {
     expect(repo.update("missing", { title: "x" })).toBeNull();
   });
+
+  it("should_create_and_read_project_with_genre", () => {
+    const p = repo.create({ title: "T", genre: "단편소설" });
+    expect(p.genre).toBe("단편소설");
+    expect(repo.getById(p.id)?.genre).toBe("단편소설");
+  });
+
+  it("should_default_genre_to_empty_string", () => {
+    expect(repo.create({ title: "T" }).genre).toBe("");
+  });
+
+  it("should_update_genre", () => {
+    const p = repo.create({ title: "T" });
+    expect(repo.update(p.id, { genre: "시" })?.genre).toBe("시");
+  });
+
+  it("should_order_by_updated_at_desc_then_created_at_desc", () => {
+    const a = repo.create({ title: "A" });
+    const b = repo.create({ title: "B" });
+    const c = repo.create({ title: "C" });
+    // 결정적 timestamp 부여(:memory: 테스트 DB 직접 셋업 — new Date() ms 동률 회피).
+    const set = db.prepare("UPDATE projects SET created_at = ?, updated_at = ? WHERE id = ?");
+    set.run("2026-01-01T00:00:00.000Z", "2026-01-03T00:00:00.000Z", a.id);
+    set.run("2026-01-02T00:00:00.000Z", "2026-01-01T00:00:00.000Z", b.id);
+    set.run("2026-01-03T00:00:00.000Z", "2026-01-01T00:00:00.000Z", c.id);
+    // updated_at: A=01-03 최신 → 맨 위. B·C 는 updated_at 동률(01-01) → created_at DESC tiebreaker → C(01-03) > B(01-02).
+    expect(repo.list().map((p) => p.title)).toEqual(["A", "C", "B"]);
+  });
 });

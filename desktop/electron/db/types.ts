@@ -5,6 +5,7 @@ export type Project = {
   title: string;
   summary: string;
   tone: string;
+  genre: string;
   targetLength: number | null;
   createdAt: string;
   updatedAt: string;
