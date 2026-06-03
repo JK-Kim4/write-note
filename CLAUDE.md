@@ -103,6 +103,11 @@ V1 wireframe 완료 + 구현 진행 중 — 001 Phase 1A Backend Foundation / 00
    - 옵션·선택지마다 (a) 전후 문맥 1줄, (b) 선택 시 영향 범위 (어떤 파일 / 어떤 동작 / 어떤 비용·시간), (c) 무응답 시 진행할 default 명시
    - 메뉴 강요 (A1~An 일괄 컨펌) 대신 본질 질문 1~2개로 압축 가능한지 self-check. 압축 가능하면 메뉴 X
 
+4. **기술 설정값 선택지 = 설정의 의미·효과 풀어쓰기 의무**
+   - boolean flag / mode / 옵션값 (예: `sandbox`, `contextIsolation`, `readOnly`, cascade 전략, 로그 레벨) 을 선택지로 묻기 **직전**, 각 설정이 **무엇을 켜고/끄는지 + 그 효과**를 옵션 description 또는 본문에 최소 1줄씩 박는다. 값 (true/false · A/B) 만 나열하고 의미를 사용자가 모른 채 고르게 두지 않는다.
+   - 사용자가 적극 검증하기 어려운 메타 영역 (프레임워크 내부 동작 / 보안 격리 수준 / 인프라 설정) 일수록 의무. 항목 2 (약어 풀어쓰기) · 3 (영향 범위) 의 기술 설정값 특화.
+   - **회귀 사례 (2026-06-03 Desktop Phase 1):** Electron `sandbox` 값을 `contextIsolation` (preload↔웹페이지 JS 컨텍스트 분리) / `nodeIntegration` (renderer 의 Node API 직접접근) / `sandbox` (renderer OS 커널 격리) 의 의미 없이 true/false 만 제시 → 사용자가 질문 거부 + "각각 어떤 설정이고 무슨 효과인지 정확하게 설명해" 재요구. 회피 가능 시점 = 첫 질문 작성 시 세 설정의 의미를 1줄씩 박았어야.
+
 상세 SoT: 글로벌 [`~/.claude/rules/shared/user-interview-quality.md`](file:///Users/jongwan-air/.claude/rules/shared/user-interview-quality.md) — 본 섹션은 본 프로젝트 한정 보강이며, 글로벌 룰의 self-check 와 함께 적용.
 
 ## 작업 실행 지침 (HARD-GATE)
