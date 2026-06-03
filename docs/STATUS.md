@@ -31,8 +31,8 @@
 | Phase | 목표 | 상태 |
 |---|---|---|
 | 0 | WEB 일시 중단 선언 + Desktop 트랙 기준선 | ✅ 완료 |
-| 0.5 | 디자인 정의(따뜻한 문학 작업실) — PRODUCT.md/DESIGN.md + 집필실 목업 | 🟡 진행 중 (집필실 확정, 나머지 3화면 대기) |
-| 1 | Electron/Vite desktop app scaffold | 🟡 일부 — 렌더러 프로토타입 `desktop/`(React+TipTap). Electron 패키징 대기 |
+| 0.5 | 디자인 정의 — PRODUCT.md/DESIGN.md + 4화면 + 페이지뷰 | 🟡 거의 완료 (작품/집필/메모/기록 + Quick Capture + A4·줌·페이지뷰 확정, 잔정리·승인 대기) |
+| 1 | Electron/Vite desktop app scaffold | 🟡 일부 — 렌더러 프로토타입 `desktop/`(React+TipTap, 4화면 rail 라우팅·A4·줌). Electron 패키징 대기 |
 | 2 | 로컬 persistence (Project/Document/Memo) | ⬜ 대기 |
 | 3 | Projects workspace | ⬜ 대기 |
 | 4 | Write Studio + 일반 에디터 autosave | ⬜ 대기 |
