@@ -1,6 +1,9 @@
 import { app, BrowserWindow } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createDb } from "./db/connection";
+import { Store } from "./db/store";
+import { registerHandlers } from "./ipc/registerHandlers";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -32,6 +35,10 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  // 로컬 DB(node:sqlite) 초기화 + IPC 핸들러 등록 — renderer 는 IPC 로만 접근한다.
+  const dbPath = path.join(app.getPath("userData"), "write-note.db");
+  registerHandlers(new Store(createDb(dbPath)));
+
   createWindow();
 
   // macOS: dock 아이콘 클릭 시 창이 없으면 재생성한다.
