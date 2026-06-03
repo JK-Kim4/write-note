@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>집필 페이지 모드 비교 — 시각구분 / 진짜분할 / 연속</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:        oklch(0.705 0.044 64);
+    --bg-edge:   oklch(0.640 0.046 60);
+    --surface:   oklch(0.930 0.009 78);
+    --paper:     oklch(0.985 0.008 85);
+    --paper-edge:oklch(0.900 0.012 80);
+    --ink:       oklch(0.280 0.018 60);
+    --ink-soft:  oklch(0.400 0.016 62);
+    --muted:     oklch(0.520 0.018 68);
+    --faint:     oklch(0.640 0.014 72);
+    --hairline:  oklch(0.840 0.012 76);
+    --hairline-strong: oklch(0.780 0.014 74);
+    --accent-ink:oklch(0.420 0.130 252);
+    --serif: "Gowun Batang", "Apple SD Gothic Neo", serif;
+    --sans:  "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+    --shadow-paper: 0 1px 0 var(--paper-edge), 0 14px 30px -18px oklch(0.22 0.03 50 / .55);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: var(--sans); color: var(--ink);
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(130% 110% at 50% -10%, transparent 50%, var(--bg-edge) 100%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='200'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.006 0.064' numOctaves='4' seed='13' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.85 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)'/%3E%3C/svg%3E");
+    background-size: auto, 360px 220px;
+    background-blend-mode: normal, multiply;
+    min-height: 100vh; padding: 34px 28px 60px;
+  }
+  h1 { font-size: 20px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .lede { font-size: 13px; color: var(--ink-soft); margin: 0 0 26px; }
+  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; max-width: 1180px; }
+  .col { display: flex; flex-direction: column; gap: 10px; }
+  .col__name { font-size: 14px; font-weight: 700; color: var(--ink); }
+  .col__name b { color: var(--accent-ink); }
+  .col__desc { font-size: 11.5px; line-height: 1.55; color: var(--muted); min-height: 50px; }
+  .tag { display: inline-block; font-size: 10.5px; padding: 2px 8px; border-radius: 999px; margin-bottom: 2px; }
+  .tag--ok { background: oklch(0.93 0.04 145); color: oklch(0.42 0.10 150); }
+  .tag--warn { background: oklch(0.93 0.04 70); color: oklch(0.48 0.10 70); }
+  .tag--mid { background: var(--surface); color: var(--muted); }
+
+  /* 무대 = 책상 위 종이 (스크롤 잘림으로 '더 있음' 암시) */
+  .stage {
+    height: 460px; overflow: hidden; border-radius: 10px;
+    background: oklch(0.66 0.045 62);
+    padding: 22px 0 0; display: flex; flex-direction: column; align-items: center;
+    position: relative;
+    box-shadow: inset 0 0 0 1px oklch(0 0 0 / .04);
+  }
+  .stage::after { /* 하단 페이드 — 아래로 더 이어짐 */
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 56px;
+    background: linear-gradient(to bottom, transparent, oklch(0.66 0.045 62));
+    pointer-events: none;
+  }
+
+  /* A4 비율 미니 종이 (폭 248 → 높이 248*297/210 = 350.6) */
+  .paper { width: 248px; background: var(--paper); box-shadow: var(--shadow-paper); border-radius: 6px; padding: 24px 22px; }
+  .ptitle { font-family: var(--serif); font-size: 14px; font-weight: 700; color: var(--ink); margin: 0 0 8px; }
+  .pbody { font-family: var(--serif); font-size: 9px; line-height: 1.95; color: var(--ink); margin: 0; text-align: justify; }
+  .pbody + .pbody { margin-top: 7px; }
+
+  /* 1) 시각 구분 — 한 종이 길게 + 페이지 경계선 (텍스트 경계 가로지름) */
+  .vpaper { width: 248px; height: 700px; background: var(--paper); box-shadow: var(--shadow-paper); border-radius: 6px; padding: 24px 22px; position: relative; }
+  .pbreak { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed var(--hairline-strong); display: flex; justify-content: center; }
+  .pbreak span { transform: translateY(-50%); background: oklch(0.66 0.045 62); color: var(--faint); font-size: 9px; padding: 1px 8px; border-radius: 999px; }
+
+  /* 2) 진짜 분할 — 두 장, 사이 간격, 텍스트 깔끔히 끊김 */
+  .apaper { width: 248px; height: 350px; background: var(--paper); box-shadow: var(--shadow-paper); border-radius: 6px; padding: 24px 22px; overflow: hidden; position: relative; flex: none; }
+  .apaper .pageno { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 8.5px; color: var(--faint); }
+  .agap { height: 18px; flex: none; }
+
+  /* 3) 연속 — 한 종이, 본문만큼 (하단 페이드로 무한 스크롤 암시) */
+  .cpaper { width: 248px; min-height: 560px; background: var(--paper); box-shadow: var(--shadow-paper); border-radius: 6px; padding: 24px 22px; }
+</style>
+</head>
+<body>
+  <h1>집필 화면 — A4 페이지 모드 비교</h1>
+  <p class="lede">같은 본문이 세 방식에서 어떻게 보이는지. 결정하면 desktop 앱(집필 화면)에 구현합니다.</p>
+
+  <div class="cols">
+    <!-- 1 시각 구분 -->
+    <div class="col">
+      <div class="col__name">① <b>시각적</b> 페이지 구분</div>
+      <div class="col__desc"><span class="tag tag--mid">장식</span><br />본문은 연속(스크롤). A4 높이마다 경계선·페이지 번호. 텍스트는 흐름대로라 <b>경계에 걸칠 수 있음</b>. 바로 구현 가능.</div>
+      <div class="stage">
+        <div class="vpaper">
+          <div class="ptitle">바다가 보이는 방</div>
+          <p class="pbody">창문을 열자 소금기 밴 바람이 먼저 들어왔다. 그 애는 책상 앞에 앉은 채로 한참을 가만히 있었다. 무언가를 쓰려던 손은 끝내 펜을 들지 못했고, 대신 바다 쪽으로 천천히 고개를 돌렸다.</p>
+          <p class="pbody">먼 데서 고깃배 한 척이 수평선을 따라 미끄러지고 있었다. 어제와 똑같은 풍경인데도 오늘은 어딘가 달라 보였다. 어쩌면 달라진 건 바다가 아니라, 그것을 바라보는 사람의 마음이었을 것이다.</p>
+          <p class="pbody">그 애는 다시 책상으로 돌아왔다. 이번에는 망설이지 않고 첫 문장을 적었다. 나는 그해 여름을 끝내 잊지 못할 것이다. 쓰고 나니 비로소, 오래 미뤄둔 이야기가 시작되려는 참이었다. 펜 끝에서 잉크가 번지고, 종이 위로 첫 줄이 천천히 내려앉았다.</p>
+          <!-- 경계가 문단 중간을 가로지름 -->
+          <div class="pbreak" style="top: 322px;"><span>— 2 —</span></div>
+          <p class="pbody">바다는 여전히 그 자리에 있었다. 다만 그 애의 문장 속에서 조금씩 다른 빛깔로 출렁이기 시작했다. 기억은 그렇게, 쓰는 사람의 손끝에서 새로 태어나는 것이었다.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 진짜 분할 -->
+    <div class="col">
+      <div class="col__name">② <b>진짜</b> 페이지 분할</div>
+      <div class="col__desc"><span class="tag tag--warn">큰 작업</span><br />텍스트가 A4 끝에서 끊겨 다음 장으로(워드·한글식). TipTap 자동분할은 서드파티·불안정·한국어 IME 리스크 → <b>별도 Phase + 검증 선행</b>.</div>
+      <div class="stage">
+        <div class="apaper">
+          <div class="ptitle">바다가 보이는 방</div>
+          <p class="pbody">창문을 열자 소금기 밴 바람이 먼저 들어왔다. 그 애는 책상 앞에 앉은 채로 한참을 가만히 있었다. 무언가를 쓰려던 손은 끝내 펜을 들지 못했고, 대신 바다 쪽으로 천천히 고개를 돌렸다.</p>
+          <p class="pbody">먼 데서 고깃배 한 척이 수평선을 따라 미끄러지고 있었다. 어제와 똑같은 풍경인데도 오늘은 어딘가 달라 보였다. 어쩌면 달라진 건 바다가 아니라, 그것을 바라보는 사람의 마음이었을 것이다.</p>
+          <div class="pageno">1 / 2</div>
+        </div>
+        <div class="agap"></div>
+        <div class="apaper">
+          <p class="pbody">그 애는 다시 책상으로 돌아왔다. 이번에는 망설이지 않고 첫 문장을 적었다. 나는 그해 여름을 끝내 잊지 못할 것이다. 쓰고 나니 비로소, 오래 미뤄둔 이야기가 시작되려는 참이었다.</p>
+          <p class="pbody">바다는 여전히 그 자리에 있었다. 다만 그 애의 문장 속에서 조금씩 다른 빛깔로 출렁이기 시작했다.</p>
+          <div class="pageno">2 / 2</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 연속 -->
+    <div class="col">
+      <div class="col__name">③ <b>연속</b> 스크롤 (현재)</div>
+      <div class="col__desc"><span class="tag tag--ok">구현됨</span><br />A4 폭 한 장처럼 보이되 무한 스크롤. iA Writer·Scrivener 방식이라 PRODUCT.md 순도 컨셉과 정합.</div>
+      <div class="stage">
+        <div class="cpaper">
+          <div class="ptitle">바다가 보이는 방</div>
+          <p class="pbody">창문을 열자 소금기 밴 바람이 먼저 들어왔다. 그 애는 책상 앞에 앉은 채로 한참을 가만히 있었다. 무언가를 쓰려던 손은 끝내 펜을 들지 못했고, 대신 바다 쪽으로 천천히 고개를 돌렸다.</p>
+          <p class="pbody">먼 데서 고깃배 한 척이 수평선을 따라 미끄러지고 있었다. 어제와 똑같은 풍경인데도 오늘은 어딘가 달라 보였다. 어쩌면 달라진 건 바다가 아니라, 그것을 바라보는 사람의 마음이었을 것이다.</p>
+          <p class="pbody">그 애는 다시 책상으로 돌아왔다. 이번에는 망설이지 않고 첫 문장을 적었다. 나는 그해 여름을 끝내 잊지 못할 것이다. 쓰고 나니 비로소, 오래 미뤄둔 이야기가 시작되려는 참이었다.</p>
+          <p class="pbody">바다는 여전히 그 자리에 있었다. 다만 그 애의 문장 속에서 조금씩 다른 빛깔로 출렁이기 시작했다. 기억은 그렇게, 쓰는 사람의 손끝에서 새로 태어나는 것이었다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

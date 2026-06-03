@@ -31,3 +31,6 @@ coverage/
 # Misc
 .turbo/
 .superpowers/
+
+# 미리보기 서버 로컬 설정 (절대경로 종속 — 환경별로 다름)
+.claude/launch.json

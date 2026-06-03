@@ -221,11 +221,19 @@ AppSetting
 - 향후 동기화가 로컬 persistence를 대체하거나 확장할 수 있도록 data access boundary를 명확히 둔다.
 - 원고지 모드는 제품 핵심 기능이지만 첫 MVP에서는 구현하지 않는다.
 
-## 후속 확인 사항
+## 결정된 후속 사항
 
-다음 항목은 구현 계획 단계에서 결정한다.
+2026-05-31 결정 (인터뷰 + 웹 검증). DB 관련 사실은 웹 검색으로 검증함. 출처는 하단 참조.
 
-1. Electron에서 사용할 정확한 로컬 DB library.
-2. 첫 quick capture를 앱 내부 modal만으로 할지, 전역 단축키까지 포함할지.
-3. `Project.summary`, `tone`, `targetLength`를 첫 UI에 모두 노출할지, 우선 저장만 해둘지.
-4. desktop phase 2를 원고지 모드부터 시작할지, 더 풍부한 메모 큐레이션부터 시작할지.
+1. **로컬 DB library = `better-sqlite3`.** Electron 데스크탑 SQLite의 성숙·표준 동기(synchronous) 드라이버. DB 접근은 main process 에서만 두고, renderer 는 IPC 로만 요청한다(renderer 가 SQLite 에 직접 접근 X). 검증에서 나온 구현 주의: Electron v39+ prebuild 가 현재 빌드 실패 → 당분간 `better-sqlite3@12.9.0` 으로 고정. native 모듈은 `@electron/rebuild`(postinstall)로 Electron 헤더에 맞춰 rebuild 하고 패키징 시 `asarUnpack` 처리. 향후 서버 동기화 경로는 명시적 data-access 경계 뒤에 나중에 추가 — `libsql`/Turso 임베디드 레플리카로 sync 내장을 검토했으나 보류(async API 전환 + 2025 Windows 임베디드 레플리카 이슈 + free plan 레플리카 제한).
+2. **Quick capture = 앱 내부 modal + 전역 단축키.** 설계 default 를 넘어서, 첫 버전에서 OS 전역 단축키(Electron `globalShortcut` + 별도 경량 캡처 윈도우)도 등록해 앱이 백그라운드여도 캡처 가능하게 한다. 그만큼 Phase 5 범위가 커진다.
+3. **첫 UI 는 `title` + `summary` 만 노출.** `tone`, `targetLength` 는 데이터 모델엔 두되 첫 생성/편집 UI 에는 노출하지 않는다(나중에 노출). Focus Studio 화면을 미니멀하게 유지.
+4. **Desktop Phase 2 우선순위는 Phase 8(review gate)에서 결정.** 원고지 모드 vs 메모 큐레이션 강화는 지금 추측하지 않고 실사용 dogfooding 기록 기반으로 고른다(설계 default).
+
+### 출처 (DB 검증)
+
+- [better-sqlite3 — npm](https://www.npmjs.com/package/better-sqlite3)
+- [better-sqlite3 + Electron 연동 가이드](https://dev.to/arindam1997007/a-step-by-step-guide-to-integrating-better-sqlite3-with-electron-js-app-using-create-react-app-3k16)
+- [node:sqlite — Node.js 문서 (Stability 1.2 Release Candidate, 여전히 experimental)](https://nodejs.org/api/sqlite.html)
+- [libsql-js — better-sqlite3 호환 API](https://github.com/tursodatabase/libsql-js)
+- [Turso 임베디드 레플리카](https://docs.turso.tech/features/embedded-replicas/introduction)

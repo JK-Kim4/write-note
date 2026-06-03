@@ -1,0 +1,26 @@
+{
+  "name": "write-note-desktop",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "write-note 데스크탑 MVP 렌더러 프로토타입 (Phase 1 scaffold 렌더러 부분 — Electron 패키징 제외). 집필실 디자인 + 실제 TipTap 에디터 확인용.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tiptap/pm": "^3.23.5",
+    "@tiptap/react": "^3.23.5",
+    "@tiptap/starter-kit": "^3.23.5",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^5",
+    "vite": "^5"
+  }
+}

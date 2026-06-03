@@ -51,6 +51,14 @@ desktop/
   tests/
 
 docs/
+  design/
+    desktop/
+      00-concept.md
+      01-design-system.md
+      02-wireframes.md
+      03-screen-states.md
+      04-implementation-rules.md
+      wireframes.html
   superpowers/
     plans/
       2026-05-31-desktop-mvp-phases.md
@@ -84,12 +92,63 @@ docs/
 git commit -m "docs: pause web track for desktop MVP"
 ```
 
+## Phase 0.5: Desktop Design Definition
+
+**목표:** 구현 전에 desktop MVP의 컨셉, 톤앤매너, 디자인 시스템, 핵심 화면 와이어프레임, 구현 금지 패턴을 확정한다.
+
+**배경:** WEB 구현 당시 간단한 와이어프레임만으로 구현을 시작하면서 원하는 결과물과 다른 UI가 나왔다. desktop MVP는 Phase 1 scaffold 전에 디자인 기준을 문서와 목업으로 고정한다.
+
+**포함 작업:**
+
+- `docs/design/desktop/00-concept.md`: 제품 컨셉, 사용 감각, 디자인 원칙 정의.
+- `docs/design/desktop/01-design-system.md`: color, typography, spacing, radius, shadow, icon/button/input/panel 규칙 정의.
+- `docs/design/desktop/02-wireframes.md`: Projects, Write Studio, Memo Inbox, Quick Capture 화면 구조 정의.
+- `docs/design/desktop/03-screen-states.md`: empty/loading/error/saving/disabled/focus 상태 정의.
+- `docs/design/desktop/04-implementation-rules.md`: 구현 중 금지 패턴과 review checklist 정의.
+- `docs/design/desktop/wireframes.html`: 구현자가 브라우저에서 확인할 수 있는 정적 wireframe 목업 저장.
+- `docs/phase/00-5-desktop-design-definition/README.md`를 기준 작업 지침으로 유지한다.
+
+**디자인 결정 기준:**
+
+- 기본 톤은 **Focus Studio**: macOS native에 가까운 조용한 데스크탑 도구 (시각 톤 + 에디터 중심 레이아웃 구조를 포괄하는 단일 명칭).
+- 에디터 page에만 아주 약한 종이 감각을 허용한다.
+- blue는 primary action과 focus state에만 제한한다.
+- dashboard card 과잉, hero section, 과한 beige, 기본 dark UI, 장식용 gradient는 금지한다.
+- Projects 화면은 main body에 새 프로젝트 작성 블럭을 두고, 기존 project index는 우측에 리스트업한다.
+
+**완료 기준:**
+
+- 4개 핵심 화면(Projects, Write Studio, Memo Inbox, Quick Capture)의 wireframe이 문서와 HTML 목업 양쪽에 존재한다.
+- 구현자가 임의로 색상/spacing/radius/layout을 정하지 않아도 될 만큼 design token 기준이 있다.
+- empty/loading/error/saving/focus 상태가 최소 1회 이상 정의되어 있다.
+- 구현 금지 패턴과 디자인 review checklist가 문서화되어 있다.
+- 사용자 검토 후 “이 디자인 기준으로 구현 시작” 승인이 남아 있다.
+
+**검증:**
+
+```bash
+find docs/design/desktop -maxdepth 1 -type f | sort
+```
+
+수동 검증:
+
+- `docs/design/desktop/wireframes.html`을 브라우저에서 열어 4개 핵심 화면 확인.
+- 각 화면이 Focus Studio 톤(조용한 macOS native 외관)과 구조(에디터 중심 + 얇은 보조 panel)를 유지하는지 확인.
+- Projects 화면에서 새 프로젝트 작성 블럭이 main body에, project index가 우측에 있는지 확인.
+
+**권장 커밋:**
+
+```bash
+git commit -m "docs: define desktop MVP design system"
+```
+
 ## Phase 1: Electron/Vite Desktop App Scaffold
 
 **목표:** `desktop/` 앱이 독립적으로 설치, 실행, 빌드되는 최소 Electron shell을 만든다.
 
 **포함 작업:**
 
+- Phase 0.5의 `docs/design/desktop/*` 산출물을 기준으로 빈 shell을 잡는다.
 - `desktop/` package 생성.
 - Electron main/preload/renderer 기본 연결.
 - Vite React TypeScript 환경 구성.
@@ -124,7 +183,7 @@ git commit -m "feat(desktop): scaffold Electron app"
 
 **포함 작업:**
 
-- Electron에서 사용할 로컬 DB library를 확정한다.
+- 로컬 DB library = `better-sqlite3` (2026-05-31 결정, 설계 문서 §결정된 후속 사항). Electron v39+ prebuild 빌드 실패 이슈로 `better-sqlite3@12.9.0` 고정 + `@electron/rebuild`(postinstall) + 패키징 `asarUnpack`. DB 접근은 main process 한정, renderer 는 IPC 만.
 - `Project`, `Document`, `Memo`, `AppSetting` schema를 만든다.
 - sync-friendly ID 생성 방식을 확정한다.
 - main process에 DB 접근 모듈을 둔다.
@@ -254,6 +313,7 @@ git commit -m "feat(desktop): add editor autosave"
 **포함 작업:**
 
 - 앱 내부 quick capture modal 또는 panel 구현.
+- OS 전역 단축키 캡처 (2026-05-31 결정, 설계 문서 §결정된 후속 사항): Electron `globalShortcut` 등록 + 백그라운드에서도 뜨는 별도 경량 캡처 윈도우. 본 phase 범위에 포함.
 - active project가 있으면 memo의 기본 연결 project로 기록한다.
 - active project가 없으면 unlinked memo로 저장한다.
 - Memo Inbox 화면 구현.
