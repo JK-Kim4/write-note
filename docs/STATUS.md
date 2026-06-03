@@ -1,6 +1,6 @@
 # 프로젝트 상태 — Active Track
 
-**최종 갱신:** 2026-06-01
+**최종 갱신:** 2026-06-03
 
 > 이 문서는 repository를 처음 보는 사람이 "지금 무엇이 active track인지" 한 번에 알 수 있게 하는 단일 진입점이다.
 
@@ -31,8 +31,8 @@
 | Phase | 목표 | 상태 |
 |---|---|---|
 | 0 | WEB 일시 중단 선언 + Desktop 트랙 기준선 | ✅ 완료 |
-| 0.5 | 디자인 정의 — PRODUCT.md/DESIGN.md + 4화면 + 페이지뷰 | 🟡 거의 완료 (작품/집필/메모/기록 + Quick Capture + A4·줌·페이지뷰 확정, 잔정리·승인 대기) |
-| 1 | Electron/Vite desktop app scaffold | 🟡 일부 — 렌더러 프로토타입 `desktop/`(React+TipTap, 4화면 rail 라우팅·A4·줌). Electron 패키징 대기 |
+| 0.5 | 디자인 정의 — PRODUCT.md/DESIGN.md + 4화면 + 페이지뷰 | ✅ 완료 (2026-06-03 승인) |
+| 1 | Electron/Vite desktop app scaffold | 🟡 진행 — 렌더러 프로토타입 `desktop/`(React+TipTap, 4화면 rail 라우팅·A4·줌) 완료. Electron 패키징·persistence 남음 |
 | 2 | 로컬 persistence (Project/Document/Memo) | ⬜ 대기 |
 | 3 | Projects workspace | ⬜ 대기 |
 | 4 | Write Studio + 일반 에디터 autosave | ⬜ 대기 |

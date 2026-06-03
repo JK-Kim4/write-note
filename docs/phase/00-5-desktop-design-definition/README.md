@@ -1,5 +1,12 @@
 # Phase 0.5: Desktop Design Definition
 
+> ✅ **완료 — 2026-06-03 사용자 승인** (“이 디자인 기준으로 구현 시작”).
+> 산출물은 재편됨: 본 README가 명시한 `00~04.md` + `wireframes.html` 대신 →
+> 루트 **PRODUCT.md**(전략) + **docs/DESIGN.md**(비주얼 SoT) + **desktop/**(React 4화면 프로토타입)
+> + **docs/design/desktop/{write-studio, page-modes, page-view}.html**(목업).
+> 4화면(작품/집필/메모/기록) + Quick Capture + A4 집필창·줌·페이지뷰(단일 페이지+좌우 버튼) 확정.
+> **다음 = Phase 1 scaffold.**
+
 ## 목표
 
 구현 전에 desktop MVP의 컨셉, 톤앤매너, 디자인 시스템, 핵심 화면 와이어프레임, 구현 금지 패턴을 확정한다.
