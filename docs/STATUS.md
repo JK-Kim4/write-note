@@ -33,8 +33,8 @@
 | 0 | WEB 일시 중단 선언 + Desktop 트랙 기준선 | ✅ 완료 |
 | 0.5 | 디자인 정의 — PRODUCT.md/DESIGN.md + 4화면 + 페이지뷰 | ✅ 완료 (2026-06-03 승인) |
 | 1 | Electron/Vite desktop app scaffold | ✅ **완료** (2026-06-03) — `desktop/` 에 Electron shell(main/preload + BrowserWindow + dev/prod 로드). 자동화 GREEN(typecheck/build/test/dev 기동), **PR #27** 리뷰 중, 육안 dogfooding 대기 |
-| 2 | 로컬 persistence (Project/Document/Memo) | 🟡 **다음 진입점** — better-sqlite3 + main-process DB 경계 + renderer IPC. 배포 패키징(@electron/rebuild·asarUnpack 등 네이티브 모듈 호환)도 본 phase 범위 |
-| 3 | Projects workspace | ⬜ 대기 |
+| 2 | 로컬 persistence (Project/Document/Memo) | ✅ **완료** (2026-06-03, PR #28) — **`node:sqlite`**(Node 24 내장, better-sqlite3 대체로 네이티브 모듈 함정 제거) + 4테이블 + repository/Store + IPC 경계. TDD 24 tests, dev 실측 `.db`+WAL 생성. renderer DB 직접접근 차단 |
+| 3 | Projects workspace | 🟡 **다음 진입점** — renderer 목업 → 실데이터 IPC 결선(`window.electronAPI`) |
 | 4 | Write Studio + 일반 에디터 autosave | ⬜ 대기 |
 | 5 | Quick memo capture + inbox | ⬜ 대기 |
 | 6 | 메모-프로젝트 연결 + studio side panel | ⬜ 대기 |
