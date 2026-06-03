@@ -17,11 +17,12 @@ function createWindow(): void {
     title: "write-note",
     webPreferences: {
       preload: path.join(__dirname, "preload.mjs"),
-      // renderer(웹 페이지)의 Node 직접 접근 차단 + preload 컨텍스트 격리.
-      // sandbox 는 false — ESM preload 사용 + 로컬 전용 앱이라 OS 샌드박스 생략 (DESIGN 결정).
+      // renderer(웹 페이지)의 Node 직접 접근 차단 + preload 컨텍스트 격리 + OS 샌드박스.
+      // sandbox:true — vite-plugin-electron 의 preload 는 CJS(.mjs) 빌드이고, sandboxed preload 는
+      // 확장자 무관 CommonJS 로 로드된다(Electron 공식). contextBridge/ipcRenderer 는 sandbox 에서도 가용.
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
   });
 
