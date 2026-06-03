@@ -3,10 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "write-note 데스크탑 MVP 렌더러 프로토타입 (Phase 1 scaffold 렌더러 부분 — Electron 패키징 제외). 집필실 디자인 + 실제 TipTap 에디터 확인용.",
+  "description": "write-note 데스크탑 MVP (Electron + Vite + React 19 + TipTap). 집필실 디자인 + 실제 에디터.",
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -17,10 +20,20 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/react": "^16",
+    "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.7.0",
+    "electron": "^42",
+    "jsdom": "^26",
     "typescript": "^5",
-    "vite": "^5"
+    "vite": "^5",
+    "vite-plugin-electron": "^0.29",
+    "vitest": "^3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["electron"]
   }
 }
