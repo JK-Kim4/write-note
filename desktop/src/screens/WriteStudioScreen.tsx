@@ -13,6 +13,8 @@ function saveLabel(save: SaveState, count: number): string {
 }
 
 type Props = {
+  /** 선택된 작품 제목 — 없으면 "집필". 본문/저장 결선은 Phase 4. */
+  projectTitle?: string;
   save: SaveState;
   count: number;
   memos: MemoState;
@@ -23,7 +25,7 @@ type Props = {
 };
 
 /** 집필 화면 — 에디터(주인공) + 연결된 메모 패널(토글) + 작업공간 줌. */
-export function WriteStudioScreen({ save, count, memos, onCount, onTyping, panelOpen, onTogglePanel }: Props) {
+export function WriteStudioScreen({ projectTitle, save, count, memos, onCount, onTyping, panelOpen, onTogglePanel }: Props) {
   const [zoom, setZoom] = useState(1);
 
   const right = (
@@ -39,7 +41,7 @@ export function WriteStudioScreen({ save, count, memos, onCount, onTyping, panel
 
   return (
     <div className="main" style={{ "--zoom": zoom } as CSSProperties}>
-      <Titlebar title="바다가 보이는 방 — 집필" right={right} />
+      <Titlebar title={projectTitle ? `${projectTitle} — 집필` : "집필"} right={right} />
       <div className={`screen-body ${panelOpen ? "" : "screen-body--solo"}`}>
         <Editor onCount={onCount} onTyping={onTyping} />
         {panelOpen && <MemoPanel state={memos} />}

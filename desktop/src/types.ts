@@ -3,14 +3,6 @@ export type SaveState = "saved" | "saving" | "error";
 export type MemoState = "loaded" | "empty" | "loading";
 export type Screen = "projects" | "write" | "memo" | "log";
 
-export type Project = {
-  id: string;
-  title: string;
-  genre: string;
-  wordCount: number;
-  lastEdited: string;
-};
-
 export type InboxMemo = {
   id: string;
   body: string;
