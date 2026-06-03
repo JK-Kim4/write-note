@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
+import type { Screen } from "../types";
 
-type RailItem = { key: string; label: string; icon: ReactNode };
+type RailItem = { key: Screen; label: string; icon: ReactNode };
 
 const ITEMS: RailItem[] = [
   {
-    key: "works",
+    key: "projects",
     label: "작품",
     icon: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />,
   },
@@ -25,8 +26,14 @@ const ITEMS: RailItem[] = [
   },
 ];
 
-/** 화면 전환 rail. 이번 프로토타입은 '집필'만 활성 (다른 화면은 후속). */
-export function Rail() {
+type RailProps = {
+  active: Screen;
+  onNavigate: (screen: Screen) => void;
+  onCapture: () => void;
+};
+
+/** 화면 전환 rail + 하단 빠른 메모 캡처 버튼. */
+export function Rail({ active, onNavigate, onCapture }: RailProps) {
   return (
     <nav className="rail" aria-label="화면 전환">
       <div className="rail__mark" aria-hidden="true" title="write-note">
@@ -42,7 +49,8 @@ export function Rail() {
             key={item.key}
             type="button"
             className="rail__item"
-            aria-current={item.key === "write" ? "page" : undefined}
+            aria-current={item.key === active ? "page" : undefined}
+            onClick={() => onNavigate(item.key)}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               {item.icon}
@@ -51,6 +59,11 @@ export function Rail() {
           </button>
         ))}
       </div>
+      <button type="button" className="rail__capture" onClick={onCapture} aria-label="빠른 메모">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+      </button>
     </nav>
   );
 }

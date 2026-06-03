@@ -1,20 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Rail } from "./components/Rail";
-import { Titlebar } from "./components/Titlebar";
-import { Editor } from "./components/Editor";
-import { MemoPanel } from "./components/MemoPanel";
 import { Dock } from "./components/Dock";
-import type { MemoState, SaveState, Theme } from "./types";
+import { QuickCapture } from "./components/QuickCapture";
+import { WriteStudioScreen } from "./screens/WriteStudioScreen";
+import { ProjectsScreen } from "./screens/ProjectsScreen";
+import { MemoInboxScreen } from "./screens/MemoInboxScreen";
+import { LogScreen } from "./screens/LogScreen";
+import type { MemoState, SaveState, Screen, Theme } from "./types";
 
 const AUTOSAVE_DELAY_MS = 700;
 
+function initialParam<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
+  const v = new URLSearchParams(window.location.search).get(key);
+  return allowed.includes(v as T) ? (v as T) : fallback;
+}
+
 export function App() {
-  const [theme, setTheme] = useState<Theme>(() =>
-    new URLSearchParams(window.location.search).get("theme") === "dark" ? "dark" : "light",
+  const [theme, setTheme] = useState<Theme>(() => initialParam("theme", ["light", "dark"], "light"));
+  const [screen, setScreen] = useState<Screen>(() =>
+    initialParam("screen", ["projects", "write", "memo", "log"], "write"),
   );
   const [save, setSave] = useState<SaveState>("saved");
   const [count, setCount] = useState(0);
   const [memos, setMemos] = useState<MemoState>("loaded");
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [captureOpen, setCaptureOpen] = useState(false);
+  const togglePanel = () => setPanelOpen((o) => !o);
   const timer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -33,14 +44,25 @@ export function App() {
 
   return (
     <div className="app">
-      <Rail />
-      <div className="main">
-        <Titlebar title="바다가 보이는 방 — 집필" save={save} count={count} />
-        <div className="workspace">
-          <Editor onCount={setCount} onTyping={handleTyping} />
-          <MemoPanel state={memos} />
-        </div>
-      </div>
+      <Rail active={screen} onNavigate={setScreen} onCapture={() => setCaptureOpen(true)} />
+
+      {screen === "projects" && (
+        <ProjectsScreen onOpenProject={() => setScreen("write")} panelOpen={panelOpen} onTogglePanel={togglePanel} />
+      )}
+      {screen === "write" && (
+        <WriteStudioScreen
+          save={save}
+          count={count}
+          memos={memos}
+          onCount={setCount}
+          onTyping={handleTyping}
+          panelOpen={panelOpen}
+          onTogglePanel={togglePanel}
+        />
+      )}
+      {screen === "memo" && <MemoInboxScreen panelOpen={panelOpen} onTogglePanel={togglePanel} />}
+      {screen === "log" && <LogScreen panelOpen={panelOpen} onTogglePanel={togglePanel} />}
+
       <Dock
         theme={theme}
         setTheme={setTheme}
@@ -48,7 +70,9 @@ export function App() {
         setSave={setSave}
         memos={memos}
         setMemos={setMemos}
+        screen={screen}
       />
+      {captureOpen && <QuickCapture onClose={() => setCaptureOpen(false)} />}
     </div>
   );
 }

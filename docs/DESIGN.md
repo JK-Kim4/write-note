@@ -138,7 +138,7 @@
 ## 4. Spacing & Layout
 
 - **리듬: 8px 계열** — 4 / 8 / 12 / 16 / 22 / 28 / 40 / 54. 새 간격은 이 계열에서.
-- 에디터 paper: `max-width 640px`, 중앙 정렬, padding `40px 46px 34px`.
+- 에디터 paper: **A4 규격** `max-width 210mm` × `min-height 297mm`, 중앙 정렬, 여백 `25mm`(본문 줄길이 ≈33em, ≤34em 유지). titlebar 우측에 작업공간 **줌**(− % +).
 - 패널 padding `16~18px`, 카드 내부 `12~14px`, 카드 간 `10~12px`.
 - **paper-on-desk 원칙:** 종이(밝음)가 작업실 배경(깊음) 위에 그림자로 떠 있어 한 장의 종이로 읽힌다.
 - 사이드 패널은 에디터보다 **시각적으로 약하게** — `--surface` 배경 + 좌측 hairline 분리, 폭은 보조(에디터가 주인공, HARD).
@@ -193,7 +193,11 @@
 - **focus:** border `--accent` + ring `0 0 0 3px var(--accent-soft)`. (blue 허용 두 자리 중 하나.)
 
 ### 에디터 page (paper)
-- bg `--paper`, radius `--radius-lg`, shadow `--shadow-paper`, max-width 640, 중앙. 본문 `prose`(고운바탕). chrome 최소 — 커서만으로 충분, 별도 focus 강조 없음.
+- bg `--paper`, radius `--radius-lg`, shadow `--shadow-paper`, **A4(210×297mm)**, 중앙. 본문 `prose`(고운바탕, 좌우 25mm 여백 안에서 꽉 — ≈33em). chrome 최소 — 커서만으로 충분. titlebar 우측에 작업공간 줌.
+
+### 페이지 뷰 (결정 2026-06-02)
+- 본문이 길어지면 **단일 페이지 + 좌우 ◀▶ 버튼**으로 한 장씩 넘기는 방식(키보드 ←→ 병행, 하단 `n/N` 인디케이터). 정적 목업 `docs/design/desktop/page-view.html` 로 확정(세로 연속 분할 모드도 토글로 병기).
+- **실제 TipTap 자동 페이지 분할 구현은 별도 spec/Phase.** PoC 결과(`tiptap-pagination-plus`): 세로 자동분할은 동작하나 종이 렌더 불안정 + 좌우 캐러셀/단일버튼은 "페이지별 텍스트 분리 엔진"을 자체 구현해야 함 + 한국어 IME 회귀 검증(PoC 0-1 4케이스) 선행 필요. 현 desktop 앱은 **연속 A4** 유지.
 
 ### 본문 서식 — BubbleMenu (텍스트 선택 시)
 - 서식 도구는 영구 툴바가 아니라 **텍스트 선택 시에만 뜨는 BubbleMenu** 로 제공한다(순도 컨셉 — 평소엔 숨음). **글꼴·글자 크기 변경 도구는 두지 않는다** — 본문은 고운바탕 18px 고정(워드/구글독스식 폰트 선택 회피, anti-reference 정합).

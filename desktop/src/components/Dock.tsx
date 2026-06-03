@@ -1,4 +1,4 @@
-import type { MemoState, SaveState, Theme } from "../types";
+import type { MemoState, SaveState, Screen, Theme } from "../types";
 
 type DockProps = {
   theme: Theme;
@@ -7,6 +7,7 @@ type DockProps = {
   setSave: (v: SaveState) => void;
   memos: MemoState;
   setMemos: (v: MemoState) => void;
+  screen: Screen;
 };
 
 type Seg<T extends string> = { label: string; value: T };
@@ -31,8 +32,8 @@ function Segment<T extends string>(props: { label: string; options: Seg<T>[]; va
   );
 }
 
-/** 와이어프레임 미리보기 도크 — 실제 앱에는 없는 데모 컨트롤. */
-export function Dock({ theme, setTheme, save, setSave, memos, setMemos }: DockProps) {
+/** 와이어프레임 미리보기 도크 — 실제 앱에는 없는 데모 컨트롤. 저장·메모는 집필 화면 한정. */
+export function Dock({ theme, setTheme, save, setSave, memos, setMemos, screen }: DockProps) {
   return (
     <div className="dock" role="region" aria-label="와이어프레임 미리보기 컨트롤">
       <div className="dock__cap"><b>미리보기</b> · 실제 앱에는 없는 데모 컨트롤</div>
@@ -42,18 +43,22 @@ export function Dock({ theme, setTheme, save, setSave, memos, setMemos }: DockPr
         onChange={setTheme}
         options={[{ label: "종이", value: "light" }, { label: "촛불", value: "dark" }]}
       />
-      <Segment
-        label="저장"
-        value={save}
-        onChange={setSave}
-        options={[{ label: "저장됨", value: "saved" }, { label: "저장 중", value: "saving" }, { label: "실패", value: "error" }]}
-      />
-      <Segment
-        label="메모"
-        value={memos}
-        onChange={setMemos}
-        options={[{ label: "있음", value: "loaded" }, { label: "빈", value: "empty" }, { label: "로딩", value: "loading" }]}
-      />
+      {screen === "write" && (
+        <>
+          <Segment
+            label="저장"
+            value={save}
+            onChange={setSave}
+            options={[{ label: "저장됨", value: "saved" }, { label: "저장 중", value: "saving" }, { label: "실패", value: "error" }]}
+          />
+          <Segment
+            label="메모"
+            value={memos}
+            onChange={setMemos}
+            options={[{ label: "있음", value: "loaded" }, { label: "빈", value: "empty" }, { label: "로딩", value: "loading" }]}
+          />
+        </>
+      )}
     </div>
   );
 }

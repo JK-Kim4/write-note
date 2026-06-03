@@ -17,7 +17,7 @@ function subText(state: MemoState): string {
 /** 연결된 메모 패널 — 에디터보다 시각적으로 약하게(HARD). */
 export function MemoPanel({ state }: MemoPanelProps) {
   return (
-    <aside className="panel" aria-label="연결된 메모">
+    <aside className="side-panel" aria-label="연결된 메모">
       <div className="panel__head">
         <h2 className="panel__title">연결된 메모</h2>
         <p className="panel__sub">{subText(state)}</p>
