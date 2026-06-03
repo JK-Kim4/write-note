@@ -6,7 +6,7 @@ desktop MVP의 로컬 데이터 저장 경계를 확정하고, `Project`, `Docum
 
 ## 범위
 
-- Electron에서 사용할 로컬 DB library 확정.
+- 로컬 DB library = `node:sqlite`(Node 24 내장 `DatabaseSync`) 확정 — 2026-06-03 결정(설계 SoT 의 better-sqlite3 변경: 네이티브 모듈 ABI 충돌·`@electron/rebuild` Node 요구 회피).
 - `Project`, `Document`, `Memo`, `AppSetting` schema 생성.
 - sync-friendly ID 생성 방식 확정.
 - main process에 DB 접근 모듈 배치.
