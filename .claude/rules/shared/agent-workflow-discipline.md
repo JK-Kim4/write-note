@@ -164,12 +164,14 @@ Electron / 네이티브 모듈(better-sqlite3 등) / 패키징(electron-builder)
 2. **pnpm build script 승인** — 네이티브 의존성은 `package.json` `pnpm.onlyBuiltDependencies` 에 등록(pnpm 8 은 postinstall 기본 차단 → 바이너리 미설치).
 3. **nvm 전환 시 pnpm PATH** — `nvm use` 후 pnpm 이 PATH 에서 빠진다. build/package 류 도구는 **child shell 이 PATH 의 pnpm 을 호출**하므로 `corepack enable` 또는 pnpm 경로 PATH 노출을 선행한다.
 4. **arm64 패키징 서명** — Apple Silicon 은 **ad-hoc 서명조차 없으면 실행 거부**(`codesign --verify` 실패). 미서명 빌드 후 `codesign --force --deep --sign - <app>` 재서명 + dmg 재생성.
+5. **preload 결선 ↔ sandbox 정합 + smoke test** — renderer 가 preload 노출 API(`window.electronAPI` 등)를 **처음 사용하기 전**, renderer 에서 그 API 존재를 1회 smoke test(예: `window.electronAPI` undefined 여부) 한다. preload 빌드 포맷(CJS/ESM)과 `sandbox`/`contextIsolation` 정합은 `typecheck`/`build` 로 **안 드러나고** renderer 첫 호출에서 터진다. vite-plugin-electron 은 ESM 프로젝트(`type:module`)에서 preload 를 **CJS(.mjs)** 로 빌드 → `sandbox:true` 필요(sandboxed preload 는 확장자 무관 CommonJS 로 로드, contextBridge/ipcRenderer 가용). `sandbox:false` 면 `.mjs` 를 ESM 으로 로드해 `require is not defined` 로 preload 가 통째로 실패한다.
 
-### 회귀 사례 — 동종 환경 함정 2 세션 연속 재발
+### 회귀 사례 — 동종 환경 함정 3 세션 연속 재발
 
 - **2026-06-03 Phase 1:** Node 20.10.0 에서 electron 42 `install.js` 가 `@electron/get`(ESM)을 `require` → `ERR_REQUIRE_ESM`, 바이너리 설치 실패. plan 단계 미발견, `pnpm dev` 실행에서야 발견 → Node 20.20.1 상향으로 해소.
 - **2026-06-03 Phase 2 패키징:** electron-builder 의 node module collector 가 `pnpm: command not found`(code 127, nvm 전환 PATH) + arm64 미서명 실행 거부 → PATH 노출 + ad-hoc 재서명 + dmg 재생성으로 해소.
-- 회피 가능했던 시점: 설치·빌드 명령 실행 **전** 위 4 항목 self-check. (Phase 1 회고에서 본 항목이 "보류 후보" 였고 Phase 2 에서 재발 — 룰로 영구화)
+- **2026-06-04 Phase 3 preload 결선:** Phase 1 에서 `sandbox:false`(ESM preload 의도)로 설정했으나 vite-plugin-electron 은 preload 를 CJS(.mjs)로 빌드 → Electron 이 `.mjs` 를 ESM 으로 로드 → `require is not defined in ES module scope` 로 preload 로드 실패 → `window.electronAPI` 미노출. **renderer 가 IPC 를 처음 호출하는 Phase 3 dogfooding 에서야 표면화**(Phase 1·2 는 renderer 가 electronAPI 미사용이라 콘솔 에러만 나고 화면 영향 0). 공식 문서 검증 후 `sandbox:true` 복원으로 해소(커밋 `6b9d6e4`). 회피 가능 시점: Phase 1 scaffold 때 renderer 에서 `window.electronAPI` 존재 1회 smoke test.
+- 회피 가능했던 시점: 설치·빌드 명령 실행 **전** 위 5 항목 self-check. (Phase 1 회고에서 "보류 후보" → Phase 2·3 연속 재발 — 룰로 영구화)
 
 ## 메타 — 본 룰의 누적 정책
 
