@@ -11,7 +11,7 @@
 
 | 트랙 | 상태 | 위치 |
 |---|---|---|
-| **Desktop MVP** | 🟢 **ACTIVE** | `desktop/` (아직 미생성 — Phase 1에서 scaffold) |
+| **Desktop MVP** | 🟢 **ACTIVE** | `desktop/` (Electron scaffold 완료 — Phase 1) |
 | WEB frontend | ⏸️ paused | `frontend/` (보존, 기능 수정 안 함) |
 | WEB backend | ⏸️ paused | `backend/` (보존, 기능 수정 안 함) |
 
@@ -32,8 +32,8 @@
 |---|---|---|
 | 0 | WEB 일시 중단 선언 + Desktop 트랙 기준선 | ✅ 완료 |
 | 0.5 | 디자인 정의 — PRODUCT.md/DESIGN.md + 4화면 + 페이지뷰 | ✅ 완료 (2026-06-03 승인) |
-| 1 | Electron/Vite desktop app scaffold | 🟡 진행 — 렌더러 프로토타입 `desktop/`(React+TipTap, 4화면 rail 라우팅·A4·줌) 완료. Electron 패키징·persistence 남음 |
-| 2 | 로컬 persistence (Project/Document/Memo) | ⬜ 대기 |
+| 1 | Electron/Vite desktop app scaffold | ✅ **완료** (2026-06-03) — `desktop/` 에 Electron shell(main/preload + BrowserWindow + dev/prod 로드). 자동화 GREEN(typecheck/build/test/dev 기동), **PR #27** 리뷰 중, 육안 dogfooding 대기 |
+| 2 | 로컬 persistence (Project/Document/Memo) | 🟡 **다음 진입점** — better-sqlite3 + main-process DB 경계 + renderer IPC. 배포 패키징(@electron/rebuild·asarUnpack 등 네이티브 모듈 호환)도 본 phase 범위 |
 | 3 | Projects workspace | ⬜ 대기 |
 | 4 | Write Studio + 일반 에디터 autosave | ⬜ 대기 |
 | 5 | Quick memo capture + inbox | ⬜ 대기 |
