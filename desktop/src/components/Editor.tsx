@@ -31,14 +31,20 @@ type EditorProps = {
   initialBodyJson: string;
   /** 사용자 입력 발생 — 저장 페이로드를 부모로 올린다. */
   onChange: (change: DocumentChange) => void;
+  /** 본문에 줄노트(가로 줄선) 표시 여부. */
+  lined: boolean;
 };
 
-export function Editor({ title, initialBodyJson, onChange }: EditorProps) {
+export function Editor({ title, initialBodyJson, onChange, lined }: EditorProps) {
   const editor = useEditor({
     extensions: [StarterKit],
     content: parseContent(initialBodyJson),
     immediatelyRender: false,
     onUpdate: ({ editor: e }) => {
+      // 한글 IME 조합 중에는 부모 갱신(setState→re-render)을 막는다.
+      // 조합 도중 EditorContent 가 re-render 되면 composition 이 깨져 자모가 분리 입력된다.
+      // 조합이 끝나면 ProseMirror 가 트랜잭션을 다시 발생시켜 onUpdate 가 재호출된다.
+      if (e.view.composing) return;
       const text = e.getText();
       onChange({
         bodyJson: JSON.stringify(e.getJSON()),
@@ -50,7 +56,7 @@ export function Editor({ title, initialBodyJson, onChange }: EditorProps) {
 
   return (
     <main className="editor-scroll" aria-label="본문 편집기">
-      <article className="paper">
+      <article className={lined ? "paper paper--lined" : "paper"}>
         <h1 className="doc-title">{title}</h1>
         {editor && (
           <BubbleMenu editor={editor} className="bubble">

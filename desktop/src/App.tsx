@@ -22,18 +22,30 @@ export function App() {
   );
   const [save, setSave] = useState<SaveState>("saved");
   const [count, setCount] = useState(0);
-  const [memos, setMemos] = useState<MemoState>("loaded");
+  const [autoSave, setAutoSaveState] = useState(true);
+  const [memos] = useState<MemoState>("loaded");
   const [panelOpen, setPanelOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
   // 선택된 작품 + 그 작품의 document(본문). 작품 선택 시 IPC 로 로드한다.
   const [activeProject, setActiveProject] = useState<{ id: string; title: string } | null>(null);
-  const [activeDoc, setActiveDoc] = useState<{ id: string; bodyJson: string } | null>(null);
+  const [activeDoc, setActiveDoc] = useState<{ id: string; bodyJson: string; editorKey: string } | null>(null);
   const togglePanel = () => setPanelOpen((o) => !o);
   const timer = useRef<number | undefined>(undefined);
+  // 같은 작품을 다시 열어도 에디터를 최신 본문으로 remount 하기 위한 로드 시퀀스.
+  const loadSeq = useRef(0);
+  // 미저장 변경 — 자동저장 OFF 시 수동 저장(⌘S/버튼) + 켜기 전환 flush 용.
+  const lastChange = useRef<{ docId: string; change: DocumentChange } | null>(null);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  // 자동저장 on/off 선호 로드(app_settings 영속).
+  useEffect(() => {
+    void window.electronAPI.settings.get("autosave_enabled").then((v) => {
+      if (v !== null) setAutoSaveState(v !== "false");
+    });
+  }, []);
 
   // 작품 선택 → 해당 작품의 기본 document 로드(본문 + 글자수 복원).
   useEffect(() => {
@@ -44,31 +56,76 @@ export function App() {
     let cancelled = false;
     void window.electronAPI.documents.getByProject(activeProject.id).then((doc) => {
       if (cancelled || !doc) return;
-      setActiveDoc({ id: doc.id, bodyJson: doc.bodyJson });
+      loadSeq.current += 1;
+      setActiveDoc({ id: doc.id, bodyJson: doc.bodyJson, editorKey: `${doc.id}#${loadSeq.current}` });
       setCount(doc.wordCount);
+      setSave("saved");
+      lastChange.current = null;
     });
     return () => {
       cancelled = true;
     };
   }, [activeProject]);
 
-  // 자동저장: 입력 → 'saving' → debounce 후 documents.update IPC → 성공 'saved' / 실패 'error'.
+  // 실제 저장 — IPC update + 저장본을 activeDoc 에 반영(remount 시 최신 본문이 초기값이 되도록).
+  const performSave = useCallback((docId: string, change: DocumentChange) => {
+    setSave("saving");
+    window.clearTimeout(timer.current);
+    window.electronAPI.documents
+      .update(docId, change)
+      .then(() => {
+        setSave("saved");
+        lastChange.current = null;
+        setActiveDoc((d) => (d && d.id === docId ? { ...d, bodyJson: change.bodyJson } : d));
+      })
+      .catch(() => setSave("error"));
+  }, []);
+
+  // 입력: 자동저장 ON 이면 debounce 저장, OFF 면 미저장 표시만(수동 저장 대기).
   const handleChange = useCallback(
     (change: DocumentChange) => {
       setCount(change.wordCount);
       const docId = activeDoc?.id;
       if (!docId) return;
+      lastChange.current = { docId, change };
+      if (!autoSave) {
+        setSave("unsaved");
+        return;
+      }
       setSave("saving");
       window.clearTimeout(timer.current);
-      timer.current = window.setTimeout(() => {
-        window.electronAPI.documents
-          .update(docId, change)
-          .then(() => setSave("saved"))
-          .catch(() => setSave("error"));
-      }, AUTOSAVE_DELAY_MS);
+      timer.current = window.setTimeout(() => performSave(docId, change), AUTOSAVE_DELAY_MS);
     },
-    [activeDoc],
+    [activeDoc, autoSave, performSave],
   );
+
+  // 수동 저장(⌘S / 저장 버튼) — 미저장 변경을 즉시 저장.
+  const saveNow = useCallback(() => {
+    const pending = lastChange.current;
+    if (pending) performSave(pending.docId, pending.change);
+  }, [performSave]);
+
+  // 자동저장 토글 + 영속. 켜는 순간 미저장분이 있으면 즉시 flush.
+  const setAutoSave = useCallback(
+    (v: boolean) => {
+      setAutoSaveState(v);
+      void window.electronAPI.settings.set("autosave_enabled", v ? "true" : "false");
+      if (v) saveNow();
+    },
+    [saveNow],
+  );
+
+  // ⌘S / Ctrl+S 수동 저장(자동저장 on/off 무관 — 즉시 저장).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === "s" || e.key === "S")) {
+        e.preventDefault();
+        saveNow();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [saveNow]);
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
@@ -87,12 +144,14 @@ export function App() {
       {screen === "write" && (
         <WriteStudioScreen
           projectTitle={activeProject?.title}
-          documentId={activeDoc?.id}
+          editorKey={activeDoc?.editorKey ?? "loading"}
           initialBodyJson={activeDoc?.bodyJson ?? ""}
           save={save}
           count={count}
           memos={memos}
+          autoSave={autoSave}
           onChange={handleChange}
+          onSaveNow={saveNow}
           panelOpen={panelOpen}
           onTogglePanel={togglePanel}
         />
@@ -100,15 +159,7 @@ export function App() {
       {screen === "memo" && <MemoInboxScreen panelOpen={panelOpen} onTogglePanel={togglePanel} />}
       {screen === "log" && <LogScreen panelOpen={panelOpen} onTogglePanel={togglePanel} />}
 
-      <Dock
-        theme={theme}
-        setTheme={setTheme}
-        save={save}
-        setSave={setSave}
-        memos={memos}
-        setMemos={setMemos}
-        screen={screen}
-      />
+      <Dock theme={theme} setTheme={setTheme} autoSave={autoSave} setAutoSave={setAutoSave} />
       {captureOpen && <QuickCapture onClose={() => setCaptureOpen(false)} />}
     </div>
   );

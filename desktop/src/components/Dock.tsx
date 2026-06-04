@@ -1,64 +1,63 @@
-import type { MemoState, SaveState, Screen, Theme } from "../types";
+import { useState } from "react";
+import type { Theme } from "../types";
 
 type DockProps = {
   theme: Theme;
   setTheme: (v: Theme) => void;
-  save: SaveState;
-  setSave: (v: SaveState) => void;
-  memos: MemoState;
-  setMemos: (v: MemoState) => void;
-  screen: Screen;
+  autoSave: boolean;
+  setAutoSave: (v: boolean) => void;
 };
 
-type Seg<T extends string> = { label: string; value: T };
+/** 보기 설정 — 기본은 접힘(작업공간 겹침 회피), ⚙ 버튼으로 펼친다. 테마 + 자동저장. */
+export function Dock({ theme, setTheme, autoSave, setAutoSave }: DockProps) {
+  const [open, setOpen] = useState(false);
 
-function Segment<T extends string>(props: { label: string; options: Seg<T>[]; value: T; onChange: (v: T) => void }) {
+  if (!open) {
+    return (
+      <button type="button" className="dock-fab" aria-label="설정 열기" title="설정" onClick={() => setOpen(true)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+      </button>
+    );
+  }
+
   return (
-    <div className="dock__row">
-      <span className="dock__lbl">{props.label}</span>
-      <div className="seg" role="group" aria-label={props.label}>
-        {props.options.map((o) => (
-          <button
-            key={o.value}
-            type="button"
-            aria-pressed={props.value === o.value}
-            onClick={() => props.onChange(o.value)}
-          >
-            {o.label}
-          </button>
-        ))}
+    <div className="dock" role="region" aria-label="설정">
+      <div className="dock__head">
+        <span className="dock__cap"><b>설정</b></span>
+        <button type="button" className="dock__close" aria-label="설정 접기" title="접기" onClick={() => setOpen(false)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
       </div>
-    </div>
-  );
-}
-
-/** 와이어프레임 미리보기 도크 — 실제 앱에는 없는 데모 컨트롤. 저장·메모는 집필 화면 한정. */
-export function Dock({ theme, setTheme, save, setSave, memos, setMemos, screen }: DockProps) {
-  return (
-    <div className="dock" role="region" aria-label="와이어프레임 미리보기 컨트롤">
-      <div className="dock__cap"><b>미리보기</b> · 실제 앱에는 없는 데모 컨트롤</div>
-      <Segment
-        label="테마"
-        value={theme}
-        onChange={setTheme}
-        options={[{ label: "종이", value: "light" }, { label: "촛불", value: "dark" }]}
-      />
-      {screen === "write" && (
-        <>
-          <Segment
-            label="저장"
-            value={save}
-            onChange={setSave}
-            options={[{ label: "저장됨", value: "saved" }, { label: "저장 중", value: "saving" }, { label: "실패", value: "error" }]}
-          />
-          <Segment
-            label="메모"
-            value={memos}
-            onChange={setMemos}
-            options={[{ label: "있음", value: "loaded" }, { label: "빈", value: "empty" }, { label: "로딩", value: "loading" }]}
-          />
-        </>
-      )}
+      <div className="dock__row">
+        <span className="dock__lbl">테마</span>
+        <div className="seg" role="group" aria-label="테마">
+          {([{ label: "종이", value: "light" }, { label: "촛불", value: "dark" }] as const).map((o) => (
+            <button key={o.value} type="button" aria-pressed={theme === o.value} onClick={() => setTheme(o.value)}>
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="dock__row">
+        <span className="dock__lbl">자동저장</span>
+        <div className="seg" role="group" aria-label="자동저장">
+          {([{ label: "켜기", value: true }, { label: "끄기", value: false }] as const).map((o) => (
+            <button
+              key={String(o.value)}
+              type="button"
+              aria-pressed={autoSave === o.value}
+              onClick={() => setAutoSave(o.value)}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
