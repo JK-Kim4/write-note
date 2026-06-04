@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { ProjectRepository, type CreateProjectInput } from "./projectRepository";
-import { DocumentRepository } from "./documentRepository";
+import { DocumentRepository, type UpdateDocumentInput } from "./documentRepository";
 import { MemoRepository } from "./memoRepository";
 import { SettingRepository } from "./settingRepository";
 import type { Document, Project } from "./types";
@@ -27,6 +27,20 @@ export class Store {
       const document = this.documents.create({ projectId: project.id });
       this.db.exec("COMMIT");
       return { project, document };
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
+  /** document 본문을 저장하고, 소속 project 의 updated_at 을 한 트랜잭션으로 touch 한다. */
+  updateDocument(id: string, patch: UpdateDocumentInput): Document | null {
+    this.db.exec("BEGIN");
+    try {
+      const document = this.documents.update(id, patch);
+      if (document) this.projects.touch(document.projectId);
+      this.db.exec("COMMIT");
+      return document;
     } catch (error) {
       this.db.exec("ROLLBACK");
       throw error;

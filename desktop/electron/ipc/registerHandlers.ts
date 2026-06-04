@@ -20,7 +20,7 @@ export function registerHandlers(store: Store): void {
     store.documents.getByProjectId(projectId),
   );
   ipcMain.handle(CHANNELS.documentsUpdate, (_e, id: string, patch: UpdateDocumentInput) =>
-    store.documents.update(id, patch),
+    store.updateDocument(id, patch),
   );
 
   ipcMain.handle(CHANNELS.memosCreate, (_e, input: CreateMemoInput) => store.memos.create(input));

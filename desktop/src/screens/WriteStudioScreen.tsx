@@ -4,7 +4,7 @@ import { Editor } from "../components/Editor";
 import { MemoPanel } from "../components/MemoPanel";
 import { PanelToggle } from "../components/PanelToggle";
 import { ZoomControl } from "../components/ZoomControl";
-import type { MemoState, SaveState } from "../types";
+import type { DocumentChange, MemoState, SaveState } from "../types";
 
 function saveLabel(save: SaveState, count: number): string {
   if (save === "saving") return "저장 중…";
@@ -13,19 +13,32 @@ function saveLabel(save: SaveState, count: number): string {
 }
 
 type Props = {
-  /** 선택된 작품 제목 — 없으면 "집필". 본문/저장 결선은 Phase 4. */
+  /** 선택된 작품 제목 — 없으면 "집필". */
   projectTitle?: string;
+  /** 선택 작품의 document id — 로드 전이면 undefined(빈 에디터). */
+  documentId?: string;
+  /** 초기 본문(document.bodyJson). document 가 바뀌면 key 로 에디터를 remount 한다. */
+  initialBodyJson: string;
   save: SaveState;
   count: number;
   memos: MemoState;
-  onCount: (n: number) => void;
-  onTyping: () => void;
+  onChange: (change: DocumentChange) => void;
   panelOpen: boolean;
   onTogglePanel: () => void;
 };
 
 /** 집필 화면 — 에디터(주인공) + 연결된 메모 패널(토글) + 작업공간 줌. */
-export function WriteStudioScreen({ projectTitle, save, count, memos, onCount, onTyping, panelOpen, onTogglePanel }: Props) {
+export function WriteStudioScreen({
+  projectTitle,
+  documentId,
+  initialBodyJson,
+  save,
+  count,
+  memos,
+  onChange,
+  panelOpen,
+  onTogglePanel,
+}: Props) {
   const [zoom, setZoom] = useState(1);
 
   const right = (
@@ -43,7 +56,7 @@ export function WriteStudioScreen({ projectTitle, save, count, memos, onCount, o
     <div className="main" style={{ "--zoom": zoom } as CSSProperties}>
       <Titlebar title={projectTitle ? `${projectTitle} — 집필` : "집필"} right={right} />
       <div className={`screen-body ${panelOpen ? "" : "screen-body--solo"}`}>
-        <Editor onCount={onCount} onTyping={onTyping} />
+        <Editor key={documentId ?? "loading"} title={projectTitle ?? ""} initialBodyJson={initialBodyJson} onChange={onChange} />
         {panelOpen && <MemoPanel state={memos} />}
       </div>
     </div>

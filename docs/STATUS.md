@@ -1,6 +1,6 @@
 # 프로젝트 상태 — Active Track
 
-**최종 갱신:** 2026-06-03
+**최종 갱신:** 2026-06-04
 
 > 이 문서는 repository를 처음 보는 사람이 "지금 무엇이 active track인지" 한 번에 알 수 있게 하는 단일 진입점이다.
 
@@ -11,7 +11,7 @@
 
 | 트랙 | 상태 | 위치 |
 |---|---|---|
-| **Desktop MVP** | 🟢 **ACTIVE** | `desktop/` (Electron scaffold 완료 — Phase 1) |
+| **Desktop MVP** | 🟢 **ACTIVE** | `desktop/` (Phase 3 완료 — 작품 workspace, 다음 Phase 4) |
 | WEB frontend | ⏸️ paused | `frontend/` (보존, 기능 수정 안 함) |
 | WEB backend | ⏸️ paused | `backend/` (보존, 기능 수정 안 함) |
 
@@ -34,8 +34,8 @@
 | 0.5 | 디자인 정의 — PRODUCT.md/DESIGN.md + 4화면 + 페이지뷰 | ✅ 완료 (2026-06-03 승인) |
 | 1 | Electron/Vite desktop app scaffold | ✅ **완료** (2026-06-03) — `desktop/` 에 Electron shell(main/preload + BrowserWindow + dev/prod 로드). 자동화 GREEN(typecheck/build/test/dev 기동), **PR #27** 리뷰 중, 육안 dogfooding 대기 |
 | 2 | 로컬 persistence (Project/Document/Memo) | ✅ **완료** (2026-06-03, PR #28) — **`node:sqlite`**(Node 24 내장, better-sqlite3 대체로 네이티브 모듈 함정 제거) + 4테이블 + repository/Store + IPC 경계. TDD 24 tests, dev 실측 `.db`+WAL 생성. renderer DB 직접접근 차단 |
-| 3 | Projects workspace | 🟡 **다음 진입점** — renderer 목업 → 실데이터 IPC 결선(`window.electronAPI`) |
-| 4 | Write Studio + 일반 에디터 autosave | ⬜ 대기 |
+| 3 | Projects workspace | ✅ **완료** (2026-06-04, merge `5aab0fe`) — renderer 실데이터 결선(`window.electronAPI.projects.list/create`) + 작품 화면 3상태 craft + genre 확장(schema v1→v2) + preload 회귀 수정(sandbox:true). TDD 44 tests + build GREEN |
+| 4 | Write Studio + 일반 에디터 autosave | 🟡 **다음 진입점** — TipTap 에디터에 선택 작품 document 결선 + bodyJson/plainText/wordCount 저장 + debounce autosave |
 | 5 | Quick memo capture + inbox | ⬜ 대기 |
 | 6 | 메모-프로젝트 연결 + studio side panel | ⬜ 대기 |
 | 7 | Prototype usability pass | ⬜ 대기 |

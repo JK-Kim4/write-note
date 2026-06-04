@@ -79,6 +79,11 @@ export class ProjectRepository {
     return rows.map(toProject);
   }
 
+  /** updated_at 만 현재 시각으로 갱신한다(document 저장 시 "최근 수정순" 반영용). */
+  touch(id: string): void {
+    this.db.prepare("UPDATE projects SET updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
+  }
+
   update(id: string, patch: UpdateProjectInput): Project | null {
     const current = this.getById(id);
     if (!current) return null;

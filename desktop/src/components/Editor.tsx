@@ -1,6 +1,7 @@
-import { useEditor, EditorContent, type Editor as TiptapEditor } from "@tiptap/react";
+import { useEditor, EditorContent, type Content } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { StarterKit } from "@tiptap/starter-kit";
+import type { DocumentChange } from "../types";
 
 /**
  * 집필실 본문 에디터 (실제 TipTap).
@@ -9,43 +10,48 @@ import { StarterKit } from "@tiptap/starter-kit";
  * - 서식은 '도구가 물러나는' 순도 컨셉(PRODUCT.md)에 맞춰, 텍스트 선택 시에만 뜨는
  *   BubbleMenu 로 제공한다. 본문 글꼴·크기는 고정(고운바탕 18px) — 변경 도구 없음.
  * - 본문 글자수는 공백·줄바꿈 제외. 자동저장 상태는 부모(App)가 관리.
- * - 로컬 persistence(앱 재시작 복원)는 desktop Phase 2.
+ * - 본문은 선택 작품 document 의 bodyJson(ProseMirror JSON) 으로 초기화하고,
+ *   입력 시 onChange 로 저장 페이로드를 올린다(저장·복원은 App↔IPC).
  */
 
-const INITIAL_CONTENT = `
-<p>창문을 열자 소금기 밴 바람이 먼저 들어왔다. 그 애는 책상 앞에 앉은 채로 한참을 가만히 있었다. 무언가를 쓰려던 손은 끝내 펜을 들지 못했고, 대신 바다 쪽으로 천천히 고개를 돌렸다.</p>
-<p>먼 데서 고깃배 한 척이 수평선을 따라 미끄러지고 있었다. 어제와 똑같은 풍경인데도 오늘은 어딘가 달라 보였다. 어쩌면 달라진 건 바다가 아니라, 그것을 바라보는 사람의 마음이었을 것이다.</p>
-<p>그 애는 다시 책상으로 돌아왔다. 이번에는 망설이지 않고 첫 문장을 적었다. “나는 그해 여름을 끝내 잊지 못할 것이다.” 쓰고 나니 비로소, 오래 미뤄둔 이야기가 시작되려는 참이었다.</p>
-`;
-
-function countChars(editor: TiptapEditor): number {
-  return editor.getText().replace(/\s/g, "").length;
+/** bodyJson(ProseMirror JSON 문자열) 을 TipTap content 로. 빈 문자열/파싱 실패는 빈 문서. */
+function parseContent(bodyJson: string): Content {
+  if (!bodyJson) return "";
+  try {
+    return JSON.parse(bodyJson) as Content;
+  } catch {
+    return "";
+  }
 }
 
 type EditorProps = {
-  /** 글자수만 갱신 (저장 상태 영향 없음 — 마운트 시 초기 카운트용) */
-  onCount: (chars: number) => void;
-  /** 사용자 입력 발생 — 자동저장 'saving' 트리거 */
-  onTyping: () => void;
+  /** 집필 중인 작품 제목 (본문 상단 표시). */
+  title: string;
+  /** 초기 본문 — document.bodyJson(ProseMirror JSON 문자열). */
+  initialBodyJson: string;
+  /** 사용자 입력 발생 — 저장 페이로드를 부모로 올린다. */
+  onChange: (change: DocumentChange) => void;
 };
 
-export function Editor({ onCount, onTyping }: EditorProps) {
+export function Editor({ title, initialBodyJson, onChange }: EditorProps) {
   const editor = useEditor({
     extensions: [StarterKit],
-    content: INITIAL_CONTENT,
+    content: parseContent(initialBodyJson),
     immediatelyRender: false,
-    onCreate: ({ editor: e }) => onCount(countChars(e)),
     onUpdate: ({ editor: e }) => {
-      onCount(countChars(e));
-      onTyping();
+      const text = e.getText();
+      onChange({
+        bodyJson: JSON.stringify(e.getJSON()),
+        plainText: text,
+        wordCount: text.replace(/\s/g, "").length,
+      });
     },
   });
 
   return (
     <main className="editor-scroll" aria-label="본문 편집기">
       <article className="paper">
-        <h1 className="doc-title">바다가 보이는 방</h1>
-        <p className="doc-meta">초고 · 3장</p>
+        <h1 className="doc-title">{title}</h1>
         {editor && (
           <BubbleMenu editor={editor} className="bubble">
             <button
