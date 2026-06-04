@@ -11,7 +11,7 @@
 
 | 트랙 | 상태 | 위치 |
 |---|---|---|
-| **Desktop MVP** | 🟢 **ACTIVE** | `desktop/` (Phase 3 완료 — 작품 workspace, 다음 Phase 4) |
+| **Desktop MVP** | 🟢 **ACTIVE** | `desktop/` (Phase 4 완료 — write studio·autosave, 다음 Phase 5) |
 | WEB frontend | ⏸️ paused | `frontend/` (보존, 기능 수정 안 함) |
 | WEB backend | ⏸️ paused | `backend/` (보존, 기능 수정 안 함) |
 
@@ -35,8 +35,8 @@
 | 1 | Electron/Vite desktop app scaffold | ✅ **완료** (2026-06-03) — `desktop/` 에 Electron shell(main/preload + BrowserWindow + dev/prod 로드). 자동화 GREEN(typecheck/build/test/dev 기동), **PR #27** 리뷰 중, 육안 dogfooding 대기 |
 | 2 | 로컬 persistence (Project/Document/Memo) | ✅ **완료** (2026-06-03, PR #28) — **`node:sqlite`**(Node 24 내장, better-sqlite3 대체로 네이티브 모듈 함정 제거) + 4테이블 + repository/Store + IPC 경계. TDD 24 tests, dev 실측 `.db`+WAL 생성. renderer DB 직접접근 차단 |
 | 3 | Projects workspace | ✅ **완료** (2026-06-04, merge `5aab0fe`) — renderer 실데이터 결선(`window.electronAPI.projects.list/create`) + 작품 화면 3상태 craft + genre 확장(schema v1→v2) + preload 회귀 수정(sandbox:true). TDD 44 tests + build GREEN |
-| 4 | Write Studio + 일반 에디터 autosave | 🟡 **다음 진입점** — TipTap 에디터에 선택 작품 document 결선 + bodyJson/plainText/wordCount 저장 + debounce autosave |
-| 5 | Quick memo capture + inbox | ⬜ 대기 |
+| 4 | Write Studio + 일반 에디터 autosave | ✅ **완료** (2026-06-04, develop merge `ee503ab`) — TipTap 본문 결선 + debounce autosave + **자동저장 on/off**(off 시 ⌘S·저장 버튼 수동 저장, app_settings 영속) + **줄노트 토글** + **IME 조합 guard**(composing 중 부모 갱신 skip) + 본문 재진입 반영(editorKey remount). **추가**: 작품 삭제(FK cascade) + Dock→설정 패널 전환 |
+| 5 | Quick memo capture + inbox | 🟡 **다음 진입점** — 앱 내 quick capture + inbox(전체/미연결 필터) |
 | 6 | 메모-프로젝트 연결 + studio side panel | ⬜ 대기 |
 | 7 | Prototype usability pass | ⬜ 대기 |
 | 8 | Desktop MVP review gate | ⬜ 대기 |
