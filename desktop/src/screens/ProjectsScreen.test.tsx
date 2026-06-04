@@ -21,6 +21,7 @@ function makeProject(over: Partial<Project> = {}): Project {
 type Stub = {
   list?: ReturnType<typeof vi.fn>;
   create?: ReturnType<typeof vi.fn>;
+  delete?: ReturnType<typeof vi.fn>;
 };
 
 // E 결정: 같은 파일 5회+ 반복되는 electronAPI stub 을 파일 로컬 헬퍼로 묶는다.
@@ -28,15 +29,16 @@ function renderScreen(stub: Stub = {}) {
   const onOpenProject = vi.fn();
   const list = stub.list ?? vi.fn().mockResolvedValue([]);
   const create = stub.create ?? vi.fn();
+  const del = stub.delete ?? vi.fn().mockResolvedValue(true);
   vi.stubGlobal("electronAPI", {
     platform: "darwin",
-    projects: { list, create, get: vi.fn(), update: vi.fn() },
+    projects: { list, create, get: vi.fn(), update: vi.fn(), delete: del },
     documents: { getByProject: vi.fn(), update: vi.fn() },
     memos: { create: vi.fn(), list: vi.fn(), link: vi.fn() },
     settings: { get: vi.fn(), set: vi.fn() },
   });
   render(<ProjectsScreen onOpenProject={onOpenProject} />);
-  return { onOpenProject, list, create };
+  return { onOpenProject, list, create, delete: del };
 }
 
 afterEach(() => {
@@ -126,8 +128,35 @@ describe("ProjectsScreen", () => {
     const list = vi.fn().mockResolvedValue([makeProject({ id: "p1", title: "바다가 보이는 방" })]);
     const { onOpenProject } = renderScreen({ list });
 
-    fireEvent.click(await screen.findByRole("button", { name: /바다가 보이는 방/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "바다가 보이는 방 열기" }));
     expect(onOpenProject).toHaveBeenCalledWith(expect.objectContaining({ id: "p1", title: "바다가 보이는 방" }));
+  });
+
+  it("should_delete_project_after_confirm_then_reload", async () => {
+    const proj = makeProject({ id: "p1", title: "지울 작품" });
+    const list = vi.fn().mockResolvedValueOnce([proj]).mockResolvedValueOnce([]);
+    const del = vi.fn().mockResolvedValue(true);
+    renderScreen({ list, delete: del });
+
+    fireEvent.click(await screen.findByRole("button", { name: "지울 작품 삭제" }));
+    // 확인 모달이 뜨고, 확정해야 실제 삭제된다(되돌릴 수 없는 작업).
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
+
+    await waitFor(() => expect(del).toHaveBeenCalledWith("p1"));
+    // 삭제 후 목록 재조회 → 0개 → 작업실 입구.
+    expect(await screen.findByText("작업실이 준비됐습니다")).toBeInTheDocument();
+  });
+
+  it("should_not_delete_when_confirm_cancelled", async () => {
+    const proj = makeProject({ id: "p1", title: "지울 작품" });
+    const del = vi.fn().mockResolvedValue(true);
+    renderScreen({ list: vi.fn().mockResolvedValue([proj]), delete: del });
+
+    fireEvent.click(await screen.findByRole("button", { name: "지울 작품 삭제" }));
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+
+    expect(del).not.toHaveBeenCalled();
+    expect(screen.getByText("지울 작품")).toBeInTheDocument();
   });
 
   it("should_show_error_and_retry_when_list_fails", async () => {

@@ -11,6 +11,7 @@ export type ElectronAPI = {
     list: () => Promise<Project[]>;
     get: (id: string) => Promise<Project | null>;
     update: (id: string, patch: UpdateProjectInput) => Promise<Project | null>;
+    delete: (id: string) => Promise<boolean>;
   };
   documents: {
     getByProject: (projectId: string) => Promise<Document | null>;
@@ -33,6 +34,7 @@ export const CHANNELS = {
   projectsList: "projects:list",
   projectsGet: "projects:get",
   projectsUpdate: "projects:update",
+  projectsDelete: "projects:delete",
   documentsGetByProject: "documents:getByProject",
   documentsUpdate: "documents:update",
   memosCreate: "memos:create",

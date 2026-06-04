@@ -9,6 +9,7 @@ const api: ElectronAPI = {
     list: () => ipcRenderer.invoke(CHANNELS.projectsList),
     get: (id) => ipcRenderer.invoke(CHANNELS.projectsGet, id),
     update: (id, patch) => ipcRenderer.invoke(CHANNELS.projectsUpdate, id, patch),
+    delete: (id) => ipcRenderer.invoke(CHANNELS.projectsDelete, id),
   },
   documents: {
     getByProject: (projectId) => ipcRenderer.invoke(CHANNELS.documentsGetByProject, projectId),

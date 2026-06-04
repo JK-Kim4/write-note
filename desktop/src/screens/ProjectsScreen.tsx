@@ -22,6 +22,8 @@ export function ProjectsScreen({ onOpenProject }: Props) {
   const [tone, setTone] = useState("");
   const [showMore, setShowMore] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<ProjectCardView | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const resetForm = () => {
     setTitle("");
@@ -51,6 +53,18 @@ export function ProjectsScreen({ onOpenProject }: Props) {
   const cancelCreate = () => {
     setMode("list");
     resetForm();
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete || deleting) return;
+    setDeleting(true);
+    try {
+      await window.electronAPI.projects.delete(confirmDelete.id);
+      setConfirmDelete(null);
+      await load();
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -220,25 +234,79 @@ export function ProjectsScreen({ onOpenProject }: Props) {
               </div>
               <div className="projects-list">
                 {projects.map((p, i) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className="project-card"
-                    style={{ animationDelay: `${i * 50}ms` }}
-                    onClick={() => onOpenProject(p)}
-                  >
-                    <span className="project-card__title">{p.title}</span>
-                    {p.summaryPreview && <span className="project-card__excerpt">{p.summaryPreview}</span>}
-                    <span className="project-card__date">
-                      마지막 작업 <time>{p.lastEditedLabel}</time>
-                    </span>
-                  </button>
+                  <div key={p.id} className="project-card-wrap" style={{ animationDelay: `${i * 50}ms` }}>
+                    <button
+                      type="button"
+                      className="project-card"
+                      aria-label={`${p.title} 열기`}
+                      onClick={() => onOpenProject(p)}
+                    >
+                      <span className="project-card__title">{p.title}</span>
+                      {p.summaryPreview && <span className="project-card__excerpt">{p.summaryPreview}</span>}
+                      <span className="project-card__date">
+                        마지막 작업 <time>{p.lastEditedLabel}</time>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="project-card__del"
+                      aria-label={`${p.title} 삭제`}
+                      onClick={() => setConfirmDelete(p)}
+                    >
+                      <svg
+                        width="17"
+                        height="17"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" />
+                        <path d="M10 11v6M14 11v6" />
+                      </svg>
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {confirmDelete && (
+        <div className="modal-backdrop" onClick={() => !deleting && setConfirmDelete(null)}>
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="작품 삭제 확인"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal__head">
+              <h2 className="modal__title">작품을 삭제할까요?</h2>
+            </div>
+            <p className="modal__text">
+              ‘{confirmDelete.title}’과 작성한 본문이 영구 삭제됩니다. 되돌릴 수 없습니다.
+            </p>
+            <div className="modal__foot">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => setConfirmDelete(null)}
+                disabled={deleting}
+              >
+                취소
+              </button>
+              <button type="button" className="btn btn--danger" onClick={handleDelete} disabled={deleting}>
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

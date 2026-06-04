@@ -66,6 +66,26 @@ describe("ProjectRepository", () => {
     expect(repo.update(p.id, { genre: "시" })?.genre).toBe("시");
   });
 
+  it("should_delete_project", () => {
+    const p = repo.create({ title: "삭제될 작품" });
+    expect(repo.delete(p.id)).toBe(true);
+    expect(repo.getById(p.id)).toBeNull();
+  });
+
+  it("should_return_false_when_deleting_missing_project", () => {
+    expect(repo.delete("missing")).toBe(false);
+  });
+
+  it("should_cascade_delete_documents_when_project_deleted", () => {
+    const p = repo.create({ title: "T" });
+    db.prepare(
+      "INSERT INTO documents (id, project_id, created_at, updated_at) VALUES (?, ?, ?, ?)",
+    ).run("doc-1", p.id, "2026-01-01T00:00:00.000Z", "2026-01-01T00:00:00.000Z");
+    repo.delete(p.id);
+    const docs = db.prepare("SELECT id FROM documents WHERE project_id = ?").all(p.id);
+    expect(docs).toHaveLength(0);
+  });
+
   it("should_order_by_updated_at_desc_then_created_at_desc", () => {
     const a = repo.create({ title: "A" });
     const b = repo.create({ title: "B" });

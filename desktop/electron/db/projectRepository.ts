@@ -84,6 +84,16 @@ export class ProjectRepository {
     this.db.prepare("UPDATE projects SET updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
   }
 
+  /**
+   * 작품을 삭제한다. 삭제되면 true, 대상이 없으면 false.
+   * FK(documents ON DELETE CASCADE / memos ON DELETE SET NULL)로 본문은 함께 삭제되고
+   * 연결 메모는 연결만 해제된다(PRAGMA foreign_keys = ON).
+   */
+  delete(id: string): boolean {
+    const { changes } = this.db.prepare("DELETE FROM projects WHERE id = ?").run(id);
+    return changes > 0;
+  }
+
   update(id: string, patch: UpdateProjectInput): Project | null {
     const current = this.getById(id);
     if (!current) return null;

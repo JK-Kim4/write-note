@@ -15,6 +15,7 @@ export function registerHandlers(store: Store): void {
   ipcMain.handle(CHANNELS.projectsUpdate, (_e, id: string, patch: UpdateProjectInput) =>
     store.projects.update(id, patch),
   );
+  ipcMain.handle(CHANNELS.projectsDelete, (_e, id: string) => store.projects.delete(id));
 
   ipcMain.handle(CHANNELS.documentsGetByProject, (_e, projectId: string) =>
     store.documents.getByProjectId(projectId),
