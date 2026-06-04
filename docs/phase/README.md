@@ -16,8 +16,8 @@
 | 1 | `01-desktop-scaffold/` | Electron/Vite desktop app 최소 실행 환경 구축 | ✅ 완료 (2026-06-03, PR #27) — Electron shell 결선, 자동화 GREEN, dogfooding 대기 |
 | 2 | `02-local-persistence/` | 로컬 저장 경계와 Project/Document/Memo persistence 확정 | ✅ 완료 (2026-06-03, PR #28) — node:sqlite + repository/IPC, TDD 24 tests |
 | 3 | `03-projects-workspace/` | 프로젝트 생성/선택 workspace 구현 | ✅ 완료 (2026-06-04, merge `5aab0fe`) — 실데이터 결선 + 작품 화면 3상태 craft + genre 확장(schema v1→v2) + preload 회귀 수정. TDD 44 tests + build GREEN |
-| 4 | `04-write-studio-autosave/` | 일반 에디터와 로컬 자동 저장 구현 | 🟡 다음 진입점 |
-| 5 | `05-memo-capture-inbox/` | 빠른 메모 캡처와 inbox 구현 | ⬜ 대기 |
+| 4 | `04-write-studio-autosave/` | 일반 에디터와 로컬 자동 저장 구현 | ✅ 완료 (2026-06-04, develop merge `ee503ab`) — TipTap 본문 결선 + debounce autosave + 자동저장 on/off(⌘S 수동저장·영속) + 줄노트 토글 + IME 조합 guard + 본문 재진입 반영. 추가: 작품 삭제(FK cascade) + Dock→설정 패널. TDD 51 tests + build GREEN |
+| 5 | `05-memo-capture-inbox/` | 빠른 메모 캡처와 inbox 구현 | 🟡 다음 진입점 |
 | 6 | `06-memo-linking-side-panel/` | 메모-프로젝트 연결과 작성 화면 side panel 구현 | ⬜ 대기 |
 | 7 | `07-prototype-usability/` | 실제 사용 가능한 prototype polish | ⬜ 대기 |
 | 8 | `08-mvp-review/` | desktop MVP review gate와 다음 phase 결정 | ⬜ 대기 |
