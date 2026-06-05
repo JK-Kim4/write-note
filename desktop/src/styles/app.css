@@ -555,6 +555,36 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .link-chip:hover { border-color: var(--accent); color: var(--accent-ink); }
 .link-chip--empty { color: var(--muted); border-style: dashed; }
+.inbox-memo__actions { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.inbox-memo__actions .link-chip { margin-left: 0; }
+.inbox-memo__del {
+  width: 28px; height: 28px; display: grid; place-items: center; flex: none;
+  border: none; background: transparent; border-radius: var(--radius-sm);
+  color: var(--faint); opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out), color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
+}
+.inbox-memo:hover .inbox-memo__del { opacity: 1; }
+.inbox-memo__del:hover { color: var(--danger); background: var(--danger-soft); }
+.inbox-memo__del:focus-visible { opacity: 1; box-shadow: 0 0 0 3px var(--danger-soft); }
+.inbox-memo__del:active { transform: scale(0.92); }
+
+/* 되돌리기 토스트 */
+.toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 16px; z-index: 50;
+  background: var(--ink); color: var(--surface);
+  border-radius: var(--radius-pill); padding: 11px 12px 11px 18px;
+  box-shadow: var(--shadow-panel); font-size: 13px;
+  animation: rise var(--dur-enter) var(--ease-out) both;
+}
+.toast__msg { color: inherit; }
+.toast__action {
+  border: none; background: transparent; color: var(--accent);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  padding: 4px 10px; border-radius: var(--radius-sm);
+  transition: background-color var(--dur-micro) var(--ease-out);
+}
+.toast__action:hover { background: rgba(255, 255, 255, 0.12); }
 
 /* 기록 화면 — placeholder */
 .log-empty {
