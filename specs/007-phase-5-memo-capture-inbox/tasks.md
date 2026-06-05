@@ -14,7 +14,7 @@ description: "Task list — Desktop Phase 5 빠른 메모 캡처 + Inbox"
 
 **환경/게이트**: `cd desktop && PATH="$HOME/.nvm/versions/node/v24.14.0/bin:$PATH" node_modules/.bin/{vitest,tsc,vite}` 직접 실행, **포어그라운드**(Node 24.14.0 — 셸 기본이 v20이라 PATH 선행 필수).
 
-**진행 상태(2026-06-05)**: 자동화 영역 전부 GREEN — 14 files / **75 tests**(baseline 51 + 신규 24, 회귀 0) + tsc + vite build 통과. 잔여 = T028(preload smoke, renderer 실행)·T030(dogfooding)·T031(문서)는 사용자 dogfooding 영역.
+**진행 상태(2026-06-05)**: ✅ **완료** — 14 files / **75 tests**(baseline 51 + 신규 24, 회귀 0) + tsc + vite build GREEN + **dogfooding 통과**. develop merge 대기. dogfooding 발견: 집필창 `MemoPanel`(연결 메모 패널)이 더미라 혼란 → 설계상 Phase 6 영역 재확인.
 
 ---
 
@@ -80,17 +80,17 @@ description: "Task list — Desktop Phase 5 빠른 메모 캡처 + Inbox"
 - [X] T025 [P] [US4] `desktop/src/components/Toast.tsx` — 자동 dismiss 타이머 + unmount clearTimeout
 - [X] T026 [US4] `desktop/src/screens/MemoInboxScreen.tsx` — 삭제 버튼 + 낙관적 제거 + `memos.delete` + Toast, 되돌리기 `memos.restore`+재조회(최근 1건 토스트 교체)
 - [X] T027 [US4] `desktop/src/screens/MemoInboxScreen.test.tsx` — 삭제 낙관적 제거 / 되돌리기 restore 호출
-- [ ] T028 [US4] preload smoke(quickstart) — renderer에서 `typeof window.electronAPI.memos.delete/restore === "function"` 1회 확인(agent-workflow §8) — **dogfooding 시 확인**
+- [X] T028 [US4] preload smoke — dogfooding에서 메모 캡처/삭제/되돌리기 IPC가 실동작 → `window.electronAPI.memos.*` 노출 입증(통과)
 
-**Checkpoint**: ✅ 전 User Story 자동화 동작(T028 실행 smoke만 dogfooding 대기)
+**Checkpoint**: ✅ 전 User Story 동작 + dogfooding 통과
 
 ---
 
 ## Phase 7: Polish & Cross-Cutting
 
 - [X] T029 전체 게이트 — vitest(75) + tsc + vite build 포어그라운드, 회귀 0(projectView/schema/ProjectsScreen GREEN 유지)
-- [ ] T030 dogfooding — `quickstart.md` 시나리오 1~10 사용자 확인
-- [ ] T031 [P] 문서 갱신 — 통과 후 vault `02-PROGRESS.md` Phase 5 완료 + Phase 6 진입점 / `docs/desktop-mvp-progress.html` / `docs/phase/05-memo-capture-inbox/README.md`
+- [X] T030 dogfooding — 통과(2026-06-05). 캡처·자동연결·전체/미연결 필터·삭제/되돌리기·실데이터 inbox 정상. ④/⑪ 증상은 집필창 `MemoPanel` 더미(Phase 6) 때문으로 규명 — Phase 5 inbox 정상
+- [X] T031 [P] 문서 갱신 — vault `02-PROGRESS.md`(Phase 5 완료 + Phase 6 진입점) / `docs/desktop-mvp-progress.html` / `docs/phase/README.md` 갱신 완료
 
 ---
 
