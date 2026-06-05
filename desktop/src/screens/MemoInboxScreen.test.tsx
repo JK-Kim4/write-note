@@ -150,6 +150,25 @@ describe("MemoInboxScreen", () => {
     await waitFor(() => expect(addLink).toHaveBeenCalledWith("m1", "p1"));
   });
 
+  it("should_link_optimistically_and_show_chip_without_reload", async () => {
+    const addLink = vi.fn().mockResolvedValue(undefined);
+    // 재조회(list)가 연결을 반영하지 않아도(항상 미연결 반환) optimistic 으로 칩이 즉시 보여야 한다.
+    // 동시에 성공 경로에서 재조회로 칩을 덮어쓰지 않음을 강제(memosList 초기 1회만).
+    const memosList = vi.fn().mockResolvedValue([makeMemo({ id: "m1", linkedProjectIds: [] })]);
+    renderScreen({
+      memosList,
+      projectsList: vi.fn().mockResolvedValue([makeProject({ id: "p1", title: "작품 A" })]),
+      addLink,
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "작품 연결" }));
+    fireEvent.click(await screen.findByRole("button", { name: /작품 A/ }));
+
+    await waitFor(() => expect(addLink).toHaveBeenCalledWith("m1", "p1"));
+    expect(await screen.findByTitle("연결된 작품")).toBeInTheDocument();
+    expect(memosList).toHaveBeenCalledTimes(1);
+  });
+
   it("should_unlink_memo_via_chip", async () => {
     const removeLink = vi.fn().mockResolvedValue(undefined);
     renderScreen({
@@ -161,6 +180,23 @@ describe("MemoInboxScreen", () => {
     fireEvent.click(await screen.findByRole("button", { name: "작품 A 연결 해제" }));
 
     await waitFor(() => expect(removeLink).toHaveBeenCalledWith("m1", "p1"));
+  });
+
+  it("should_unlink_optimistically_and_remove_chip_without_reload", async () => {
+    const removeLink = vi.fn().mockResolvedValue(undefined);
+    // 재조회(list)가 해제를 반영하지 않아도(항상 연결 반환) optimistic 으로 칩이 즉시 사라져야 한다.
+    const memosList = vi.fn().mockResolvedValue([makeMemo({ id: "m1", linkedProjectIds: ["p1"] })]);
+    renderScreen({
+      memosList,
+      projectsList: vi.fn().mockResolvedValue([makeProject({ id: "p1", title: "작품 A" })]),
+      removeLink,
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "작품 A 연결 해제" }));
+
+    await waitFor(() => expect(removeLink).toHaveBeenCalledWith("m1", "p1"));
+    await waitFor(() => expect(screen.queryByText("작품 A")).not.toBeInTheDocument());
+    expect(memosList).toHaveBeenCalledTimes(1);
   });
 
   it("should_unlink_only_selected_project_when_memo_has_multiple", async () => {

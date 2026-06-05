@@ -51,15 +51,40 @@ export function MemoInboxScreen({ refresh, panelOpen, onTogglePanel }: Props) {
     }
   };
 
+  // 낙관적 연결/해제 — IPC 왕복 전에 해당 memo row 를 즉시 갱신(미연결 라벨·칩·미연결 카운트 동시 반영).
+  const applyLinkOptimistic = (memoId: string, projectId: string, next: boolean) => {
+    setMemos(
+      (prev) =>
+        prev?.map((m) => {
+          if (m.id !== memoId) return m;
+          if (!next) return { ...m, linkedProjects: m.linkedProjects.filter((lp) => lp.id !== projectId) };
+          if (m.linkedProjects.some((lp) => lp.id === projectId)) return m;
+          const title = projects.find((p) => p.id === projectId)?.title;
+          if (title === undefined) return m;
+          return { ...m, linkedProjects: [...m.linkedProjects, { id: projectId, title }] };
+        }) ?? null,
+    );
+  };
+
   const handleToggleLink = async (memoId: string, projectId: string, next: boolean) => {
-    if (next) await window.electronAPI.memos.addLink(memoId, projectId);
-    else await window.electronAPI.memos.removeLink(memoId, projectId);
-    await load();
+    applyLinkOptimistic(memoId, projectId, next);
+    try {
+      if (next) await window.electronAPI.memos.addLink(memoId, projectId);
+      else await window.electronAPI.memos.removeLink(memoId, projectId);
+    } catch {
+      // 실패 시 서버 상태로 롤백.
+      await load();
+    }
   };
 
   const handleUnlink = async (memoId: string, projectId: string) => {
-    await window.electronAPI.memos.removeLink(memoId, projectId);
-    await load();
+    applyLinkOptimistic(memoId, projectId, false);
+    try {
+      await window.electronAPI.memos.removeLink(memoId, projectId);
+    } catch {
+      // 실패 시 서버 상태로 롤백.
+      await load();
+    }
   };
 
   const handleDelete = async (id: string) => {
