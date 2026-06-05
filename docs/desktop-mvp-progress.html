@@ -153,19 +153,19 @@ tr:nth-child(even) td { background: #fafbfc; }
 <body>
 
 <h1>Desktop MVP 진행 현황 — write-note</h1>
-<p class="doc-meta">최종 갱신: 2026-06-04 · 트랙: Electron 로컬 우선 데스크탑 앱 · 브랜치: <code>develop</code> (HEAD <code>af96004</code>)</p>
+<p class="doc-meta">최종 갱신: 2026-06-05 · 트랙: Electron 로컬 우선 데스크탑 앱 · 브랜치: <code>007-phase-5-memo-capture-inbox</code> (Phase 5 완료 · dogfooding 통과 · develop merge 대기)</p>
 
 <div class="health health-green">
   <span class="dot">🟢</span>
-  On Track — Phase 1~4 완료(write studio·autosave·줄노트·작품삭제·설정 패널), 다음 Phase 5(메모 캡처). 현재 blocker 없음.
+  On Track — Phase 1~5 완료(메모 캡처·inbox dogfooding 통과 2026-06-05). 다음 Phase 6(메모 연결·side panel). develop merge 대기. 현재 blocker 없음.
 </div>
 
 <div class="summary">
   <h2>요약</h2>
-  <p>WEB(브라우저) 트랙을 멈추고 <strong>로컬 우선 데스크탑 앱(Electron)</strong>으로 피벗한 트랙. 준비 단계(0·0.5)와 구현 Phase 1~4가 완료됐다 — 실데이터 결선·로컬 SQLite 저장·작품 workspace에 더해, <strong>Phase 4에서 집필 에디터 본문 결선 + 자동저장(on/off·수동 ⌘S) + 줄노트 + 한글 IME 안정화 + 작품 삭제 + 설정 패널</strong>까지 동작한다(2026-06-04 dogfooding 통과·develop merge). 다음은 <strong>Phase 5(빠른 메모 캡처 + inbox)</strong>. Phase 7까지 끝나면 "실사용 가능한 프로토타입", Phase 8은 다음 단계 결정 gate다.</p>
+  <p>WEB(브라우저) 트랙을 멈추고 <strong>로컬 우선 데스크탑 앱(Electron)</strong>으로 피벗한 트랙. 준비 단계(0·0.5)와 구현 Phase 1~4가 완료됐다 — 실데이터 결선·로컬 SQLite 저장·작품 workspace에 더해, <strong>Phase 4에서 집필 에디터 본문 결선 + 자동저장(on/off·수동 ⌘S) + 줄노트 + 한글 IME 안정화 + 작품 삭제 + 설정 패널</strong>까지 동작한다(2026-06-04 dogfooding 통과·develop merge). 이어서 <strong>Phase 5(빠른 메모 캡처 + inbox)</strong>가 SDD 풀파이프(작업지시서→specify→plan→tasks→analyze→implement)로 완료됐다(2026-06-05, 브랜치 <code>007</code>, <strong>dogfooding 통과</strong>) — 캡처(모달+inbox 인라인)·자동연결·전체/미연결 필터·soft delete(<code>deleted_at</code> v3)·되돌리기 토스트. TDD 75 tests + tsc + build(회귀 0). 다음은 <strong>Phase 6(메모 연결 + side panel)</strong>. Phase 7까지 끝나면 "실사용 가능한 프로토타입", Phase 8은 다음 단계 결정 gate다.</p>
   <div class="progress-overall">
-    <div class="bar"><span style="width:50%"></span></div>
-    <p class="progress-label">구현 Phase 진척: <strong>1·2·3·4 완료</strong> / 8 (50%) — 준비 단계 0·0.5 별도 완료</p>
+    <div class="bar"><span style="width:62.5%"></span></div>
+    <p class="progress-label">구현 Phase 진척: <strong>1·2·3·4·5 완료</strong> / 8 (62.5%) — 준비 단계 0·0.5 별도 완료</p>
   </div>
 </div>
 
@@ -181,7 +181,7 @@ tr:nth-child(even) td { background: #fafbfc; }
     <tr><td>2</td><td>Local Persistence</td><td>로컬 저장 경계 + Project/Document/Memo</td><td><span class="badge badge-green">✅ 완료</span></td></tr>
     <tr><td>3</td><td>Projects Workspace</td><td>작품 생성·선택·진입 workspace</td><td><span class="badge badge-green">✅ 완료</span></td></tr>
     <tr><td>4</td><td>Write Studio + Autosave</td><td>일반 에디터 + 로컬 자동저장</td><td><span class="badge badge-green">✅ 완료</span></td></tr>
-    <tr><td>5</td><td>Memo Capture + Inbox</td><td>빠른 메모 캡처 + inbox</td><td><span class="badge badge-amber">▶ 다음 진입점</span></td></tr>
+    <tr><td>5</td><td>Memo Capture + Inbox</td><td>빠른 메모 캡처 + inbox</td><td><span class="badge badge-green">✅ 완료</span></td></tr>
     <tr><td>6</td><td>Memo Linking + Side Panel</td><td>메모-작품 연결 + 집필창 side panel</td><td><span class="badge badge-neutral">⬜ 대기</span></td></tr>
     <tr><td>7</td><td>Prototype Usability</td><td>실사용 가능한 프로토타입 polish</td><td><span class="badge badge-neutral">⬜ 대기</span></td></tr>
     <tr><td>8</td><td>MVP Review Gate</td><td>다음 단계·WEB 재개 여부 판정</td><td><span class="badge badge-neutral">⬜ 대기</span></td></tr>
@@ -260,21 +260,24 @@ tr:nth-child(even) td { background: #fafbfc; }
 
 <h2>⬜ 잔여 Phase</h2>
 
-<div class="phase next">
-  <div class="phase-head"><span class="num">Phase 5</span><span class="title">Quick Memo Capture + Inbox</span><span class="badge badge-amber">▶ 다음 진입점</span></div>
-  <p class="phase-goal">떠오른 메모를 빠르게 캡처하고 inbox에서 확인할 수 있게 한다.</p>
+<div class="phase done">
+  <div class="phase-head"><span class="num">Phase 5</span><span class="title">Quick Memo Capture + Inbox</span><span class="badge badge-green">✅ 완료 · dogfooding 통과</span></div>
+  <p class="phase-goal">떠오른 메모를 빠르게 캡처하고 inbox에서 확인할 수 있게 한다. SDD 풀파이프(작업지시서→specify→plan→tasks→analyze→implement)로 진행.</p>
   <dl>
-    <dt>범위</dt>
+    <dt>산출물</dt>
     <dd>
       <ul>
-        <li>앱 내부 quick capture modal/panel — body만 입력하면 저장</li>
-        <li>active project 있으면 기본 연결 / 없으면 unlinked memo로 저장</li>
-        <li>Memo Inbox 화면 + 전체/미연결 최소 필터 + 삭제(숨김) 최소 정책</li>
+        <li><strong>캡처 2진입점</strong>: 빠른 메모 모달(<code>QuickCapture</code> 결선) + inbox 인라인 입력란. body만 저장, 빈값 가드. active project 있으면 자동연결 / 없으면 미연결</li>
+        <li><strong>Inbox</strong>: <code>memos.list</code> 자체 fetch + <code>memoView</code> 매핑, 최신순 표시, 전체/미연결 필터, 연결 작품 제목 표시(<code>projects.list</code> 맵 주입)</li>
+        <li><strong>soft delete</strong>: <code>memos.deleted_at</code>(스키마 v2→v3 ALTER) + <code>softDelete</code>/<code>restore</code> repository + IPC <code>memos.delete</code>/<code>restore</code>. 낙관적 제거 → <strong>되돌리기 토스트</strong>(<code>Toast</code> 신설, 자동 소멸)</li>
+        <li><strong>공용화</strong>: 상대시간 <code>relativeDate</code> 추출(projectView 행위 보존) · App <code>memoRefresh</code> 브리지(모달 캡처 ↔ inbox 재조회)</li>
       </ul>
     </dd>
-    <dt>제외</dt><dd>모바일 캡처 · 전역 단축키 필수 · 태그 · 이유 노트 · 메모 검색 · 다중 프로젝트 연결</dd>
-    <dt>완료 기준</dt><dd>quick capture로 body만 입력해 저장 → inbox 최신순 표시 → active project 캡처는 연결, 없으면 미연결로 남음</dd>
+    <dt>제외</dt><dd>모바일 캡처 · 전역 단축키 필수 · 태그 · 이유 노트 · 메모 검색 · 다중 프로젝트 연결. <strong>연결/해제 동작·Write Studio side panel은 Phase 6</strong></dd>
+    <dt>검증</dt><dd>TDD 14 files <strong>75 tests</strong>(+24, 회귀 0) + tsc + vite build GREEN. analyze A1·C1(active project 정의·인라인 미연결) spec/tasks 반영. <strong>dogfooding 통과(2026-06-05)</strong> — 캡처·자동연결·필터·삭제/되돌리기·실데이터 inbox 정상.</dd>
+    <dt>발견</dt><dd>집필 화면 우측 '연결된 메모' 패널(<code>MemoPanel</code>)이 하드코딩 더미라 작품 연결 캡처가 거기 안 뜨는 혼란 → 설계상 <strong>Phase 6 영역(side panel)으로 명시 분리</strong>됨을 재확인. Phase 5 inbox(메모 화면)는 정상. Phase 6에서 <code>MemoPanel</code> 실데이터 결선 예정.</dd>
   </dl>
+  <p class="meta-line">커밋: 작업지시서 <code>b2abc16</code> · spec/plan/tasks <code>818bff8~72d5f87</code> · 구현 <code>87c92a9</code> · 스타일 <code>e2faa22</code> · 환경: 셸 Node v20 ↔ node:sqlite는 24 필요(<code>PATH</code> 선행)</p>
 </div>
 
 <div class="phase todo">
@@ -330,9 +333,9 @@ tr:nth-child(even) td { background: #fafbfc; }
 
 <h2>다음 단계</h2>
 <ul>
-  <li><strong>Phase 4 착수</strong> — 먼저 Phase 3 이월 2건(<code>project.updated_at</code> 갱신 · WriteStudio 본문 실데이터 결선) 처리 후 TipTap 에디터 결선 + debounce autosave + 저장 상태.</li>
-  <li><strong>한국어 IME 검증</strong> — 에디터 입력 영역 변경이므로 PoC 0-1의 4케이스(빠른 타자/조합 중 mark/한자 변환/Backspace 분해) 재사용 의무.</li>
-  <li><strong>preload smoke test</strong> — renderer가 IPC를 새로 호출하면 <code>window.electronAPI</code> 존재 1회 확인(agent-workflow §8).</li>
+  <li><strong>develop merge</strong> — Phase 5 dogfooding 통과(2026-06-05). <code>007-phase-5-memo-capture-inbox</code> 브랜치를 develop에 통합.</li>
+  <li><strong>Phase 6</strong>(Project Memo Linking + Studio Side Panel) — inbox 연결/해제 UI(<code>memos.link</code> 결선) + 집필창 <code>MemoPanel</code> 실데이터 결선(Phase 5 dogfooding에서 더미로 혼란 확인된 그 패널을 현재 작품 연결 메모로 결선).</li>
+  <li><strong>회고</strong> — Phase 5 SDD 풀파이프 + 더미 패널 스코프 혼란 교훈 5축 회고 누적.</li>
 </ul>
 
 <div class="callout callout-info">

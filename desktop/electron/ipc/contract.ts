@@ -21,6 +21,8 @@ export type ElectronAPI = {
     create: (input: CreateMemoInput) => Promise<Memo>;
     list: () => Promise<Memo[]>;
     link: (id: string, projectId: string | null) => Promise<Memo | null>;
+    delete: (id: string) => Promise<boolean>;
+    restore: (id: string) => Promise<Memo | null>;
   };
   settings: {
     get: (key: string) => Promise<string | null>;
@@ -40,6 +42,8 @@ export const CHANNELS = {
   memosCreate: "memos:create",
   memosList: "memos:list",
   memosLink: "memos:link",
+  memosDelete: "memos:delete",
+  memosRestore: "memos:restore",
   settingsGet: "settings:get",
   settingsSet: "settings:set",
 } as const;
