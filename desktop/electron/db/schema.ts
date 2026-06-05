@@ -1,11 +1,11 @@
 import type { DatabaseSync } from "node:sqlite";
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 /**
  * 엔티티 테이블을 생성하고, 기존 DB 는 버전에 맞춰 올린다(설계 §데이터 모델).
  * 신규 DB 는 IF NOT EXISTS 로 최신 스키마, 기존 DB 는 user_version 기준 ALTER.
- * v2: projects.genre 추가.
+ * v2: projects.genre 추가. v3: memos.deleted_at 추가(soft delete).
  */
 export function migrate(db: DatabaseSync): void {
   db.exec(`
@@ -38,7 +38,8 @@ export function migrate(db: DatabaseSync): void {
       source            TEXT NOT NULL DEFAULT 'app',
       linked_project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
       created_at        TEXT NOT NULL,
-      updated_at        TEXT NOT NULL
+      updated_at        TEXT NOT NULL,
+      deleted_at        TEXT
     ) STRICT;
 
     CREATE TABLE IF NOT EXISTS app_settings (
@@ -53,6 +54,12 @@ export function migrate(db: DatabaseSync): void {
     const cols = db.prepare("PRAGMA table_info(projects)").all() as Array<{ name: string }>;
     if (!cols.some((c) => c.name === "genre")) {
       db.exec("ALTER TABLE projects ADD COLUMN genre TEXT NOT NULL DEFAULT ''");
+    }
+  }
+  if (version < 3) {
+    const cols = db.prepare("PRAGMA table_info(memos)").all() as Array<{ name: string }>;
+    if (!cols.some((c) => c.name === "deleted_at")) {
+      db.exec("ALTER TABLE memos ADD COLUMN deleted_at TEXT");
     }
   }
 

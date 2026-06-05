@@ -9,8 +9,11 @@ export type Screen = "projects" | "write" | "memo" | "log";
 export type InboxMemo = {
   id: string;
   body: string;
-  date: string;
-  linkedProject: string | null;
+  /** capturedAt → "오늘/어제/N일 전/N주 전" 상대 라벨 */
+  dateLabel: string;
+  linkedProjectId: string | null;
+  /** 연결된 작품 제목. 미연결이거나 작품이 사라졌으면 null */
+  linkedProjectTitle: string | null;
 };
 
 export type Memo = {

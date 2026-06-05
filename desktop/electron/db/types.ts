@@ -30,4 +30,6 @@ export type Memo = {
   linkedProjectId: string | null;
   createdAt: string;
   updatedAt: string;
+  /** soft delete 표식. null = 미삭제, ISO = 삭제 시각. list() 에서 제외된다. */
+  deletedAt: string | null;
 };

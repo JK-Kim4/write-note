@@ -26,6 +26,8 @@ export function App() {
   const [memos] = useState<MemoState>("loaded");
   const [panelOpen, setPanelOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
+  // 모달 캡처가 화면 밖(App)에 있으므로, 캡처 성공 시 이 카운터를 올려 inbox 재조회를 유도한다.
+  const [memoRefresh, setMemoRefresh] = useState(0);
   // 선택된 작품 + 그 작품의 document(본문). 작품 선택 시 IPC 로 로드한다.
   const [activeProject, setActiveProject] = useState<{ id: string; title: string } | null>(null);
   const [activeDoc, setActiveDoc] = useState<{ id: string; bodyJson: string; editorKey: string } | null>(null);
@@ -156,11 +158,19 @@ export function App() {
           onTogglePanel={togglePanel}
         />
       )}
-      {screen === "memo" && <MemoInboxScreen panelOpen={panelOpen} onTogglePanel={togglePanel} />}
+      {screen === "memo" && (
+        <MemoInboxScreen refresh={memoRefresh} panelOpen={panelOpen} onTogglePanel={togglePanel} />
+      )}
       {screen === "log" && <LogScreen panelOpen={panelOpen} onTogglePanel={togglePanel} />}
 
       <Dock theme={theme} setTheme={setTheme} autoSave={autoSave} setAutoSave={setAutoSave} />
-      {captureOpen && <QuickCapture onClose={() => setCaptureOpen(false)} />}
+      {captureOpen && (
+        <QuickCapture
+          activeProjectId={activeProject?.id ?? null}
+          onClose={() => setCaptureOpen(false)}
+          onCaptured={() => setMemoRefresh((n) => n + 1)}
+        />
+      )}
     </div>
   );
 }

@@ -29,6 +29,8 @@ export function registerHandlers(store: Store): void {
   ipcMain.handle(CHANNELS.memosLink, (_e, id: string, projectId: string | null) =>
     store.memos.link(id, projectId),
   );
+  ipcMain.handle(CHANNELS.memosDelete, (_e, id: string) => store.memos.softDelete(id));
+  ipcMain.handle(CHANNELS.memosRestore, (_e, id: string) => store.memos.restore(id));
 
   ipcMain.handle(CHANNELS.settingsGet, (_e, key: string) => store.settings.get(key));
   ipcMain.handle(CHANNELS.settingsSet, (_e, key: string, value: string) => store.settings.set(key, value));

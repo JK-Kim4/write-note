@@ -19,6 +19,8 @@ const api: ElectronAPI = {
     create: (input) => ipcRenderer.invoke(CHANNELS.memosCreate, input),
     list: () => ipcRenderer.invoke(CHANNELS.memosList),
     link: (id, projectId) => ipcRenderer.invoke(CHANNELS.memosLink, id, projectId),
+    delete: (id) => ipcRenderer.invoke(CHANNELS.memosDelete, id),
+    restore: (id) => ipcRenderer.invoke(CHANNELS.memosRestore, id),
   },
   settings: {
     get: (key) => ipcRenderer.invoke(CHANNELS.settingsGet, key),
