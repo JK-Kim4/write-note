@@ -1,6 +1,6 @@
 # 프로젝트 상태 — Active Track
 
-**최종 갱신:** 2026-06-04
+**최종 갱신:** 2026-06-06
 
 > 이 문서는 repository를 처음 보는 사람이 "지금 무엇이 active track인지" 한 번에 알 수 있게 하는 단일 진입점이다.
 
@@ -11,7 +11,7 @@
 
 | 트랙 | 상태 | 위치 |
 |---|---|---|
-| **Desktop MVP** | 🟢 **ACTIVE** | `desktop/` (Phase 4 완료 — write studio·autosave, 다음 Phase 5) |
+| **Desktop MVP** | 🟢 **ACTIVE** | `desktop/` (Phase 6 완료 — 메모↔작품 연결·집필 사이드 패널, 다음 Phase 7) |
 | WEB frontend | ⏸️ paused | `frontend/` (보존, 기능 수정 안 함) |
 | WEB backend | ⏸️ paused | `backend/` (보존, 기능 수정 안 함) |
 
@@ -36,9 +36,9 @@
 | 2 | 로컬 persistence (Project/Document/Memo) | ✅ **완료** (2026-06-03, PR #28) — **`node:sqlite`**(Node 24 내장, better-sqlite3 대체로 네이티브 모듈 함정 제거) + 4테이블 + repository/Store + IPC 경계. TDD 24 tests, dev 실측 `.db`+WAL 생성. renderer DB 직접접근 차단 |
 | 3 | Projects workspace | ✅ **완료** (2026-06-04, merge `5aab0fe`) — renderer 실데이터 결선(`window.electronAPI.projects.list/create`) + 작품 화면 3상태 craft + genre 확장(schema v1→v2) + preload 회귀 수정(sandbox:true). TDD 44 tests + build GREEN |
 | 4 | Write Studio + 일반 에디터 autosave | ✅ **완료** (2026-06-04, develop merge `ee503ab`) — TipTap 본문 결선 + debounce autosave + **자동저장 on/off**(off 시 ⌘S·저장 버튼 수동 저장, app_settings 영속) + **줄노트 토글** + **IME 조합 guard**(composing 중 부모 갱신 skip) + 본문 재진입 반영(editorKey remount). **추가**: 작품 삭제(FK cascade) + Dock→설정 패널 전환 |
-| 5 | Quick memo capture + inbox | 🟡 **다음 진입점** — 앱 내 quick capture + inbox(전체/미연결 필터) |
-| 6 | 메모-프로젝트 연결 + studio side panel | ⬜ 대기 |
-| 7 | Prototype usability pass | ⬜ 대기 |
+| 5 | Quick memo capture + inbox | ✅ **완료** (2026-06-05, merge `386aac1`) — quick capture(모달+인라인) + inbox(전체/미연결 필터) + soft delete·되돌리기 토스트 |
+| 6 | 메모-프로젝트 연결 + studio side panel | ✅ **완료** (2026-06-06, merge `aad06d7` + fix `ee19683`) — 메모↔작품 **다대다 연결**(연결 테이블 `memo_projects`, 스키마 v4) + Inbox 연결 버튼·체크리스트 팝오버·칩 복수/✕ + 집필 사이드 패널 실데이터·패널 내 해제. TDD vitest 100 GREEN. **dogfooding 통과** |
+| 7 | Prototype usability pass | 🟡 **다음 진입점** |
 | 8 | Desktop MVP review gate | ⬜ 대기 |
 
 > Phase 7까지 완료되면 "사용 가능한 데스크탑 프로토타입"으로 판정한다. Phase 8은 의사결정 gate다.
