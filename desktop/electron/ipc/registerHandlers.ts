@@ -2,7 +2,7 @@ import { ipcMain } from "electron";
 import type { Store } from "../db/store";
 import type { CreateProjectInput, UpdateProjectInput } from "../db/projectRepository";
 import type { UpdateDocumentInput } from "../db/documentRepository";
-import type { CreateMemoInput } from "../db/memoRepository";
+import type { CaptureMemoInput } from "../db/store";
 import { CHANNELS } from "./contract";
 
 /** Store 를 ipcMain.handle 채널로 노출한다. renderer 는 preload 를 통해서만 접근한다. */
@@ -24,10 +24,16 @@ export function registerHandlers(store: Store): void {
     store.updateDocument(id, patch),
   );
 
-  ipcMain.handle(CHANNELS.memosCreate, (_e, input: CreateMemoInput) => store.memos.create(input));
+  ipcMain.handle(CHANNELS.memosCreate, (_e, input: CaptureMemoInput) => store.captureMemo(input));
   ipcMain.handle(CHANNELS.memosList, () => store.memos.list());
-  ipcMain.handle(CHANNELS.memosLink, (_e, id: string, projectId: string | null) =>
-    store.memos.link(id, projectId),
+  ipcMain.handle(CHANNELS.memosListByProject, (_e, projectId: string) =>
+    store.memos.listByProject(projectId),
+  );
+  ipcMain.handle(CHANNELS.memosAddLink, (_e, memoId: string, projectId: string) =>
+    store.memos.addLink(memoId, projectId),
+  );
+  ipcMain.handle(CHANNELS.memosRemoveLink, (_e, memoId: string, projectId: string) =>
+    store.memos.removeLink(memoId, projectId),
   );
   ipcMain.handle(CHANNELS.memosDelete, (_e, id: string) => store.memos.softDelete(id));
   ipcMain.handle(CHANNELS.memosRestore, (_e, id: string) => store.memos.restore(id));

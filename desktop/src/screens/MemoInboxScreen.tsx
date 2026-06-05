@@ -2,18 +2,22 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Titlebar } from "../components/Titlebar";
 import { PanelToggle } from "../components/PanelToggle";
 import { Toast } from "../components/Toast";
+import { LinkPopover } from "../components/LinkPopover";
 import { toInboxMemoView } from "../lib/memoView";
-import type { InboxMemo } from "../types";
+import type { InboxMemo, LinkedProject } from "../types";
 
 type Filter = "all" | "unlinked";
 type Props = { refresh: number; panelOpen: boolean; onTogglePanel: () => void };
 
-/** 메모 화면 — 캡처한 메모 모음 + 필터 + soft delete(좌), 메모 현황(우측 토글). */
+/** 메모 화면 — 캡처한 메모 모음 + 필터 + 작품 연결/해제 + soft delete(좌), 메모 현황(우측 토글). */
 export function MemoInboxScreen({ refresh, panelOpen, onTogglePanel }: Props) {
   const [memos, setMemos] = useState<InboxMemo[] | null>(null);
+  const [projects, setProjects] = useState<LinkedProject[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [draft, setDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // 연결 팝오버가 열린 메모 id (한 번에 하나).
+  const [linkMenuFor, setLinkMenuFor] = useState<string | null>(null);
   // 가장 최근 삭제 1건 — 되돌리기 대상. number 는 토스트 remount key.
   const [pendingDelete, setPendingDelete] = useState<{ id: string; seq: number } | null>(null);
 
@@ -24,6 +28,7 @@ export function MemoInboxScreen({ refresh, panelOpen, onTogglePanel }: Props) {
     ]);
     const titleById = new Map(projectRows.map((p) => [p.id, p.title]));
     const now = new Date();
+    setProjects(projectRows.map((p) => ({ id: p.id, title: p.title })));
     setMemos(memoRows.map((m) => toInboxMemoView(m, titleById, now)));
   }, []);
 
@@ -38,12 +43,23 @@ export function MemoInboxScreen({ refresh, panelOpen, onTogglePanel }: Props) {
     setSubmitting(true);
     try {
       // inbox 인라인 캡처는 정리 공간 입력이라 미연결로 저장(설계 ui-components.md).
-      await window.electronAPI.memos.create({ body: draft.trim(), linkedProjectId: null });
+      await window.electronAPI.memos.create({ body: draft.trim(), linkProjectId: null });
       setDraft("");
       await load();
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleToggleLink = async (memoId: string, projectId: string, next: boolean) => {
+    if (next) await window.electronAPI.memos.addLink(memoId, projectId);
+    else await window.electronAPI.memos.removeLink(memoId, projectId);
+    await load();
+  };
+
+  const handleUnlink = async (memoId: string, projectId: string) => {
+    await window.electronAPI.memos.removeLink(memoId, projectId);
+    await load();
   };
 
   const handleDelete = async (id: string) => {
@@ -62,9 +78,10 @@ export function MemoInboxScreen({ refresh, panelOpen, onTogglePanel }: Props) {
 
   const dismissToast = useCallback(() => setPendingDelete(null), []);
 
-  const shown = memos === null ? [] : filter === "all" ? memos : memos.filter((m) => !m.linkedProjectId);
+  const shown =
+    memos === null ? [] : filter === "all" ? memos : memos.filter((m) => m.linkedProjects.length === 0);
   const total = memos?.length ?? 0;
-  const unlinked = memos?.filter((m) => !m.linkedProjectId).length ?? 0;
+  const unlinked = memos?.filter((m) => m.linkedProjects.length === 0).length ?? 0;
 
   return (
     <div className="main">
@@ -98,16 +115,44 @@ export function MemoInboxScreen({ refresh, panelOpen, onTogglePanel }: Props) {
                   <div className="inbox-memo__foot">
                     <span className="inbox-memo__date">{m.dateLabel}</span>
                     <div className="inbox-memo__actions">
-                      {m.linkedProjectTitle ? (
-                        <span className="link-chip" title="연결된 작품">
-                          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M9 12h6M10 7H8a4 4 0 0 0 0 8h2M14 7h2a4 4 0 0 1 0 8h-2" />
-                          </svg>
-                          {m.linkedProjectTitle}
-                        </span>
+                      {m.linkedProjects.length > 0 ? (
+                        m.linkedProjects.map((lp) => (
+                          <span key={lp.id} className="link-chip" title="연결된 작품">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M9 12h6M10 7H8a4 4 0 0 0 0 8h2M14 7h2a4 4 0 0 1 0 8h-2" />
+                            </svg>
+                            {lp.title}
+                            <button
+                              type="button"
+                              className="link-chip__x"
+                              aria-label={`${lp.title} 연결 해제`}
+                              onClick={() => void handleUnlink(m.id, lp.id)}
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        ))
                       ) : (
                         <span className="link-chip link-chip--empty">미연결</span>
                       )}
+                      <div className="link-anchor">
+                        <button
+                          type="button"
+                          className="memo-link-btn"
+                          aria-label="작품 연결"
+                          onClick={() => setLinkMenuFor((cur) => (cur === m.id ? null : m.id))}
+                        >
+                          연결
+                        </button>
+                        {linkMenuFor === m.id && (
+                          <LinkPopover
+                            projects={projects}
+                            linkedProjectIds={m.linkedProjects.map((lp) => lp.id)}
+                            onToggle={(pid, next) => void handleToggleLink(m.id, pid, next)}
+                            onClose={() => setLinkMenuFor(null)}
+                          />
+                        )}
+                      </div>
                       <button
                         type="button"
                         className="inbox-memo__del"

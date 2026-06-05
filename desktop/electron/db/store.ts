@@ -3,7 +3,14 @@ import { ProjectRepository, type CreateProjectInput } from "./projectRepository"
 import { DocumentRepository, type UpdateDocumentInput } from "./documentRepository";
 import { MemoRepository } from "./memoRepository";
 import { SettingRepository } from "./settingRepository";
-import type { Document, Project } from "./types";
+import type { Document, Memo, Project } from "./types";
+
+export type CaptureMemoInput = {
+  body: string;
+  source?: string;
+  /** 있으면 캡처와 동시에 그 작품에 연결(active 작품 자동연결). 없으면 미연결. */
+  linkProjectId?: string | null;
+};
 
 /** repository 들을 묶고 여러 테이블에 걸친 use-case 를 제공하는 진입점. */
 export class Store {
@@ -27,6 +34,22 @@ export class Store {
       const document = this.documents.create({ projectId: project.id });
       this.db.exec("COMMIT");
       return { project, document };
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
+  /** 메모를 생성하고, linkProjectId 가 있으면 그 작품 연결을 한 트랜잭션으로 만든다(부분 실패 방지). */
+  captureMemo(input: CaptureMemoInput): Memo {
+    this.db.exec("BEGIN");
+    try {
+      const memo = this.memos.create({ body: input.body, source: input.source });
+      if (input.linkProjectId) {
+        this.memos.addLink(memo.id, input.linkProjectId);
+      }
+      this.db.exec("COMMIT");
+      return { ...memo, linkedProjectIds: input.linkProjectId ? [input.linkProjectId] : [] };
     } catch (error) {
       this.db.exec("ROLLBACK");
       throw error;
