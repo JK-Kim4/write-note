@@ -568,6 +568,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .inbox-memo__del:focus-visible { opacity: 1; box-shadow: 0 0 0 3px var(--danger-soft); }
 .inbox-memo__del:active { transform: scale(0.92); }
 .inbox-memo__actions { flex-wrap: wrap; justify-content: flex-end; }
+/* 연결 팝오버가 열린 카드를 형제 카드 위로 — 팝오버가 다음 카드 뒤로 깔리지 않게(backdrop z40 위). */
+.inbox-memo.is-linking { z-index: 45; }
 
 /* 연결 칩 해제 ✕ */
 .link-chip__x {

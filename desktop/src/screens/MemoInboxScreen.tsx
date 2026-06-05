@@ -110,7 +110,11 @@ export function MemoInboxScreen({ refresh, panelOpen, onTogglePanel }: Props) {
 
             <div className="memo-list">
               {shown.map((m, i) => (
-                <article key={m.id} className="inbox-memo" style={{ animationDelay: `${40 + i * 45}ms` }}>
+                <article
+                  key={m.id}
+                  className={linkMenuFor === m.id ? "inbox-memo is-linking" : "inbox-memo"}
+                  style={{ animationDelay: `${40 + i * 45}ms` }}
+                >
                   <p className="inbox-memo__body">{m.body}</p>
                   <div className="inbox-memo__foot">
                     <span className="inbox-memo__date">{m.dateLabel}</span>

@@ -72,10 +72,11 @@ export function App() {
     };
   }, [activeProject]);
 
-  // 현재 작품 연결 메모 로드(집필 패널). 캡처/연결 변경(memoRefresh) 시에도 재조회(FR-009).
+  // 현재 작품 연결 메모 로드(집필 패널). 캡처/연결 변경(memoRefresh) + 집필 화면 진입(screen) 시 재조회(FR-009).
+  // screen 을 의존에 넣어, 메모 화면에서 연결을 바꾼 뒤 레일로 집필에 들어와도 패널이 최신 상태를 반영한다.
   useEffect(() => {
-    if (!activeProject) {
-      setPanelMemos([]);
+    if (!activeProject || screen !== "write") {
+      if (!activeProject) setPanelMemos([]);
       return;
     }
     let cancelled = false;
@@ -90,7 +91,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [activeProject, memoRefresh]);
+  }, [activeProject, memoRefresh, screen]);
 
   // 패널 내 빠른 해제 — 현재 작품과의 연결만 끊고 패널 즉시 갱신.
   const handlePanelUnlink = useCallback(
