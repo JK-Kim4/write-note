@@ -135,7 +135,7 @@ timeout / cap 룰은 글로벌 [`~/.claude/rules/shared/long-running-bash.md`](f
 <!-- SPECKIT START -->
 Current implementation plan:
 
-- [006 에디터·원고지 + 메모 캡처 (Week 3+4 통합)](specs/006-phase-3-4-editor-memo/plan.md)
+- [007 빠른 메모 캡처 + Inbox (Desktop Phase 5)](specs/007-phase-5-memo-capture-inbox/plan.md)
 
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan above.
