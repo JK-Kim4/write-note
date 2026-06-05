@@ -27,7 +27,8 @@ export type Memo = {
   body: string;
   capturedAt: string;
   source: string;
-  linkedProjectId: string | null;
+  /** 연결된 작품 id 목록(다대다). 미연결이면 빈 배열. memo_projects 조인으로 채워지는 읽기용 집계. */
+  linkedProjectIds: string[];
   createdAt: string;
   updatedAt: string;
   /** soft delete 표식. null = 미삭제, ISO = 삭제 시각. list() 에서 제외된다. */

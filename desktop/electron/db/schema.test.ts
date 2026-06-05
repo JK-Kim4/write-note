@@ -76,4 +76,61 @@ describe("migrate", () => {
     expect(row.body).toBe("옛 메모");
     expect(row.deleted_at).toBeNull();
   });
+
+  it("should_create_memo_projects_and_drop_linked_project_id_on_fresh_db", () => {
+    const db = new DatabaseSync(":memory:");
+    migrate(db);
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[];
+    expect(tables.some((t) => t.name === "memo_projects")).toBe(true);
+    const memoCols = db.prepare("PRAGMA table_info(memos)").all() as ColumnInfo[];
+    expect(memoCols.some((c) => c.name === "linked_project_id")).toBe(false);
+    const cols = db.prepare("PRAGMA table_info(memo_projects)").all() as ColumnInfo[];
+    expect(cols.map((c) => c.name).sort()).toEqual(["created_at", "memo_id", "project_id"]);
+  });
+
+  it("should_migrate_legacy_v3_single_link_into_memo_projects_and_drop_column", () => {
+    const db = new DatabaseSync(":memory:");
+    // v3 스키마(memos.linked_project_id 단일 연결 + deleted_at) 재현 — 기존 사용자 .db.
+    db.exec(`
+      CREATE TABLE projects (
+        id TEXT PRIMARY KEY, title TEXT NOT NULL, summary TEXT NOT NULL DEFAULT '',
+        tone TEXT NOT NULL DEFAULT '', genre TEXT NOT NULL DEFAULT '', target_length INTEGER,
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+      ) STRICT;
+      CREATE TABLE memos (
+        id TEXT PRIMARY KEY, body TEXT NOT NULL, captured_at TEXT NOT NULL,
+        source TEXT NOT NULL DEFAULT 'app',
+        linked_project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT
+      ) STRICT;
+      PRAGMA user_version = 3;
+    `);
+    db.prepare("INSERT INTO projects (id, title, created_at, updated_at) VALUES (?, ?, ?, ?)").run(
+      "p1",
+      "옛 작품",
+      "2026-01-01T00:00:00.000Z",
+      "2026-01-01T00:00:00.000Z",
+    );
+    db.prepare(
+      "INSERT INTO memos (id, body, captured_at, source, linked_project_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    ).run("m1", "연결 메모", "2026-01-02T00:00:00.000Z", "app", "p1", "2026-01-02T00:00:00.000Z", "2026-01-02T00:00:00.000Z");
+    db.prepare(
+      "INSERT INTO memos (id, body, captured_at, source, linked_project_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    ).run("m2", "미연결 메모", "2026-01-02T00:00:00.000Z", "app", null, "2026-01-02T00:00:00.000Z", "2026-01-02T00:00:00.000Z");
+
+    migrate(db);
+
+    // 단일 연결이 연결 행으로 보존 이관(SC-006)
+    const links = db.prepare("SELECT memo_id, project_id FROM memo_projects").all() as {
+      memo_id: string;
+      project_id: string;
+    }[];
+    expect(links).toEqual([{ memo_id: "m1", project_id: "p1" }]);
+    // 컬럼 제거 + 버전 상승
+    const memoCols = db.prepare("PRAGMA table_info(memos)").all() as ColumnInfo[];
+    expect(memoCols.some((c) => c.name === "linked_project_id")).toBe(false);
+    expect((db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version).toBe(4);
+    // 메모 본문 보존
+    expect((db.prepare("SELECT body FROM memos WHERE id='m1'").get() as { body: string }).body).toBe("연결 메모");
+  });
 });

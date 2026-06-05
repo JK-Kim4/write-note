@@ -4,7 +4,7 @@ import { Editor } from "../components/Editor";
 import { MemoPanel } from "../components/MemoPanel";
 import { PanelToggle } from "../components/PanelToggle";
 import { ZoomControl } from "../components/ZoomControl";
-import type { DocumentChange, MemoState, SaveState } from "../types";
+import type { DocumentChange, InboxMemo, SaveState } from "../types";
 
 function saveLabel(save: SaveState, count: number): string {
   if (save === "saving") return "저장 중…";
@@ -22,7 +22,11 @@ type Props = {
   initialBodyJson: string;
   save: SaveState;
   count: number;
-  memos: MemoState;
+  /** 현재 작품에 연결된 메모(집필 패널). */
+  memos: InboxMemo[];
+  memosLoading: boolean;
+  /** 패널 내 연결 해제. */
+  onUnlinkMemo: (memoId: string) => void;
   /** 자동저장 on/off — off 면 수동 저장 버튼을 노출한다. */
   autoSave: boolean;
   onChange: (change: DocumentChange) => void;
@@ -40,6 +44,8 @@ export function WriteStudioScreen({
   save,
   count,
   memos,
+  memosLoading,
+  onUnlinkMemo,
   autoSave,
   onChange,
   onSaveNow,
@@ -94,7 +100,7 @@ export function WriteStudioScreen({
           onChange={onChange}
           lined={lined}
         />
-        {panelOpen && <MemoPanel state={memos} />}
+        {panelOpen && <MemoPanel memos={memos} loading={memosLoading} onUnlink={onUnlinkMemo} />}
       </div>
     </div>
   );

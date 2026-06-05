@@ -1,7 +1,7 @@
 import type { Document, Memo, Project } from "../db/types";
 import type { CreateProjectInput, UpdateProjectInput } from "../db/projectRepository";
 import type { UpdateDocumentInput } from "../db/documentRepository";
-import type { CreateMemoInput } from "../db/memoRepository";
+import type { CaptureMemoInput } from "../db/store";
 
 /** renderer 에 노출되는 IPC API 계약. preload 와 renderer 타입(global.d.ts)이 공유한다. */
 export type ElectronAPI = {
@@ -18,9 +18,11 @@ export type ElectronAPI = {
     update: (id: string, patch: UpdateDocumentInput) => Promise<Document | null>;
   };
   memos: {
-    create: (input: CreateMemoInput) => Promise<Memo>;
+    create: (input: CaptureMemoInput) => Promise<Memo>;
     list: () => Promise<Memo[]>;
-    link: (id: string, projectId: string | null) => Promise<Memo | null>;
+    listByProject: (projectId: string) => Promise<Memo[]>;
+    addLink: (memoId: string, projectId: string) => Promise<void>;
+    removeLink: (memoId: string, projectId: string) => Promise<void>;
     delete: (id: string) => Promise<boolean>;
     restore: (id: string) => Promise<Memo | null>;
   };
@@ -41,7 +43,9 @@ export const CHANNELS = {
   documentsUpdate: "documents:update",
   memosCreate: "memos:create",
   memosList: "memos:list",
-  memosLink: "memos:link",
+  memosListByProject: "memos:listByProject",
+  memosAddLink: "memos:addLink",
+  memosRemoveLink: "memos:removeLink",
   memosDelete: "memos:delete",
   memosRestore: "memos:restore",
   settingsGet: "settings:get",

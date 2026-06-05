@@ -6,7 +6,8 @@ import { WriteStudioScreen } from "./screens/WriteStudioScreen";
 import { ProjectsScreen } from "./screens/ProjectsScreen";
 import { MemoInboxScreen } from "./screens/MemoInboxScreen";
 import { LogScreen } from "./screens/LogScreen";
-import type { DocumentChange, MemoState, SaveState, Screen, Theme } from "./types";
+import { toInboxMemoView } from "./lib/memoView";
+import type { DocumentChange, InboxMemo, SaveState, Screen, Theme } from "./types";
 
 const AUTOSAVE_DELAY_MS = 700;
 
@@ -23,7 +24,9 @@ export function App() {
   const [save, setSave] = useState<SaveState>("saved");
   const [count, setCount] = useState(0);
   const [autoSave, setAutoSaveState] = useState(true);
-  const [memos] = useState<MemoState>("loaded");
+  // 현재 작품에 연결된 메모(집필 패널). activeProject/memoRefresh 변화 시 재조회.
+  const [panelMemos, setPanelMemos] = useState<InboxMemo[]>([]);
+  const [panelLoading, setPanelLoading] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
   // 모달 캡처가 화면 밖(App)에 있으므로, 캡처 성공 시 이 카운터를 올려 inbox 재조회를 유도한다.
@@ -68,6 +71,35 @@ export function App() {
       cancelled = true;
     };
   }, [activeProject]);
+
+  // 현재 작품 연결 메모 로드(집필 패널). 캡처/연결 변경(memoRefresh) 시에도 재조회(FR-009).
+  useEffect(() => {
+    if (!activeProject) {
+      setPanelMemos([]);
+      return;
+    }
+    let cancelled = false;
+    setPanelLoading(true);
+    void window.electronAPI.memos.listByProject(activeProject.id).then((rows) => {
+      if (cancelled) return;
+      const now = new Date();
+      // 패널은 현재 작품이 자명하므로 작품명 칩을 표시하지 않는다(연결 제목 맵 불요).
+      setPanelMemos(rows.map((m) => toInboxMemoView(m, new Map(), now)));
+      setPanelLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProject, memoRefresh]);
+
+  // 패널 내 빠른 해제 — 현재 작품과의 연결만 끊고 패널 즉시 갱신.
+  const handlePanelUnlink = useCallback(
+    (memoId: string) => {
+      if (!activeProject) return;
+      void window.electronAPI.memos.removeLink(memoId, activeProject.id).then(() => setMemoRefresh((n) => n + 1));
+    },
+    [activeProject],
+  );
 
   // 실제 저장 — IPC update + 저장본을 activeDoc 에 반영(remount 시 최신 본문이 초기값이 되도록).
   const performSave = useCallback((docId: string, change: DocumentChange) => {
@@ -150,7 +182,9 @@ export function App() {
           initialBodyJson={activeDoc?.bodyJson ?? ""}
           save={save}
           count={count}
-          memos={memos}
+          memos={panelMemos}
+          memosLoading={panelLoading}
+          onUnlinkMemo={handlePanelUnlink}
           autoSave={autoSave}
           onChange={handleChange}
           onSaveNow={saveNow}

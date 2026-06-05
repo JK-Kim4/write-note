@@ -30,7 +30,7 @@ export function QuickCapture({ activeProjectId, onClose, onCaptured }: Props) {
     if (!canSave) return;
     setSaving(true);
     try {
-      await window.electronAPI.memos.create({ body: body.trim(), linkedProjectId: activeProjectId });
+      await window.electronAPI.memos.create({ body: body.trim(), linkProjectId: activeProjectId });
       onCaptured();
       onClose();
     } finally {

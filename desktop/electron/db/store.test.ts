@@ -50,4 +50,24 @@ describe("Store", () => {
 
     expect(store.projects.getById(project.id)?.updatedAt).not.toBe(past);
   });
+
+  it("should_capture_memo_and_link_to_project_atomically", () => {
+    const { project } = store.createProjectWithDocument({ title: "작품" });
+    const memo = store.captureMemo({ body: "현재 작품 메모", linkProjectId: project.id });
+    expect(memo.body).toBe("현재 작품 메모");
+    expect(memo.linkedProjectIds).toEqual([project.id]);
+    expect(store.memos.listByProject(project.id).map((m) => m.id)).toEqual([memo.id]);
+  });
+
+  it("should_capture_unlinked_memo_when_no_project_given", () => {
+    const memo = store.captureMemo({ body: "미연결 메모" });
+    expect(memo.linkedProjectIds).toEqual([]);
+    expect(store.memos.list().map((m) => m.id)).toContain(memo.id);
+  });
+
+  it("should_rollback_memo_when_link_fails", () => {
+    // 존재하지 않는 작품 id → memo_projects FK 위반 → 트랜잭션 롤백(메모도 생성 안 됨)
+    expect(() => store.captureMemo({ body: "깨질 메모", linkProjectId: "nonexistent" })).toThrow();
+    expect(store.memos.list()).toHaveLength(0);
+  });
 });
