@@ -80,6 +80,17 @@ export function WriteStudioScreen({
     setReentryDismissed(false);
   }, [editorKey]);
 
+  // 보기 팝오버와 곁쪽지 서랍은 상호 배타 — 둘이 동시에 떠 stacking 이 엉키지 않게 한다.
+  const handleToggleView = () => {
+    const next = !viewOpen;
+    setViewOpen(next);
+    if (next && panelOpen) onTogglePanel(); // 보기를 열면 서랍을 닫는다.
+  };
+  const handleTogglePanel = () => {
+    if (!panelOpen) setViewOpen(false); // 서랍을 열면 보기를 닫는다.
+    onTogglePanel();
+  };
+
   const right = (
     <>
       <div className={`savestate savestate--${save}`} role="status" aria-live="polite">
@@ -104,7 +115,7 @@ export function WriteStudioScreen({
           aria-pressed={viewOpen}
           aria-label="보기"
           title="보기"
-          onClick={() => setViewOpen((v) => !v)}
+          onClick={handleToggleView}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="3" />
@@ -131,7 +142,7 @@ export function WriteStudioScreen({
         aria-pressed={panelOpen}
         aria-label="곁쪽지 서랍"
         title="곁쪽지 서랍"
-        onClick={onTogglePanel}
+        onClick={handleTogglePanel}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="3" y="4" width="18" height="16" rx="2" />

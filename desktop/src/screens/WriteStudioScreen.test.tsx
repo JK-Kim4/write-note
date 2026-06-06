@@ -51,6 +51,26 @@ describe("WriteStudioScreen", () => {
     expect(screen.getByRole("group", { name: "테마" })).toBeInTheDocument();
   });
 
+  it("should_close_view_menu_when_drawer_button_clicked", () => {
+    const onTogglePanel = vi.fn();
+    renderScreen({ panelOpen: false, onTogglePanel });
+    fireEvent.click(screen.getByRole("button", { name: "보기" }));
+    expect(screen.getByRole("group", { name: "테마" })).toBeInTheDocument();
+    // 곁쪽지 서랍을 열면 보기 팝오버는 닫힌다(상호 배타 — 두 오버레이 동시 노출 방지).
+    fireEvent.click(screen.getByRole("button", { name: "곁쪽지 서랍" }));
+    expect(onTogglePanel).toHaveBeenCalled();
+    expect(screen.queryByRole("group", { name: "테마" })).not.toBeInTheDocument();
+  });
+
+  it("should_close_drawer_when_view_menu_opens", () => {
+    const onTogglePanel = vi.fn();
+    // 서랍이 열린 상태에서 보기 팝오버를 열면 서랍을 닫는다.
+    renderScreen({ panelOpen: true, onTogglePanel });
+    fireEvent.click(screen.getByRole("button", { name: "보기" }));
+    expect(onTogglePanel).toHaveBeenCalled();
+    expect(screen.getByRole("group", { name: "테마" })).toBeInTheDocument();
+  });
+
   it("should_show_reentry_card_with_last_sentence_next_scene_and_memo", () => {
     renderScreen({
       reentry: {
