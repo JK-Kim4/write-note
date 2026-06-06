@@ -135,7 +135,7 @@ timeout / cap 룰은 글로벌 [`~/.claude/rules/shared/long-running-bash.md`](f
 <!-- SPECKIT START -->
 Current implementation plan:
 
-- [008 메모↔작품 연결 + 집필 사이드 패널 (Desktop Phase 6)](specs/008-phase-6-memo-linking-side-panel/plan.md)
+- [009 작업실 디자인 고도화 — 작품 벽 · 서랍형 집필실 · 쪽지 책상 (Desktop 재진입 강화)](specs/009-workshop-redesign/plan.md)
 
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan above.

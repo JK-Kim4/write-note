@@ -7,6 +7,8 @@ import { ProjectsScreen } from "./screens/ProjectsScreen";
 import { MemoInboxScreen } from "./screens/MemoInboxScreen";
 import { LogScreen } from "./screens/LogScreen";
 import { toInboxMemoView } from "./lib/memoView";
+import { lastSentence } from "./lib/lastSentence";
+import type { Reentry } from "./screens/WriteStudioScreen";
 import type { DocumentChange, InboxMemo, SaveState, Screen, Theme } from "./types";
 
 const AUTOSAVE_DELAY_MS = 700;
@@ -32,8 +34,15 @@ export function App() {
   // 모달 캡처가 화면 밖(App)에 있으므로, 캡처 성공 시 이 카운터를 올려 inbox 재조회를 유도한다.
   const [memoRefresh, setMemoRefresh] = useState(0);
   // 선택된 작품 + 그 작품의 document(본문). 작품 선택 시 IPC 로 로드한다.
-  const [activeProject, setActiveProject] = useState<{ id: string; title: string } | null>(null);
-  const [activeDoc, setActiveDoc] = useState<{ id: string; bodyJson: string; editorKey: string } | null>(null);
+  const [activeProject, setActiveProject] = useState<{ id: string; title: string; nextScene: string } | null>(null);
+  const [activeDoc, setActiveDoc] = useState<{
+    id: string;
+    bodyJson: string;
+    plainText: string;
+    editorKey: string;
+  } | null>(null);
+  // 집필 진입 직후 재진입 한 장(마지막 문장 + 다음 장면 + 곁쪽지). 작품 진입 시 1회 산출.
+  const [reentry, setReentry] = useState<Reentry | null>(null);
   const togglePanel = () => setPanelOpen((o) => !o);
   const timer = useRef<number | undefined>(undefined);
   // 같은 작품을 다시 열어도 에디터를 최신 본문으로 remount 하기 위한 로드 시퀀스.
@@ -52,20 +61,35 @@ export function App() {
     });
   }, []);
 
-  // 작품 선택 → 해당 작품의 기본 document 로드(본문 + 글자수 복원).
+  // 작품 선택 → 해당 작품의 기본 document 로드(본문 + 글자수 복원) + 재진입 한 장 산출.
   useEffect(() => {
     if (!activeProject) {
       setActiveDoc(null);
+      setReentry(null);
       return;
     }
     let cancelled = false;
-    void window.electronAPI.documents.getByProject(activeProject.id).then((doc) => {
+    const proj = activeProject;
+    void Promise.all([
+      window.electronAPI.documents.getByProject(proj.id),
+      window.electronAPI.memos.pickReentry(proj.id),
+    ]).then(([doc, memo]) => {
       if (cancelled || !doc) return;
       loadSeq.current += 1;
-      setActiveDoc({ id: doc.id, bodyJson: doc.bodyJson, editorKey: `${doc.id}#${loadSeq.current}` });
+      setActiveDoc({
+        id: doc.id,
+        bodyJson: doc.bodyJson,
+        plainText: doc.plainText,
+        editorKey: `${doc.id}#${loadSeq.current}`,
+      });
       setCount(doc.wordCount);
       setSave("saved");
       lastChange.current = null;
+      setReentry({
+        lastSentence: lastSentence(doc.plainText),
+        nextScene: proj.nextScene,
+        memo: memo ? { body: memo.body } : null,
+      });
     });
     return () => {
       cancelled = true;
@@ -85,7 +109,8 @@ export function App() {
       if (cancelled) return;
       const now = new Date();
       // 패널은 현재 작품이 자명하므로 작품명 칩을 표시하지 않는다(연결 제목 맵 불요).
-      setPanelMemos(rows.map((m) => toInboxMemoView(m, new Map(), now)));
+      // listByProject 는 ProjectMemo(= Memo + pinned) 이므로 곁쪽지 고정 상태를 view 에 얹는다.
+      setPanelMemos(rows.map((m) => ({ ...toInboxMemoView(m, new Map(), now), pinned: m.pinned })));
       setPanelLoading(false);
     });
     return () => {
@@ -98,6 +123,15 @@ export function App() {
     (memoId: string) => {
       if (!activeProject) return;
       void window.electronAPI.memos.removeLink(memoId, activeProject.id).then(() => setMemoRefresh((n) => n + 1));
+    },
+    [activeProject],
+  );
+
+  // 곁쪽지 고정 토글 — backend 가 작품당 1개를 보장하므로, 다른 고정 해제도 재조회로 반영된다.
+  const handleSetPin = useCallback(
+    (memoId: string, pinned: boolean) => {
+      if (!activeProject) return;
+      void window.electronAPI.memos.setPin(memoId, activeProject.id, pinned).then(() => setMemoRefresh((n) => n + 1));
     },
     [activeProject],
   );
@@ -171,7 +205,7 @@ export function App() {
       {screen === "projects" && (
         <ProjectsScreen
           onOpenProject={(p) => {
-            setActiveProject({ id: p.id, title: p.title });
+            setActiveProject({ id: p.id, title: p.title, nextScene: p.nextScene });
             setScreen("write");
           }}
         />
@@ -186,19 +220,25 @@ export function App() {
           memos={panelMemos}
           memosLoading={panelLoading}
           onUnlinkMemo={handlePanelUnlink}
+          onSetPinMemo={handleSetPin}
           autoSave={autoSave}
           onChange={handleChange}
           onSaveNow={saveNow}
           panelOpen={panelOpen}
           onTogglePanel={togglePanel}
+          reentry={reentry}
+          theme={theme}
+          onTheme={setTheme}
+          onAutoSave={setAutoSave}
         />
       )}
-      {screen === "memo" && (
-        <MemoInboxScreen refresh={memoRefresh} panelOpen={panelOpen} onTogglePanel={togglePanel} />
-      )}
+      {screen === "memo" && <MemoInboxScreen refresh={memoRefresh} />}
       {screen === "log" && <LogScreen panelOpen={panelOpen} onTogglePanel={togglePanel} />}
 
-      <Dock theme={theme} setTheme={setTheme} autoSave={autoSave} setAutoSave={setAutoSave} />
+      {/* 집필 화면은 보기 메뉴(WriteStudioScreen)가 테마·자동저장을 품으므로 전역 Dock 을 숨긴다(설정 진입점 중복 회피). */}
+      {screen !== "write" && (
+        <Dock theme={theme} setTheme={setTheme} autoSave={autoSave} setAutoSave={setAutoSave} />
+      )}
       {captureOpen && (
         <QuickCapture
           activeProjectId={activeProject?.id ?? null}

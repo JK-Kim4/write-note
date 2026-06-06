@@ -147,4 +147,69 @@ describe("MemoRepository", () => {
     expect(repo.softDelete("nope")).toBe(false);
     expect(repo.restore("nope")).toBeNull();
   });
+
+  it("should_pin_one_memo_per_project_clearing_others", () => {
+    // US6: 작품당 곁쪽지 1개 — 새로 고정하면 같은 작품의 기존 고정이 해제된다.
+    const p = projectRepo.create({ title: "P" });
+    const first = repo.create({ body: "처음 고정" });
+    const second = repo.create({ body: "나중 고정" });
+    repo.addLink(first.id, p.id);
+    repo.addLink(second.id, p.id);
+
+    repo.setPin(first.id, p.id, true);
+    expect(pinnedOf(repo.listByProject(p.id), first.id)).toBe(true);
+
+    repo.setPin(second.id, p.id, true);
+    const rows = repo.listByProject(p.id);
+    expect(pinnedOf(rows, second.id)).toBe(true);
+    expect(pinnedOf(rows, first.id)).toBe(false); // 기존 고정 해제
+  });
+
+  it("should_unpin_when_setPin_false", () => {
+    const p = projectRepo.create({ title: "P" });
+    const m = repo.create({ body: "메모" });
+    repo.addLink(m.id, p.id);
+    repo.setPin(m.id, p.id, true);
+    repo.setPin(m.id, p.id, false);
+    expect(pinnedOf(repo.listByProject(p.id), m.id)).toBe(false);
+  });
+
+  it("should_pin_independently_per_project", () => {
+    // 같은 메모가 두 작품에 연결되면 작품별 고정은 독립적이다.
+    const a = projectRepo.create({ title: "A" });
+    const b = projectRepo.create({ title: "B" });
+    const m = repo.create({ body: "공통" });
+    repo.addLink(m.id, a.id);
+    repo.addLink(m.id, b.id);
+    repo.setPin(m.id, a.id, true);
+    expect(pinnedOf(repo.listByProject(a.id), m.id)).toBe(true);
+    expect(pinnedOf(repo.listByProject(b.id), m.id)).toBe(false);
+  });
+
+  it("should_drop_pin_when_link_removed_and_reset_on_relink", () => {
+    // removeLink 로 연결 행이 사라지면 고정도 소멸, 재연결 시 pinned 기본 0.
+    const p = projectRepo.create({ title: "P" });
+    const m = repo.create({ body: "메모" });
+    repo.addLink(m.id, p.id);
+    repo.setPin(m.id, p.id, true);
+    repo.removeLink(m.id, p.id);
+    repo.addLink(m.id, p.id);
+    expect(pinnedOf(repo.listByProject(p.id), m.id)).toBe(false);
+  });
+
+  it("should_return_project_memos_with_pinned_flag", () => {
+    const p = projectRepo.create({ title: "P" });
+    const m = repo.create({ body: "메모" });
+    repo.addLink(m.id, p.id);
+    const [row] = repo.listByProject(p.id);
+    expect(row.pinned).toBe(false);
+    repo.setPin(m.id, p.id, true);
+    expect(repo.listByProject(p.id)[0].pinned).toBe(true);
+  });
 });
+
+function pinnedOf(rows: ReadonlyArray<{ id: string; pinned: boolean }>, id: string): boolean {
+  const row = rows.find((r) => r.id === id);
+  if (!row) throw new Error(`memo ${id} not in listByProject result`);
+  return row.pinned;
+}

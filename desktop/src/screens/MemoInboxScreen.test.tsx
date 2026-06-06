@@ -27,6 +27,7 @@ function makeProject(over: Partial<Project> = {}): Project {
     tone: "",
     genre: "",
     targetLength: null,
+    nextScene: "",
     createdAt: now,
     updatedAt: now,
     ...over,
@@ -58,7 +59,7 @@ function renderScreen(stub: Stub = {}) {
     memos: { create, list: memosList, listByProject: vi.fn(), addLink, removeLink, delete: del, restore },
     settings: { get: vi.fn(), set: vi.fn() },
   });
-  render(<MemoInboxScreen refresh={0} panelOpen={false} onTogglePanel={vi.fn()} />);
+  render(<MemoInboxScreen refresh={0} />);
   return { memosList, projectsList, create, addLink, removeLink, del, restore };
 }
 
@@ -74,7 +75,7 @@ describe("MemoInboxScreen", () => {
 
   it("should_show_empty_message_when_no_memos", async () => {
     renderScreen();
-    expect(await screen.findByText(/아직 메모가 없어요/)).toBeInTheDocument();
+    expect(await screen.findByText(/아직 쪽지가 없어요/)).toBeInTheDocument();
   });
 
   it("should_add_inline_memo_as_unlinked", async () => {
@@ -82,7 +83,7 @@ describe("MemoInboxScreen", () => {
     const memosList = vi.fn().mockResolvedValueOnce([]).mockResolvedValue([makeMemo({ body: "새 메모" })]);
     renderScreen({ create, memosList });
 
-    fireEvent.change(await screen.findByPlaceholderText("메모 한 줄 적기…"), { target: { value: "새 메모" } });
+    fireEvent.change(await screen.findByPlaceholderText("쪽지 한 줄 적기…"), { target: { value: "새 메모" } });
     fireEvent.click(screen.getByRole("button", { name: "추가" }));
 
     await waitFor(() => expect(create).toHaveBeenCalledWith({ body: "새 메모", linkProjectId: null }));
@@ -95,20 +96,35 @@ describe("MemoInboxScreen", () => {
     expect(create).not.toHaveBeenCalled();
   });
 
-  it("should_show_linked_project_title", async () => {
+  it("should_show_linked_project_name_tab", async () => {
     renderScreen({
       memosList: vi.fn().mockResolvedValue([makeMemo({ linkedProjectIds: ["p1"] })]),
       projectsList: vi.fn().mockResolvedValue([makeProject({ id: "p1", title: "바다가 보이는 방" })]),
     });
-    expect(await screen.findByText("바다가 보이는 방")).toBeInTheDocument();
+    const tab = await screen.findByTitle("붙인 작품");
+    expect(tab).toHaveTextContent("바다가 보이는 방");
   });
 
-  it("should_show_unlinked_label_for_memo_without_project", async () => {
+  it("should_show_attach_entry_for_unlinked_memo", async () => {
     renderScreen({ memosList: vi.fn().mockResolvedValue([makeMemo({ linkedProjectIds: [] })]) });
-    expect(await screen.findByText("미연결")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "작품에 붙이기" })).toBeInTheDocument();
   });
 
-  it("should_render_multiple_linked_chips", async () => {
+  it("should_not_render_stats_panel", async () => {
+    renderScreen({ memosList: vi.fn().mockResolvedValue([makeMemo()]) });
+    await screen.findByText("떠오른 생각");
+    expect(screen.queryByText("전체 메모")).not.toBeInTheDocument();
+    expect(screen.queryByText("미연결")).not.toBeInTheDocument();
+  });
+
+  it("should_not_render_all_unlinked_segment_filter", async () => {
+    renderScreen({ memosList: vi.fn().mockResolvedValue([makeMemo()]) });
+    await screen.findByText("떠오른 생각");
+    expect(screen.queryByRole("button", { name: "전체" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "미연결" })).not.toBeInTheDocument();
+  });
+
+  it("should_render_multiple_linked_tabs", async () => {
     renderScreen({
       memosList: vi.fn().mockResolvedValue([makeMemo({ linkedProjectIds: ["p1", "p2"] })]),
       projectsList: vi.fn().mockResolvedValue([
@@ -116,24 +132,26 @@ describe("MemoInboxScreen", () => {
         makeProject({ id: "p2", title: "작품 B" }),
       ]),
     });
-    expect(await screen.findByText("작품 A")).toBeInTheDocument();
-    expect(screen.getByText("작품 B")).toBeInTheDocument();
+    const tabs = await screen.findAllByTitle("붙인 작품");
+    const tabText = tabs.map((t) => t.textContent);
+    expect(tabText).toContain("작품 A✕");
+    expect(tabText).toContain("작품 B✕");
   });
 
-  it("should_filter_to_unlinked_only", async () => {
+  it("should_sift_to_a_project_when_chosen", async () => {
     renderScreen({
       memosList: vi.fn().mockResolvedValue([
         makeMemo({ id: "linked", body: "연결된 메모", linkedProjectIds: ["p1"] }),
-        makeMemo({ id: "loose", body: "미연결 메모", linkedProjectIds: [] }),
+        makeMemo({ id: "loose", body: "다른 메모", linkedProjectIds: [] }),
       ]),
       projectsList: vi.fn().mockResolvedValue([makeProject({ id: "p1", title: "작품" })]),
     });
     expect(await screen.findByText("연결된 메모")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "미연결" }));
+    fireEvent.click(screen.getByRole("button", { name: "작품" }));
 
-    expect(screen.queryByText("연결된 메모")).not.toBeInTheDocument();
-    expect(screen.getByText("미연결 메모")).toBeInTheDocument();
+    expect(screen.getByText("연결된 메모")).toBeInTheDocument();
+    expect(screen.queryByText("다른 메모")).not.toBeInTheDocument();
   });
 
   it("should_link_memo_to_project_via_popover", async () => {
@@ -144,16 +162,16 @@ describe("MemoInboxScreen", () => {
       addLink,
     });
 
-    fireEvent.click(await screen.findByRole("button", { name: "작품 연결" }));
+    fireEvent.click(await screen.findByRole("button", { name: "작품에 붙이기" }));
     fireEvent.click(await screen.findByRole("button", { name: /작품 A/ }));
 
     await waitFor(() => expect(addLink).toHaveBeenCalledWith("m1", "p1"));
   });
 
-  it("should_link_optimistically_and_show_chip_without_reload", async () => {
+  it("should_link_optimistically_and_show_tab_without_reload", async () => {
     const addLink = vi.fn().mockResolvedValue(undefined);
-    // 재조회(list)가 연결을 반영하지 않아도(항상 미연결 반환) optimistic 으로 칩이 즉시 보여야 한다.
-    // 동시에 성공 경로에서 재조회로 칩을 덮어쓰지 않음을 강제(memosList 초기 1회만).
+    // 재조회(list)가 연결을 반영하지 않아도(항상 미연결 반환) optimistic 으로 이름표가 즉시 보여야 한다.
+    // 동시에 성공 경로에서 재조회로 이름표를 덮어쓰지 않음을 강제(memosList 초기 1회만).
     const memosList = vi.fn().mockResolvedValue([makeMemo({ id: "m1", linkedProjectIds: [] })]);
     renderScreen({
       memosList,
@@ -161,15 +179,16 @@ describe("MemoInboxScreen", () => {
       addLink,
     });
 
-    fireEvent.click(await screen.findByRole("button", { name: "작품 연결" }));
+    fireEvent.click(await screen.findByRole("button", { name: "작품에 붙이기" }));
     fireEvent.click(await screen.findByRole("button", { name: /작품 A/ }));
 
     await waitFor(() => expect(addLink).toHaveBeenCalledWith("m1", "p1"));
-    expect(await screen.findByTitle("연결된 작품")).toBeInTheDocument();
+    const tab = await screen.findByTitle("붙인 작품");
+    expect(tab).toHaveTextContent("작품 A");
     expect(memosList).toHaveBeenCalledTimes(1);
   });
 
-  it("should_unlink_memo_via_chip", async () => {
+  it("should_unlink_memo_via_tab", async () => {
     const removeLink = vi.fn().mockResolvedValue(undefined);
     renderScreen({
       memosList: vi.fn().mockResolvedValue([makeMemo({ id: "m1", linkedProjectIds: ["p1"] })]),
@@ -182,9 +201,9 @@ describe("MemoInboxScreen", () => {
     await waitFor(() => expect(removeLink).toHaveBeenCalledWith("m1", "p1"));
   });
 
-  it("should_unlink_optimistically_and_remove_chip_without_reload", async () => {
+  it("should_unlink_optimistically_and_remove_tab_without_reload", async () => {
     const removeLink = vi.fn().mockResolvedValue(undefined);
-    // 재조회(list)가 해제를 반영하지 않아도(항상 연결 반환) optimistic 으로 칩이 즉시 사라져야 한다.
+    // 재조회(list)가 해제를 반영하지 않아도(항상 연결 반환) optimistic 으로 이름표가 즉시 사라져야 한다.
     const memosList = vi.fn().mockResolvedValue([makeMemo({ id: "m1", linkedProjectIds: ["p1"] })]);
     renderScreen({
       memosList,
@@ -221,7 +240,7 @@ describe("MemoInboxScreen", () => {
     renderScreen({ memosList: vi.fn().mockResolvedValue([makeMemo({ id: "m1", body: "지울 메모" })]), del });
 
     expect(await screen.findByText("지울 메모")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "메모 삭제" }));
+    fireEvent.click(screen.getByRole("button", { name: "쪽지 버리기" }));
 
     await waitFor(() => expect(del).toHaveBeenCalledWith("m1"));
     expect(screen.queryByText("지울 메모")).not.toBeInTheDocument();
@@ -232,7 +251,7 @@ describe("MemoInboxScreen", () => {
     const restore = vi.fn().mockResolvedValue(makeMemo({ id: "m1" }));
     renderScreen({ memosList: vi.fn().mockResolvedValue([makeMemo({ id: "m1", body: "되살릴 메모" })]), del, restore });
 
-    fireEvent.click(await screen.findByRole("button", { name: "메모 삭제" }));
+    fireEvent.click(await screen.findByRole("button", { name: "쪽지 버리기" }));
     fireEvent.click(await screen.findByRole("button", { name: "되돌리기" }));
 
     await waitFor(() => expect(restore).toHaveBeenCalledWith("m1"));

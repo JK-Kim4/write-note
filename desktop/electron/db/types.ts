@@ -7,6 +7,8 @@ export type Project = {
   tone: string;
   genre: string;
   targetLength: number | null;
+  /** 작가가 적는 "다음에 쓸 장면" 한 줄(작품 벽 카드·재진입 한 장의 보조 표시값). 미입력은 빈 문자열. */
+  nextScene: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -34,3 +36,9 @@ export type Memo = {
   /** soft delete 표식. null = 미삭제, ISO = 삭제 시각. list() 에서 제외된다. */
   deletedAt: string | null;
 };
+
+/** 특정 작품 맥락의 메모 — 그 작품에서의 곁쪽지 고정 여부 포함(listByProject 반환용). */
+export type ProjectMemo = Memo & { pinned: boolean };
+
+/** 작품 벽 카드용 집계 — 작품(nextScene 포함) + 그 본문 plainText(마지막 문장 파생 소스). */
+export type ProjectCard = Project & { lastSentenceSource: string };

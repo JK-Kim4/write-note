@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Titlebar } from "../components/Titlebar";
 import { toProjectCardView, type ProjectCardView } from "../lib/projectView";
+import { ProjectWallCard } from "../components/ProjectWallCard";
 
 type Props = { onOpenProject: (project: ProjectCardView) => void };
 type Mode = "list" | "create";
 
 /**
- * 작품 화면 — 상태를 한 화면에 섞지 않는다.
+ * 작품 화면 — 작업 벽. 카드 얼굴은 마지막 문장(여기까지 썼다), 그 아래 다음 장면 단서.
  * - 작품 0개: 작업실 입구(서비스 설명 + 시작 진입)
- * - 작품 ≥1: 작품 목록(최근 수정순) + 새 작품 진입
+ * - 작품 ≥1: 핀보드 위 작품 카드들 + 새 작품 진입
  * - 생성: 별도 폼 뷰(모달 회피, inline 전환)
  */
 export function ProjectsScreen({ onOpenProject }: Props) {
@@ -37,13 +38,18 @@ export function ProjectsScreen({ onOpenProject }: Props) {
   const load = useCallback(async () => {
     setError(false);
     try {
-      const rows = await window.electronAPI.projects.list();
-      const now = new Date();
-      setProjects(rows.map((p) => toProjectCardView(p, now)));
+      const rows = await window.electronAPI.projects.listCards();
+      setProjects(rows.map(toProjectCardView));
     } catch {
       setError(true);
       setProjects([]);
     }
+  }, []);
+
+  // 다음 장면 한 줄 저장 — optimistic(카드 즉시 갱신) 후 IPC update.
+  const saveNextScene = useCallback((id: string, nextScene: string) => {
+    setProjects((prev) => (prev ? prev.map((p) => (p.id === id ? { ...p, nextScene } : p)) : prev));
+    void window.electronAPI.projects.update(id, { nextScene });
   }, []);
 
   useEffect(() => {
@@ -224,51 +230,21 @@ export function ProjectsScreen({ onOpenProject }: Props) {
           ) : (
             <div className="projects-list-wrap">
               <div className="projects-head">
-                <h1 className="projects-head__title">
-                  이어 쓸 작품
-                  <span className="projects-head__count">{projects.length}개</span>
-                </h1>
+                <h1 className="projects-head__title">이어 쓸 작품</h1>
                 <button type="button" className="btn btn--secondary" onClick={() => setMode("create")}>
                   새 작품
                 </button>
               </div>
-              <div className="projects-list">
+              <div className="work-wall">
                 {projects.map((p, i) => (
-                  <div key={p.id} className="project-card-wrap" style={{ animationDelay: `${i * 50}ms` }}>
-                    <button
-                      type="button"
-                      className="project-card"
-                      aria-label={`${p.title} 열기`}
-                      onClick={() => onOpenProject(p)}
-                    >
-                      <span className="project-card__title">{p.title}</span>
-                      {p.summaryPreview && <span className="project-card__excerpt">{p.summaryPreview}</span>}
-                      <span className="project-card__date">
-                        마지막 작업 <time>{p.lastEditedLabel}</time>
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      className="project-card__del"
-                      aria-label={`${p.title} 삭제`}
-                      onClick={() => setConfirmDelete(p)}
-                    >
-                      <svg
-                        width="17"
-                        height="17"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" />
-                        <path d="M10 11v6M14 11v6" />
-                      </svg>
-                    </button>
-                  </div>
+                  <ProjectWallCard
+                    key={p.id}
+                    card={p}
+                    index={i}
+                    onOpen={() => onOpenProject(p)}
+                    onSaveNextScene={(next) => saveNextScene(p.id, next)}
+                    onDelete={() => setConfirmDelete(p)}
+                  />
                 ))}
               </div>
             </div>

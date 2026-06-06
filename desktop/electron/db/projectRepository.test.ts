@@ -66,6 +66,25 @@ describe("ProjectRepository", () => {
     expect(repo.update(p.id, { genre: "시" })?.genre).toBe("시");
   });
 
+  it("should_default_next_scene_to_empty_string", () => {
+    expect(repo.create({ title: "T" }).nextScene).toBe("");
+  });
+
+  it("should_update_and_read_next_scene", () => {
+    const p = repo.create({ title: "T" });
+    const updated = repo.update(p.id, { nextScene: "주인공이 바다에 도착한다" });
+    expect(updated?.nextScene).toBe("주인공이 바다에 도착한다");
+    expect(repo.getById(p.id)?.nextScene).toBe("주인공이 바다에 도착한다");
+  });
+
+  it("should_keep_next_scene_when_patch_omits_it", () => {
+    const p = repo.create({ title: "T" });
+    repo.update(p.id, { nextScene: "다음 장면" });
+    const updated = repo.update(p.id, { title: "제목만 변경" });
+    expect(updated?.nextScene).toBe("다음 장면");
+    expect(repo.getById(p.id)?.nextScene).toBe("다음 장면");
+  });
+
   it("should_delete_project", () => {
     const p = repo.create({ title: "삭제될 작품" });
     expect(repo.delete(p.id)).toBe(true);

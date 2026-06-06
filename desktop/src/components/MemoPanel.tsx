@@ -6,10 +6,12 @@ type MemoPanelProps = {
   loading: boolean;
   /** 패널 내 빠른 해제 — 현재 작품과의 연결을 끊는다. */
   onUnlink: (memoId: string) => void;
+  /** 곁쪽지 고정 토글 — 재진입 시 한 장으로 떠오를 쪽지를 정한다(작품당 1개). */
+  onSetPin: (memoId: string, pinned: boolean) => void;
 };
 
 /** 연결된 메모 패널 — 현재 작품 연결 메모만 조용히 표시. 에디터보다 시각적으로 약하게(HARD). */
-export function MemoPanel({ memos, loading, onUnlink }: MemoPanelProps) {
+export function MemoPanel({ memos, loading, onUnlink, onSetPin }: MemoPanelProps) {
   const sub = loading ? "불러오는 중" : `${memos.length}개`;
 
   return (
@@ -35,22 +37,39 @@ export function MemoPanel({ memos, loading, onUnlink }: MemoPanelProps) {
         </div>
       ) : (
         <div className="panel__list">
-          {memos.map((memo, i) => (
-            <article key={memo.id} className="memo" style={{ animationDelay: `${40 + i * 50}ms` }}>
-              <p className="memo__body">{memo.body}</p>
-              <div className="memo__foot">
-                <span className="memo__date">{memo.dateLabel}</span>
-                <button
-                  type="button"
-                  className="memo__unlink"
-                  aria-label="연결 해제"
-                  onClick={() => onUnlink(memo.id)}
-                >
-                  ✕
-                </button>
-              </div>
-            </article>
-          ))}
+          {memos.map((memo, i) => {
+            const pinned = memo.pinned === true;
+            return (
+              <article
+                key={memo.id}
+                className={pinned ? "memo memo--pinned" : "memo"}
+                style={{ animationDelay: `${40 + i * 50}ms` }}
+              >
+                <p className="memo__body">{memo.body}</p>
+                <div className="memo__foot">
+                  <span className="memo__date">{memo.dateLabel}</span>
+                  <button
+                    type="button"
+                    className="memo__pin"
+                    aria-pressed={pinned}
+                    aria-label={pinned ? "곁에 둘 쪽지 고정 해제" : "곁에 둘 쪽지로 고정"}
+                    title={pinned ? "곁에 둘 쪽지 고정 해제" : "곁에 둘 쪽지로 고정"}
+                    onClick={() => onSetPin(memo.id, !pinned)}
+                  >
+                    {pinned ? "★" : "☆"}
+                  </button>
+                  <button
+                    type="button"
+                    className="memo__unlink"
+                    aria-label="연결 해제"
+                    onClick={() => onUnlink(memo.id)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </aside>

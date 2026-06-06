@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { Rail } from "./Rail";
 
 describe("Rail", () => {
@@ -11,5 +11,17 @@ describe("Rail", () => {
       expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
     }
     expect(screen.getByRole("button", { name: "집필" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("잉크 한 방울 빠른 메모 진입점을 캡처 라벨로 렌더한다", () => {
+    const onCapture = vi.fn();
+    render(<Rail active="memo" onNavigate={() => {}} onCapture={onCapture} />);
+
+    const capture = screen.getByRole("button", { name: "빠른 메모" });
+    expect(capture).toBeInTheDocument();
+    expect(capture).toHaveTextContent("잉크 한 방울");
+
+    fireEvent.click(capture);
+    expect(onCapture).toHaveBeenCalledTimes(1);
   });
 });

@@ -8,6 +8,7 @@ type ProjectRow = {
   tone: string;
   genre: string;
   target_length: number | null;
+  next_scene: string;
   created_at: string;
   updated_at: string;
 };
@@ -20,6 +21,7 @@ function toProject(r: ProjectRow): Project {
     tone: r.tone,
     genre: r.genre,
     targetLength: r.target_length,
+    nextScene: r.next_scene,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -31,6 +33,7 @@ export type CreateProjectInput = {
   tone?: string;
   genre?: string;
   targetLength?: number | null;
+  nextScene?: string;
 };
 
 export type UpdateProjectInput = Partial<Omit<CreateProjectInput, "title">> & { title?: string };
@@ -47,12 +50,13 @@ export class ProjectRepository {
       tone: input.tone ?? "",
       genre: input.genre ?? "",
       targetLength: input.targetLength ?? null,
+      nextScene: input.nextScene ?? "",
       createdAt: now,
       updatedAt: now,
     };
     this.db
       .prepare(
-        "INSERT INTO projects (id, title, summary, tone, genre, target_length, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO projects (id, title, summary, tone, genre, target_length, next_scene, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
       .run(
         project.id,
@@ -61,6 +65,7 @@ export class ProjectRepository {
         project.tone,
         project.genre,
         project.targetLength,
+        project.nextScene,
         project.createdAt,
         project.updatedAt,
       );
@@ -105,9 +110,18 @@ export class ProjectRepository {
     };
     this.db
       .prepare(
-        "UPDATE projects SET title = ?, summary = ?, tone = ?, genre = ?, target_length = ?, updated_at = ? WHERE id = ?",
+        "UPDATE projects SET title = ?, summary = ?, tone = ?, genre = ?, target_length = ?, next_scene = ?, updated_at = ? WHERE id = ?",
       )
-      .run(next.title, next.summary, next.tone, next.genre, next.targetLength, next.updatedAt, id);
+      .run(
+        next.title,
+        next.summary,
+        next.tone,
+        next.genre,
+        next.targetLength,
+        next.nextScene,
+        next.updatedAt,
+        id,
+      );
     return next;
   }
 }
