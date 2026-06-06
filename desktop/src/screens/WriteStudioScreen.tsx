@@ -75,7 +75,8 @@ export function WriteStudioScreen({
   onAutoSave,
 }: Props) {
   const [zoom, setZoom] = useState(1);
-  const [lined, setLined] = useState(false);
+  // 줄노트 default on — 빈 종이도 줄선이 페이지에 미리 그려진 상태로 진입한다.
+  const [lined, setLined] = useState(true);
   const [viewOpen, setViewOpen] = useState(false);
   // 재진입 한 장은 진입 직후 1회 — 작품(editorKey)이 바뀌면 다시 펼친다.
   const [reentryDismissed, setReentryDismissed] = useState(false);
@@ -168,6 +169,7 @@ export function WriteStudioScreen({
             initialBodyJson={initialBodyJson}
             onChange={onChange}
             lined={lined}
+            zoom={zoom}
           />
           {showReentry && reentry && <ReentryCard reentry={reentry} onClose={() => setReentryDismissed(true)} />}
         </div>

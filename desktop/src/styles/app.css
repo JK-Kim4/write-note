@@ -304,6 +304,18 @@ button { font: inherit; color: inherit; cursor: pointer; }
   box-shadow: var(--shadow-paper);
   padding: 25mm 25mm 30mm;             /* A4 여백 — 본문 줄길이 ≈33em (DESIGN ≤34em 유지) */
   animation: rise var(--dur-enter) var(--ease-out) both;
+  /* 제목 위 + 본문이 세로로 쌓이고, 본문이 남은 높이를 채워 줄노트 줄선이 페이지 끝까지 미리 그려진다. */
+  display: flex; flex-direction: column;
+  position: relative;                   /* 하단 페이지 번호(.page-num) 기준 */
+}
+
+/* 종이 하단 여백 중앙의 페이지 번호(인쇄된 쪽번호처럼). 현재 전체 분량 쪽수. */
+.page-num {
+  position: absolute; left: 0; right: 0; bottom: 12mm;
+  text-align: center;
+  font-family: var(--font-serif); font-size: 13px; color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  user-select: none; pointer-events: none;
 }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
@@ -320,7 +332,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   /* 줄선을 글자 baseline 바로 아래로 끌어올린다(기본은 line box 하단이라 글자가 떠 보임). */
   background-position-y: 0em;
 }
-.paper--lined .prose .ProseMirror p { margin-bottom: 1.92em; }
+/* 줄노트는 노트처럼 Enter = 바로 다음 줄. 문단 간 여백 0 (여백을 주면 빈 줄이 끼어 한 줄씩 건너뜀). */
+.paper--lined .prose .ProseMirror p { margin: 0; }
 .paper--lined .prose .ProseMirror h1,
 .paper--lined .prose .ProseMirror h2 { line-height: 1.92em; margin: 1.92em 0 0; }
 .paper--lined .prose .ProseMirror ul,
@@ -335,11 +348,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .doc-meta { font-size: 12px; color: var(--muted); margin: 0 0 26px; letter-spacing: -0.01em; }
 
 /* TipTap EditorContent → .prose(wrapper) > .ProseMirror(contenteditable) */
-.prose { max-width: none; }  /* 본문은 A4 여백(좌우 25mm) 안에서 꽉 — content ≈33em, ≤34em 유지 */
+/* 본문은 A4 여백(좌우 25mm) 안에서 꽉 — content ≈33em, ≤34em 유지.
+   flex 로 남은 높이를 채워 줄노트 줄선이 빈 본문에도 페이지 끝까지 그려지게 한다. */
+.prose { max-width: none; flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
 .prose .ProseMirror {
   font-family: var(--font-serif); font-size: 18px; font-weight: 400; line-height: 1.92;
   color: var(--ink); letter-spacing: 0.002em;
   outline: none; text-wrap: pretty;
+  flex: 1 1 auto;   /* 종이 남은 높이를 채움 → 줄선이 본문 끝 아래까지 미리 그려진다 */
 }
 .prose .ProseMirror p { margin: 0 0 1.32em; }
 .prose .ProseMirror p:first-child { margin-top: 0; }

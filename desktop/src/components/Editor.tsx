@@ -1,7 +1,11 @@
+import { useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent, type Content } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { StarterKit } from "@tiptap/starter-kit";
 import type { DocumentChange } from "../types";
+
+/** A4 한 쪽 높이(px) — 297mm @ 96dpi. 본문 종이 높이 ÷ 이 값 = 페이지수. */
+const A4_PAGE_PX = (297 * 96) / 25.4;
 
 /**
  * 집필실 본문 에디터 (실제 TipTap).
@@ -33,9 +37,31 @@ type EditorProps = {
   onChange: (change: DocumentChange) => void;
   /** 본문에 줄노트(가로 줄선) 표시 여부. */
   lined: boolean;
+  /** 작업공간 줌(페이지수 측정 시 종이 시각 높이를 보정한다). */
+  zoom?: number;
 };
 
-export function Editor({ title, initialBodyJson, onChange, lined }: EditorProps) {
+export function Editor({ title, initialBodyJson, onChange, lined, zoom = 1 }: EditorProps) {
+  const paperRef = useRef<HTMLElement>(null);
+  const [pages, setPages] = useState(1);
+
+  // 종이(A4) 실제 높이를 관찰해 페이지수를 계산한다. getBoundingClientRect 는 zoom 이 반영된
+  // 시각 높이라, A4 한 쪽 높이에도 같은 zoom 을 곱해 나누면 zoom 과 무관하게 페이지수가 나온다.
+  useEffect(() => {
+    const el = paperRef.current;
+    if (!el) return;
+    const measure = () => {
+      const h = el.getBoundingClientRect().height;
+      // 허용오차(0.01쪽 ≈ 11px) — 빈 종이가 반올림으로 1.000…쪽이 되어 2로 올림되는 것을 막는다.
+      const ratio = h / (A4_PAGE_PX * zoom);
+      setPages(Math.max(1, Math.ceil(ratio - 0.01)));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [zoom]);
+
   const editor = useEditor({
     extensions: [StarterKit],
     content: parseContent(initialBodyJson),
@@ -56,7 +82,7 @@ export function Editor({ title, initialBodyJson, onChange, lined }: EditorProps)
 
   return (
     <main className="editor-scroll" aria-label="본문 편집기">
-      <article className={lined ? "paper paper--lined" : "paper"}>
+      <article ref={paperRef} className={lined ? "paper paper--lined" : "paper"}>
         <h1 className="doc-title">{title}</h1>
         {editor && (
           <BubbleMenu editor={editor} className="bubble">
@@ -114,6 +140,7 @@ export function Editor({ title, initialBodyJson, onChange, lined }: EditorProps)
           </BubbleMenu>
         )}
         <EditorContent editor={editor} className="prose" />
+        <div className="page-num" aria-label={`${pages}쪽`}>{pages}</div>
       </article>
     </main>
   );
