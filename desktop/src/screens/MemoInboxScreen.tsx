@@ -124,11 +124,9 @@ export function MemoInboxScreen({ refresh }: Props) {
         ? memos
         : memos.filter((m) => m.linkedProjects.some((lp) => lp.id === siftProjectId));
 
-  const countPhrase = memos === null ? "" : memos.length === 0 ? "" : `쪽지 ${memos.length}장`;
-
   return (
     <div className="main">
-      <Titlebar title="쪽지" right={countPhrase ? <span className="memo-deck__count">{countPhrase}</span> : undefined} />
+      <Titlebar title="쪽지" />
       <div className="screen-body screen-body--solo">
         <div className="screen-main">
           <div className="memo-deck">

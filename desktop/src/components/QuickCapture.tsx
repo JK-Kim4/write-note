@@ -16,6 +16,8 @@ type Props = {
 export function QuickCapture({ activeProjectId, onClose, onCaptured }: Props) {
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
+  // 취소(명시적 닫기)에 초안이 있을 때 거치는 확인 단계 — 초안 소실 방지(FR-017).
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const canSave = body.trim().length > 0 && !saving;
   const hasDraft = body.trim().length > 0;
 
@@ -34,6 +36,15 @@ export function QuickCapture({ activeProjectId, onClose, onCaptured }: Props) {
   // 가벼운 닫기(Escape/backdrop) — 초안이 있으면 무시해 유실 방지(FR-017).
   const requestSoftClose = () => {
     if (hasDraft) return;
+    onClose();
+  };
+
+  // 명시적 닫기(취소 버튼) — 초안이 있으면 확인 단계를 거친다(FR-017).
+  const handleCancel = () => {
+    if (hasDraft) {
+      setConfirmDiscard(true);
+      return;
+    }
     onClose();
   };
 
@@ -110,12 +121,33 @@ export function QuickCapture({ activeProjectId, onClose, onCaptured }: Props) {
           onChange={(e) => setBody(e.target.value)}
         />
         <div className="modal__foot">
-          <button type="button" className="btn btn--ghost" onClick={onClose}>
-            취소
-          </button>
-          <button type="button" className="btn btn--primary" onClick={handleSave} disabled={!canSave}>
-            저장
-          </button>
+          {confirmDiscard ? (
+            <>
+              <span className="modal__hint modal__confirm">작성 중인 메모를 버릴까요?</span>
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={() => {
+                  setConfirmDiscard(false);
+                  textareaRef.current?.focus();
+                }}
+              >
+                계속 쓰기
+              </button>
+              <button type="button" className="btn btn--danger" onClick={onClose}>
+                버리기
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" className="btn btn--ghost" onClick={handleCancel}>
+                취소
+              </button>
+              <button type="button" className="btn btn--primary" onClick={handleSave} disabled={!canSave}>
+                저장
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -25,8 +25,8 @@
   --ink:        oklch(0.280 0.018 60);
   --ink-soft:   oklch(0.400 0.016 62);
   --muted:      oklch(0.510 0.018 68);
-  /* US5 대비(AA): sunken 면 위에서도 ≥4.5:1 — 기존 0.640 은 ≈2.3:1 미달이라 ink 쪽으로 상향. */
-  --faint:      oklch(0.520 0.016 70);
+  /* US5 대비(AA): sunken 면 위에서도 ≥4.5:1 — 정밀 측정 결과 0.520 은 sunken 위 3.91 미달이라 0.480(4.64)으로 보정. */
+  --faint:      oklch(0.480 0.016 70);
 
   --hairline:        oklch(0.840 0.012 76);
   --hairline-strong: oklch(0.780 0.014 74);
@@ -272,11 +272,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-family: var(--font-serif); font-size: 16px; line-height: 1.62; color: var(--scrap-ink); margin: 0;
   text-wrap: pretty;
 }
-.reentry__sentence--empty { font-style: italic; opacity: .7; }
+.reentry__sentence--empty { font-style: italic; opacity: .72; }
 .reentry__next, .reentry__memo { display: flex; flex-direction: column; gap: 3px; border-top: 1px solid var(--scrap-edge); padding-top: 11px; }
-.reentry__label { font-size: 11px; font-weight: 600; letter-spacing: -0.01em; color: var(--scrap-ink); opacity: .7; }
+.reentry__label { font-size: 11px; font-weight: 600; letter-spacing: -0.01em; color: var(--scrap-ink); opacity: .72; }
 .reentry__next-text { font-size: 13.5px; line-height: 1.55; color: var(--scrap-ink); margin: 0; }
-.reentry__next-text--empty { opacity: .6; }
+.reentry__next-text--empty { opacity: .72; }
 .reentry__memo-body { font-size: 13px; line-height: 1.55; color: var(--scrap-ink); margin: 0; opacity: .92; }
 
 /* ── 보기 메뉴 (titlebar 보기 버튼 → 접힌 팝오버) ── */
@@ -623,7 +623,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* ── 메모 화면 — 쪽지 책상(흩어진 쪽지). 관리 화면이 아니라 작업대. ── */
 .memo-deck { width: 100%; max-width: 860px; display: flex; flex-direction: column; gap: 16px; }
-.memo-deck__count { font-size: 11.5px; color: var(--muted); letter-spacing: -0.01em; }
 
 .memo-deck__bar { display: flex; align-items: center; gap: 12px 14px; flex-wrap: wrap; }
 .memo-deck__head {
@@ -693,7 +692,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .scrap__tab-x:focus-visible { opacity: 1; box-shadow: 0 0 0 2px var(--on-accent); }
 
 .scrap__foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.scrap__when { font-size: 10.5px; color: var(--scrap-ink); opacity: .6; letter-spacing: -0.01em; }
+.scrap__when { font-size: 10.5px; color: var(--scrap-ink); opacity: .72; letter-spacing: -0.01em; }
 
 /* 안 붙은 쪽지의 붙이기 진입점 — 점선 잉크 칩. */
 .scrap__attach {
@@ -756,11 +755,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .memo__pin {
   margin-left: auto; display: inline-grid; place-items: center; width: 18px; height: 18px;
   border: none; background: transparent; border-radius: 50%;
-  font-size: 12px; line-height: 1; color: var(--faint); opacity: 0; cursor: pointer;
-  transition: opacity var(--dur-base) var(--ease-out), color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
+  /* FR-024 발견성: rest 에서도 보이게(--muted, AA 통과) — hover 전 안 보이던 회귀(opacity:0) 수정. */
+  font-size: 12px; line-height: 1; color: var(--muted); cursor: pointer;
+  transition: color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
 }
-.memo:hover .memo__pin { opacity: 1; }
-.memo__pin[aria-pressed="true"] { opacity: 1; color: var(--accent-ink); }
+.memo__pin[aria-pressed="true"] { color: var(--accent-ink); }
 .memo__pin:hover { color: var(--accent-ink); background: var(--accent-soft); }
 .memo__pin:focus-visible { opacity: 1; box-shadow: 0 0 0 2px var(--accent-soft); }
 
@@ -832,7 +831,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .modal__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .modal__title { font-size: 15px; font-weight: 700; color: var(--ink); margin: 0; }
 .modal__hint { font-size: 11.5px; color: var(--faint); }
-.modal__foot { display: flex; justify-content: flex-end; gap: 8px; }
+.modal__foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.modal__confirm { margin-right: auto; }
 .capture__input {
   font-family: var(--font-serif); font-size: 16px; line-height: 1.7; color: var(--ink);
   background: var(--surface-sunken); border: 1px solid var(--hairline); border-radius: var(--radius); padding: 13px 14px;

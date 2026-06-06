@@ -113,4 +113,43 @@ describe("QuickCapture", () => {
     fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
     expect(save).toHaveFocus();
   });
+
+  it("내용이 비어 있으면 취소로 즉시 닫힌다", () => {
+    stubApi();
+    const onClose = vi.fn();
+    render(<QuickCapture activeProjectId={null} onClose={onClose} onCaptured={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("내용이 있으면 취소 시 확인을 거쳐 바로 닫히지 않는다", () => {
+    stubApi();
+    const onClose = vi.fn();
+    render(<QuickCapture activeProjectId={null} onClose={onClose} onCaptured={vi.fn()} />);
+    fireEvent.change(screen.getByPlaceholderText("떠오른 생각을 적어두세요…"), { target: { value: "지킬 한 줄" } });
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "버리기" })).toBeInTheDocument();
+  });
+
+  it("취소 확인에서 버리기를 누르면 닫힌다", () => {
+    stubApi();
+    const onClose = vi.fn();
+    render(<QuickCapture activeProjectId={null} onClose={onClose} onCaptured={vi.fn()} />);
+    fireEvent.change(screen.getByPlaceholderText("떠오른 생각을 적어두세요…"), { target: { value: "버릴 초안" } });
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    fireEvent.click(screen.getByRole("button", { name: "버리기" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("취소 확인에서 계속 쓰기를 누르면 닫히지 않고 초안이 유지된다", () => {
+    stubApi();
+    const onClose = vi.fn();
+    render(<QuickCapture activeProjectId={null} onClose={onClose} onCaptured={vi.fn()} />);
+    fireEvent.change(screen.getByPlaceholderText("떠오른 생각을 적어두세요…"), { target: { value: "이어 쓸 초안" } });
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    fireEvent.click(screen.getByRole("button", { name: "계속 쓰기" }));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue("이어 쓸 초안")).toBeInTheDocument();
+  });
 });

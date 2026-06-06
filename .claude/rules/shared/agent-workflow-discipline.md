@@ -173,6 +173,21 @@ Electron / 네이티브 모듈(better-sqlite3 등) / 패키징(electron-builder)
 - **2026-06-04 Phase 3 preload 결선:** Phase 1 에서 `sandbox:false`(ESM preload 의도)로 설정했으나 vite-plugin-electron 은 preload 를 CJS(.mjs)로 빌드 → Electron 이 `.mjs` 를 ESM 으로 로드 → `require is not defined in ES module scope` 로 preload 로드 실패 → `window.electronAPI` 미노출. **renderer 가 IPC 를 처음 호출하는 Phase 3 dogfooding 에서야 표면화**(Phase 1·2 는 renderer 가 electronAPI 미사용이라 콘솔 에러만 나고 화면 영향 0). 공식 문서 검증 후 `sandbox:true` 복원으로 해소(커밋 `6b9d6e4`). 회피 가능 시점: Phase 1 scaffold 때 renderer 에서 `window.electronAPI` 존재 1회 smoke test.
 - 회피 가능했던 시점: 설치·빌드 명령 실행 **전** 위 5 항목 self-check. (Phase 1 회고에서 "보류 후보" → Phase 2·3 연속 재발 — 룰로 영구화)
 
+## 9. 화면 표시값의 출처(저장 입력 vs 파생 표시 / 어떤 IPC·필드) — spec/plan 단계 명시 (HARD-GATE)
+
+화면에 보이는 값마다 그 값이 **"저장된 입력값"인지 "본문 등에서 파생한 표시값"인지**, 그리고 **어떤 IPC·DB 필드·파생 경로에서 오는지**를 spec/plan(특히 data-model 또는 research) 단계에서 명시한다. 이를 plan default 로 추측하면 (a) 표시값/입력값을 잘못 가정해 사용자 의도와 어긋나거나, (b) 표시에 필요한 데이터 경로가 기존 조회에 없어 **구현 중 backend 확장·설계 결정**이 발생한다.
+
+### 회피 절차
+
+1. spec/디자인 단계: 각 화면 표시 요소를 list 화 → 요소마다 "저장 입력 / 파생 표시 / 외부 조회" 분류. **모호하면 plan default 로 넘기지 말고 목업·질문으로 먼저 확정**한다(특히 작가가 직접 적는지 vs 자동 파생인지).
+2. plan(data-model/research): 각 표시값이 **어떤 IPC·필드·파생**에서 오는지 박는다. 기존 조회(예: `projects.list`)가 그 값을 안 주면 신규 조회 경로(예: `listProjectCards`)가 필요함을 plan 에서 드러낸다.
+3. implement: 표시값 출처가 plan 에 박혀 있으면 구현 중 데이터 경로 신설 결정이 안 생긴다.
+
+### 회귀 사례 — 2026-06-06 009 작업실 재디자인
+
+- **"다음 장면" 표시값/입력값 미확정 → R1 default 뒤집기**: plan R1 이 "다음 장면 = 곁쪽지로 대체(전용 필드 없음)"로 default 결정했으나, 사용자가 목업(`next-scene-options.html`)을 보고 **"작가가 직접 적는 한 줄(B)"**로 뒤집음 → `projects.next_scene` 신설로 spec/plan/data-model/contracts 전부 재갱신. 회피 가능 시점: spec 단계에서 "다음 장면"이 표시값인지 입력값인지 목업으로 먼저 확정.
+- **"마지막 문장" 데이터 경로 미박음 → 구현 중 backend 확장**: 작품 벽 카드가 "마지막 문장"을 표시하는데 `projects.list` 가 본문(document)을 안 줘서 구현 시점에야 데이터 경로 부재를 발견 → `store.listProjectCards` 로 backend 확장. 회피 가능 시점: plan data-model 에 "화면별로 어떤 IPC·필드에서 표시값이 오는가"를 명시.
+
 ## 메타 — 본 룰의 누적 정책
 
 본 룰은 **회고 회귀 사례에서 도출** 된 항목을 누적한다. 새 항목 추가 절차:

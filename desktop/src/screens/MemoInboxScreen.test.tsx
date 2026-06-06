@@ -117,6 +117,15 @@ describe("MemoInboxScreen", () => {
     expect(screen.queryByText("미연결")).not.toBeInTheDocument();
   });
 
+  it("should_not_render_count_phrase", async () => {
+    // FR-012/SC-003 — 개수 카운터 언어("쪽지 N장")는 관리 도구 톤 회귀라 표시하지 않는다.
+    renderScreen({
+      memosList: vi.fn().mockResolvedValue([makeMemo({ body: "첫 쪽지" }), makeMemo({ id: "m2", body: "둘째 쪽지" })]),
+    });
+    await screen.findByText("첫 쪽지");
+    expect(screen.queryByText(/쪽지 \d+장/)).not.toBeInTheDocument();
+  });
+
   it("should_not_render_all_unlinked_segment_filter", async () => {
     renderScreen({ memosList: vi.fn().mockResolvedValue([makeMemo()]) });
     await screen.findByText("떠오른 생각");
