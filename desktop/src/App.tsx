@@ -221,9 +221,7 @@ export function App() {
           onAutoSave={setAutoSave}
         />
       )}
-      {screen === "memo" && (
-        <MemoInboxScreen refresh={memoRefresh} panelOpen={panelOpen} onTogglePanel={togglePanel} />
-      )}
+      {screen === "memo" && <MemoInboxScreen refresh={memoRefresh} />}
       {screen === "log" && <LogScreen panelOpen={panelOpen} onTogglePanel={togglePanel} />}
 
       {/* 집필 화면은 보기 메뉴(WriteStudioScreen)가 테마·자동저장을 품으므로 전역 Dock 을 숨긴다(설정 진입점 중복 회피). */}

@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { Memo } from "./types";
+import type { Memo, ProjectMemo } from "./types";
 
 type MemoRow = {
   id: string;
@@ -66,18 +66,46 @@ export class MemoRepository {
     return rows.map((r) => toMemo(r, byMemo.get(r.id) ?? []));
   }
 
-  /** 특정 작품에 연결된(soft delete 제외) 메모만 captured_at DESC 로 반환(집필 패널용). */
-  listByProject(projectId: string): Memo[] {
+  /**
+   * 특정 작품에 연결된(soft delete 제외) 메모만 captured_at DESC 로 반환(집필 패널용).
+   * 각 메모에 그 작품 기준 곁쪽지 고정 여부(`pinned`)를 포함한다.
+   */
+  listByProject(projectId: string): ProjectMemo[] {
     const rows = this.db
       .prepare(
-        `SELECT m.* FROM memos m
+        `SELECT m.*, mp.pinned AS pinned FROM memos m
          JOIN memo_projects mp ON mp.memo_id = m.id
          WHERE mp.project_id = ? AND m.deleted_at IS NULL
          ORDER BY m.captured_at DESC`,
       )
-      .all(projectId) as MemoRow[];
+      .all(projectId) as Array<MemoRow & { pinned: number }>;
     const byMemo = this.linksByMemo();
-    return rows.map((r) => toMemo(r, byMemo.get(r.id) ?? []));
+    return rows.map((r) => ({ ...toMemo(r, byMemo.get(r.id) ?? []), pinned: r.pinned === 1 }));
+  }
+
+  /**
+   * 곁에 둘 쪽지 고정/해제 — 그 (memo, project) 연결 행의 pinned 를 설정한다.
+   * `pinned=true` 면 작품당 1개 불변식을 지키기 위해 같은 작품의 기존 고정을 한 트랜잭션 안에서 먼저 해제한다.
+   * 연결이 없으면(removeLink 등으로 행 부재) 아무 행도 영향받지 않는다.
+   */
+  setPin(memoId: string, projectId: string, pinned: boolean): void {
+    if (!pinned) {
+      this.db
+        .prepare("UPDATE memo_projects SET pinned = 0 WHERE memo_id = ? AND project_id = ?")
+        .run(memoId, projectId);
+      return;
+    }
+    this.db.exec("BEGIN");
+    try {
+      this.db.prepare("UPDATE memo_projects SET pinned = 0 WHERE project_id = ?").run(projectId);
+      this.db
+        .prepare("UPDATE memo_projects SET pinned = 1 WHERE memo_id = ? AND project_id = ?")
+        .run(memoId, projectId);
+      this.db.exec("COMMIT");
+    } catch (e) {
+      this.db.exec("ROLLBACK");
+      throw e;
+    }
   }
 
   /**

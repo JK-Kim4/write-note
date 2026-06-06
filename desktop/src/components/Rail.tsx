@@ -59,10 +59,12 @@ export function Rail({ active, onNavigate, onCapture }: RailProps) {
           </button>
         ))}
       </div>
-      <button type="button" className="rail__capture" onClick={onCapture} aria-label="빠른 메모">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 5v14M5 12h14" />
+      <button type="button" className="rail__ink" onClick={onCapture} aria-label="빠른 메모">
+        {/* 잉크 한 방울 — 떠오른 생각을 책상에 떨군다. '새 항목'이 아니라 캡처 affordance. */}
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 3.2c.38 0 .72.21.9.55 1.06 2.02 4.6 7.1 4.6 10.45a5.5 5.5 0 0 1-11 0c0-3.35 3.54-8.43 4.6-10.45.18-.34.52-.55.9-.55Z" />
         </svg>
+        <span className="rail__ink-label">잉크 한 방울</span>
       </button>
     </nav>
   );

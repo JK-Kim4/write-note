@@ -23,6 +23,7 @@ const api: ElectronAPI = {
     pickReentry: (projectId) => ipcRenderer.invoke(CHANNELS.memosPickReentry, projectId),
     addLink: (memoId, projectId) => ipcRenderer.invoke(CHANNELS.memosAddLink, memoId, projectId),
     removeLink: (memoId, projectId) => ipcRenderer.invoke(CHANNELS.memosRemoveLink, memoId, projectId),
+    setPin: (memoId, projectId, pinned) => ipcRenderer.invoke(CHANNELS.memosSetPin, memoId, projectId, pinned),
     delete: (id) => ipcRenderer.invoke(CHANNELS.memosDelete, id),
     restore: (id) => ipcRenderer.invoke(CHANNELS.memosRestore, id),
   },

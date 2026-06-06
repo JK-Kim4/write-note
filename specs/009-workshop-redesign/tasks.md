@@ -88,8 +88,8 @@ description: "Task list — 작업실 디자인 고도화"
 
 **Independent Test**: 통계 패널·전체/미연결 필터 제거, 쪽지 본문 중심, 안 붙은 쪽지 붙이기 즉시 반영.
 
-- [ ] T021 [US3] `desktop/src/screens/MemoInboxScreen.test.tsx` — 통계 패널/세그먼트 필터 미존재, 작품 이름표/붙이기 표시, 붙이기 즉시 반영(기존 optimistic 유지) 갱신(RED)
-- [ ] T022 [US3] `desktop/src/screens/MemoInboxScreen.tsx` — 쪽지 책상형(흩어진 쪽지 + 작품 추림 + 잉크 한 방울). 통계/필터 제거, 붙이기 진입점 유지(GREEN), CSS 완화
+- [x] T021 [US3] `desktop/src/screens/MemoInboxScreen.test.tsx` — 통계 패널/세그먼트 필터 미존재, 작품 이름표/붙이기 표시, 붙이기 즉시 반영(기존 optimistic 유지) 갱신(RED)
+- [x] T022 [US3] `desktop/src/screens/MemoInboxScreen.tsx` — 쪽지 책상형(흩어진 쪽지 + 작품 추림 + 잉크 한 방울). 통계/필터 제거, 붙이기 진입점 유지(GREEN), CSS 완화
 - [ ] T023 [US3] dogfooding(quickstart US3)
 
 **Checkpoint**: 메모 화면이 관리화면 → 작업대.
@@ -102,9 +102,9 @@ description: "Task list — 작업실 디자인 고도화"
 
 **Independent Test**: 진입점이 캡처로 읽힘, 입력 중 닫기 시 초안 보존, 닫은 뒤 직전 포커스 복귀, 집필 중 현재 작품 연결.
 
-- [ ] T024 [P] [US4] `desktop/src/components/Rail.tsx` — 빠른 메모 버튼을 "잉크 한 방울"(잉크 방울 아이콘+라벨)로, accessible name 유지 [정적 외관 완화]
-- [ ] T025 [US4] `desktop/src/components/QuickCapture.test.tsx` — 입력 중 닫기 시 초안 보존, close 시 직전 activeElement 복귀, Tab 모달 내 순환, 집필 중 현재 작품 연결(RED)
-- [ ] T026 [US4] `desktop/src/components/QuickCapture.tsx` — focus trap + restore + 초안 보존 구현(GREEN)
+- [x] T024 [P] [US4] `desktop/src/components/Rail.tsx` — 빠른 메모 버튼을 "잉크 한 방울"(잉크 방울 아이콘+라벨)로, accessible name 유지 [정적 외관 완화]
+- [x] T025 [US4] `desktop/src/components/QuickCapture.test.tsx` — 입력 중 닫기 시 초안 보존, close 시 직전 activeElement 복귀, Tab 모달 내 순환, 집필 중 현재 작품 연결(RED)
+- [x] T026 [US4] `desktop/src/components/QuickCapture.tsx` — focus trap + restore + 초안 보존 구현(GREEN)
 - [ ] T027 [US4] dogfooding(quickstart US4): 키보드 경로 포함
 
 **Checkpoint**: 캡처 흐름이 신뢰 가능.
@@ -119,9 +119,9 @@ description: "Task list — 작업실 디자인 고도화"
 
 ### Backend (고정 set/조회)
 
-- [ ] T028 [US6] `desktop/electron/db/memoRepository.test.ts` — setPin 작품당 1개 유지(같은 작품 기존 고정 해제), removeLink 시 고정 소멸, listByProject 가 ProjectMemo(pinned) 반영(RED)
-- [ ] T029 [US6] `desktop/electron/db/memoRepository.ts` — `setPin(memoId, projectId, pinned)`(트랜잭션: 같은 project 기존 pinned=0 후 대상 set) + listByProject 반환 `ProjectMemo[]`(pinned 포함)(GREEN)
-- [ ] T030 [US6] `desktop/electron/ipc/contract.ts`(`memos:setPin`) + `registerHandlers.ts` + `preload.ts` — `memos.setPin` 노출, `listByProject` 반환 타입 ProjectMemo 동기화
+- [x] T028 [US6] `desktop/electron/db/memoRepository.test.ts` — setPin 작품당 1개 유지(같은 작품 기존 고정 해제), removeLink 시 고정 소멸, listByProject 가 ProjectMemo(pinned) 반영(RED)
+- [x] T029 [US6] `desktop/electron/db/memoRepository.ts` — `setPin(memoId, projectId, pinned)`(트랜잭션: 같은 project 기존 pinned=0 후 대상 set) + listByProject 반환 `ProjectMemo[]`(pinned 포함)(GREEN)
+- [x] T030 [US6] `desktop/electron/ipc/contract.ts`(`memos:setPin`) + `registerHandlers.ts` + `preload.ts` — `memos.setPin` 노출, `listByProject` 반환 타입 ProjectMemo 동기화
 
 ### Renderer (고정 토글 + 재진입 우선 검증)
 
