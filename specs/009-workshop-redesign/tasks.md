@@ -125,8 +125,8 @@ description: "Task list — 작업실 디자인 고도화"
 
 ### Renderer (고정 토글 + 재진입 우선 검증)
 
-- [ ] T031 [US6] `desktop/src/components/MemoPanel.test.tsx` 또는 MemoInboxScreen — 고정 토글 동작(optimistic) + 작품별 독립 표시(RED)
-- [ ] T032 [US6] `desktop/src/components/MemoPanel.tsx`(집필 서랍) / 메모 작품 맥락 — 고정 토글 UI 결선(GREEN)
+- [x] T031 [US6] `desktop/src/components/MemoPanel.test.tsx` 또는 MemoInboxScreen — 고정 토글 동작(optimistic) + 작품별 독립 표시(RED)
+- [x] T032 [US6] `desktop/src/components/MemoPanel.tsx`(집필 서랍) / 메모 작품 맥락 — 고정 토글 UI 결선(GREEN)
 - [ ] T033 [US6] dogfooding(quickstart US6): 고정→재진입 우선, 해제→fallback, 작품별 독립, 연결 해제 시 고정 소멸
 
 **Checkpoint**: 재진입 한 장 정확도가 작가 의도로 제어됨.
@@ -139,8 +139,8 @@ description: "Task list — 작업실 디자인 고도화"
 
 **Independent Test**: 보조/placeholder 대비 측정 AA, 모든 상호작용 요소 focus 가시.
 
-- [ ] T034 [US5] `desktop/src/styles/app.css` — `--faint`/`--muted` 사용처 대비 상향(본문급 `--ink-soft`↑, placeholder `--muted`↑), 라이트·다크 ≥4.5:1 [CSS 완화, 측정 검증]
-- [ ] T035 [US5] `desktop/src/styles/app.css` + 컴포넌트 — 전역 `:focus-visible { outline: none }` 제거, 컴포넌트별 `box-shadow` focus ring(`--accent-soft`): QuickCapture/LinkPopover/삭제·고정 토글/Toast action
+- [x] T034 [US5] `desktop/src/styles/app.css` — `--faint`/`--muted` 사용처 대비 상향(본문급 `--ink-soft`↑, placeholder `--muted`↑), 라이트·다크 ≥4.5:1 [CSS 완화, 측정 검증]
+- [x] T035 [US5] `desktop/src/styles/app.css` + 컴포넌트 — 전역 `:focus-visible { outline: none }` 제거, 컴포넌트별 `box-shadow` focus ring(`--accent-soft`): QuickCapture/LinkPopover/삭제·고정 토글/Toast action
 - [ ] T036 [US5] dogfooding(quickstart US5): 대비·focus 라이트/다크 확인
 
 ---

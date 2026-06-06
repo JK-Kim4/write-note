@@ -109,7 +109,8 @@ export function App() {
       if (cancelled) return;
       const now = new Date();
       // 패널은 현재 작품이 자명하므로 작품명 칩을 표시하지 않는다(연결 제목 맵 불요).
-      setPanelMemos(rows.map((m) => toInboxMemoView(m, new Map(), now)));
+      // listByProject 는 ProjectMemo(= Memo + pinned) 이므로 곁쪽지 고정 상태를 view 에 얹는다.
+      setPanelMemos(rows.map((m) => ({ ...toInboxMemoView(m, new Map(), now), pinned: m.pinned })));
       setPanelLoading(false);
     });
     return () => {
@@ -122,6 +123,15 @@ export function App() {
     (memoId: string) => {
       if (!activeProject) return;
       void window.electronAPI.memos.removeLink(memoId, activeProject.id).then(() => setMemoRefresh((n) => n + 1));
+    },
+    [activeProject],
+  );
+
+  // 곁쪽지 고정 토글 — backend 가 작품당 1개를 보장하므로, 다른 고정 해제도 재조회로 반영된다.
+  const handleSetPin = useCallback(
+    (memoId: string, pinned: boolean) => {
+      if (!activeProject) return;
+      void window.electronAPI.memos.setPin(memoId, activeProject.id, pinned).then(() => setMemoRefresh((n) => n + 1));
     },
     [activeProject],
   );
@@ -210,6 +220,7 @@ export function App() {
           memos={panelMemos}
           memosLoading={panelLoading}
           onUnlinkMemo={handlePanelUnlink}
+          onSetPinMemo={handleSetPin}
           autoSave={autoSave}
           onChange={handleChange}
           onSaveNow={saveNow}

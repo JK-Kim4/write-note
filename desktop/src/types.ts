@@ -15,4 +15,6 @@ export type InboxMemo = {
   dateLabel: string;
   /** 연결된 작품 목록(제목 붙음, 다대다). 미연결이면 빈 배열. 사라진 작품 id 는 제외됨 */
   linkedProjects: LinkedProject[];
+  /** 현재 작품 맥락에서의 곁쪽지 고정 여부(집필 패널 전용). inbox view 에선 undefined. */
+  pinned?: boolean;
 };

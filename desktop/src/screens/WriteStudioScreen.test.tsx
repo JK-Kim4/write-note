@@ -18,6 +18,7 @@ function renderScreen(over: Partial<Parameters<typeof WriteStudioScreen>[0]> = {
     memos: [],
     memosLoading: false,
     onUnlinkMemo: vi.fn(),
+    onSetPinMemo: vi.fn(),
     autoSave: true,
     onChange: vi.fn(),
     onSaveNow: vi.fn(),

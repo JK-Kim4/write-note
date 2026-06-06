@@ -24,8 +24,9 @@
 
   --ink:        oklch(0.280 0.018 60);
   --ink-soft:   oklch(0.400 0.016 62);
-  --muted:      oklch(0.520 0.018 68);
-  --faint:      oklch(0.640 0.014 72);
+  --muted:      oklch(0.510 0.018 68);
+  /* US5 대비(AA): sunken 면 위에서도 ≥4.5:1 — 기존 0.640 은 ≈2.3:1 미달이라 ink 쪽으로 상향. */
+  --faint:      oklch(0.520 0.016 70);
 
   --hairline:        oklch(0.840 0.012 76);
   --hairline-strong: oklch(0.780 0.014 74);
@@ -79,8 +80,9 @@
 
   --ink:        oklch(0.900 0.012 82);
   --ink-soft:   oklch(0.800 0.014 80);
-  --muted:      oklch(0.680 0.016 76);
-  --faint:      oklch(0.550 0.014 72);
+  --muted:      oklch(0.700 0.016 76);
+  /* US5 대비(AA): 짙은 sunken 면 위에서 ≥4.5:1 — 기존 0.550 미달이라 ink(밝은 쪽) 으로 상향. */
+  --faint:      oklch(0.680 0.014 74);
 
   --hairline:        oklch(0.360 0.016 66);
   --hairline-strong: oklch(0.420 0.018 66);
@@ -131,7 +133,8 @@ body::before {
   mix-blend-mode: var(--grain-blend);
 }
 button { font: inherit; color: inherit; cursor: pointer; }
-:focus-visible { outline: none; }
+/* 포커스 가시(접근성 AA) — 네이티브 outline 대신 일관된 잉크블루 ring. 개별 규칙이 색/두께를 덮을 수 있다. */
+:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
 
 /* ── 앱 셸 ── */
 .app {
@@ -749,9 +752,24 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .link-opt__check { width: 14px; flex: none; font-size: 11px; color: var(--accent-ink); }
 .link-opt__title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* 집필 패널 곁쪽지 고정 토글 ★/☆ (고정 시 강조, 평소엔 조용) */
+.memo__pin {
+  margin-left: auto; display: inline-grid; place-items: center; width: 18px; height: 18px;
+  border: none; background: transparent; border-radius: 50%;
+  font-size: 12px; line-height: 1; color: var(--faint); opacity: 0; cursor: pointer;
+  transition: opacity var(--dur-base) var(--ease-out), color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
+}
+.memo:hover .memo__pin { opacity: 1; }
+.memo__pin[aria-pressed="true"] { opacity: 1; color: var(--accent-ink); }
+.memo__pin:hover { color: var(--accent-ink); background: var(--accent-soft); }
+.memo__pin:focus-visible { opacity: 1; box-shadow: 0 0 0 2px var(--accent-soft); }
+
+/* 고정된 곁쪽지 — 재진입 시 떠오를 한 장. 왼쪽 잉크블루 띠로 조용히 강조. */
+.memo--pinned { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+
 /* 집필 패널 메모 해제 ✕ (조용하게 — 에디터보다 약하게) */
 .memo__unlink {
-  margin-left: auto; display: inline-grid; place-items: center; width: 18px; height: 18px;
+  display: inline-grid; place-items: center; width: 18px; height: 18px;
   border: none; background: transparent; border-radius: 50%;
   font-size: 11px; line-height: 1; color: var(--faint); opacity: 0; cursor: pointer;
   transition: opacity var(--dur-base) var(--ease-out), color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);

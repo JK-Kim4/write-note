@@ -34,6 +34,8 @@ type Props = {
   memosLoading: boolean;
   /** 서랍 내 연결 해제. */
   onUnlinkMemo: (memoId: string) => void;
+  /** 서랍 내 곁쪽지 고정 토글. */
+  onSetPinMemo: (memoId: string, pinned: boolean) => void;
   /** 자동저장 on/off — off 면 수동 저장 버튼을 노출한다. */
   autoSave: boolean;
   onChange: (change: DocumentChange) => void;
@@ -61,6 +63,7 @@ export function WriteStudioScreen({
   memos,
   memosLoading,
   onUnlinkMemo,
+  onSetPinMemo,
   autoSave,
   onChange,
   onSaveNow,
@@ -168,7 +171,9 @@ export function WriteStudioScreen({
           />
           {showReentry && reentry && <ReentryCard reentry={reentry} onClose={() => setReentryDismissed(true)} />}
         </div>
-        {panelOpen && <MemoPanel memos={memos} loading={memosLoading} onUnlink={onUnlinkMemo} />}
+        {panelOpen && (
+          <MemoPanel memos={memos} loading={memosLoading} onUnlink={onUnlinkMemo} onSetPin={onSetPinMemo} />
+        )}
       </div>
     </div>
   );
