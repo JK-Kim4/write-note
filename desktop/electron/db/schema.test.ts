@@ -85,7 +85,7 @@ describe("migrate", () => {
     const memoCols = db.prepare("PRAGMA table_info(memos)").all() as ColumnInfo[];
     expect(memoCols.some((c) => c.name === "linked_project_id")).toBe(false);
     const cols = db.prepare("PRAGMA table_info(memo_projects)").all() as ColumnInfo[];
-    expect(cols.map((c) => c.name).sort()).toEqual(["created_at", "memo_id", "project_id"]);
+    expect(cols.map((c) => c.name).sort()).toEqual(["created_at", "memo_id", "pinned", "project_id"]);
   });
 
   it("should_migrate_legacy_v3_single_link_into_memo_projects_and_drop_column", () => {
@@ -129,8 +129,69 @@ describe("migrate", () => {
     // 컬럼 제거 + 버전 상승
     const memoCols = db.prepare("PRAGMA table_info(memos)").all() as ColumnInfo[];
     expect(memoCols.some((c) => c.name === "linked_project_id")).toBe(false);
-    expect((db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version).toBe(4);
+    expect((db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version).toBe(5);
     // 메모 본문 보존
     expect((db.prepare("SELECT body FROM memos WHERE id='m1'").get() as { body: string }).body).toBe("연결 메모");
+  });
+
+  it("should_create_next_scene_and_pinned_columns_on_fresh_db", () => {
+    const db = new DatabaseSync(":memory:");
+    migrate(db);
+    const pcols = db.prepare("PRAGMA table_info(projects)").all() as ColumnInfo[];
+    expect(pcols.some((c) => c.name === "next_scene")).toBe(true);
+    const mpcols = db.prepare("PRAGMA table_info(memo_projects)").all() as ColumnInfo[];
+    expect(mpcols.some((c) => c.name === "pinned")).toBe(true);
+    expect((db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version).toBe(5);
+  });
+
+  it("should_add_next_scene_and_pinned_to_legacy_v4_db_keeping_rows", () => {
+    const db = new DatabaseSync(":memory:");
+    // v4 스키마(projects.next_scene / memo_projects.pinned 없음) 재현 — 기존 사용자 .db.
+    db.exec(`
+      CREATE TABLE projects (
+        id TEXT PRIMARY KEY, title TEXT NOT NULL, summary TEXT NOT NULL DEFAULT '',
+        tone TEXT NOT NULL DEFAULT '', genre TEXT NOT NULL DEFAULT '', target_length INTEGER,
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+      ) STRICT;
+      CREATE TABLE memos (
+        id TEXT PRIMARY KEY, body TEXT NOT NULL, captured_at TEXT NOT NULL,
+        source TEXT NOT NULL DEFAULT 'app', created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT
+      ) STRICT;
+      CREATE TABLE memo_projects (
+        memo_id TEXT NOT NULL, project_id TEXT NOT NULL, created_at TEXT NOT NULL,
+        PRIMARY KEY (memo_id, project_id)
+      ) STRICT;
+      PRAGMA user_version = 4;
+    `);
+    db.prepare("INSERT INTO projects (id, title, created_at, updated_at) VALUES (?, ?, ?, ?)").run(
+      "p1",
+      "옛 작품",
+      "2026-01-01T00:00:00.000Z",
+      "2026-01-01T00:00:00.000Z",
+    );
+    db.prepare(
+      "INSERT INTO memos (id, body, captured_at, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+    ).run("m1", "옛 메모", "2026-01-02T00:00:00.000Z", "app", "2026-01-02T00:00:00.000Z", "2026-01-02T00:00:00.000Z");
+    db.prepare("INSERT INTO memo_projects (memo_id, project_id, created_at) VALUES (?, ?, ?)").run(
+      "m1",
+      "p1",
+      "2026-01-02T00:00:00.000Z",
+    );
+
+    migrate(db);
+
+    const pRow = db.prepare("SELECT title, next_scene FROM projects WHERE id='p1'").get() as {
+      title: string;
+      next_scene: string;
+    };
+    expect(pRow.title).toBe("옛 작품");
+    expect(pRow.next_scene).toBe("");
+    const mpRow = db.prepare("SELECT memo_id, project_id, pinned FROM memo_projects").get() as {
+      memo_id: string;
+      project_id: string;
+      pinned: number;
+    };
+    expect(mpRow).toEqual({ memo_id: "m1", project_id: "p1", pinned: 0 });
+    expect((db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version).toBe(5);
   });
 });

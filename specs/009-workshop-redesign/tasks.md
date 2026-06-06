@@ -18,7 +18,7 @@ description: "Task list — 작업실 디자인 고도화"
 
 ## Phase 1: Setup
 
-- [ ] T001 베이스 GREEN 확인 — `cd desktop && pnpm test`(기존 16 files/102) / `pnpm typecheck` / `pnpm build` 통과 확인(Node 24)
+- [x] T001 베이스 GREEN 확인 — `cd desktop && pnpm test`(기존 16 files/102) / `pnpm typecheck` / `pnpm build` 통과 확인(Node 24)
 
 ---
 
@@ -26,10 +26,10 @@ description: "Task list — 작업실 디자인 고도화"
 
 **Purpose**: 스키마 v5 + 도메인 타입 + 공통 토큰. 완료 전 어떤 US backend 도 진행 불가.
 
-- [ ] T002 [P] `desktop/electron/db/schema.test.ts` — v4→v5 마이그레이션 테스트 추가(RED): 기존 DB 에 `projects.next_scene`(DEFAULT '')·`memo_projects.pinned`(DEFAULT 0) 가 무손실 추가되고 `user_version=5` 가 되는지
-- [ ] T003 `desktop/electron/db/schema.ts` — v5 구현(GREEN): CREATE 정의에 두 컬럼 + `if (version < 5)` 블록(projects.next_scene / memo_projects.pinned ALTER) + `SCHEMA_VERSION=5`
-- [ ] T004 [P] `desktop/electron/db/types.ts` — `Project.nextScene: string` 추가 + `ProjectMemo = Memo & { pinned: boolean }` 신설
-- [ ] T005 [P] `desktop/src/styles/app.css` — `--scrap`/`--scrap-edge`/`--scrap-ink` 토큰 라이트·다크 정의(쪽지 면, 대비 검증) [CSS 완화]
+- [x] T002 [P] `desktop/electron/db/schema.test.ts` — v4→v5 마이그레이션 테스트 추가(RED): 기존 DB 에 `projects.next_scene`(DEFAULT '')·`memo_projects.pinned`(DEFAULT 0) 가 무손실 추가되고 `user_version=5` 가 되는지
+- [x] T003 `desktop/electron/db/schema.ts` — v5 구현(GREEN): CREATE 정의에 두 컬럼 + `if (version < 5)` 블록(projects.next_scene / memo_projects.pinned ALTER) + `SCHEMA_VERSION=5`
+- [x] T004 [P] `desktop/electron/db/types.ts` — `Project.nextScene: string` 추가 + `ProjectMemo = Memo & { pinned: boolean }` 신설
+- [x] T005 [P] `desktop/src/styles/app.css` — `--scrap`/`--scrap-edge`/`--scrap-ink` 토큰 라이트·다크 정의(쪽지 면, 대비 검증) [CSS 완화]
 
 **Checkpoint**: 스키마·타입·토큰 준비 → US phase 진입 가능.
 
@@ -43,16 +43,16 @@ description: "Task list — 작업실 디자인 고도화"
 
 ### Backend (다음 장면 저장)
 
-- [ ] T006 [US1] `desktop/electron/db/projectRepository.test.ts` — update 로 nextScene 저장/조회, 미지정 시 기존값 유지, create 기본값 '' (RED)
-- [ ] T007 [US1] `desktop/electron/db/projectRepository.ts` — ProjectRow·toProject·CreateProjectInput·create INSERT·update SET 절에 next_scene 반영(GREEN)
-- [ ] T008 [US1] `desktop/electron/ipc/contract.ts` + `registerHandlers.ts` + `preload.ts` — `UpdateProjectInput.nextScene` 경로 노출(기존 `projects:update` 재사용, 새 채널 불요)
+- [x] T006 [US1] `desktop/electron/db/projectRepository.test.ts` — update 로 nextScene 저장/조회, 미지정 시 기존값 유지, create 기본값 '' (RED)
+- [x] T007 [US1] `desktop/electron/db/projectRepository.ts` — ProjectRow·toProject·CreateProjectInput·create INSERT·update SET 절에 next_scene 반영(GREEN)
+- [x] T008 [US1] `desktop/electron/ipc/contract.ts` + `registerHandlers.ts` + `preload.ts` — `UpdateProjectInput.nextScene` 경로 노출(기존 `projects:update` 재사용, 새 채널 불요)
 
 ### Renderer (마지막 문장 파생 + 작업 벽)
 
-- [ ] T009 [P] [US1] `desktop/src/lib/lastSentence.test.ts` — plainText→마지막 비어있지 않은 문장 파생, 빈 본문 null, 한국어 종결부호(`.?!…`)/줄바꿈 케이스(RED)
-- [ ] T010 [US1] `desktop/src/lib/lastSentence.ts` — 순수 함수 구현(GREEN)
-- [ ] T011 [US1] `desktop/src/screens/ProjectsScreen.test.tsx` — 카드에 마지막 문장 표시, 날짜/카운터 미표시, 다음 장면 입력→`projects.update(nextScene)` 호출, 카드 선택→집필 진입(RED)
-- [ ] T012 [US1] `desktop/src/screens/ProjectsScreen.tsx` — 작업 벽형(핀 카드 + 마지막 문장 얼굴 + 다음 장면 입력칸 + 새 작품). 동작 GREEN, 레이아웃/CSS 완화
+- [x] T009 [P] [US1] `desktop/src/lib/lastSentence.test.ts` — plainText→마지막 비어있지 않은 문장 파생, 빈 본문 null, 한국어 종결부호(`.?!…`)/줄바꿈 케이스(RED)
+- [x] T010 [US1] `desktop/src/lib/lastSentence.ts` — 순수 함수 구현(GREEN)
+- [x] T011 [US1] `desktop/src/screens/ProjectsScreen.test.tsx` — 카드에 마지막 문장 표시, 날짜/카운터 미표시, 다음 장면 입력→`projects.update(nextScene)` 호출, 카드 선택→집필 진입(RED)
+- [x] T012 [US1] `desktop/src/screens/ProjectsScreen.tsx` — 작업 벽형(핀 카드 + 마지막 문장 얼굴 + 다음 장면 입력칸 + 새 작품). 동작 GREEN, 레이아웃/CSS 완화
 - [ ] T013 [US1] dogfooding(quickstart US1): Electron 창에서 작품 벽·다음 장면 저장·진입 확인
 
 **Checkpoint**: US1 단독으로 작품 벽 + 다음 장면 영속 동작.
@@ -67,15 +67,15 @@ description: "Task list — 작업실 디자인 고도화"
 
 ### Backend (재진입 선정)
 
-- [ ] T014 [US2] `desktop/electron/db/store.test.ts` — `pickReentryMemo(projectId)` 우선순위(고정 pinned=1 > memo_projects.created_at 최신 > memos.captured_at 최신) + soft delete 제외 + 연결 없음 null (RED, pinned fixture 직접 세팅)
-- [ ] T015 [US2] `desktop/electron/db/memoRepository.ts` — pickReentry 조회 쿼리 추가, `desktop/electron/db/store.ts` — `pickReentryMemo` use-case(GREEN)
-- [ ] T016 [US2] `desktop/electron/ipc/contract.ts`(`memos:pickReentry` 채널/타입) + `registerHandlers.ts` + `preload.ts` — `memos.pickReentry(projectId)` 노출
+- [x] T014 [US2] `desktop/electron/db/store.test.ts` — `pickReentryMemo(projectId)` 우선순위(고정 pinned=1 > memo_projects.created_at 최신 > memos.captured_at 최신) + soft delete 제외 + 연결 없음 null (RED, pinned fixture 직접 세팅)
+- [x] T015 [US2] `desktop/electron/db/memoRepository.ts` — pickReentry 조회 쿼리 추가, `desktop/electron/db/store.ts` — `pickReentryMemo` use-case(GREEN)
+- [x] T016 [US2] `desktop/electron/ipc/contract.ts`(`memos:pickReentry` 채널/타입) + `registerHandlers.ts` + `preload.ts` — `memos.pickReentry(projectId)` 노출
 
 ### Renderer (서랍형 + 재진입 한 장 + 접힌 보기)
 
-- [ ] T017 [US2] `desktop/src/screens/WriteStudioScreen.test.tsx` — 진입 시 재진입 한 장(마지막 문장+다음 장면+곁 쪽지) 표시, 보기 control 이 접힌 메뉴 안, 저장상태/글자수 상시(RED)
-- [ ] T018 [US2] `desktop/src/components/` — 보기 팝오버(zoom/줄노트/테마/자동저장 통합, LinkPopover 패턴 재사용). 기존 `Dock`/`ZoomControl`/`PanelToggle` 정리
-- [ ] T019 [US2] `desktop/src/screens/WriteStudioScreen.tsx` — 서랍형(종이 우선 + 재진입 한 장 + 가장자리 서랍에 MemoPanel 접힘 + 접힌 보기 메뉴) 결선(GREEN), CSS 완화
+- [x] T017 [US2] `desktop/src/screens/WriteStudioScreen.test.tsx` — 진입 시 재진입 한 장(마지막 문장+다음 장면+곁 쪽지) 표시, 보기 control 이 접힌 메뉴 안, 저장상태/글자수 상시(RED)
+- [x] T018 [US2] `desktop/src/components/` — 보기 팝오버(zoom/줄노트/테마/자동저장 통합, LinkPopover 패턴 재사용). 기존 `Dock`/`ZoomControl`/`PanelToggle` 정리
+- [x] T019 [US2] `desktop/src/screens/WriteStudioScreen.tsx` — 서랍형(종이 우선 + 재진입 한 장 + 가장자리 서랍에 MemoPanel 접힘 + 접힌 보기 메뉴) 결선(GREEN), CSS 완화
 - [ ] T020 [US2] 한국어 IME 본문 입력 4케이스(PoC 0-1) 재검 + dogfooding(quickstart US2)
 
 **Checkpoint**: US1+US2 = 재진입 강화 MVP(작품 벽 → 서랍형 집필실).

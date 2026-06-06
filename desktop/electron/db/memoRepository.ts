@@ -80,6 +80,24 @@ export class MemoRepository {
     return rows.map((r) => toMemo(r, byMemo.get(r.id) ?? []));
   }
 
+  /**
+   * 재진입 한 장 — 그 작품에 연결된(soft delete 제외) 메모 중 하나를 우선순위대로 반환한다.
+   * (1) pinned=1 곁쪽지, (2) 없으면 memo_projects.created_at 최신, (3) 없으면 captured_at 최신.
+   * 연결이 없으면 null.
+   */
+  pickReentry(projectId: string): Memo | null {
+    const row = this.db
+      .prepare(
+        `SELECT m.* FROM memos m
+         JOIN memo_projects mp ON mp.memo_id = m.id
+         WHERE mp.project_id = ? AND m.deleted_at IS NULL
+         ORDER BY mp.pinned DESC, mp.created_at DESC, m.captured_at DESC
+         LIMIT 1`,
+      )
+      .get(projectId) as MemoRow | undefined;
+    return row ? toMemo(row, this.linkedIdsFor(row.id)) : null;
+  }
+
   /** 메모-작품 연결 추가. 같은 쌍 재호출은 무시(멱등). */
   addLink(memoId: string, projectId: string): void {
     this.db

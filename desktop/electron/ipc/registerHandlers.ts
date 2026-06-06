@@ -11,6 +11,7 @@ export function registerHandlers(store: Store): void {
     store.createProjectWithDocument(input),
   );
   ipcMain.handle(CHANNELS.projectsList, () => store.projects.list());
+  ipcMain.handle(CHANNELS.projectsListCards, () => store.listProjectCards());
   ipcMain.handle(CHANNELS.projectsGet, (_e, id: string) => store.projects.getById(id));
   ipcMain.handle(CHANNELS.projectsUpdate, (_e, id: string, patch: UpdateProjectInput) =>
     store.projects.update(id, patch),
@@ -28,6 +29,9 @@ export function registerHandlers(store: Store): void {
   ipcMain.handle(CHANNELS.memosList, () => store.memos.list());
   ipcMain.handle(CHANNELS.memosListByProject, (_e, projectId: string) =>
     store.memos.listByProject(projectId),
+  );
+  ipcMain.handle(CHANNELS.memosPickReentry, (_e, projectId: string) =>
+    store.pickReentryMemo(projectId),
   );
   ipcMain.handle(CHANNELS.memosAddLink, (_e, memoId: string, projectId: string) =>
     store.memos.addLink(memoId, projectId),

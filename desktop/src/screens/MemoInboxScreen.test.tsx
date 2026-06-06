@@ -27,6 +27,7 @@ function makeProject(over: Partial<Project> = {}): Project {
     tone: "",
     genre: "",
     targetLength: null,
+    nextScene: "",
     createdAt: now,
     updatedAt: now,
     ...over,

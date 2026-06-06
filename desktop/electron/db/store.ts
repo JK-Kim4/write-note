@@ -3,7 +3,7 @@ import { ProjectRepository, type CreateProjectInput } from "./projectRepository"
 import { DocumentRepository, type UpdateDocumentInput } from "./documentRepository";
 import { MemoRepository } from "./memoRepository";
 import { SettingRepository } from "./settingRepository";
-import type { Document, Memo, Project } from "./types";
+import type { Document, Memo, Project, ProjectCard } from "./types";
 
 export type CaptureMemoInput = {
   body: string;
@@ -54,6 +54,22 @@ export class Store {
       this.db.exec("ROLLBACK");
       throw error;
     }
+  }
+
+  /**
+   * 재진입 한 장 — 그 작품에서 곁에 둘 메모 1개를 우선순위대로 고른다(없으면 null).
+   * 우선순위는 memoRepository.pickReentry 참조(pinned → 연결 최신 → captured_at 최신).
+   */
+  pickReentryMemo(projectId: string): Memo | null {
+    return this.memos.pickReentry(projectId);
+  }
+
+  /** 작품 벽 카드 — 각 작품에 그 본문 plainText(마지막 문장 파생 소스)를 실어 반환한다. */
+  listProjectCards(): ProjectCard[] {
+    return this.projects.list().map((p) => ({
+      ...p,
+      lastSentenceSource: this.documents.getByProjectId(p.id)?.plainText ?? "",
+    }));
   }
 
   /** document 본문을 저장하고, 소속 project 의 updated_at 을 한 트랜잭션으로 touch 한다. */

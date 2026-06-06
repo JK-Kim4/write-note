@@ -17,6 +17,11 @@
   --paper:          oklch(0.985 0.008 85);
   --paper-edge:     oklch(0.900 0.012 80);
 
+  /* 쪽지(메모) 면 — 종이와 구분되는 옅은 크림옐로(포스트잇). */
+  --scrap:          oklch(0.945 0.050 92);
+  --scrap-edge:     oklch(0.880 0.045 90);
+  --scrap-ink:      oklch(0.330 0.040 78);
+
   --ink:        oklch(0.280 0.018 60);
   --ink-soft:   oklch(0.400 0.016 62);
   --muted:      oklch(0.520 0.018 68);
@@ -66,6 +71,11 @@
   --surface-sunken: oklch(0.230 0.012 58);
   --paper:          oklch(0.255 0.016 64);
   --paper-edge:     oklch(0.320 0.018 64);
+
+  /* 쪽지 면 — 다크는 채도 낮춘 짙은 변형. */
+  --scrap:          oklch(0.330 0.035 92);
+  --scrap-edge:     oklch(0.400 0.035 90);
+  --scrap-ink:      oklch(0.880 0.030 90);
 
   --ink:        oklch(0.900 0.012 82);
   --ink-soft:   oklch(0.800 0.014 80);
@@ -230,6 +240,52 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .screen-body { display: grid; grid-template-columns: minmax(0, 1fr) 320px; min-height: 0; overflow: hidden; }
 .screen-body--solo { grid-template-columns: minmax(0, 1fr); }  /* 패널 닫힘 — 메인 전체 폭 */
 .screen-main { overflow-y: auto; min-height: 0; padding: 40px 32px 80px; display: flex; justify-content: center; align-items: flex-start; }
+
+/* ── 집필실 — 종이(에디터) + 재진입 한 장(곁에). ── */
+.studio { display: flex; min-width: 0; min-height: 0; overflow: hidden; }
+.studio .editor-scroll { flex: 1; min-width: 0; }
+
+/* 재진입 한 장 — 종이 옆 한 장. 곁쪽지 서랍과 달리 진입 직후 잠깐 펼쳐졌다 닫힌다. */
+.reentry {
+  flex: none; width: 264px; align-self: flex-start;
+  margin: 40px 28px 0 0;
+  background: var(--scrap); border: 1px solid var(--scrap-edge); border-radius: var(--radius);
+  box-shadow: var(--shadow-panel);
+  padding: 16px 16px 18px; display: flex; flex-direction: column; gap: 12px;
+  color: var(--scrap-ink);
+  animation: rise var(--dur-enter) var(--ease-out) both;
+}
+.reentry__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.reentry__kicker { font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em; color: var(--scrap-ink); opacity: .75; }
+.reentry__close {
+  width: 24px; height: 24px; display: grid; place-items: center; flex: none;
+  border: none; background: transparent; border-radius: var(--radius-sm); color: var(--scrap-ink); opacity: .6;
+  transition: opacity var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
+}
+.reentry__close svg { width: 14px; height: 14px; }
+.reentry__close:hover { opacity: 1; background: var(--scrap-edge); }
+.reentry__close:focus-visible { opacity: 1; box-shadow: 0 0 0 2px var(--accent-soft); }
+.reentry__sentence {
+  font-family: var(--font-serif); font-size: 16px; line-height: 1.62; color: var(--scrap-ink); margin: 0;
+  text-wrap: pretty;
+}
+.reentry__sentence--empty { font-style: italic; opacity: .7; }
+.reentry__next, .reentry__memo { display: flex; flex-direction: column; gap: 3px; border-top: 1px solid var(--scrap-edge); padding-top: 11px; }
+.reentry__label { font-size: 11px; font-weight: 600; letter-spacing: -0.01em; color: var(--scrap-ink); opacity: .7; }
+.reentry__next-text { font-size: 13.5px; line-height: 1.55; color: var(--scrap-ink); margin: 0; }
+.reentry__next-text--empty { opacity: .6; }
+.reentry__memo-body { font-size: 13px; line-height: 1.55; color: var(--scrap-ink); margin: 0; opacity: .92; }
+
+/* ── 보기 메뉴 (titlebar 보기 버튼 → 접힌 팝오버) ── */
+.view-anchor { position: relative; display: inline-flex; }
+.view-menu {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 41; min-width: 232px;
+  background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-modal); padding: 11px 12px; display: flex; flex-direction: column; gap: 11px;
+  animation: rise var(--dur-enter) var(--ease-out) both;
+}
+.view-menu__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.view-menu__lbl { font-size: 12px; color: var(--muted); letter-spacing: -0.01em; }
 
 /* ── 에디터 (주인공) ── */
 .editor-scroll {
@@ -498,33 +554,63 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .newproject__form { display: flex; flex-direction: column; gap: 16px; }
 .newproject__form .btn--primary { align-self: flex-start; margin-top: 4px; }
 
-.project-card {
-  display: flex; flex-direction: column; gap: 6px; text-align: left; width: 100%;
-  background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius); padding: 16px 18px;
-  transition: transform var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+/* ── 작업 벽(핀보드) — 작품 한 장씩 꽂힌 종이. 카드 얼굴 = 마지막 문장. ── */
+.work-wall {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: 20px 18px;
+}
+.wall-card {
+  position: relative; display: flex; flex-direction: column; gap: 12px;
+  background: var(--paper); border: 1px solid var(--paper-edge); border-radius: var(--radius);
+  box-shadow: var(--shadow-panel);
+  padding: 20px 18px 16px;
+  transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
   animation: rise var(--dur-enter) var(--ease-out) both;
 }
-.project-card:hover { transform: translateY(-2px); border-color: var(--hairline-strong); box-shadow: var(--shadow-panel); }
-.project-card:active { transform: scale(0.98); }
-.project-card:focus-visible { box-shadow: 0 0 0 3px var(--accent-soft); border-color: var(--accent); }
-.project-card__title { font-family: var(--font-serif); font-size: 18px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; line-height: 1.4; }
-.project-card__meta { font-size: 12px; color: var(--muted); }
-.project-card__date { font-size: 11.5px; color: var(--faint); margin-top: 2px; }
+.wall-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-paper); }
+/* 핀 — 종이를 벽에 꽂은 한 점. 장식이되 과하지 않게. */
+.wall-card__pin {
+  position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+  width: 11px; height: 11px; border-radius: var(--radius-pill);
+  background: var(--accent); box-shadow: 0 1px 3px -1px oklch(0.3 0.03 60 / .5);
+}
+.wall-card__face {
+  display: flex; flex-direction: column; gap: 9px; text-align: left; width: 100%;
+  border: none; background: transparent; padding: 0; border-radius: var(--radius-sm);
+}
+.wall-card__face:focus-visible { box-shadow: 0 0 0 3px var(--accent-soft); }
+.wall-card__face:active { transform: scale(0.99); }
+.wall-card__sentence {
+  font-family: var(--font-serif); font-size: 17px; line-height: 1.6; font-weight: 400;
+  color: var(--ink); letter-spacing: 0.002em; text-wrap: pretty;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.wall-card__sentence--empty { color: var(--faint); font-style: italic; }
+.wall-card__title { font-size: 12.5px; font-weight: 500; color: var(--muted); letter-spacing: -0.01em; }
 
-/* 작품 카드 + 삭제 버튼 (카드 button 중첩 회피 — 형제로 겹쳐 배치) */
-.project-card-wrap { position: relative; animation: rise var(--dur-enter) var(--ease-out) both; }
-.project-card-wrap .project-card { animation: none; padding-right: 46px; }
-.project-card__del {
-  position: absolute; top: 12px; right: 12px;
-  width: 30px; height: 30px; display: grid; place-items: center;
+.wall-card__next { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--hairline); padding-top: 12px; }
+.wall-card__next-label { font-size: 11px; font-weight: 500; color: var(--faint); letter-spacing: -0.01em; }
+.wall-card__next-input {
+  font: inherit; font-size: 13px; color: var(--ink-soft);
+  background: transparent; border: none; border-radius: var(--radius-sm);
+  padding: 4px 6px; margin: 0 -6px; width: calc(100% + 12px);
+  transition: background-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+}
+.wall-card__next-input::placeholder { color: var(--faint); }
+.wall-card__next-input:hover { background: var(--surface-sunken); }
+.wall-card__next-input:focus-visible { background: var(--surface-sunken); box-shadow: 0 0 0 2px var(--accent-soft); }
+
+.wall-card__del {
+  position: absolute; top: 12px; right: 10px;
+  width: 28px; height: 28px; display: grid; place-items: center;
   border: none; background: transparent; border-radius: var(--radius-sm);
   color: var(--faint); opacity: 0;
   transition: opacity var(--dur-base) var(--ease-out), color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
 }
-.project-card-wrap:hover .project-card__del { opacity: 1; }
-.project-card__del:hover { color: var(--danger); background: var(--danger-soft); }
-.project-card__del:focus-visible { opacity: 1; box-shadow: 0 0 0 3px var(--danger-soft); }
-.project-card__del:active { transform: scale(0.92); }
+.wall-card:hover .wall-card__del { opacity: 1; }
+.wall-card__del:hover { color: var(--danger); background: var(--danger-soft); }
+.wall-card__del:focus-visible { opacity: 1; box-shadow: 0 0 0 3px var(--danger-soft); }
+.wall-card__del:active { transform: scale(0.92); }
 
 /* 메모 화면 — inbox */
 .memo-inbox {
@@ -713,16 +799,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .welcome .btn { margin-top: 30px; }
 
-/* 작품 목록 */
-.projects-list-wrap { width: 100%; max-width: 600px; animation: fade var(--dur-base) var(--ease-out); }
-.projects-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+/* 작품 목록(작업 벽) */
+.projects-list-wrap { width: 100%; max-width: 880px; animation: fade var(--dur-base) var(--ease-out); }
+.projects-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 24px; }
 .projects-head__title { font-size: 18px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; margin: 0; }
-.projects-head__count { font-size: 12px; color: var(--faint); font-weight: 400; margin-left: 8px; }
-.projects-list { display: flex; flex-direction: column; gap: 12px; }
-.project-card__excerpt {
-  font-size: 13px; line-height: 1.55; color: var(--muted);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
 
 /* 작품 목록 에러 */
 .projects-error {

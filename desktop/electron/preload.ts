@@ -7,6 +7,7 @@ const api: ElectronAPI = {
   projects: {
     create: (input) => ipcRenderer.invoke(CHANNELS.projectsCreate, input),
     list: () => ipcRenderer.invoke(CHANNELS.projectsList),
+    listCards: () => ipcRenderer.invoke(CHANNELS.projectsListCards),
     get: (id) => ipcRenderer.invoke(CHANNELS.projectsGet, id),
     update: (id, patch) => ipcRenderer.invoke(CHANNELS.projectsUpdate, id, patch),
     delete: (id) => ipcRenderer.invoke(CHANNELS.projectsDelete, id),
@@ -19,6 +20,7 @@ const api: ElectronAPI = {
     create: (input) => ipcRenderer.invoke(CHANNELS.memosCreate, input),
     list: () => ipcRenderer.invoke(CHANNELS.memosList),
     listByProject: (projectId) => ipcRenderer.invoke(CHANNELS.memosListByProject, projectId),
+    pickReentry: (projectId) => ipcRenderer.invoke(CHANNELS.memosPickReentry, projectId),
     addLink: (memoId, projectId) => ipcRenderer.invoke(CHANNELS.memosAddLink, memoId, projectId),
     removeLink: (memoId, projectId) => ipcRenderer.invoke(CHANNELS.memosRemoveLink, memoId, projectId),
     delete: (id) => ipcRenderer.invoke(CHANNELS.memosDelete, id),

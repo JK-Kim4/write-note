@@ -1,10 +1,17 @@
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Titlebar } from "../components/Titlebar";
 import { Editor } from "../components/Editor";
 import { MemoPanel } from "../components/MemoPanel";
-import { PanelToggle } from "../components/PanelToggle";
-import { ZoomControl } from "../components/ZoomControl";
-import type { DocumentChange, InboxMemo, SaveState } from "../types";
+import { ViewMenu } from "../components/ViewMenu";
+import { ReentryCard } from "../components/ReentryCard";
+import type { DocumentChange, InboxMemo, SaveState, Theme } from "../types";
+
+/** 재진입 한 장 데이터 — 마지막 문장(본문 파생)·다음 장면(저장값)·곁에 둘 쪽지 1장. */
+export type Reentry = {
+  lastSentence: string | null;
+  nextScene: string;
+  memo: { body: string } | null;
+};
 
 function saveLabel(save: SaveState, count: number): string {
   if (save === "saving") return "저장 중…";
@@ -22,21 +29,29 @@ type Props = {
   initialBodyJson: string;
   save: SaveState;
   count: number;
-  /** 현재 작품에 연결된 메모(집필 패널). */
+  /** 현재 작품에 연결된 메모(곁쪽지 서랍). */
   memos: InboxMemo[];
   memosLoading: boolean;
-  /** 패널 내 연결 해제. */
+  /** 서랍 내 연결 해제. */
   onUnlinkMemo: (memoId: string) => void;
   /** 자동저장 on/off — off 면 수동 저장 버튼을 노출한다. */
   autoSave: boolean;
   onChange: (change: DocumentChange) => void;
   /** 수동 저장(저장 버튼) — 자동저장 off 시 사용. */
   onSaveNow: () => void;
+  /** 곁쪽지 서랍 토글. */
   panelOpen: boolean;
   onTogglePanel: () => void;
+  /** 재진입 한 장 — 집필 진입 직후 1회 표시. null 이면 표시하지 않는다. */
+  reentry: Reentry | null;
+  /** 테마(보기 메뉴). */
+  theme: Theme;
+  onTheme: (v: Theme) => void;
+  /** 자동저장 토글(보기 메뉴). */
+  onAutoSave: (v: boolean) => void;
 };
 
-/** 집필 화면 — 에디터(주인공) + 연결된 메모 패널(토글) + 작업공간 줌. */
+/** 집필 화면 — 종이(본문)가 주인공. 보기/설정은 접힌 메뉴, 곁쪽지는 서랍, 진입 직후 재진입 한 장. */
 export function WriteStudioScreen({
   projectTitle,
   editorKey,
@@ -51,9 +66,19 @@ export function WriteStudioScreen({
   onSaveNow,
   panelOpen,
   onTogglePanel,
+  reentry,
+  theme,
+  onTheme,
+  onAutoSave,
 }: Props) {
   const [zoom, setZoom] = useState(1);
   const [lined, setLined] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
+  // 재진입 한 장은 진입 직후 1회 — 작품(editorKey)이 바뀌면 다시 펼친다.
+  const [reentryDismissed, setReentryDismissed] = useState(false);
+  useEffect(() => {
+    setReentryDismissed(false);
+  }, [editorKey]);
 
   const right = (
     <>
@@ -72,34 +97,66 @@ export function WriteStudioScreen({
           저장
         </button>
       )}
-      <ZoomControl zoom={zoom} onZoom={setZoom} />
+      <div className="view-anchor">
+        <button
+          type="button"
+          className={viewOpen ? "panel-toggle is-open" : "panel-toggle"}
+          aria-pressed={viewOpen}
+          aria-label="보기"
+          title="보기"
+          onClick={() => setViewOpen((v) => !v)}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+          </svg>
+        </button>
+        {viewOpen && (
+          <ViewMenu
+            zoom={zoom}
+            onZoom={setZoom}
+            lined={lined}
+            onLined={setLined}
+            theme={theme}
+            onTheme={onTheme}
+            autoSave={autoSave}
+            onAutoSave={onAutoSave}
+            onClose={() => setViewOpen(false)}
+          />
+        )}
+      </div>
       <button
         type="button"
-        className={lined ? "panel-toggle is-open" : "panel-toggle"}
-        aria-pressed={lined}
-        aria-label="줄노트"
-        title="줄노트"
-        onClick={() => setLined((v) => !v)}
+        className={panelOpen ? "panel-toggle is-open" : "panel-toggle"}
+        aria-pressed={panelOpen}
+        aria-label="곁쪽지 서랍"
+        title="곁쪽지 서랍"
+        onClick={onTogglePanel}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
-          <path d="M4 7h16M4 12h16M4 17h16" />
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <line x1="15" y1="4" x2="15" y2="20" />
         </svg>
       </button>
-      <PanelToggle open={panelOpen} onToggle={onTogglePanel} label="연결된 메모" />
     </>
   );
+
+  const showReentry = reentry !== null && !reentryDismissed;
 
   return (
     <div className="main" style={{ "--zoom": zoom } as CSSProperties}>
       <Titlebar title={projectTitle ? `${projectTitle} — 집필` : "집필"} right={right} />
       <div className={`screen-body ${panelOpen ? "" : "screen-body--solo"}`}>
-        <Editor
-          key={editorKey}
-          title={projectTitle ?? ""}
-          initialBodyJson={initialBodyJson}
-          onChange={onChange}
-          lined={lined}
-        />
+        <div className="studio">
+          <Editor
+            key={editorKey}
+            title={projectTitle ?? ""}
+            initialBodyJson={initialBodyJson}
+            onChange={onChange}
+            lined={lined}
+          />
+          {showReentry && reentry && <ReentryCard reentry={reentry} onClose={() => setReentryDismissed(true)} />}
+        </div>
         {panelOpen && <MemoPanel memos={memos} loading={memosLoading} onUnlink={onUnlinkMemo} />}
       </div>
     </div>
