@@ -1,11 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useEditor, EditorContent, type Content } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { StarterKit } from "@tiptap/starter-kit";
 import type { DocumentChange } from "../types";
-
-/** A4 한 쪽 높이(px) — 297mm @ 96dpi. 본문 종이 높이 ÷ 이 값 = 페이지수. */
-const A4_PAGE_PX = (297 * 96) / 25.4;
+import { pageCount, globalLineAt, LINE_PX, PAGE_STRIDE_PX, SHEET_H_PX } from "./pageLayout";
 
 /**
  * 집필실 본문 에디터 (실제 TipTap).
@@ -45,23 +43,6 @@ export function Editor({ title, initialBodyJson, onChange, lined, zoom = 1 }: Ed
   const paperRef = useRef<HTMLElement>(null);
   const [pages, setPages] = useState(1);
 
-  // 종이(A4) 실제 높이를 관찰해 페이지수를 계산한다. getBoundingClientRect 는 zoom 이 반영된
-  // 시각 높이라, A4 한 쪽 높이에도 같은 zoom 을 곱해 나누면 zoom 과 무관하게 페이지수가 나온다.
-  useEffect(() => {
-    const el = paperRef.current;
-    if (!el) return;
-    const measure = () => {
-      const h = el.getBoundingClientRect().height;
-      // 허용오차(0.01쪽 ≈ 11px) — 빈 종이가 반올림으로 1.000…쪽이 되어 2로 올림되는 것을 막는다.
-      const ratio = h / (A4_PAGE_PX * zoom);
-      setPages(Math.max(1, Math.ceil(ratio - 0.01)));
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [zoom]);
-
   const editor = useEditor({
     extensions: [StarterKit],
     content: parseContent(initialBodyJson),
@@ -80,10 +61,63 @@ export function Editor({ title, initialBodyJson, onChange, lined, zoom = 1 }: Ed
     },
   });
 
+  // 본문 flow(.ProseMirror)의 시각 높이(zoom 반영)로 장수를 계산. pageCount 가 zoom 을 상쇄한다.
+  // 장수만큼 종이 박스(.sheet)를 결정적 위치(보폭 PAGE_STRIDE_PX)에 깔고, 본문은 그 위로 흐른다.
+  useEffect(() => {
+    const pm = paperRef.current?.querySelector<HTMLElement>(".ProseMirror");
+    if (!pm) return;
+    const measure = () => setPages(pageCount(pm.getBoundingClientRect().height, zoom));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(pm);
+    return () => ro.disconnect();
+  }, [zoom, editor]);
+
+  // 빈 줄(글자 없는 종이 영역)을 클릭하면 그 줄까지 빈 문단을 채우고 커서를 그 줄에 둔다(노트처럼).
+  // 본문 텍스트 위 클릭·드래그 선택은 ProseMirror 가 그대로 처리하도록 통과시킨다.
+  const handlePaperMouseDown = (e: ReactMouseEvent<HTMLElement>) => {
+    if (!editor) return;
+    if ((e.target as HTMLElement).closest(".ProseMirror")) return;
+    const pm = paperRef.current?.querySelector<HTMLElement>(".ProseMirror");
+    if (!pm) return;
+    e.preventDefault();
+    const pmTop = pm.getBoundingClientRect().top; // 줌 반영된 화면 좌표
+    const lineUnit = LINE_PX * zoom;
+    const targetLine = globalLineAt((e.clientY - pmTop) / lineUnit);
+    const endTop = editor.view.coordsAtPos(editor.state.doc.content.size).top;
+    const lastLine = globalLineAt((endTop - pmTop) / lineUnit);
+    const fill = Math.min(1000, targetLine - lastLine); // 채울 빈 줄 수(폭주 방지 상한)
+    if (fill > 0) {
+      editor
+        .chain()
+        .focus("end")
+        .insertContent(Array.from({ length: fill }, () => ({ type: "paragraph" })))
+        .run();
+    } else {
+      const pos = editor.view.posAtCoords({ left: e.clientX, top: e.clientY });
+      if (pos) editor.chain().focus().setTextSelection(pos.pos).run();
+    }
+  };
+
   return (
     <main className="editor-scroll" aria-label="본문 편집기">
-      <article ref={paperRef} className={lined ? "paper paper--lined" : "paper"}>
-        <h1 className="doc-title">{title}</h1>
+      <h1 className="doc-title">{title}</h1>
+      <article
+        ref={paperRef}
+        className={lined ? "paper paper--lined" : "paper"}
+        style={{ minHeight: `${(pages - 1) * PAGE_STRIDE_PX + SHEET_H_PX}px` }}
+        onMouseDown={handlePaperMouseDown}
+      >
+        {/* 장별 종이 박스(그림자·둥근 모서리·줄선) — 결정적 위치(보폭)에 깔고 본문은 그 위로 흐른다. */}
+        <div className="sheets" aria-hidden="true">
+          {Array.from({ length: pages }, (_, i) => (
+            <div
+              key={i}
+              className={lined ? "sheet sheet--lined" : "sheet"}
+              style={{ top: `${i * PAGE_STRIDE_PX}px`, height: `${SHEET_H_PX}px` }}
+            />
+          ))}
+        </div>
         {editor && (
           <BubbleMenu editor={editor} className="bubble">
             <button
@@ -140,7 +174,6 @@ export function Editor({ title, initialBodyJson, onChange, lined, zoom = 1 }: Ed
           </BubbleMenu>
         )}
         <EditorContent editor={editor} className="prose" />
-        <div className="page-num" aria-label={`${pages}쪽`}>{pages}</div>
       </article>
     </main>
   );
