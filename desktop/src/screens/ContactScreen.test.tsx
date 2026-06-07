@@ -52,7 +52,7 @@ describe("ContactScreen", () => {
     const send = vi.fn().mockResolvedValue({ ok: true });
     renderScreen({ send });
 
-    fireEvent.change(screen.getByPlaceholderText("답장받을 이메일 (선택)"), { target: { value: "writer@example.com" } });
+    fireEvent.change(screen.getByPlaceholderText("답장받을 이메일"), { target: { value: "writer@example.com" } });
     fireEvent.change(screen.getByPlaceholderText(BODY_PLACEHOLDER), { target: { value: "회신 원해요" } });
     fireEvent.click(screen.getByRole("button", { name: "보내기" }));
 
@@ -63,7 +63,7 @@ describe("ContactScreen", () => {
     const send = vi.fn().mockResolvedValue({ ok: true });
     renderScreen({ send });
 
-    fireEvent.change(screen.getByPlaceholderText("답장받을 이메일 (선택)"), { target: { value: "not-an-email" } });
+    fireEvent.change(screen.getByPlaceholderText("답장받을 이메일"), { target: { value: "not-an-email" } });
     fireEvent.change(screen.getByPlaceholderText(BODY_PLACEHOLDER), { target: { value: "본문 있음" } });
     fireEvent.click(screen.getByRole("button", { name: "보내기" }));
 
