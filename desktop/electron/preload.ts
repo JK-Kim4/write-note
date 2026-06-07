@@ -39,6 +39,8 @@ const api: ElectronAPI = {
   },
   logs: {
     list: () => ipcRenderer.invoke(CHANNELS.logsList),
+    listByProject: (projectId: string) => ipcRenderer.invoke(CHANNELS.logsListByProject, projectId),
+    add: (projectId: string, body: string) => ipcRenderer.invoke(CHANNELS.logsAdd, projectId, body),
   },
 };
 

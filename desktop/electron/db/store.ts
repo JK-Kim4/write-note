@@ -3,7 +3,8 @@ import { ProjectRepository, type CreateProjectInput } from "./projectRepository"
 import { DocumentRepository, type UpdateDocumentInput } from "./documentRepository";
 import { MemoRepository } from "./memoRepository";
 import { SettingRepository } from "./settingRepository";
-import type { Document, LogCard, Memo, Project, ProjectCard } from "./types";
+import { ProjectLogRepository } from "./projectLogRepository";
+import type { Document, LogCard, Memo, Project, ProjectCard, ProjectLog } from "./types";
 
 export type CaptureMemoInput = {
   body: string;
@@ -18,12 +19,14 @@ export class Store {
   readonly documents: DocumentRepository;
   readonly memos: MemoRepository;
   readonly settings: SettingRepository;
+  readonly projectLogs: ProjectLogRepository;
 
   constructor(private readonly db: DatabaseSync) {
     this.projects = new ProjectRepository(db);
     this.documents = new DocumentRepository(db);
     this.memos = new MemoRepository(db);
     this.settings = new SettingRepository(db);
+    this.projectLogs = new ProjectLogRepository(db);
   }
 
   /** project 와 기본 document 를 한 트랜잭션으로 생성한다(완료기준: project 생성 시 document 자동 생성). */
@@ -72,10 +75,15 @@ export class Store {
     }));
   }
 
+  /** 기록 메모 추가(세션 무관 단순 경로). */
+  addProjectLog(projectId: string, body: string): ProjectLog {
+    return this.projectLogs.create(projectId, body);
+  }
+
   /**
    * 기록 화면 카드 — 각 작품에 wordCount·lastSentenceSource·latestLog·totalDurationMs 를 실어 반환한다.
    * updated_at DESC 순(projects.list() 기본 순서).
-   * latestLog 와 totalDurationMs 는 US2/US3 에서 채운다 — 이 단계에서는 기본값(null/0).
+   * totalDurationMs 는 US3 에서 채운다 — 이 단계에서는 0.
    */
   listLogCards(): LogCard[] {
     return this.projects.list().map((project) => {
@@ -84,7 +92,7 @@ export class Store {
         project,
         wordCount: doc?.wordCount ?? 0,
         lastSentenceSource: doc?.plainText ?? "",
-        latestLog: null,
+        latestLog: this.projectLogs.latestByProject(project.id),
         totalDurationMs: 0,
       };
     });

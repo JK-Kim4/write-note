@@ -236,6 +236,11 @@ export function App() {
           theme={theme}
           onTheme={setTheme}
           onAutoSave={setAutoSave}
+          onEndWork={(body) => {
+            void window.electronAPI.logs.add(activeProject.id, body).then(() => {
+              setScreen("projects");
+            });
+          }}
         />
       )}
       {screen === "memo" && <MemoInboxScreen refresh={memoRefresh} />}

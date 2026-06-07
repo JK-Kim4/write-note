@@ -65,4 +65,10 @@ export function registerHandlers(store: Store): void {
   });
 
   ipcMain.handle(CHANNELS.logsList, () => store.listLogCards());
+  ipcMain.handle(CHANNELS.logsListByProject, (_e, projectId: string) =>
+    store.projectLogs.listByProject(projectId),
+  );
+  ipcMain.handle(CHANNELS.logsAdd, (_e, projectId: string, body: string) =>
+    store.addProjectLog(projectId, body),
+  );
 }

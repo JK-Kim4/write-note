@@ -1,7 +1,6 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
-import type { LogCard as LogCardData } from "../../electron/db/types";
-import type { Project } from "../../electron/db/types";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { LogCard as LogCardData, Project, ProjectLog } from "../../electron/db/types";
 import { LogCard } from "./LogCard";
 
 function makeProject(over: Partial<Project> = {}): Project {
@@ -29,6 +28,20 @@ function makeCard(over: Partial<LogCardData> = {}): LogCardData {
     ...over,
   };
 }
+
+function makeProjectLog(over: Partial<ProjectLog> = {}): ProjectLog {
+  return {
+    id: "log1",
+    projectId: "p1",
+    body: "오늘 3페이지 완료",
+    createdAt: "2026-06-08T10:00:00.000Z",
+    ...over,
+  };
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("LogCard", () => {
   it("should_show_project_title", () => {
@@ -94,5 +107,83 @@ describe("LogCard", () => {
   it("should_show_기록_없음_when_totalDurationMs_zero", () => {
     render(<LogCard card={makeCard({ totalDurationMs: 0 })} now={new Date("2026-06-08T00:00:00.000Z")} />);
     expect(screen.getByText("기록 없음")).toBeInTheDocument();
+  });
+
+  // US2: 최신 기록 1줄 + 아코디언 토글
+  it("should_show_latest_log_body_when_latestLog_present", () => {
+    render(
+      <LogCard
+        card={makeCard({ latestLog: makeProjectLog({ body: "오늘 집필 세션 완료" }) })}
+        now={new Date("2026-06-08T00:00:00.000Z")}
+      />,
+    );
+    expect(screen.getByText("오늘 집필 세션 완료")).toBeInTheDocument();
+  });
+
+  it("should_show_아직_기록_없음_text_when_latestLog_null", () => {
+    render(
+      <LogCard card={makeCard({ latestLog: null })} now={new Date("2026-06-08T00:00:00.000Z")} />,
+    );
+    expect(screen.getByText("아직 기록 없음")).toBeInTheDocument();
+  });
+
+  it("should_show_accordion_toggle_button", () => {
+    render(
+      <LogCard
+        card={makeCard({ latestLog: makeProjectLog() })}
+        now={new Date("2026-06-08T00:00:00.000Z")}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /기록 펼치기|기록 접기/ })).toBeInTheDocument();
+  });
+
+  it("should_call_listByProject_and_show_all_logs_when_accordion_opened", async () => {
+    const mockLogs: ProjectLog[] = [
+      { id: "log2", projectId: "p1", body: "두 번째 기록", createdAt: "2026-06-08T11:00:00.000Z" },
+      { id: "log1", projectId: "p1", body: "첫 번째 기록", createdAt: "2026-06-07T10:00:00.000Z" },
+    ];
+    const listByProject = vi.fn().mockResolvedValue(mockLogs);
+    vi.stubGlobal("electronAPI", {
+      logs: { listByProject },
+    });
+
+    render(
+      <LogCard
+        card={makeCard({ latestLog: makeProjectLog() })}
+        now={new Date("2026-06-08T00:00:00.000Z")}
+      />,
+    );
+
+    const toggleBtn = screen.getByRole("button", { name: /기록 펼치기/ });
+    fireEvent.click(toggleBtn);
+
+    expect(listByProject).toHaveBeenCalledWith("p1");
+    expect(await screen.findByText("두 번째 기록")).toBeInTheDocument();
+    expect(screen.getByText("첫 번째 기록")).toBeInTheDocument();
+  });
+
+  it("should_hide_log_list_when_accordion_closed_again", async () => {
+    const mockLogs: ProjectLog[] = [
+      { id: "log1", projectId: "p1", body: "기록 본문", createdAt: "2026-06-07T10:00:00.000Z" },
+    ];
+    vi.stubGlobal("electronAPI", {
+      logs: { listByProject: vi.fn().mockResolvedValue(mockLogs) },
+    });
+
+    render(
+      <LogCard
+        card={makeCard({ latestLog: makeProjectLog() })}
+        now={new Date("2026-06-08T00:00:00.000Z")}
+      />,
+    );
+
+    const toggleBtn = screen.getByRole("button", { name: /기록 펼치기/ });
+    fireEvent.click(toggleBtn); // 펼침
+    await waitFor(() => expect(screen.getByText("기록 본문")).toBeInTheDocument());
+
+    const closeBtn = screen.getByRole("button", { name: /기록 접기/ });
+    fireEvent.click(closeBtn); // 접음
+
+    expect(screen.queryByText("기록 본문")).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useRef, useEffect, useState, type CSSProperties } from "react";
 import { Titlebar } from "../components/Titlebar";
 import { Editor } from "../components/Editor";
 import { MemoPanel } from "../components/MemoPanel";
@@ -51,6 +51,8 @@ type Props = {
   onTheme: (v: Theme) => void;
   /** 자동저장 토글(보기 메뉴). */
   onAutoSave: (v: boolean) => void;
+  /** 작업 종료 — 기록 메모 본문을 받아 App 이 저장 처리(데이터 fetching은 App 소유 원칙). */
+  onEndWork: (body: string) => void;
 };
 
 /** 집필 화면 — 종이(본문)가 주인공. 보기/설정은 접힌 메뉴, 곁쪽지는 서랍, 진입 직후 재진입 한 장. */
@@ -73,8 +75,12 @@ export function WriteStudioScreen({
   theme,
   onTheme,
   onAutoSave,
+  onEndWork,
 }: Props) {
   const [zoom, setZoom] = useState(1);
+  const [endWorkOpen, setEndWorkOpen] = useState(false);
+  const [endWorkBody, setEndWorkBody] = useState("");
+  const endWorkTextareaRef = useRef<HTMLTextAreaElement>(null);
   // 줄노트 default on — 빈 종이도 줄선이 페이지에 미리 그려진 상태로 진입한다.
   const [lined, setLined] = useState(true);
   const [viewOpen, setViewOpen] = useState(false);
@@ -95,6 +101,19 @@ export function WriteStudioScreen({
     onTogglePanel();
   };
 
+  const handleEndWorkSave = () => {
+    const trimmed = endWorkBody.trim();
+    if (!trimmed) return;
+    onEndWork(trimmed);
+    setEndWorkOpen(false);
+    setEndWorkBody("");
+  };
+
+  const handleEndWorkCancel = () => {
+    setEndWorkOpen(false);
+    setEndWorkBody("");
+  };
+
   const right = (
     <>
       <div className={`savestate savestate--${save}`} role="status" aria-live="polite">
@@ -112,6 +131,16 @@ export function WriteStudioScreen({
           저장
         </button>
       )}
+      <button
+        type="button"
+        className="btn btn--secondary btn--compact"
+        onClick={() => {
+          setEndWorkBody("");
+          setEndWorkOpen(true);
+        }}
+      >
+        작업 종료
+      </button>
       <div className="view-anchor">
         <button
           type="button"
@@ -177,6 +206,44 @@ export function WriteStudioScreen({
           <MemoPanel memos={memos} loading={memosLoading} onUnlink={onUnlinkMemo} onSetPin={onSetPinMemo} />
         )}
       </div>
+
+      {endWorkOpen && (
+        <div className="modal-backdrop" onClick={handleEndWorkCancel}>
+          <div
+            className="modal capture"
+            role="dialog"
+            aria-modal="true"
+            aria-label="작업 종료"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal__head">
+              <h2 className="modal__title">작업 종료</h2>
+              <span className="modal__hint">오늘의 기록을 남겨보세요</span>
+            </div>
+            <textarea
+              ref={endWorkTextareaRef}
+              className="capture__input"
+              placeholder="오늘의 기록을 남겨보세요…"
+              rows={4}
+              value={endWorkBody}
+              onChange={(e) => setEndWorkBody(e.target.value)}
+            />
+            <div className="modal__foot">
+              <button type="button" className="btn btn--ghost" onClick={handleEndWorkCancel}>
+                취소
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={handleEndWorkSave}
+                disabled={endWorkBody.trim().length === 0}
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

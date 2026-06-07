@@ -1,4 +1,4 @@
-import type { Document, LogCard, Memo, Project, ProjectCard, ProjectMemo } from "../db/types";
+import type { Document, LogCard, Memo, Project, ProjectCard, ProjectLog, ProjectMemo } from "../db/types";
 import type { CreateProjectInput, UpdateProjectInput } from "../db/projectRepository";
 import type { UpdateDocumentInput } from "../db/documentRepository";
 import type { CaptureMemoInput } from "../db/store";
@@ -48,6 +48,10 @@ export type ElectronAPI = {
   logs: {
     /** 기록 화면 카드 집계(작품별 진척 소스 + 최신 기록 + 총 작업 시간). */
     list: () => Promise<LogCard[]>;
+    /** 아코디언 펼침 시 그 작품의 누적 기록 메모 전체(최신순). */
+    listByProject: (projectId: string) => Promise<ProjectLog[]>;
+    /** 기록 메모 추가(세션 무관 단순 경로, US2). US3 에서 sessions.endWithLog 로 격상 예정. */
+    add: (projectId: string, body: string) => Promise<void>;
   };
 };
 
@@ -75,4 +79,6 @@ export const CHANNELS = {
   contactSend: "contact:send",
   shellOpenExternal: "shell:openExternal",
   logsList: "logs:list",
+  logsListByProject: "logs:listByProject",
+  logsAdd: "logs:add",
 } as const;

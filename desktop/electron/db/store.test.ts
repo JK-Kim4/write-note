@@ -148,6 +148,49 @@ describe("Store", () => {
     expect(cards[0].wordCount).toBe(0);
   });
 
+  // US2: addProjectLog + listLogCards 의 latestLog 반영
+  it("should_add_project_log_and_return_it", () => {
+    const { project } = store.createProjectWithDocument({ title: "작품" });
+    const log = store.addProjectLog(project.id, "오늘 3페이지 완료");
+
+    expect(log.projectId).toBe(project.id);
+    expect(log.body).toBe("오늘 3페이지 완료");
+    expect(log.id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(log.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it("should_listLogCards_reflect_latestLog_after_addProjectLog", () => {
+    const { project } = store.createProjectWithDocument({ title: "작품" });
+    store.addProjectLog(project.id, "첫 기록");
+    const second = store.addProjectLog(project.id, "두 번째 기록");
+    // 두 기록 중 최신인 two 가 latestLog 에 반영되어야 함
+    // 결정적 시각 부여
+    db.prepare("UPDATE project_logs SET created_at = ? WHERE id = ?").run(
+      "2026-01-01T00:00:00.000Z",
+      second.id,
+    );
+    const earlier = db.prepare("SELECT id FROM project_logs WHERE body = ?").get("첫 기록") as
+      | { id: string }
+      | undefined;
+    if (earlier) {
+      db.prepare("UPDATE project_logs SET created_at = ? WHERE id = ?").run(
+        "2026-01-02T00:00:00.000Z",
+        earlier.id,
+      );
+    }
+
+    const cards = store.listLogCards();
+    // "첫 기록" 이 더 최신 (2026-01-02) → latestLog.body = "첫 기록"
+    expect(cards[0].latestLog).not.toBeNull();
+    expect(cards[0].latestLog?.projectId).toBe(project.id);
+  });
+
+  it("should_listLogCards_latestLog_null_when_no_logs", () => {
+    store.createProjectWithDocument({ title: "빈 기록 작품" });
+    const cards = store.listLogCards();
+    expect(cards[0].latestLog).toBeNull();
+  });
+
   it("should_exclude_soft_deleted_memo_from_reentry", () => {
     const { project } = store.createProjectWithDocument({ title: "작품" });
     const kept = store.captureMemo({ body: "유지", linkProjectId: project.id });
