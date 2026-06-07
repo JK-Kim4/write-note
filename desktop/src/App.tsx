@@ -6,6 +6,7 @@ import { WriteStudioScreen } from "./screens/WriteStudioScreen";
 import { ProjectsScreen } from "./screens/ProjectsScreen";
 import { MemoInboxScreen } from "./screens/MemoInboxScreen";
 import { LogScreen } from "./screens/LogScreen";
+import { ContactScreen } from "./screens/ContactScreen";
 import { toInboxMemoView } from "./lib/memoView";
 import { lastSentence } from "./lib/lastSentence";
 import type { Reentry } from "./screens/WriteStudioScreen";
@@ -21,7 +22,7 @@ function initialParam<T extends string>(key: string, allowed: readonly T[], fall
 export function App() {
   const [theme, setTheme] = useState<Theme>(() => initialParam("theme", ["light", "dark"], "light"));
   const [screen, setScreen] = useState<Screen>(() =>
-    initialParam("screen", ["projects", "write", "memo", "log"], "projects"),
+    initialParam("screen", ["projects", "write", "memo", "log", "contact"], "projects"),
   );
   const [save, setSave] = useState<SaveState>("saved");
   const [count, setCount] = useState(0);
@@ -234,6 +235,7 @@ export function App() {
       )}
       {screen === "memo" && <MemoInboxScreen refresh={memoRefresh} />}
       {screen === "log" && <LogScreen panelOpen={panelOpen} onTogglePanel={togglePanel} />}
+      {screen === "contact" && <ContactScreen />}
 
       {/* 집필 화면은 보기 메뉴(WriteStudioScreen)가 테마·자동저장을 품으므로 전역 Dock 을 숨긴다(설정 진입점 중복 회피). */}
       {screen !== "write" && (

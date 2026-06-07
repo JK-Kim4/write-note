@@ -24,6 +24,11 @@ const ITEMS: RailItem[] = [
     label: "기록",
     icon: <><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-7.5 4" /><path d="M3 4v3.5h3.5" /><path d="M12 8v4l3 2" /></>,
   },
+  {
+    key: "contact",
+    label: "문의",
+    icon: <><path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" /><path d="m3.5 6.5 8.5 6 8.5-6" /></>,
+  },
 ];
 
 type RailProps = {

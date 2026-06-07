@@ -31,6 +31,12 @@ const api: ElectronAPI = {
     get: (key) => ipcRenderer.invoke(CHANNELS.settingsGet, key),
     set: (key, value) => ipcRenderer.invoke(CHANNELS.settingsSet, key, value),
   },
+  contact: {
+    send: (input) => ipcRenderer.invoke(CHANNELS.contactSend, input),
+  },
+  shell: {
+    openExternal: (url) => ipcRenderer.invoke(CHANNELS.shellOpenExternal, url),
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", api);

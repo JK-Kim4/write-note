@@ -3,7 +3,7 @@ export type SaveState = "saved" | "saving" | "error" | "unsaved";
 
 /** 에디터 본문 변경 페이로드 — 로컬 document 저장(documents.update)에 그대로 전달한다. */
 export type DocumentChange = { bodyJson: string; plainText: string; wordCount: number };
-export type Screen = "projects" | "write" | "memo" | "log";
+export type Screen = "projects" | "write" | "memo" | "log" | "contact";
 
 /** 메모에 연결된 작품(제목 포함). inbox 칩·집필 패널 표시용. */
 export type LinkedProject = { id: string; title: string };

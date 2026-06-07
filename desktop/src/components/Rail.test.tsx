@@ -24,4 +24,12 @@ describe("Rail", () => {
     fireEvent.click(capture);
     expect(onCapture).toHaveBeenCalledTimes(1);
   });
+
+  it("문의 진입점을 렌더하고 클릭 시 contact 화면으로 이동한다", () => {
+    const onNavigate = vi.fn();
+    render(<Rail active="projects" onNavigate={onNavigate} onCapture={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "문의" }));
+    expect(onNavigate).toHaveBeenCalledWith("contact");
+  });
 });

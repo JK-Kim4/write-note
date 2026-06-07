@@ -3,6 +3,12 @@ import type { CreateProjectInput, UpdateProjectInput } from "../db/projectReposi
 import type { UpdateDocumentInput } from "../db/documentRepository";
 import type { CaptureMemoInput } from "../db/store";
 
+/** 문의 폼 입력 — renderer 가 main 으로 보내는 사용자 입력(메타는 main 이 부여). */
+export type ContactInput = { email: string; body: string };
+
+/** 문의 전송 결과 — main 이 renderer 로 반환. */
+export type ContactResult = { ok: boolean };
+
 /** renderer 에 노출되는 IPC API 계약. preload 와 renderer 타입(global.d.ts)이 공유한다. */
 export type ElectronAPI = {
   platform: NodeJS.Platform;
@@ -33,6 +39,12 @@ export type ElectronAPI = {
     get: (key: string) => Promise<string | null>;
     set: (key: string, value: string) => Promise<void>;
   };
+  contact: {
+    send: (input: ContactInput) => Promise<ContactResult>;
+  };
+  shell: {
+    openExternal: (url: string) => Promise<void>;
+  };
 };
 
 /** IPC 채널명 — main(registerHandlers)과 preload 가 공유한다. */
@@ -56,4 +68,6 @@ export const CHANNELS = {
   memosRestore: "memos:restore",
   settingsGet: "settings:get",
   settingsSet: "settings:set",
+  contactSend: "contact:send",
+  shellOpenExternal: "shell:openExternal",
 } as const;
