@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pageCount, globalLineAt, LINE_PX, SHEET_H_PX, PAGE_STRIDE_PX } from "./pageLayout";
+import { pageCount, globalLineAt, pageNumberTopsPx, LINE_PX, SHEET_H_PX, PAGE_STRIDE_PX } from "./pageLayout";
 
 describe("pageCount", () => {
   // 측정 높이는 줄(LINE_PX) 단위로 구성. 보폭 = 30줄(종이 28 + 책상 간격 2). 본문 26줄.
@@ -56,5 +56,18 @@ describe("globalLineAt", () => {
 
   it("음수/0 은 첫 줄", () => {
     expect(globalLineAt(-5)).toBe(0);
+  });
+});
+
+describe("pageNumberTopsPx", () => {
+  it("장 수만큼, 각 장 하단 패딩 줄(보폭*k + 종이높이 − 1줄) 위치를 낸다", () => {
+    const tops = pageNumberTopsPx(2);
+    expect(tops).toHaveLength(2);
+    expect(tops[0]).toBeCloseTo(SHEET_H_PX - LINE_PX * 0.5, 5);
+    expect(tops[1]).toBeCloseTo(PAGE_STRIDE_PX + SHEET_H_PX - LINE_PX * 0.5, 5);
+  });
+
+  it("0장은 빈 배열", () => {
+    expect(pageNumberTopsPx(0)).toEqual([]);
   });
 });

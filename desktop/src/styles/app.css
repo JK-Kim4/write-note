@@ -330,6 +330,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
     ) content-box,
     var(--paper) border-box;
 }
+/* 장별 쪽번호 — 각 종이 하단 패딩 줄 자리(top 은 인라인, 장별). 인쇄된 쪽번호처럼. */
+.page-num {
+  position: absolute; left: 0; right: 0;
+  text-align: center;
+  font-family: var(--font-serif); font-size: 13px; color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  user-select: none; pointer-events: none; z-index: 2;
+}
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 /* 줄노트는 노트처럼 Enter = 바로 다음 줄. 문단 간 여백 0 (여백을 주면 빈 줄이 끼어 한 줄씩 건너뜀). */
 .paper--lined .prose .ProseMirror p { margin: 0; }

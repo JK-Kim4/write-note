@@ -3,7 +3,7 @@ import { useEditor, EditorContent, type Content } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { StarterKit } from "@tiptap/starter-kit";
 import type { DocumentChange } from "../types";
-import { pageCount, globalLineAt, LINE_PX, PAGE_STRIDE_PX, SHEET_H_PX } from "./pageLayout";
+import { pageCount, globalLineAt, pageNumberTopsPx, LINE_PX, PAGE_STRIDE_PX, SHEET_H_PX } from "./pageLayout";
 
 /**
  * 집필실 본문 에디터 (실제 TipTap).
@@ -73,30 +73,26 @@ export function Editor({ title, initialBodyJson, onChange, lined, zoom = 1 }: Ed
     return () => ro.disconnect();
   }, [zoom, editor]);
 
-  // 빈 줄(글자 없는 종이 영역)을 클릭하면 그 줄까지 빈 문단을 채우고 커서를 그 줄에 둔다(노트처럼).
-  // 본문 텍스트 위 클릭·드래그 선택은 ProseMirror 가 그대로 처리하도록 통과시킨다.
+  // 노트처럼 빈 줄을 클릭하면 그 줄까지 빈 문단을 채우고 커서를 그 줄에 둔다.
+  // .ProseMirror 에 min-height 가 있어 빈 줄 영역도 그 박스라, target 이 아니라 "클릭 줄 vs 마지막 글자 줄"로 판단.
+  // 클릭이 글자 줄 이하(기존 글자/위)면 ProseMirror 가 클릭·드래그를 그대로 처리하도록 통과시킨다.
   const handlePaperMouseDown = (e: ReactMouseEvent<HTMLElement>) => {
     if (!editor) return;
-    if ((e.target as HTMLElement).closest(".ProseMirror")) return;
     const pm = paperRef.current?.querySelector<HTMLElement>(".ProseMirror");
     if (!pm) return;
-    e.preventDefault();
     const pmTop = pm.getBoundingClientRect().top; // 줌 반영된 화면 좌표
     const lineUnit = LINE_PX * zoom;
     const targetLine = globalLineAt((e.clientY - pmTop) / lineUnit);
     const endTop = editor.view.coordsAtPos(editor.state.doc.content.size).top;
     const lastLine = globalLineAt((endTop - pmTop) / lineUnit);
+    if (targetLine <= lastLine) return; // 기존 글자 영역/위 → ProseMirror 처리(클릭·드래그)
+    e.preventDefault();
     const fill = Math.min(1000, targetLine - lastLine); // 채울 빈 줄 수(폭주 방지 상한)
-    if (fill > 0) {
-      editor
-        .chain()
-        .focus("end")
-        .insertContent(Array.from({ length: fill }, () => ({ type: "paragraph" })))
-        .run();
-    } else {
-      const pos = editor.view.posAtCoords({ left: e.clientX, top: e.clientY });
-      if (pos) editor.chain().focus().setTextSelection(pos.pos).run();
-    }
+    editor
+      .chain()
+      .focus("end")
+      .insertContent(Array.from({ length: fill }, () => ({ type: "paragraph" })))
+      .run();
   };
 
   return (
@@ -174,6 +170,12 @@ export function Editor({ title, initialBodyJson, onChange, lined, zoom = 1 }: Ed
           </BubbleMenu>
         )}
         <EditorContent editor={editor} className="prose" />
+        {/* 장별 쪽번호 — 각 종이 하단 패딩 줄 자리(파생 위치, 저장 안 함). */}
+        {pageNumberTopsPx(pages).map((top, i) => (
+          <div key={i} className="page-num" style={{ top: `${top}px` }} aria-label={`${i + 1}쪽`}>
+            {i + 1}
+          </div>
+        ))}
       </article>
     </main>
   );

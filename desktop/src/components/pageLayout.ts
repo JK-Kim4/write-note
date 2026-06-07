@@ -43,3 +43,11 @@ export function globalLineAt(linesFromTop: number): number {
   const row = Math.min(PAGE_TEXT_LINES - 1, Math.floor(within));
   return page * PAGE_TEXT_LINES + row;
 }
+
+/**
+ * 장별 쪽번호의 top 위치(px, .paper 상단 기준). 각 장 하단 패딩 줄(본문 26줄 아래) — 종이 하단 모서리 쪽.
+ * = 보폭*k + 종이높이 − 0.5줄. CSS zoom 이 비례 적용되어 줌과 무관하게 제자리.
+ */
+export function pageNumberTopsPx(count: number): number[] {
+  return Array.from({ length: count }, (_, i) => i * PAGE_STRIDE_PX + SHEET_H_PX - LINE_PX * 0.5);
+}
