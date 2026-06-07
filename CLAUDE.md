@@ -135,7 +135,7 @@ timeout / cap 룰은 글로벌 [`~/.claude/rules/shared/long-running-bash.md`](f
 <!-- SPECKIT START -->
 Current implementation plan:
 
-- [009 작업실 디자인 고도화 — 작품 벽 · 서랍형 집필실 · 쪽지 책상 (Desktop 재진입 강화)](specs/009-workshop-redesign/plan.md)
+- [011 관리자 문의·의견 보내기 (Desktop) — Rail 진입점 · 전용 화면 · Web3Forms 인앱 메일 · 카카오 오픈채팅](specs/011-desktop-contact-feedback/plan.md)
 
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan above.
