@@ -1,4 +1,4 @@
-import { app, ipcMain } from "electron";
+import { app, ipcMain, shell } from "electron";
 import type { Store } from "../db/store";
 import type { CreateProjectInput, UpdateProjectInput } from "../db/projectRepository";
 import type { UpdateDocumentInput } from "../db/documentRepository";
@@ -58,4 +58,9 @@ export function registerHandlers(store: Store): void {
       sentAt: new Date().toISOString(),
     }),
   );
+
+  // 외부 링크 열기(카카오 채널 등) — http(s) scheme 만 허용(임의 scheme 열림 방지, research R8).
+  ipcMain.handle(CHANNELS.shellOpenExternal, async (_e, url: string) => {
+    if (/^https?:\/\//i.test(url)) await shell.openExternal(url);
+  });
 }

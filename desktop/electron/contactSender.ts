@@ -11,8 +11,8 @@ export type FormsubmitPayload = {
   email?: string;
 };
 
-// 수신 엔드포인트 — 이메일 직접 노출 회피 위해 Formsubmit 랜덤 해시 권장(research R3). 사용자 준비물.
-const FORMSUBMIT_ENDPOINT = "https://formsubmit.co/ajax/<HASH_OR_EMAIL>";
+// 수신 엔드포인트 — Formsubmit 해시 미발급이라 이메일 직접(노출 감수, 추후 해시로 교체 가능).
+const FORMSUBMIT_ENDPOINT = "https://formsubmit.co/ajax/jongbell4@gmail.com";
 const CONTACT_SUBJECT = "write-note 데스크탑 의견";
 // Formsubmit 은 Referer 없는 호출을 거부(실측 R2). 도달 가능 도메인일 필요 없는 앱 식별 상수.
 const CONTACT_REFERER = "https://write-note.local/contact";

@@ -57,4 +57,23 @@ describe("sendContact", () => {
     expect(headers.Referer).toBeTruthy();
     expect(headers.Accept).toBe("application/json");
   });
+
+  it("should_return_ok_false_when_success_not_true", async () => {
+    mockFetch({ ok: true, status: 200, body: { success: "false", message: "needs activation" } });
+    const result = await sendContact({ email: "", body: "hi" }, META);
+    expect(result.ok).toBe(false);
+  });
+
+  it("should_return_ok_false_on_non_200", async () => {
+    mockFetch({ ok: false, status: 403, body: { success: "false" } });
+    const result = await sendContact({ email: "", body: "hi" }, META);
+    expect(result.ok).toBe(false);
+  });
+
+  it("should_return_ok_false_when_fetch_rejects_offline", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error("offline"));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await sendContact({ email: "", body: "hi" }, META);
+    expect(result.ok).toBe(false);
+  });
 });
