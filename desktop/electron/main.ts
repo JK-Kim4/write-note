@@ -38,13 +38,23 @@ function createWindow(): void {
 app.whenReady().then(() => {
   // 로컬 DB(node:sqlite) 초기화 + IPC 핸들러 등록 — renderer 는 IPC 로만 접근한다.
   const dbPath = path.join(app.getPath("userData"), "write-note.db");
-  registerHandlers(new Store(createDb(dbPath)));
+  const store = new Store(createDb(dbPath));
+
+  // 비정상 종료로 남은 열린 세션을 폐기 (앱 재시작 시 과대 합산 방지).
+  store.closeDangling();
+
+  registerHandlers(store);
 
   createWindow();
 
   // macOS: dock 아이콘 클릭 시 창이 없으면 재생성한다.
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+
+  // 앱 종료 전 모든 열린 세션을 종료한다(renderer before-unload 는 신뢰 불가).
+  app.on("before-quit", () => {
+    store.endAllOpenSessions(new Date().toISOString());
   });
 });
 

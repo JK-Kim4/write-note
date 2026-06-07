@@ -98,6 +98,22 @@ export function App() {
     };
   }, [activeProject]);
 
+  // 세션 생명주기 — 집필 화면 진입 시 세션 시작, 이탈/작품 전환 시 세션 종료(30s 폐기).
+  // cleanup 이 직전 pid 를 캡처하므로 stale closure 회피.
+  // sessions API 가 없으면 no-op (테스트·환경 guard).
+  useEffect(() => {
+    if (screen !== "write" || !activeProject) return;
+    const pid = activeProject.id;
+    if (window.electronAPI?.sessions) {
+      void window.electronAPI.sessions.start(pid);
+    }
+    return () => {
+      if (window.electronAPI?.sessions) {
+        void window.electronAPI.sessions.end(pid);
+      }
+    };
+  }, [screen, activeProject]);
+
   // 현재 작품 연결 메모 로드(집필 패널). 캡처/연결 변경(memoRefresh) + 집필 화면 진입(screen) 시 재조회(FR-009).
   // screen 을 의존에 넣어, 메모 화면에서 연결을 바꾼 뒤 레일로 집필에 들어와도 패널이 최신 상태를 반영한다.
   useEffect(() => {
@@ -237,7 +253,7 @@ export function App() {
           onTheme={setTheme}
           onAutoSave={setAutoSave}
           onEndWork={(body) => {
-            void window.electronAPI.logs.add(activeProject.id, body).then(() => {
+            void window.electronAPI.sessions.endWithLog(activeProject.id, body).then(() => {
               setScreen("projects");
             });
           }}

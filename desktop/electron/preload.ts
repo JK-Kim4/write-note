@@ -40,7 +40,12 @@ const api: ElectronAPI = {
   logs: {
     list: () => ipcRenderer.invoke(CHANNELS.logsList),
     listByProject: (projectId: string) => ipcRenderer.invoke(CHANNELS.logsListByProject, projectId),
-    add: (projectId: string, body: string) => ipcRenderer.invoke(CHANNELS.logsAdd, projectId, body),
+  },
+  sessions: {
+    start: (projectId: string) => ipcRenderer.invoke(CHANNELS.sessionsStart, projectId),
+    end: (projectId: string) => ipcRenderer.invoke(CHANNELS.sessionsEnd, projectId),
+    endWithLog: (projectId: string, body: string) =>
+      ipcRenderer.invoke(CHANNELS.sessionsEndWithLog, projectId, body),
   },
 };
 

@@ -50,8 +50,14 @@ export type ElectronAPI = {
     list: () => Promise<LogCard[]>;
     /** 아코디언 펼침 시 그 작품의 누적 기록 메모 전체(최신순). */
     listByProject: (projectId: string) => Promise<ProjectLog[]>;
-    /** 기록 메모 추가(세션 무관 단순 경로, US2). US3 에서 sessions.endWithLog 로 격상 예정. */
-    add: (projectId: string, body: string) => Promise<void>;
+  };
+  sessions: {
+    /** 집필 진입 시 작업 세션 시작(작품당 열린 세션 1개 보장). */
+    start: (projectId: string) => Promise<void>;
+    /** 화면 이탈·작품 전환 시 자동 종료(30초 미만 폐기). */
+    end: (projectId: string) => Promise<void>;
+    /** 작업 종료 버튼 — 세션 종료 + 기록 메모 추가(트랜잭션, 짧아도 보존). */
+    endWithLog: (projectId: string, body: string) => Promise<void>;
   };
 };
 
@@ -80,5 +86,7 @@ export const CHANNELS = {
   shellOpenExternal: "shell:openExternal",
   logsList: "logs:list",
   logsListByProject: "logs:listByProject",
-  logsAdd: "logs:add",
+  sessionsStart: "sessions:start",
+  sessionsEnd: "sessions:end",
+  sessionsEndWithLog: "sessions:endWithLog",
 } as const;

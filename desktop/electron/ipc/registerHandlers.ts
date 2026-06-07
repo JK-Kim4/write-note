@@ -68,7 +68,14 @@ export function registerHandlers(store: Store): void {
   ipcMain.handle(CHANNELS.logsListByProject, (_e, projectId: string) =>
     store.projectLogs.listByProject(projectId),
   );
-  ipcMain.handle(CHANNELS.logsAdd, (_e, projectId: string, body: string) =>
-    store.addProjectLog(projectId, body),
+
+  ipcMain.handle(CHANNELS.sessionsStart, (_e, projectId: string) =>
+    store.workSessions.start(projectId),
+  );
+  ipcMain.handle(CHANNELS.sessionsEnd, (_e, projectId: string) =>
+    store.workSessions.endOpen(projectId, new Date().toISOString()),
+  );
+  ipcMain.handle(CHANNELS.sessionsEndWithLog, (_e, projectId: string, body: string) =>
+    store.endSessionWithLog(projectId, body),
   );
 }
