@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>자체 페이지 분할 에디터 — 순수 HTML (커서 1개 보장)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: oklch(0.985 0.008 85);
+    --paper-edge: oklch(0.900 0.012 80);
+    --ink: oklch(0.280 0.018 60);
+    --muted: oklch(0.510 0.018 68);
+    --accent: oklch(0.470 0.125 252);
+    --desk: oklch(0.66 0.045 62);
+    --serif: "Gowun Batang", "Apple SD Gothic Neo", serif;
+    --sans: "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { font-family: var(--sans); color: var(--ink); display: flex; flex-direction: column; }
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 16px; background: oklch(0.930 0.009 78); border-bottom: 1px solid oklch(0.84 0.012 76); flex: none; font-size: 13px; }
+  .bar b { color: var(--ink); } .bar .muted { color: var(--muted); font-weight: 400; }
+  .stats { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .stats b { color: var(--ink); }
+  .stage { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 40px 28px 120px; display: flex; justify-content: center; align-items: flex-start; background: var(--desk); }
+  .paper {
+    position: relative; width: 100%; max-width: 210mm; min-height: 297mm;
+    background: var(--paper); border-radius: 14px;
+    box-shadow: 0 1px 0 var(--paper-edge), 0 24px 52px -26px oklch(0.22 0.03 50 / .55);
+    padding: 25mm 25mm 30mm; outline: none; cursor: text;
+    caret-color: transparent;   /* 브라우저 네이티브 커서 숨김 — 우리가 직접 그린다(중복 방지) */
+  }
+  .paper:focus { box-shadow: 0 0 0 2px var(--accent), 0 24px 52px -26px oklch(0.22 0.03 50 / .55); }
+  .flow { font-family: var(--serif); font-size: 18px; line-height: 1.92; color: var(--ink); white-space: pre-wrap; word-break: break-word; min-height: 1.92em; }
+  .pbreak {
+    display: inline-block; width: 100%; box-sizing: border-box; vertical-align: top; background: var(--desk);
+    box-shadow: inset 0 1px 0 var(--paper-edge), inset 0 8px 10px -10px oklch(0.22 0.03 50 / .5), inset 0 -1px 0 var(--paper-edge), inset 0 -8px 10px -10px oklch(0.22 0.03 50 / .5);
+    user-select: none;
+  }
+  .caret { position: absolute; width: 2px; height: 1.4em; background: var(--accent); animation: blink 1.05s step-end infinite; pointer-events: none; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .foot { flex: none; padding: 10px 16px; background: oklch(0.930 0.009 78); border-top: 1px solid oklch(0.84 0.012 76); font-size: 12px; line-height: 1.6; color: var(--muted); }
+  .foot b { color: var(--ink); }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <div><b>자체 페이지 분할 에디터</b> <span class="muted">· 순수 HTML · EditContext 입력 · 우리가 그리는 A4 분할 · 커서 1개</span></div>
+    <div class="stats" id="stats">페이지 — · 줄 — · 글자 —</div>
+  </div>
+  <div class="stage">
+    <div class="paper" id="paper" tabindex="0" spellcheck="false">
+      <div class="flow" id="flow"></div>
+      <span class="caret" id="caret"></span>
+    </div>
+  </div>
+  <div class="foot"><b>엔터 없이 한글을 길게</b> 쳐보세요 — 문단 한가운데 줄에서 다음 장으로(책상색 여백) 넘어가고, 자모 안 깨지면 GREEN.</div>
+
+<script>
+  const PAGE = ((297 - 25 - 30) * 96) / 25.4;  // A4 본문 높이(px)
+  const LINE = 18 * 1.92;                       // 한 줄
+  const GAP = 28;                               // 장 사이 책상색 여백
+
+  // 줄 높이 배열 → 페이지 경계 줄 index + 끼울 여백. (검증된 computePageBreaks 로직)
+  function computePageBreaks(heights, pageHeight, gap) {
+    const breaks = []; let used = 0;
+    for (let i = 0; i < heights.length; i++) {
+      const h = heights[i];
+      if (used > 0 && used + h > pageHeight) { breaks.push({ i, spacer: pageHeight - used + gap }); used = h; }
+      else used += h;
+      if (used > pageHeight) used = pageHeight;
+    }
+    return breaks;
+  }
+
+  const paper = document.getElementById('paper');
+  const flow = document.getElementById('flow');
+  const caret = document.getElementById('caret');
+  const statsEl = document.getElementById('stats');
+
+  if (typeof EditContext === 'undefined') {
+    statsEl.textContent = 'EditContext 미지원 — Chrome/Edge 121+ 필요';
+  } else {
+    const ec = new EditContext({ text: '' });
+    paper.editContext = ec;
+
+    const textSpan = (s) => { const n = document.createElement('span'); n.textContent = s; return n; };
+    const spacerSpan = (h) => { const n = document.createElement('span'); n.className = 'pbreak'; n.style.height = h + 'px'; return n; };
+
+    // flow 안 글자 offset(텍스트 노드만, 여백 제외) 위치의 collapsed Range
+    function rangeAt(offset) {
+      const r = document.createRange();
+      const w = document.createTreeWalker(flow, NodeFilter.SHOW_TEXT);
+      let rem = offset, last = null, node = w.nextNode();
+      while (node) {
+        last = node;
+        if (rem <= node.length) { r.setStart(node, rem); r.collapse(true); return r; }
+        rem -= node.length; node = w.nextNode();
+      }
+      if (last) r.setStart(last, last.length); else r.setStart(flow, 0);
+      r.collapse(true); return r;
+    }
+
+    // 측정(reflow)은 다음 프레임으로 — 빠른 타자 때 IME 조합을 막지 않게.
+    let raf = 0;
+    function schedule() { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; relayout(); }); }
+
+    function positionCaret() {
+      const rect = rangeAt(ec.selectionStart).getBoundingClientRect();
+      const base = paper.getBoundingClientRect();
+      const ok = rect.height > 0 || rect.left > 0;
+      caret.style.left = ((ok ? rect.left : base.left + 94) - base.left) + 'px';
+      caret.style.top = ((ok ? rect.top : base.top + 94) - base.top + paper.scrollTop) + 'px';
+      ec.updateControlBounds(base);
+      ec.updateSelectionBounds(rect);
+    }
+
+    // 조합 중엔 무거운 재배치(측정·DOM 재구성)를 안 한다 — IME 를 막아 자모가 깨진다.
+    // 가벼운 표시(한 덩어리 + 커서)만 하고, 페이지 분할은 조합이 끝난 뒤에.
+    let composing = false;
+    function lightRender() {
+      flow.textContent = ec.text;
+      positionCaret();
+    }
+
+    function relayout() {
+      const text = ec.text;
+      // 1) 측정 상태: 한 덩어리로 그려 줄 위치 측정
+      flow.textContent = text;
+      const flowTop = flow.getBoundingClientRect().top;
+      const tops = [], offs = [];
+      if (flow.firstChild) {
+        const range = document.createRange(); range.selectNodeContents(flow);
+        let lastTop = NaN;
+        for (const rc of range.getClientRects()) {
+          if (!Number.isNaN(lastTop) && Math.abs(rc.top - lastTop) < 2) continue;
+          lastTop = rc.top; tops.push(rc.top - flowTop);
+          const cr = document.caretRangeFromPoint(rc.left + 1, rc.top + rc.height / 2);
+          offs.push(cr ? cr.startOffset : 0);
+        }
+      }
+      // 2) 줄 높이 → 분할
+      const heights = tops.map((t, i) => (i + 1 < tops.length ? tops[i + 1] - t : LINE));
+      const placed = computePageBreaks(heights, PAGE - LINE, GAP)
+        .map(b => ({ off: offs[b.i] || 0, spacer: Math.round(b.spacer) }))
+        .filter(b => b.off > 0).sort((a, b) => a.off - b.off);
+      // 3) 여백 끼워 재렌더
+      flow.textContent = '';
+      let prev = 0;
+      for (const b of placed) { flow.appendChild(textSpan(text.slice(prev, b.off))); flow.appendChild(spacerSpan(b.spacer)); prev = b.off; }
+      flow.appendChild(textSpan(text.slice(prev)));
+      positionCaret();
+      statsEl.innerHTML = '페이지 <b>' + (placed.length + 1) + '</b> · 줄 <b>' + tops.length + '</b> · 글자 <b>' + text.length + '</b>';
+    }
+
+    ec.addEventListener('textupdate', () => { if (composing) lightRender(); else schedule(); });
+    ec.addEventListener('compositionstart', () => { composing = true; lightRender(); });
+    ec.addEventListener('compositionend', () => { composing = false; schedule(); });
+
+    function pointToOffset(x, y) {
+      const cr = document.caretRangeFromPoint(x, y); if (!cr) return null;
+      let off = 0; const w = document.createTreeWalker(flow, NodeFilter.SHOW_TEXT); let node = w.nextNode();
+      while (node) { if (node === cr.startContainer) return off + cr.startOffset; off += node.length; node = w.nextNode(); }
+      return off;
+    }
+    paper.addEventListener('pointerdown', (e) => {
+      const off = pointToOffset(e.clientX, e.clientY);
+      if (off != null) { ec.updateSelection(off, off); positionCaret(); }
+      paper.focus();
+    });
+    paper.addEventListener('keydown', (e) => {
+      const a = Math.min(ec.selectionStart, ec.selectionEnd), b = Math.max(ec.selectionStart, ec.selectionEnd);
+      if (e.key === 'Enter') { e.preventDefault(); ec.updateText(a, b, '\n'); ec.updateSelection(a + 1, a + 1); schedule(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); const p = Math.max(0, a - 1); ec.updateSelection(p, p); positionCaret(); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); const p = Math.min(ec.text.length, b + 1); ec.updateSelection(p, p); positionCaret(); }
+    });
+    window.addEventListener('resize', schedule);
+
+    paper.focus();
+    relayout();
+  }
+</script>
+</body>
+</html>

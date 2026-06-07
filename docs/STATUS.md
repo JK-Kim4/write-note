@@ -1,6 +1,6 @@
 # 프로젝트 상태 — Active Track
 
-**최종 갱신:** 2026-06-06
+**최종 갱신:** 2026-06-07
 
 > 이 문서는 repository를 처음 보는 사람이 "지금 무엇이 active track인지" 한 번에 알 수 있게 하는 단일 진입점이다.
 
@@ -11,7 +11,7 @@
 
 | 트랙 | 상태 | 위치 |
 |---|---|---|
-| **Desktop MVP** | 🟢 **ACTIVE** | `desktop/` (Phase 6 완료 — 메모↔작품 연결·집필 사이드 패널, 다음 Phase 7) |
+| **Desktop MVP** | 🟢 **ACTIVE** | `desktop/` (Phase 10 진짜 페이지 분할 구현 완료 — CSS `column-wrap` 실시간 분할, 한글 IME 4케이스 통과) |
 | WEB frontend | ⏸️ paused | `frontend/` (보존, 기능 수정 안 함) |
 | WEB backend | ⏸️ paused | `backend/` (보존, 기능 수정 안 함) |
 
@@ -38,10 +38,13 @@
 | 4 | Write Studio + 일반 에디터 autosave | ✅ **완료** (2026-06-04, develop merge `ee503ab`) — TipTap 본문 결선 + debounce autosave + **자동저장 on/off**(off 시 ⌘S·저장 버튼 수동 저장, app_settings 영속) + **줄노트 토글** + **IME 조합 guard**(composing 중 부모 갱신 skip) + 본문 재진입 반영(editorKey remount). **추가**: 작품 삭제(FK cascade) + Dock→설정 패널 전환 |
 | 5 | Quick memo capture + inbox | ✅ **완료** (2026-06-05, merge `386aac1`) — quick capture(모달+인라인) + inbox(전체/미연결 필터) + soft delete·되돌리기 토스트 |
 | 6 | 메모-프로젝트 연결 + studio side panel | ✅ **완료** (2026-06-06, merge `aad06d7` + fix `ee19683`) — 메모↔작품 **다대다 연결**(연결 테이블 `memo_projects`, 스키마 v4) + Inbox 연결 버튼·체크리스트 팝오버·칩 복수/✕ + 집필 사이드 패널 실데이터·패널 내 해제. TDD vitest 100 GREEN. **dogfooding 통과** |
-| 7 | Prototype usability pass | 🟡 **다음 진입점** |
-| 8 | Desktop MVP review gate | ⬜ 대기 |
+| 7 | 작업실 재디자인 (009) | ✅ **완료** (2026-06-06, merge `e94ef6d`) — 작품 벽·서랍형 집필실·쪽지 책상. "사용 가능한 프로토타입" 도달 |
+| 8 | Desktop MVP review gate | ✅ **완료** (2026-06-06, `9579f78`) — 판정 YES, blocker 0, SC 8/8, 한글 IME 4케이스 통과 |
+| 9 | 원고지 모드 (010) | ❌ **폐기** — PoC RED(라이브 칸 CSS `text-transform`가 한글 자모 분해) → 줄노트로 피벗 |
+| 9' | 줄노트 집필 개선 | ✅ **완료** (2026-06-07, `968b0e0`) — 줄노트 default ON·줄선 미리 그림·문단 간격 0·하단 쪽번호 |
+| 10 | 진짜 페이지 분할 | ✅ **구현 완료** (2026-06-07, `feat/page-split-editor`) — **CSS `column-wrap`** 로 A4 장 단위 실시간 분할(낱장 종이·상하 패딩·장별 쪽번호·노트식 빈 줄 클릭·줄노트 토글=줄선만). 저장구조 불변. vitest 179+tsc+build GREEN. **한글 IME 4케이스 통과**. PoC=`docs/poc/0-4-page-split-poc-plan.md` |
 
-> Phase 7까지 완료되면 "사용 가능한 데스크탑 프로토타입"으로 판정한다. Phase 8은 의사결정 gate다.
+> Desktop MVP는 Phase 8(review gate)에서 "사용 가능한 프로토타입 = YES" 판정. Phase 10(진짜 페이지 분할)까지 구현 완료. **다음 = develop merge 후 후속(쪽 네비게이션·메모↔본문 위치 앵커) 또는 WEB 재개 검토.** 굵게 토글-IME papercut은 별도 이슈([[03-ISSUES]]) 후속.
 
 ## WEB 트랙 재개 조건
 
