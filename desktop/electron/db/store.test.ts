@@ -236,20 +236,22 @@ describe("Store", () => {
     expect(result.log.body).toBe("세션 없이 기록");
   });
 
-  it("should_endSessionWithLog_rollback_on_failure", () => {
+  it("should_endSessionWithLog_persist_session_end_and_log_atomically", () => {
     const { project } = store.createProjectWithDocument({ title: "작품" });
     const sessionId = crypto.randomUUID();
     db.prepare(
       "INSERT INTO work_sessions (id, project_id, started_at, ended_at) VALUES (?, ?, ?, NULL)",
     ).run(sessionId, project.id, "2000-01-01T00:00:00.000Z");
 
-    // project_logs FK 위반 유도 불가(cascade), 대신 body 길이 제한 불가 — store 트랜잭션은 atomic 이어야 함
-    // 단순 성공 케이스 → 두 테이블에 모두 결과가 있어야 함
+    // 트랜잭션 원자성 — 세션 종료(ended_at)와 로그가 함께 영속되어야 한다(둘 중 하나만 남는 일 없음).
     const result = store.endSessionWithLog(project.id, "작업 완료");
-    const logRow = db
-      .prepare("SELECT * FROM project_logs WHERE id = ?")
-      .get(result.log.id);
+
+    const logRow = db.prepare("SELECT * FROM project_logs WHERE id = ?").get(result.log.id);
     expect(logRow).toBeDefined();
+    const sessionRow = db
+      .prepare("SELECT ended_at FROM work_sessions WHERE id = ?")
+      .get(sessionId) as { ended_at: string | null } | undefined;
+    expect(sessionRow?.ended_at).not.toBeNull();
   });
 
   // US3: listLogCards totalDurationMs 채우기

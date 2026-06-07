@@ -25,8 +25,12 @@ export function LogCard({ card, now }: Props) {
 
   const handleToggle = async () => {
     if (!open) {
-      const fetched = await window.electronAPI.logs.listByProject(project.id);
-      setLogs(fetched);
+      try {
+        const fetched = await window.electronAPI.logs.listByProject(project.id);
+        setLogs(fetched);
+      } catch {
+        return; // 조회 실패 시 펼치지 않음(빈 목록 노출 방지)
+      }
     }
     setOpen((prev) => !prev);
   };
@@ -58,22 +62,24 @@ export function LogCard({ card, now }: Props) {
       <div className="log-card__log-section">
         <div className="log-card__latest-log">
           {latestLog ? (
-            <span className="log-card__latest-body">{latestLog.body}</span>
+            <>
+              <span className="log-card__latest-body">{latestLog.body}</span>
+              <button
+                type="button"
+                className="log-card__accordion-btn"
+                aria-expanded={open}
+                aria-label={open ? "기록 접기" : "기록 펼치기"}
+                onClick={handleToggle}
+              >
+                {open ? "▲" : "▼"}
+              </button>
+            </>
           ) : (
             <span className="log-card__no-log">아직 기록 없음</span>
           )}
-          <button
-            type="button"
-            className="log-card__accordion-btn"
-            aria-expanded={open}
-            aria-label={open ? "기록 접기" : "기록 펼치기"}
-            onClick={handleToggle}
-          >
-            {open ? "▲" : "▼"}
-          </button>
         </div>
 
-        {open && (
+        {open && latestLog && (
           <ul className="log-card__log-list">
             {logs.map((log) => (
               <li key={log.id} className="log-card__log-item">

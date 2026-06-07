@@ -83,6 +83,22 @@ describe("WorkSessionRepository", () => {
     expect(row).toBeUndefined();
   });
 
+  // endOpen: 정확히 30s 경계는 유지(< 30s 만 폐기)
+  it("should_keep_session_when_duration_is_exactly_30s", () => {
+    const project = projectRepo.create({ title: "작품A" });
+    const session = repo.start(project.id);
+    const start = "2000-01-01T00:00:00.000Z";
+    const end = "2000-01-01T00:00:30.000Z"; // 정확히 30,000ms
+    db.prepare("UPDATE work_sessions SET started_at = ? WHERE id = ?").run(start, session.id);
+
+    repo.endOpen(project.id, end);
+
+    const row = db.prepare("SELECT ended_at FROM work_sessions WHERE id = ?").get(session.id) as
+      | { ended_at: string | null }
+      | undefined;
+    expect(row?.ended_at).toBe(end);
+  });
+
   // endOpen: 열린 세션 없으면 아무것도 안 함 (graceful)
   it("should_do_nothing_when_no_open_session_exists", () => {
     const project = projectRepo.create({ title: "작품A" });

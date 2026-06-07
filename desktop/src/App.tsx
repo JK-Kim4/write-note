@@ -98,6 +98,10 @@ export function App() {
     };
   }, [activeProject]);
 
+  // 명시 종료("작업 종료" 버튼)가 endWithLog 로 세션을 이미 닫은 경우, 직후 화면 전환으로
+  // 발화하는 effect cleanup 의 중복 sessions.end 를 1회 스킵한다(이중 종료 IPC 방지).
+  const skipNextSessionEnd = useRef(false);
+
   // 세션 생명주기 — 집필 화면 진입 시 세션 시작, 이탈/작품 전환 시 세션 종료(30s 폐기).
   // cleanup 이 직전 pid 를 캡처하므로 stale closure 회피.
   // sessions API 가 없으면 no-op (테스트·환경 guard).
@@ -108,6 +112,10 @@ export function App() {
       void window.electronAPI.sessions.start(pid);
     }
     return () => {
+      if (skipNextSessionEnd.current) {
+        skipNextSessionEnd.current = false;
+        return;
+      }
       if (window.electronAPI?.sessions) {
         void window.electronAPI.sessions.end(pid);
       }
@@ -253,6 +261,7 @@ export function App() {
           onTheme={setTheme}
           onAutoSave={setAutoSave}
           onEndWork={(body) => {
+            skipNextSessionEnd.current = true;
             void window.electronAPI.sessions.endWithLog(activeProject.id, body).then(() => {
               setScreen("projects");
             });

@@ -44,4 +44,9 @@ describe("formatDuration", () => {
     // 2시간 정각
     expect(formatDuration(2 * 60 * 60 * 1000)).toBe("2시간");
   });
+
+  it("should_return_기록_없음_when_ms_is_negative", () => {
+    // 시계 역행 등으로 음수가 들어와도 깨진 출력("-1시간") 대신 안전값
+    expect(formatDuration(-59 * 1000)).toBe("기록 없음");
+  });
 });
