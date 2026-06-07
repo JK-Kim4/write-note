@@ -1,4 +1,4 @@
-# Design — write-note Desktop
+# Design — 나래 노트 (Narae Note) Desktop
 
 > 비주얼 시스템 SoT (어떻게 보이는가). 전략(누가/무엇을/왜)은 루트 [`PRODUCT.md`](../PRODUCT.md).
 > 충돌 시 PRODUCT.md의 원칙이 상위. 본 문서는 그 원칙을 색·타이포·모션·컴포넌트로 구체화한다.
@@ -17,26 +17,25 @@
 두 레이어의 **온도 대비**가 정체성이다.
 
 - **쓰는 surface(에디터 page)는 순도** — 도구가 물러나고 본문만 남는다. 종이 한 장의 따뜻한 off-white.
-- **그를 감싼 작업실(앱 배경)은 더 깊은 톤** — 종이가 "책상 위에 놓인 한 장"으로 읽히게. 전면 cream wash가 아니라 *종이라는 재료*로 따뜻함을 만든다 (cream-slop 회피의 핵심).
+- **그를 감싼 작업실(앱 배경)은 평평한 양피지 톤** — 종이가 그 위에 한 단계 밝게 "떠 있는 한 장"으로 읽히게. 나무결·텍스처 없이 톤 대비 + 그림자로만 분리한다 (Narae Note 시안 = '디지털 안식처', cream-slop 회피는 톤 위계로).
 - **accent는 깊은 잉크블루(쿨)** — 따뜻한 종이(웜)와의 온도 대비가 절제된 자신감을 만든다. blue는 **액션 + 포커스에만**.
 
 처음 열었을 때 dashboard나 랜딩이 아니라 *조용한 글쓰기 작업실*. 매일 열어도 피로 없는 안정감이 첫인상보다 우선.
 
 ## 2. Color (OKLCH)
 
-모든 색은 OKLCH. 라이트 = 따뜻한 종이, 다크 = 촛불 아래 원고. 구현은 CSS custom property로 그대로 옮긴다. 앱 배경(`--bg`)은 **나무 책상** — 우드 톤 위에 미세 나무결 텍스처(§2-3).
+모든 색은 OKLCH. 라이트 = 평평한 양피지, 다크 = 촛불 아래 원고. 구현은 CSS custom property로 그대로 옮긴다. 앱 배경(`--bg`)은 **평평한 양피지** — 텍스처 없이 종이(`--paper`)보다 한 단계 어둡게 두어 종이가 떠 보이게 한다. **실시간 값 SoT = `desktop/src/styles/app.css`** (아래 값은 결정본 갱신 시점 스냅샷).
 
-### 2-1. Light (따뜻한 종이)
+### 2-1. Light (평평한 양피지)
 
 ```css
 :root {
-  /* surface — 작업실(깊음) → 패널 → 종이(밝음) 위계 */
-  --bg:             oklch(0.705 0.044 64);   /* 앱 배경 = 나무 책상(우드 톤) */
-  --bg-edge:        oklch(0.640 0.046 60);   /* 책상 vignette 가장자리 */
-  --surface:        oklch(0.930 0.009 78);   /* 패널·카드 (바닥 위 올라온 면) */
-  --surface-sunken: oklch(0.885 0.012 76);   /* 가라앉은 보조면 */
-  --paper:          oklch(0.985 0.008 85);   /* 에디터 page 전용 — 다른 surface 사용 금지 */
-  --paper-edge:     oklch(0.900 0.012 80);
+  /* surface — 작업실(양피지·살짝 깊음) → 패널 → 종이(밝음) 위계 */
+  --bg:             oklch(0.945 0.006 85);   /* 앱 배경 = 평평한 양피지 */
+  --surface:        oklch(0.962 0.006 85);   /* 패널·카드·rail (바닥 위 올라온 면) */
+  --surface-sunken: oklch(0.930 0.006 84);   /* 가라앉은 보조면 */
+  --paper:          oklch(0.996 0.001 85);   /* 에디터 page 전용 — 배경 위로 떠 있는 한 장 */
+  --paper-edge:     oklch(0.912 0.006 82);
 
   /* ink */
   --ink:        oklch(0.280 0.018 60);   /* 본문 — 웜 near-black, 순흑 아님 */
@@ -65,12 +64,11 @@
 
 ```css
 [data-theme="dark"] {
-  --bg:             oklch(0.255 0.024 52);   /* 짙은 호두나무 책상 */
-  --bg-edge:        oklch(0.205 0.020 50);
-  --surface:        oklch(0.260 0.014 60);
-  --surface-sunken: oklch(0.230 0.012 58);
-  --paper:          oklch(0.255 0.016 64);   /* warm dark — 촛불 아래 종이 */
-  --paper-edge:     oklch(0.320 0.018 64);
+  --bg:             oklch(0.220 0.010 68);   /* 앱 배경 = 평평한 짙은 양피지 */
+  --surface:        oklch(0.262 0.012 64);
+  --surface-sunken: oklch(0.232 0.010 62);
+  --paper:          oklch(0.288 0.014 66);   /* warm dark — 배경 위로 떠 있는 종이 */
+  --paper-edge:     oklch(0.350 0.016 66);
 
   --ink:        oklch(0.900 0.012 82);   /* 순백 아님 */
   --ink-soft:   oklch(0.800 0.014 80);
@@ -95,7 +93,7 @@
 
 - **종이색(`--paper`)은 에디터 page 에만.** 패널·카드·배경으로 번지면 cream-slop이 된다.
 - **blue 신설 금지.** 위 accent 5개 외 새 blue 금지. primary action(주 버튼) + focus state(포커스/선택)에만. 정보 표시·아이콘·장식에 blue 쓰지 않는다.
-- **gradient·glow·색 그림자 금지.** 그림자는 §5의 3종만. 배경 vignette(`--bg-edge`)는 단색 radial 1회 + **책상 나무결**(저대비 SVG fractalNoise, 라이트 multiply·다크 screen, opacity ≤0.16) 1회 예외. 나무결은 `--bg`(책상) 영역에만 — 종이·패널·카드 위로 번지지 않는다(cream-slop 회피, 구현 `desktop/src/styles/app.css`).
+- **gradient·glow·색 그림자·배경 텍스처 금지.** 그림자는 §5의 3종만. 앱 배경(`--bg`)은 평평한 단색 양피지 — 나무결/노이즈/vignette 없이 종이와의 톤 위계 + 그림자로만 분리한다(Narae Note 결정본, cream-slop 회피는 톤 위계로, 구현 `desktop/src/styles/app.css`).
 - **순흑/순백 금지.** 텍스트·배경 모두 웜 틴트가 들어간 ink/paper 사용.
 - **대비:** 본문 `--ink`/`--ink-soft`만 (≥4.5:1 보장). `--muted`는 보조 텍스트(메타·라벨)까지만, `--faint`는 placeholder·비활성 안내 전용 — 본문에 쓰지 않는다.
 

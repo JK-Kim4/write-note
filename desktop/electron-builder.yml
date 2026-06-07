@@ -1,5 +1,5 @@
-appId: com.writenote.desktop
-productName: write-note
+appId: com.naraenote.desktop
+productName: Narae Note
 directories:
   output: release
 files:
@@ -9,5 +9,6 @@ files:
 asar: true
 mac:
   target: dmg
+  icon: assets/icon.png
   # 테스트용 — 코드 서명 없음(Gatekeeper 우클릭-열기로 실행).
   identity: null
