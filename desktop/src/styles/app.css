@@ -340,13 +340,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 /* 줄노트는 노트처럼 Enter = 바로 다음 줄. 문단 간 여백 0 (여백을 주면 빈 줄이 끼어 한 줄씩 건너뜀). */
-.paper--lined .prose .ProseMirror p { margin: 0; }
-.paper--lined .prose .ProseMirror h1,
-.paper--lined .prose .ProseMirror h2 { line-height: var(--page-line); margin: var(--page-line) 0 0; }
-.paper--lined .prose .ProseMirror ul,
-.paper--lined .prose .ProseMirror ol { margin-bottom: 1.92em; }
-.paper--lined .prose .ProseMirror li { margin: 0; }
-.paper--lined .prose .ProseMirror blockquote { margin: 1.92em 0; }
+/* 본문 간격은 줄노트 ON/OFF 무관하게 동일(아래 .prose .ProseMirror 에 격자 간격을 항상 적용).
+   줄노트 토글은 줄선(.sheet--lined)만 켜고/끈다 — 글자 배치는 변하지 않는다. */
 
 /* 제목 — 종이 밖, 책상 위에 분리된 머리말(종이와 명확히 떨어져 떠 있음). 종이 좌우 여백과 정렬. */
 .doc-title {
@@ -375,9 +370,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   row-gap: calc(var(--page-stride) - var(--page-h));   /* 장 사이 = 3줄(책상 간격) */
   min-height: var(--page-h);       /* 빈/짧은 본문도 한 장 → 줄선 미리 그려짐(968b0e0 보존) */
 }
-.prose .ProseMirror p { margin: 0 0 1.32em; }
-.prose .ProseMirror p:first-child { margin-top: 0; }
-.prose .ProseMirror :last-child { margin-bottom: 0; }
+/* 노트처럼 Enter = 바로 다음 줄. 문단 간격 0(줄 격자 유지) — 줄노트 ON/OFF 동일. */
+.prose .ProseMirror p { margin: 0; }
 .prose .ProseMirror ::selection,
 .prose .ProseMirror::selection { background: var(--accent-soft); }
 /* TipTap caret 색 (잉크블루) */
@@ -387,18 +381,19 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .prose .ProseMirror:focus,
 .prose .ProseMirror:focus-visible { outline: none; box-shadow: none; }
 
-/* 본문 서식 마크업 (BubbleMenu 적용 결과) — 본문 글꼴은 고운바탕 고정, 위계만 */
-.prose .ProseMirror h1 { font-size: 24px; font-weight: 700; line-height: 1.4; margin: 1.1em 0 .5em; letter-spacing: -0.01em; }
-.prose .ProseMirror h2 { font-size: 21px; font-weight: 700; line-height: 1.4; margin: 1em 0 .45em; letter-spacing: -0.01em; }
+/* 본문 서식 마크업 (BubbleMenu 적용 결과) — 본문 글꼴 고정, 위계만. 줄 높이·세로 margin 은
+   줄 격자(--page-line)의 정수배여야 줄노트가 페이지마다 정렬되고 페이지가 줄 단위로 끊긴다. */
+.prose .ProseMirror h1 { font-size: 24px; font-weight: 700; line-height: var(--page-line); margin: var(--page-line) 0 0; letter-spacing: -0.01em; }
+.prose .ProseMirror h2 { font-size: 21px; font-weight: 700; line-height: var(--page-line); margin: var(--page-line) 0 0; letter-spacing: -0.01em; }
 .prose .ProseMirror strong { font-weight: 700; }
 .prose .ProseMirror em { font-style: italic; }
 .prose .ProseMirror blockquote {
-  margin: 1.2em 0; padding-left: 16px;
+  margin: 1.92em 0; padding-left: 16px;
   border-left: 1px solid var(--hairline-strong);  /* 1px — side-stripe 금지(>1px) 회피 */
   color: var(--ink-soft);
 }
-.prose .ProseMirror ul, .prose .ProseMirror ol { padding-left: 1.4em; margin: 0 0 1.32em; }
-.prose .ProseMirror li { margin: .15em 0; }
+.prose .ProseMirror ul, .prose .ProseMirror ol { padding-left: 1.4em; margin: 0 0 1.92em; }
+.prose .ProseMirror li { margin: 0; }
 .prose .ProseMirror li p { margin: 0; }
 
 /* ── BubbleMenu (텍스트 선택 시) — 순도 유지, 평소엔 숨음 ── */

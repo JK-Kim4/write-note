@@ -100,7 +100,7 @@ export function Editor({ title, initialBodyJson, onChange, lined, zoom = 1 }: Ed
       <h1 className="doc-title">{title}</h1>
       <article
         ref={paperRef}
-        className={lined ? "paper paper--lined" : "paper"}
+        className="paper"
         style={{ minHeight: `${(pages - 1) * PAGE_STRIDE_PX + SHEET_H_PX}px` }}
         onMouseDown={handlePaperMouseDown}
       >
