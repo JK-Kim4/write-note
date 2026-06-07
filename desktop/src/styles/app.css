@@ -61,6 +61,12 @@
   /* 나무결 blend (라이트 = 어두운 결을 multiply) */
   --grain-blend: multiply;
   --grain-opacity: .16;
+
+  /* 페이지 분할 격자 — 페이지 높이·간격은 줄 높이의 정수배여야 줄노트가 페이지마다 정렬된다.
+     px 로 둬야 .paper(간격 띠)와 .prose(column-height)가 font-size 차이와 무관하게 일치한다. */
+  --page-line: 34.56px;                       /* 18px 본문 × line-height 1.92 */
+  --page-h: calc(var(--page-line) * 26);      /* 한 장 본문 글자 영역 = 26줄 (column-height) */
+  --page-stride: calc(var(--page-line) * 30); /* 종이 28줄(본문26+패딩1+1) + 책상 간격 2줄 = 보폭 30줄 */
 }
 
 /* === Dark (촛불 아래 원고 + 짙은 호두나무 책상) === */
@@ -293,90 +299,101 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* ── 에디터 (주인공) ── */
 .editor-scroll {
   overflow-y: auto; min-height: 0; padding: 40px 32px 96px;
-  display: flex; justify-content: center; align-items: flex-start;
+  display: flex; flex-direction: column; align-items: center;   /* 제목(책상 위) → 종이 세로 정렬 */
   scrollbar-width: thin; scrollbar-color: var(--hairline-strong) transparent;
 }
+/* 종이 무대 — 투명 컨테이너(낱장 .sheet 박스들의 위치 기준). 실제 종이는 .sheet 가 그린다. */
 .paper {
-  zoom: var(--zoom, 1);                 /* 작업공간 축소/확대 (종이+글자 비례) */
-  width: 100%; max-width: 210mm;       /* A4 폭 */
-  min-height: 297mm;                    /* A4 높이 — 빈 종이도 한 장으로 */
-  background: var(--paper); border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-paper);
-  padding: 25mm 25mm 30mm;             /* A4 여백 — 본문 줄길이 ≈33em (DESIGN ≤34em 유지) */
+  zoom: var(--zoom, 1);                 /* 작업공간 축소/확대(종이+글자 비례, 줄격자 유지) */
+  width: 100%; max-width: 210mm;        /* A4 폭 */
+  position: relative;                   /* 종이 박스(.sheet)·쪽번호 오버레이 기준 */
   animation: rise var(--dur-enter) var(--ease-out) both;
-  /* 제목 위 + 본문이 세로로 쌓이고, 본문이 남은 높이를 채워 줄노트 줄선이 페이지 끝까지 미리 그려진다. */
-  display: flex; flex-direction: column;
-  position: relative;                   /* 하단 페이지 번호(.page-num) 기준 */
 }
 
-/* 종이 하단 여백 중앙의 페이지 번호(인쇄된 쪽번호처럼). 현재 전체 분량 쪽수. */
+/* 장별 종이 박스 — 결정적 위치(JS 가 top/height 인라인)에 깔리는 실제 한 장.
+   둥근 모서리 + 그림자로 책상 위에 뜬 낱장처럼. 장 사이는 비어 책상(나무결)이 드러난다. */
+.sheets { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.sheet {
+  position: absolute; left: 0; right: 0;        /* 종이 폭 = .paper 전체(210mm) */
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-paper);
+}
+/* 줄노트 — 종이 박스 안 본문 영역(content-box: 위/아래 1줄 패딩 + 좌우 25mm)에만 줄선. 본문 26줄이 꽉 찬다. */
+.sheet--lined {
+  padding: var(--page-line) 25mm;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0, transparent calc(var(--page-line) - 1px),
+      var(--hairline) calc(var(--page-line) - 1px), var(--hairline) var(--page-line)
+    ) content-box,
+    var(--paper) border-box;
+}
+/* 장별 쪽번호 — 각 종이 하단 패딩 줄 자리(top 은 인라인, 장별). 인쇄된 쪽번호처럼. */
 .page-num {
-  position: absolute; left: 0; right: 0; bottom: 12mm;
+  position: absolute; left: 0; right: 0;
   text-align: center;
   font-family: var(--font-serif); font-size: 13px; color: var(--faint);
   font-variant-numeric: tabular-nums;
-  user-select: none; pointer-events: none;
+  user-select: none; pointer-events: none; z-index: 2;
 }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-
-/* 줄노트 — 본문에 가로 줄선(titlebar 토글). 줄 간격 = 본문 line-height(1.92em).
-   줄선과 글자가 항상 정렬되려면 모든 블록 간격이 줄 높이의 정수배여야 한다(문단/제목 margin 정합). */
-.paper--lined .prose .ProseMirror {
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent calc(1.92em - 1px),
-    var(--hairline) calc(1.92em - 1px),
-    var(--hairline) 1.92em
-  );
-  /* 줄선을 글자 baseline 바로 아래로 끌어올린다(기본은 line box 하단이라 글자가 떠 보임). */
-  background-position-y: 0em;
-}
 /* 줄노트는 노트처럼 Enter = 바로 다음 줄. 문단 간 여백 0 (여백을 주면 빈 줄이 끼어 한 줄씩 건너뜀). */
-.paper--lined .prose .ProseMirror p { margin: 0; }
-.paper--lined .prose .ProseMirror h1,
-.paper--lined .prose .ProseMirror h2 { line-height: 1.92em; margin: 1.92em 0 0; }
-.paper--lined .prose .ProseMirror ul,
-.paper--lined .prose .ProseMirror ol { margin-bottom: 1.92em; }
-.paper--lined .prose .ProseMirror li { margin: 0; }
-.paper--lined .prose .ProseMirror blockquote { margin: 1.92em 0; }
+/* 본문 간격은 줄노트 ON/OFF 무관하게 동일(아래 .prose .ProseMirror 에 격자 간격을 항상 적용).
+   줄노트 토글은 줄선(.sheet--lined)만 켜고/끈다 — 글자 배치는 변하지 않는다. */
 
+/* 제목 — 종이 밖, 책상 위에 분리된 머리말(종이와 명확히 떨어져 떠 있음). 종이 좌우 여백과 정렬. */
 .doc-title {
+  width: 100%; max-width: 210mm; padding: 0 25mm;
   font-family: var(--font-serif); font-size: 27px; font-weight: 700; line-height: 1.35;
-  letter-spacing: -0.01em; color: var(--ink); margin: 0 0 6px; text-wrap: balance;
+  letter-spacing: -0.01em; color: var(--ink);
+  margin: 0 0 22px;
+  text-wrap: balance;
 }
 .doc-meta { font-size: 12px; color: var(--muted); margin: 0 0 26px; letter-spacing: -0.01em; }
 
 /* TipTap EditorContent → .prose(wrapper) > .ProseMirror(contenteditable) */
 /* 본문은 A4 여백(좌우 25mm) 안에서 꽉 — content ≈33em, ≤34em 유지.
    flex 로 남은 높이를 채워 줄노트 줄선이 빈 본문에도 페이지 끝까지 그려지게 한다. */
-.prose { max-width: none; flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+/* 본문 = 종이 박스 위 레이어. 좌우 25mm 여백 + 위 1줄 패딩(첫 장 글자가 종이 위 모서리에 안 붙게). */
+.prose { max-width: none; position: relative; z-index: 1; padding: var(--page-line) 25mm 0; }
 .prose .ProseMirror {
   font-family: var(--font-serif); font-size: 18px; font-weight: 400; line-height: 1.92;
   color: var(--ink); letter-spacing: 0.002em;
   outline: none; text-wrap: pretty;
-  flex: 1 1 auto;   /* 종이 남은 높이를 채움 → 줄선이 본문 끝 아래까지 미리 그려진다 */
+  /* 페이지 분할 — 한 장(26줄)을 채우면 아래 장으로(세로로 쌓임). 분할=브라우저 레이아웃, 입력 중 transform 0. */
+  column-width: 160mm;             /* 한 장 본문 폭(210 − 25×2) */
+  column-height: var(--page-h);    /* 26줄; 채우면 다음 장 */
+  column-wrap: wrap;
+  column-gap: 30mm;
+  row-gap: calc(var(--page-stride) - var(--page-h));   /* 장 사이 = 3줄(책상 간격) */
+  min-height: var(--page-h);       /* 빈/짧은 본문도 한 장 → 줄선 미리 그려짐(968b0e0 보존) */
 }
-.prose .ProseMirror p { margin: 0 0 1.32em; }
-.prose .ProseMirror p:first-child { margin-top: 0; }
-.prose .ProseMirror :last-child { margin-bottom: 0; }
+/* 노트처럼 Enter = 바로 다음 줄. 문단 간격 0(줄 격자 유지) — 줄노트 ON/OFF 동일. */
+.prose .ProseMirror p { margin: 0; }
 .prose .ProseMirror ::selection,
 .prose .ProseMirror::selection { background: var(--accent-soft); }
 /* TipTap caret 색 (잉크블루) */
 .prose .ProseMirror { caret-color: var(--accent); }
+/* 본문 편집면은 포커스 링 없음(커서가 포커스 표시). 전역 :focus-visible box-shadow 가 multicol
+   fragment 마다 장 박스로 그려지는 것을 차단. */
+.prose .ProseMirror:focus,
+.prose .ProseMirror:focus-visible { outline: none; box-shadow: none; }
 
-/* 본문 서식 마크업 (BubbleMenu 적용 결과) — 본문 글꼴은 고운바탕 고정, 위계만 */
-.prose .ProseMirror h1 { font-size: 24px; font-weight: 700; line-height: 1.4; margin: 1.1em 0 .5em; letter-spacing: -0.01em; }
-.prose .ProseMirror h2 { font-size: 21px; font-weight: 700; line-height: 1.4; margin: 1em 0 .45em; letter-spacing: -0.01em; }
+/* 본문 서식 마크업 (BubbleMenu 적용 결과) — 본문 글꼴 고정, 위계만. 줄 높이·세로 margin 은
+   줄 격자(--page-line)의 정수배여야 줄노트가 페이지마다 정렬되고 페이지가 줄 단위로 끊긴다. */
+.prose .ProseMirror h1 { font-size: 24px; font-weight: 700; line-height: var(--page-line); margin: var(--page-line) 0 0; letter-spacing: -0.01em; }
+.prose .ProseMirror h2 { font-size: 21px; font-weight: 700; line-height: var(--page-line); margin: var(--page-line) 0 0; letter-spacing: -0.01em; }
 .prose .ProseMirror strong { font-weight: 700; }
 .prose .ProseMirror em { font-style: italic; }
 .prose .ProseMirror blockquote {
-  margin: 1.2em 0; padding-left: 16px;
+  margin: 1.92em 0; padding-left: 16px;
   border-left: 1px solid var(--hairline-strong);  /* 1px — side-stripe 금지(>1px) 회피 */
   color: var(--ink-soft);
 }
-.prose .ProseMirror ul, .prose .ProseMirror ol { padding-left: 1.4em; margin: 0 0 1.32em; }
-.prose .ProseMirror li { margin: .15em 0; }
+.prose .ProseMirror ul, .prose .ProseMirror ol { padding-left: 1.4em; margin: 0 0 1.92em; }
+.prose .ProseMirror li { margin: 0; }
 .prose .ProseMirror li p { margin: 0; }
 
 /* ── BubbleMenu (텍스트 선택 시) — 순도 유지, 평소엔 숨음 ── */
