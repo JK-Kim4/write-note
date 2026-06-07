@@ -1,4 +1,4 @@
-import type { Document, Memo, Project, ProjectCard, ProjectMemo } from "../db/types";
+import type { Document, LogCard, Memo, Project, ProjectCard, ProjectMemo } from "../db/types";
 import type { CreateProjectInput, UpdateProjectInput } from "../db/projectRepository";
 import type { UpdateDocumentInput } from "../db/documentRepository";
 import type { CaptureMemoInput } from "../db/store";
@@ -45,6 +45,10 @@ export type ElectronAPI = {
   shell: {
     openExternal: (url: string) => Promise<void>;
   };
+  logs: {
+    /** 기록 화면 카드 집계(작품별 진척 소스 + 최신 기록 + 총 작업 시간). */
+    list: () => Promise<LogCard[]>;
+  };
 };
 
 /** IPC 채널명 — main(registerHandlers)과 preload 가 공유한다. */
@@ -70,4 +74,5 @@ export const CHANNELS = {
   settingsSet: "settings:set",
   contactSend: "contact:send",
   shellOpenExternal: "shell:openExternal",
+  logsList: "logs:list",
 } as const;

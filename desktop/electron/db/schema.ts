@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 /**
  * 엔티티 테이블을 생성하고, 기존 DB 는 버전에 맞춰 올린다(설계 §데이터 모델).
@@ -8,6 +8,7 @@ const SCHEMA_VERSION = 5;
  * v2: projects.genre 추가. v3: memos.deleted_at 추가(soft delete).
  * v4: memo_projects 연결 테이블(메모↔작품 다대다) 추가 + memos.linked_project_id 은퇴.
  * v5: projects.next_scene(다음에 쓸 장면) + memo_projects.pinned(곁에 둘 쪽지 고정) 추가.
+ * v6: project_logs(기록 메모) + work_sessions(작업 세션 추적) 추가.
  */
 export function migrate(db: DatabaseSync): void {
   db.exec(`
@@ -56,6 +57,24 @@ export function migrate(db: DatabaseSync): void {
       key   TEXT PRIMARY KEY,
       value TEXT NOT NULL
     ) STRICT;
+
+    CREATE TABLE IF NOT EXISTS project_logs (
+      id          TEXT PRIMARY KEY,
+      project_id  TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      body        TEXT NOT NULL,
+      created_at  TEXT NOT NULL
+    ) STRICT;
+
+    CREATE TABLE IF NOT EXISTS work_sessions (
+      id          TEXT PRIMARY KEY,
+      project_id  TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      started_at  TEXT NOT NULL,
+      ended_at    TEXT
+    ) STRICT;
+
+    CREATE INDEX IF NOT EXISTS idx_project_logs_project  ON project_logs(project_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_work_sessions_project ON work_sessions(project_id);
+    CREATE INDEX IF NOT EXISTS idx_work_sessions_open    ON work_sessions(ended_at);
   `);
 
   // 기존 DB 업그레이드 — CREATE IF NOT EXISTS 는 이미 있는 테이블에 컬럼을 더하지 않는다.

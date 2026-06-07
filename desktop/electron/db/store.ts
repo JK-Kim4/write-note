@@ -3,7 +3,7 @@ import { ProjectRepository, type CreateProjectInput } from "./projectRepository"
 import { DocumentRepository, type UpdateDocumentInput } from "./documentRepository";
 import { MemoRepository } from "./memoRepository";
 import { SettingRepository } from "./settingRepository";
-import type { Document, Memo, Project, ProjectCard } from "./types";
+import type { Document, LogCard, Memo, Project, ProjectCard } from "./types";
 
 export type CaptureMemoInput = {
   body: string;
@@ -70,6 +70,24 @@ export class Store {
       ...p,
       lastSentenceSource: this.documents.getByProjectId(p.id)?.plainText ?? "",
     }));
+  }
+
+  /**
+   * 기록 화면 카드 — 각 작품에 wordCount·lastSentenceSource·latestLog·totalDurationMs 를 실어 반환한다.
+   * updated_at DESC 순(projects.list() 기본 순서).
+   * latestLog 와 totalDurationMs 는 US2/US3 에서 채운다 — 이 단계에서는 기본값(null/0).
+   */
+  listLogCards(): LogCard[] {
+    return this.projects.list().map((project) => {
+      const doc = this.documents.getByProjectId(project.id);
+      return {
+        project,
+        wordCount: doc?.wordCount ?? 0,
+        lastSentenceSource: doc?.plainText ?? "",
+        latestLog: null,
+        totalDurationMs: 0,
+      };
+    });
   }
 
   /** document 본문을 저장하고, 소속 project 의 updated_at 을 한 트랜잭션으로 touch 한다. */

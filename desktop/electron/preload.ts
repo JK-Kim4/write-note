@@ -37,6 +37,9 @@ const api: ElectronAPI = {
   shell: {
     openExternal: (url) => ipcRenderer.invoke(CHANNELS.shellOpenExternal, url),
   },
+  logs: {
+    list: () => ipcRenderer.invoke(CHANNELS.logsList),
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", api);

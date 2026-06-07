@@ -63,4 +63,6 @@ export function registerHandlers(store: Store): void {
   ipcMain.handle(CHANNELS.shellOpenExternal, async (_e, url: string) => {
     if (/^https?:\/\//i.test(url)) await shell.openExternal(url);
   });
+
+  ipcMain.handle(CHANNELS.logsList, () => store.listLogCards());
 }

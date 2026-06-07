@@ -112,6 +112,42 @@ describe("Store", () => {
     expect(store.pickReentryMemo(project.id)?.id).toBe(second.id);
   });
 
+  it("should_list_log_cards_with_wordCount_and_lastSentenceSource", () => {
+    const { project, document } = store.createProjectWithDocument({ title: "기록 작품" });
+    store.updateDocument(document.id, { plainText: "첫 문장. 마지막 문장.", wordCount: 10 });
+
+    const cards = store.listLogCards();
+
+    expect(cards).toHaveLength(1);
+    expect(cards[0].project.id).toBe(project.id);
+    expect(cards[0].project.title).toBe("기록 작품");
+    expect(cards[0].wordCount).toBe(10);
+    expect(cards[0].lastSentenceSource).toBe("첫 문장. 마지막 문장.");
+    expect(cards[0].latestLog).toBeNull();
+    expect(cards[0].totalDurationMs).toBe(0);
+  });
+
+  it("should_list_log_cards_ordered_by_updated_at_desc", () => {
+    const { project: p1 } = store.createProjectWithDocument({ title: "먼저 수정" });
+    const { project: p2 } = store.createProjectWithDocument({ title: "나중 수정" });
+    // updated_at 을 결정적으로 부여(생성 직후 ms 동률 회피)
+    db.prepare("UPDATE projects SET updated_at = ? WHERE id = ?").run("2026-01-01T00:00:00.000Z", p1.id);
+    db.prepare("UPDATE projects SET updated_at = ? WHERE id = ?").run("2026-01-02T00:00:00.000Z", p2.id);
+
+    const cards = store.listLogCards();
+
+    expect(cards.map((c) => c.project.id)).toEqual([p2.id, p1.id]);
+  });
+
+  it("should_list_log_cards_with_empty_source_when_no_document_body", () => {
+    store.createProjectWithDocument({ title: "빈 본문 작품" });
+
+    const cards = store.listLogCards();
+
+    expect(cards[0].lastSentenceSource).toBe("");
+    expect(cards[0].wordCount).toBe(0);
+  });
+
   it("should_exclude_soft_deleted_memo_from_reentry", () => {
     const { project } = store.createProjectWithDocument({ title: "작품" });
     const kept = store.captureMemo({ body: "유지", linkProjectId: project.id });
