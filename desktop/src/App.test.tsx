@@ -130,6 +130,52 @@ describe("App 세션 생명주기", () => {
 
     expect(sessionsEnd).toHaveBeenCalledWith("proj-1");
   });
+
+  it("should_still_end_session_on_later_navigation_when_endWithLog_rejects", async () => {
+    const { sessionsEnd, sessionsEndWithLog } = stubApi();
+    sessionsEndWithLog.mockRejectedValue(new Error("ipc fail"));
+    const mockProject = {
+      id: "proj-1",
+      title: "바다가 보이는 방",
+      summary: "",
+      tone: "",
+      genre: "",
+      targetLength: null,
+      nextScene: "",
+      createdAt: "2000-01-01T00:00:00.000Z",
+      updatedAt: "2000-01-01T00:00:00.000Z",
+      lastSentenceSource: "",
+    };
+    (window.electronAPI.projects.listCards as ReturnType<typeof vi.fn>).mockResolvedValue([mockProject]);
+    (window.electronAPI.documents.getByProject as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "doc1", bodyJson: "", plainText: "", wordCount: 0, projectId: "proj-1", title: "", createdAt: "", updatedAt: "",
+    });
+    (window.electronAPI.memos.pickReentry as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+    render(<App />);
+    const openBtn = await screen.findByRole("button", { name: /바다가 보이는 방 펼치기/ });
+    await act(async () => {
+      fireEvent.click(openBtn);
+    });
+
+    // 작업 종료 → 모달 → 저장(endWithLog reject). skipNextSessionEnd 가 복원되어야 한다.
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "작업 종료" }));
+    });
+    fireEvent.change(screen.getByPlaceholderText(/오늘의 기록/), { target: { value: "오늘 작업" } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    });
+    expect(sessionsEndWithLog).toHaveBeenCalledWith("proj-1", "오늘 작업");
+
+    // endWithLog 실패로 화면은 집필에 머문다 → 이후 Rail 로 이탈 시 sessions.end 가 정상 호출되어야 함(스킵 안 됨).
+    await act(async () => {
+      const memoBtns = screen.getAllByRole("button", { name: /메모/ });
+      const railMemoBtn = memoBtns.find((b) => b.classList.contains("rail__item"));
+      if (railMemoBtn) fireEvent.click(railMemoBtn);
+    });
+    expect(sessionsEnd).toHaveBeenCalledWith("proj-1");
+  });
 });
 
 describe("App 집필 진입 가드", () => {

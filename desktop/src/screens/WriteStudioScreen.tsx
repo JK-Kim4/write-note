@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Titlebar } from "../components/Titlebar";
 import { Editor } from "../components/Editor";
 import { MemoPanel } from "../components/MemoPanel";
@@ -80,7 +80,6 @@ export function WriteStudioScreen({
   const [zoom, setZoom] = useState(1);
   const [endWorkOpen, setEndWorkOpen] = useState(false);
   const [endWorkBody, setEndWorkBody] = useState("");
-  const endWorkTextareaRef = useRef<HTMLTextAreaElement>(null);
   // 줄노트 default on — 빈 종이도 줄선이 페이지에 미리 그려진 상태로 진입한다.
   const [lined, setLined] = useState(true);
   const [viewOpen, setViewOpen] = useState(false);
@@ -221,7 +220,7 @@ export function WriteStudioScreen({
               <span className="modal__hint">오늘의 기록을 남겨보세요</span>
             </div>
             <textarea
-              ref={endWorkTextareaRef}
+              autoFocus
               className="capture__input"
               placeholder="오늘의 기록을 남겨보세요…"
               rows={4}

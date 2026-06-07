@@ -262,9 +262,15 @@ export function App() {
           onAutoSave={setAutoSave}
           onEndWork={(body) => {
             skipNextSessionEnd.current = true;
-            void window.electronAPI.sessions.endWithLog(activeProject.id, body).then(() => {
-              setScreen("projects");
-            });
+            void window.electronAPI.sessions
+              .endWithLog(activeProject.id, body)
+              .then(() => {
+                setScreen("projects");
+              })
+              .catch(() => {
+                // 종료 실패 시 스킵 플래그 복원 — 다음 정상 이탈에서 세션이 제대로 닫히도록.
+                skipNextSessionEnd.current = false;
+              });
           }}
         />
       )}
