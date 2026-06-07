@@ -3,6 +3,7 @@ import { Rail } from "./components/Rail";
 import { Dock } from "./components/Dock";
 import { QuickCapture } from "./components/QuickCapture";
 import { WriteStudioScreen } from "./screens/WriteStudioScreen";
+import { WriteEmptyScreen } from "./screens/WriteEmptyScreen";
 import { ProjectsScreen } from "./screens/ProjectsScreen";
 import { MemoInboxScreen } from "./screens/MemoInboxScreen";
 import { LogScreen } from "./screens/LogScreen";
@@ -211,7 +212,11 @@ export function App() {
           }}
         />
       )}
-      {screen === "write" && (
+      {/* 펼친 작품이 없으면 편집기 대신 빈 상태 — 작품을 골라야 쓸 곳(document)이 생긴다. */}
+      {screen === "write" && !activeProject && (
+        <WriteEmptyScreen onGoToProjects={() => setScreen("projects")} />
+      )}
+      {screen === "write" && activeProject && (
         <WriteStudioScreen
           projectTitle={activeProject?.title}
           editorKey={activeDoc?.editorKey ?? "loading"}
@@ -237,8 +242,9 @@ export function App() {
       {screen === "log" && <LogScreen panelOpen={panelOpen} onTogglePanel={togglePanel} />}
       {screen === "contact" && <ContactScreen />}
 
-      {/* 집필 화면은 보기 메뉴(WriteStudioScreen)가 테마·자동저장을 품으므로 전역 Dock 을 숨긴다(설정 진입점 중복 회피). */}
-      {screen !== "write" && (
+      {/* 집필 편집기는 보기 메뉴(WriteStudioScreen)가 테마·자동저장을 품으므로 전역 Dock 을 숨긴다(설정 진입점 중복 회피).
+          단 집필 빈 상태(작품 미선택)는 보기 메뉴가 없으므로 Dock 을 보인다. */}
+      {!(screen === "write" && activeProject) && (
         <Dock theme={theme} setTheme={setTheme} autoSave={autoSave} setAutoSave={setAutoSave} />
       )}
       {captureOpen && (

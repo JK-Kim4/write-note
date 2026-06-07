@@ -1,21 +1,22 @@
 /* ──────────────────────────────────────────────────────────────────────────
-   따뜻한 문학 작업실 — 집필실(Write Studio) · React + TipTap 프로토타입
-   토큰 SoT: docs/DESIGN.md §2~§8.
-   paper-on-desk: 종이(--paper)만 웜 off-white(에디터 전용). 작업실 바닥(--bg)은
-   '나무 책상'으로 — 중간 우드 톤 + 미세 나무결(재료로서의 따뜻함, cream-slop 아님).
-   accent(잉크블루)는 액션 + 포커스 전용.
+   나래 노트 — 집필실(Write Studio) · React + TipTap 프로토타입
+   토큰 SoT: docs/DESIGN.md §2~§8. 브랜드 결정본: design/DESIGN.md (Narae Note).
+   flat parchment: 앱 배경(--bg)은 평평한 양피지 톤(디지털 안식처) — 나무결 텍스처 없음.
+   종이(--paper)는 한 단계 더 밝게 떠 배경과 톤 대비를 만든다. accent(잉크블루)는 액션 + 포커스 전용.
    ────────────────────────────────────────────────────────────────────────── */
 
-/* === Light (따뜻한 종이 + 나무 책상) === */
+/* === Light (평평한 양피지 + 떠 있는 종이) === */
 :root {
-  /* 작업실 바닥 = 나무 책상 (우드 톤) */
-  --bg:             oklch(0.705 0.044 64);
-  --bg-edge:        oklch(0.640 0.046 60);
+  /* 로고 마크(펜촉+날개) — 알파 마스크, mask-image 로 테마 색 적용. */
+  --logo-mask: url('./narae-mark.png');
 
-  --surface:        oklch(0.930 0.009 78);
-  --surface-sunken: oklch(0.885 0.012 76);
-  --paper:          oklch(0.985 0.008 85);
-  --paper-edge:     oklch(0.900 0.012 80);
+  /* 앱 배경 = 평평한 양피지 (안식처 바닥) */
+  --bg:             oklch(0.945 0.006 85);
+
+  --surface:        oklch(0.962 0.006 85);
+  --surface-sunken: oklch(0.930 0.006 84);
+  --paper:          oklch(0.996 0.001 85);
+  --paper-edge:     oklch(0.912 0.006 82);
 
   /* 쪽지(메모) 면 — 종이와 구분되는 옅은 크림옐로(포스트잇). */
   --scrap:          oklch(0.945 0.050 92);
@@ -28,8 +29,8 @@
   /* US5 대비(AA): sunken 면 위에서도 ≥4.5:1 — 정밀 측정 결과 0.520 은 sunken 위 3.91 미달이라 0.480(4.64)으로 보정. */
   --faint:      oklch(0.480 0.016 70);
 
-  --hairline:        oklch(0.840 0.012 76);
-  --hairline-strong: oklch(0.780 0.014 74);
+  --hairline:        oklch(0.895 0.006 82);
+  --hairline-strong: oklch(0.830 0.008 80);
 
   --accent:       oklch(0.470 0.125 252);
   --accent-hover: oklch(0.430 0.130 252);
@@ -59,10 +60,6 @@
   --font-serif: "Gowun Batang", "Apple SD Gothic Neo", serif;
   --font-sans:  "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
 
-  /* 나무결 blend (라이트 = 어두운 결을 multiply) */
-  --grain-blend: multiply;
-  --grain-opacity: .16;
-
   /* 페이지 분할 격자 — 페이지 높이·간격은 줄 높이의 정수배여야 줄노트가 페이지마다 정렬된다.
      px 로 둬야 .paper(간격 띠)와 .prose(column-height)가 font-size 차이와 무관하게 일치한다. */
   --page-line: 34.56px;                       /* 18px 본문 × line-height 1.92 */
@@ -70,15 +67,14 @@
   --page-stride: calc(var(--page-line) * 30); /* 종이 28줄(본문26+패딩1+1) + 책상 간격 2줄 = 보폭 30줄 */
 }
 
-/* === Dark (촛불 아래 원고 + 짙은 호두나무 책상) === */
+/* === Dark (촛불 아래 원고 — 평평한 짙은 양피지) === */
 [data-theme="dark"] {
-  --bg:             oklch(0.255 0.024 52);
-  --bg-edge:        oklch(0.205 0.020 50);
+  --bg:             oklch(0.220 0.010 68);
 
-  --surface:        oklch(0.260 0.014 60);
-  --surface-sunken: oklch(0.230 0.012 58);
-  --paper:          oklch(0.255 0.016 64);
-  --paper-edge:     oklch(0.320 0.018 64);
+  --surface:        oklch(0.262 0.012 64);
+  --surface-sunken: oklch(0.232 0.010 62);
+  --paper:          oklch(0.288 0.014 66);
+  --paper-edge:     oklch(0.350 0.016 66);
 
   /* 쪽지 면 — 다크는 채도 낮춘 짙은 변형. */
   --scrap:          oklch(0.330 0.035 92);
@@ -106,10 +102,6 @@
 
   --shadow-paper: 0 1px 0 var(--paper-edge), 0 24px 52px -28px oklch(0 0 0 / .70);
   --shadow-panel: 0 1px 2px -1px oklch(0 0 0 / .40), 0 10px 28px -18px oklch(0 0 0 / .55);
-
-  /* 다크 = 밝은 결을 screen 으로 (촛불 반사) */
-  --grain-blend: screen;
-  --grain-opacity: .09;
 }
 
 /* ── reset ── */
@@ -122,23 +114,12 @@ body {
   line-height: 1.55;
   color: var(--ink);
   background-color: var(--bg);
-  background-image: radial-gradient(132% 112% at 50% -12%, transparent 48%, var(--bg-edge) 100%);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   font-kerning: normal;
+  /* 한국어는 띄어쓰기(어절) 단위로만 줄바꿈 — 한 단어가 음절로 쪼개지는 개행 방지("한자리에"→"한자/리에"). */
+  word-break: keep-all;
   transition: background-color var(--dur-base) var(--ease-soft), color var(--dur-base) var(--ease-soft);
-}
-/* 나무결 — 세로로 늘어난 fractalNoise. 장식 아닌 '재료'. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='200'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.006 0.064' numOctaves='4' seed='13' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.85 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)'/%3E%3C/svg%3E");
-  background-size: 360px 220px;
-  opacity: var(--grain-opacity);
-  mix-blend-mode: var(--grain-blend);
 }
 button { font: inherit; color: inherit; cursor: pointer; }
 /* 포커스 가시(접근성 AA) — 네이티브 outline 대신 일관된 잉크블루 ring. 개별 규칙이 색/두께를 덮을 수 있다. */
@@ -164,9 +145,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .rail__mark {
   width: 28px; height: 28px; display: grid; place-items: center;
-  margin-bottom: 14px; color: var(--accent-ink); flex: none;
+  margin-bottom: 14px; flex: none;
 }
-.rail__mark svg { width: 22px; height: 22px; }
+/* 펜촉+날개 마크 — 알파 마스크를 accent 색으로 칠해 라이트/다크 양쪽 자동 대응. */
+.rail__logo {
+  width: 23px; height: 24px; display: block; background-color: var(--accent-ink);
+  -webkit-mask: var(--logo-mask) center / contain no-repeat;
+  mask: var(--logo-mask) center / contain no-repeat;
+}
 .rail__nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
 .rail__item {
   width: 48px; height: 52px;
@@ -364,6 +350,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-family: var(--font-serif); font-size: 18px; font-weight: 400; line-height: 1.92;
   color: var(--ink); letter-spacing: 0.002em;
   outline: none; text-wrap: pretty;
+  /* 본문은 페이지 분할(줄 격자·multicol)이 줄바꿈에 의존하므로 전역 keep-all 을 끄고 기존 동작 유지. */
+  word-break: normal;
   /* 페이지 분할 — 한 장(26줄)을 채우면 아래 장으로(세로로 쌓임). 분할=브라우저 레이아웃, 입력 중 transform 0. */
   column-width: 160mm;             /* 한 장 본문 폭(210 − 25×2) */
   column-height: var(--page-h);    /* 26줄; 채우면 다음 장 */
@@ -855,6 +843,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 40px 40px 36px;
 }
 .log-empty__icon { width: 44px; height: 44px; color: var(--faint); margin-bottom: 18px; }
+/* 집필 빈 상태 CTA — log-empty 카드 재사용 + 버튼 간격. */
+.write-empty__cta { margin-top: 22px; }
 .log-empty .screen-h1 { margin-bottom: 10px; }
 .log-empty__text { font-size: 14px; line-height: 1.7; color: var(--muted); margin: 0 0 6px; }
 .log-empty__note { font-size: 12px; color: var(--faint); margin: 0 0 24px; }
@@ -907,6 +897,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 48px 44px;
   text-align: center; display: flex; flex-direction: column; align-items: center;
   animation: rise var(--dur-enter) var(--ease-out) both;
+}
+/* 작업실 입구 브랜드 — 펜촉+날개 마크 + 워드마크(첫인상). */
+.welcome__mark {
+  width: 46px; height: 48px; display: block; margin-bottom: 14px; background-color: var(--accent-ink);
+  -webkit-mask: var(--logo-mask) center / contain no-repeat;
+  mask: var(--logo-mask) center / contain no-repeat;
+}
+.welcome__brand {
+  font-family: var(--font-serif); font-size: 14px; font-weight: 700; letter-spacing: 0.04em;
+  color: var(--muted); margin: 0 0 18px;
 }
 .welcome__title {
   font-family: var(--font-serif); font-size: 30px; font-weight: 700; line-height: 1.32;

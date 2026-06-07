@@ -41,12 +41,8 @@ type RailProps = {
 export function Rail({ active, onNavigate, onCapture }: RailProps) {
   return (
     <nav className="rail" aria-label="화면 전환">
-      <div className="rail__mark" aria-hidden="true" title="write-note">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 19.5V6a2 2 0 0 1 2-2h9l5 5v10.5a.5.5 0 0 1-.5.5H6a2 2 0 0 1-2-2Z" />
-          <path d="M14 4v5h5" />
-          <path d="M8.5 13.5h7M8.5 16.5h4" />
-        </svg>
+      <div className="rail__mark" aria-hidden="true" title="나래 노트">
+        <span className="rail__logo" />
       </div>
       <div className="rail__nav">
         {ITEMS.map((item) => (
