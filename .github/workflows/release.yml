@@ -1,0 +1,56 @@
+name: Release Desktop
+
+# v* 태그 push 시 양 OS 설치파일을 네이티브 러너에서 빌드해 GitHub Releases(draft)에 게시.
+# electron-builder 는 macOS 에서 Windows 설치파일을 못 만들어(크로스빌드 불가) OS 별 러너 필요.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write # Release 생성 · 자산 업로드
+
+jobs:
+  build:
+    strategy:
+      # 한 OS 빌드 실패가 다른 OS 빌드를 죽이지 않음.
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: --mac
+          - os: windows-latest
+            target: --win
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.5
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: desktop/.nvmrc
+          cache: pnpm
+          cache-dependency-path: desktop/pnpm-lock.yaml
+
+      # .npmrc(node-linker=hoisted) + package.json(onlyBuiltDependencies:[electron]) 적용.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (tsc + vite)
+        run: pnpm build
+
+      # electron-builder 가 host OS 용 설치파일 빌드 후 draft Release 에 업로드.
+      # macOS: universal dmg + ad-hoc 서명 / Windows: 1-click NSIS.
+      - name: Package & publish
+        run: pnpm exec electron-builder ${{ matrix.target }} --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

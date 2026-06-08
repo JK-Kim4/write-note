@@ -1,0 +1,49 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/*
+ * Tailwind 4 @theme directive — tokens.css 의 raw CSS variable 을 Tailwind utility 와 연결.
+ * 다크 모드 toggle 은 :root.dark 클래스 (tokens.css 에서 정의) 가 처리.
+ *
+ * Spec reference: specs/002-frontend-route-scaffold/spec.md §FR-012
+ */
+@theme inline {
+  --color-canvas: var(--w-canvas);
+  --color-parchment: var(--w-parchment);
+  --color-manuscript-cream: var(--w-manuscript-cream);
+  --color-ink: var(--w-ink);
+  --color-accent: var(--w-accent);
+  --color-error: var(--w-error);
+  --color-hairline: var(--w-hairline);
+
+  --radius-card-memo: var(--w-radius-card-memo);
+  --radius-card-mode: var(--w-radius-card-mode);
+  --radius-card-project: var(--w-radius-card-project);
+  --radius-button-utility: var(--w-radius-button-utility);
+  --radius-button-pill: var(--w-radius-button-pill);
+  --radius-tile: var(--w-radius-tile);
+
+  --font-display: var(--w-font-display);
+  --font-ui: var(--w-font-ui);
+  --font-prose: var(--w-font-prose);
+  --font-manuscript: var(--w-font-manuscript);
+}
+
+@layer base {
+  html,
+  body {
+    background-color: var(--w-parchment);
+    color: var(--w-ink);
+    font-family: var(--w-font-ui);
+    font-size: var(--w-ui-size);
+    line-height: var(--w-ui-line-height);
+    letter-spacing: var(--w-ui-letter-spacing);
+  }
+
+  /* Active state — DESIGN.md §디자인 시스템: 모든 인터랙티브 요소 transform: scale(0.95) */
+  button:active,
+  a:active,
+  [role="button"]:active {
+    transform: scale(var(--w-active-scale));
+  }
+}

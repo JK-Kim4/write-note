@@ -1,0 +1,43 @@
+{
+  "name": "write-note-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "write-note 데스크탑 MVP (Electron + Vite + React 19 + TipTap). 집필실 디자인 + 실제 에디터.",
+  "author": "Narae Note",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tiptap/pm": "^3.23.5",
+    "@tiptap/react": "^3.23.5",
+    "@tiptap/starter-kit": "^3.23.5",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/react": "^16",
+    "@types/node": "^24",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.7.0",
+    "electron": "^42",
+    "electron-builder": "^26.8.1",
+    "jsdom": "^26",
+    "typescript": "^5",
+    "vite": "^5",
+    "vite-plugin-electron": "^0.29",
+    "vitest": "^3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron"
+    ]
+  }
+}

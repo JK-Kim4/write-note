@@ -1,0 +1,37 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/writenote
+    username: writenote
+    password: writenote-local-dev
+    hikari:
+      maximum-pool-size: 3
+  jpa:
+    properties:
+      hibernate:
+        generate_statistics: true
+  test:
+    database:
+      replace: none
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: test-placeholder-not-used
+            client-secret: test-placeholder-not-used
+            redirect-uri: http://localhost:0/api/auth/oauth/kakao/callback
+            scope:
+              - profile_nickname
+              - account_email
+
+app:
+  cors:
+    allowed-origins: http://localhost:3000
+  auth:
+    jwt:
+      secret: d24tdGVzdC1kZXRlcm1pbmlzdGljLWp3dC0zMmJ5dGU=
+  frontend:
+    base-url: http://localhost:3000
+  mail:
+    mode: log
+    base-url: http://localhost:8080

@@ -1,0 +1,72 @@
+:root {
+  --bg: oklch(0.705 0.044 64);
+  --paper: oklch(0.985 0.008 85);
+  --ink: oklch(0.280 0.018 60);
+  --muted: oklch(0.510 0.018 68);
+  --accent: oklch(0.470 0.125 252);
+  --hairline: oklch(0.840 0.012 76);
+  --serif: "Gowun Batang", "Apple SD Gothic Neo", serif;
+  --sans: "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { font-family: var(--sans); color: var(--ink); background: var(--bg); }
+
+.ec-root { display: flex; flex-direction: column; height: 100%; }
+.ec-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 9px 16px; background: oklch(0.930 0.009 78); border-bottom: 1px solid var(--hairline); flex: none;
+}
+.ec-bar__title { font-size: 13px; font-weight: 700; }
+.ec-bar__title span { font-weight: 400; color: var(--muted); }
+.ec-stats { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ec-stats b { color: var(--ink); }
+.ec-unsupported { padding: 10px 16px; background: oklch(0.93 0.05 60); color: oklch(0.45 0.12 55); font-size: 13px; }
+
+.ec-stage { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 40px 28px 80px; display: flex; justify-content: center; align-items: flex-start; }
+.ec-editor {
+  position: relative; width: 100%; max-width: 210mm; min-height: 297mm;
+  background: var(--paper); border-radius: 14px; box-shadow: 0 1px 0 oklch(0.9 0.012 80), 0 24px 52px -26px oklch(0.22 0.03 50 / .55);
+  padding: 25mm; outline: none; cursor: text;
+}
+.ec-editor:focus { box-shadow: 0 0 0 2px var(--accent), 0 24px 52px -26px oklch(0.22 0.03 50 / .55); }
+.ec-content {
+  font-family: var(--serif); font-size: 18px; line-height: 1.92; color: var(--ink);
+  white-space: pre-wrap; word-break: break-word; min-height: 1.92em;
+}
+.ec-content .composing { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+.ec-caret { position: absolute; width: 2px; height: 1.4em; background: var(--accent); animation: ec-blink 1.05s step-end infinite; pointer-events: none; }
+@keyframes ec-blink { 50% { opacity: 0; } }
+
+.ec-foot { flex: none; padding: 10px 16px; background: oklch(0.930 0.009 78); border-top: 1px solid var(--hairline); font-size: 12px; line-height: 1.6; color: var(--muted); }
+.ec-foot b { color: var(--ink); }
+.ec-foot u { color: var(--accent); }
+
+/* ── 자체 페이지 분할 에디터 v1 (pe-*) ── */
+.pe-root { display: flex; flex-direction: column; height: 100%; }
+.pe-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 16px; background: oklch(0.930 0.009 78); border-bottom: 1px solid var(--hairline); flex: none; }
+.pe-bar__title { font-size: 13px; font-weight: 700; }
+.pe-bar__title span { font-weight: 400; color: var(--muted); }
+.pe-stats { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pe-stats b { color: var(--ink); }
+.pe-unsupported { padding: 10px 16px; background: oklch(0.93 0.05 60); color: oklch(0.45 0.12 55); font-size: 13px; }
+
+.pe-stage { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 40px 28px 100px; display: flex; justify-content: center; align-items: flex-start; background: oklch(0.66 0.045 62); }
+.pe-paper {
+  position: relative; width: 100%; max-width: 210mm; min-height: 297mm;
+  background: var(--paper); border-radius: 14px; box-shadow: 0 1px 0 oklch(0.9 0.012 80), 0 24px 52px -26px oklch(0.22 0.03 50 / .55);
+  padding: 25mm 25mm 30mm; outline: none; cursor: text;
+}
+.pe-paper:focus { box-shadow: 0 0 0 2px var(--accent), 0 24px 52px -26px oklch(0.22 0.03 50 / .55); }
+.pe-flow { font-family: var(--serif); font-size: 18px; line-height: 1.92; color: var(--ink); white-space: pre-wrap; word-break: break-word; min-height: 1.92em; }
+
+/* 장 사이 책상색 여백(분할 spacer — 표시 전용, 입력과 무관). */
+.pe-break {
+  display: inline-block; width: 100%; box-sizing: border-box; vertical-align: top;
+  background: oklch(0.66 0.045 62);
+  box-shadow: inset 0 1px 0 oklch(0.9 0.012 80), inset 0 8px 10px -10px oklch(0.22 0.03 50 / .5), inset 0 -1px 0 oklch(0.9 0.012 80), inset 0 -8px 10px -10px oklch(0.22 0.03 50 / .5);
+  user-select: none;
+}
+.pe-caret { position: absolute; width: 2px; height: 1.4em; background: var(--accent); animation: ec-blink 1.05s step-end infinite; pointer-events: none; }
+.pe-foot { flex: none; padding: 10px 16px; background: oklch(0.930 0.009 78); border-top: 1px solid var(--hairline); font-size: 12px; line-height: 1.6; color: var(--muted); }
+.pe-foot b { color: var(--ink); }

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>write-note — 작업 진척 대시보드</title>
+<!--
+  진척 시각화 (Week × Phase). develop 머지 코드 실측 기준 (2026-05-30).
+  SoT: docs/plan/01-phase-breakdown.md §12 (총 56 phase) + docs/plan/02-progress.md §0-A.
+  본 파일은 정적 산출물 — 데이터 갱신 시 02-progress.md §0-A 와 동기 의무.
+  디자인 토큰: frontend/src/styles/tokens.css 정합.
+-->
+<style>
+  :root {
+    --w-bg: #f5f5f7;
+    --w-surface: #ffffff;
+    --w-surface-2: #fafafa;
+    --w-ink: #1d1d1f;
+    --w-ink-soft: #6e6e73;
+    --w-ink-muted: #86868b;
+    --w-hairline: #d2d2d7;
+    --w-accent: #0066cc;
+    --w-danger: #d70015;
+    --w-success: #28a745;
+    --w-warn: #d97706;
+    --w-track: #e9e9ed;
+    --w-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    --w-font-serif: "Nanum Myeongjo", "Noto Serif KR", Georgia, serif;
+    --w-radius-card: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --w-bg: #1c1c1e;
+      --w-surface: #242426;
+      --w-surface-2: #2a2a2c;
+      --w-ink: #f5f5f7;
+      --w-ink-soft: #a1a1a6;
+      --w-ink-muted: #6e6e73;
+      --w-hairline: #38383a;
+      --w-accent: #2997ff;
+      --w-danger: #ff453a;
+      --w-success: #30d158;
+      --w-warn: #ff9f0a;
+      --w-track: #353537;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--w-bg);
+    color: var(--w-ink);
+    font-family: var(--w-font-sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 40px 24px 80px; }
+  header h1 {
+    font-family: var(--w-font-serif);
+    font-size: 28px; font-weight: 700; margin: 0 0 6px;
+  }
+  header .sub { color: var(--w-ink-soft); font-size: 14px; margin: 0; }
+  header .meta { color: var(--w-ink-muted); font-size: 12.5px; margin: 10px 0 0; }
+  header .meta code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--w-surface-2); padding: 1px 6px; border-radius: 5px;
+    border: 1px solid var(--w-hairline);
+  }
+
+  /* 전체 요약 */
+  .summary {
+    margin: 28px 0 8px;
+    background: var(--w-surface);
+    border: 1px solid var(--w-hairline);
+    border-radius: var(--w-radius-card);
+    padding: 22px 24px;
+  }
+  .summary .big { font-size: 15px; color: var(--w-ink-soft); margin: 0 0 12px; }
+  .summary .big strong { color: var(--w-ink); font-size: 17px; }
+  .overall-track {
+    height: 14px; background: var(--w-track);
+    border-radius: 8px; overflow: hidden; position: relative;
+  }
+  .overall-fill {
+    height: 100%; width: 41%;
+    background: linear-gradient(90deg, var(--w-accent), var(--w-success));
+    border-radius: 8px;
+  }
+  .overall-label { font-size: 12.5px; color: var(--w-ink-muted); margin: 8px 0 0; }
+
+  /* Week 행 */
+  section.weeks { margin-top: 32px; }
+  h2.section-title { font-size: 15px; letter-spacing: .02em; color: var(--w-ink-soft); margin: 0 0 14px; text-transform: uppercase; }
+  .row {
+    display: grid;
+    grid-template-columns: 64px 1fr 150px;
+    gap: 16px; align-items: center;
+    padding: 14px 16px;
+    background: var(--w-surface);
+    border: 1px solid var(--w-hairline);
+    border-radius: var(--w-radius-card);
+    margin-bottom: 10px;
+  }
+  .row .wk { font-weight: 700; font-size: 15px; }
+  .row .wk .ph { display: block; font-weight: 400; font-size: 11px; color: var(--w-ink-muted); margin-top: 2px; }
+  .row .body .name { font-size: 14.5px; font-weight: 600; margin: 0 0 2px; }
+  .row .body .desc { font-size: 12.5px; color: var(--w-ink-soft); margin: 0; }
+  .row .body .spec { font-size: 11.5px; color: var(--w-ink-muted); margin: 4px 0 0; }
+  .row .body .spec b { color: var(--w-accent); font-weight: 600; }
+  .bar { height: 10px; background: var(--w-track); border-radius: 6px; overflow: hidden; margin-bottom: 6px; }
+  .bar > span { display: block; height: 100%; border-radius: 6px; }
+  .pct { font-size: 12px; color: var(--w-ink-soft); display: flex; align-items: center; gap: 6px; }
+  .chip {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 999px; border: 1px solid transparent;
+  }
+  .chip.done   { color: var(--w-success); border-color: var(--w-success); }
+  .chip.part   { color: var(--w-warn);    border-color: var(--w-warn); }
+  .chip.todo   { color: var(--w-ink-muted); border-color: var(--w-hairline); }
+  .fill-done { background: var(--w-success); }
+  .fill-part { background: var(--w-warn); }
+  .fill-todo { background: var(--w-track); }
+
+  /* spec 매핑 */
+  .maps { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  @media (max-width: 720px) { .maps { grid-template-columns: 1fr; } .row { grid-template-columns: 52px 1fr; } .row .right { grid-column: 1 / -1; } }
+  .card {
+    background: var(--w-surface); border: 1px solid var(--w-hairline);
+    border-radius: var(--w-radius-card); padding: 16px 18px;
+  }
+  .card h3 { font-size: 13.5px; margin: 0 0 10px; }
+  .card table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .card td { padding: 5px 0; border-bottom: 1px solid var(--w-hairline); vertical-align: top; }
+  .card tr:last-child td { border-bottom: none; }
+  .card td.k { font-weight: 700; color: var(--w-accent); width: 56px; }
+  .card td.v { color: var(--w-ink-soft); }
+
+  /* 다음 진입점 + 보류 */
+  .note {
+    margin-top: 16px; padding: 16px 18px;
+    background: var(--w-surface); border: 1px solid var(--w-hairline);
+    border-left: 3px solid var(--w-accent); border-radius: var(--w-radius-card);
+  }
+  .note.hold { border-left-color: var(--w-warn); }
+  .note h3 { font-size: 13.5px; margin: 0 0 8px; }
+  .note ul { margin: 0; padding-left: 18px; font-size: 12.5px; color: var(--w-ink-soft); }
+  .note li { margin: 3px 0; }
+  .note code { font-family: ui-monospace, Menlo, monospace; background: var(--w-surface-2); padding: 1px 5px; border-radius: 4px; }
+  footer { margin-top: 30px; font-size: 11.5px; color: var(--w-ink-muted); text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>write-note — 작업 진척 대시보드</h1>
+    <p class="sub">컨텍스트가 안 죽는 작가용 작업공간 (V1) · Week × Phase 단위</p>
+    <p class="meta">
+      기준: <code>develop</code> 머지 코드 실측 · 2026-05-30 ·
+      SoT <code>01-phase-breakdown.md §12</code> / <code>02-progress.md §0-A</code>
+    </p>
+  </header>
+
+  <div class="summary">
+    <p class="big"><strong>23 / 56 phase</strong> 구현 완료 — Week 0~2 클로즈, Week 3~7 미착수</p>
+    <div class="overall-track"><div class="overall-fill"></div></div>
+    <p class="overall-label">전체 진척 ≈ 41% · 인증·프로젝트·등장인물(BE+FE)까지 동작, 에디터 이후 미착수</p>
+  </div>
+
+  <section class="weeks">
+    <h2 class="section-title">Week × Phase 진척</h2>
+
+    <div class="row">
+      <div class="wk">0<span class="ph">3 phase</span></div>
+      <div class="body">
+        <p class="name">PoC 3종</p>
+        <p class="desc">TipTap 한국어 IME · Spring Boot + Postgres · PWA manifest/SW</p>
+      </div>
+      <div class="right">
+        <div class="bar"><span class="fill-done" style="width:100%"></span></div>
+        <div class="pct">100% <span class="chip done">완료</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="wk">1A<span class="ph">5 phase</span></div>
+      <div class="body">
+        <p class="name">Backend Foundation</p>
+        <p class="desc">Gradle 품질 게이트 · 프로파일 YAML · Flyway · Result&lt;T&gt; · Project CRUD</p>
+        <p class="spec">spec <b>001</b></p>
+      </div>
+      <div class="right">
+        <div class="bar"><span class="fill-done" style="width:100%"></span></div>
+        <div class="pct">100% <span class="chip done">완료</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="wk">1B<span class="ph">8 phase</span></div>
+      <div class="body">
+        <p class="name">인증</p>
+        <p class="desc">이메일 로그인 · 회원가입/인증 · JWT refresh · 카카오 OAuth · 5회 잠금 · 재설정</p>
+        <p class="spec">spec <b>003</b> (+ 002 FE 패널 골격)</p>
+      </div>
+      <div class="right">
+        <div class="bar"><span class="fill-done" style="width:100%"></span></div>
+        <div class="pct">100% <span class="chip done">완료</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="wk">2<span class="ph">7 phase</span></div>
+      <div class="body">
+        <p class="name">Project 메타 + Character</p>
+        <p class="desc">메타 5필드 · Character CRUD·reorder (BE) / 홈·새 프로젝트·메타카드·등장인물 (FE)</p>
+        <p class="spec">spec <b>004</b> (BE) · <b>005</b> (FE)</p>
+      </div>
+      <div class="right">
+        <div class="bar"><span class="fill-done" style="width:100%"></span></div>
+        <div class="pct">100% <span class="chip done">완료</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="wk">3<span class="ph">8 phase</span></div>
+      <div class="body">
+        <p class="name">에디터 + 원고지</p>
+        <p class="desc">Document 자동저장 API · TipTap 셋업 · 분량 카운터 · 원고지 격자/매수 · 모드 분기</p>
+        <p class="spec">정적 셸만 (<code>write/page.tsx</code> — "Week 3 영역" 주석)</p>
+      </div>
+      <div class="right">
+        <div class="bar"><span class="fill-part" style="width:4%"></span></div>
+        <div class="pct">0% <span class="chip part">셸만</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="wk">4<span class="ph">8 phase</span></div>
+      <div class="body">
+        <p class="name">메모 캡처</p>
+        <p class="desc">Memo entity·API · /api/capture + ApiToken · inbox · 큐레이션 카드 · iOS Shortcut</p>
+        <p class="spec">정적 셸만 (<code>memos/page.tsx</code> — "Week 4 영역" 주석)</p>
+      </div>
+      <div class="right">
+        <div class="bar"><span class="fill-part" style="width:4%"></span></div>
+        <div class="pct">0% <span class="chip part">셸만</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="wk">5<span class="ph">7 phase</span></div>
+      <div class="body">
+        <p class="name">세션 노트 + 메모 핀 + 검색</p>
+        <p class="desc">SessionNote · 세션 종료 모달 · last-session-bar · memo-pin mark · 메모 검색/필터</p>
+        <p class="spec">미착수</p>
+      </div>
+      <div class="right">
+        <div class="bar"><span class="fill-todo" style="width:0%"></span></div>
+        <div class="pct">0% <span class="chip todo">미착수</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="wk">6<span class="ph">5 phase</span></div>
+      <div class="body">
+        <p class="name">미리보기 + 다크 + 설정 + PWA</p>
+        <p class="desc">미리보기 view · 다크 모드 전화면 · 설정 3그룹 · PWA 캐시 · 활동 피드</p>
+        <p class="spec">다크·토큰·PWA 골격 002 구축 / 미리보기·설정 정적 셸</p>
+      </div>
+      <div class="right">
+        <div class="bar"><span class="fill-part" style="width:30%"></span></div>
+        <div class="pct">일부 <span class="chip part">부분</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="wk">7<span class="ph">5 phase</span></div>
+      <div class="body">
+        <p class="name">통합 + dogfooding + 출시</p>
+        <p class="desc">E2E 골든패스 · 회귀 테스트 · 첫 단막극 실사용 · 마찰 fix · 프로덕션 배포</p>
+        <p class="spec">미착수</p>
+      </div>
+      <div class="right">
+        <div class="bar"><span class="fill-todo" style="width:0%"></span></div>
+        <div class="pct">0% <span class="chip todo">미착수</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section style="margin-top:32px">
+    <h2 class="section-title">spec (NNN) ↔ Week 매핑</h2>
+    <div class="maps">
+      <div class="card">
+        <h3>spec → 커버 Week</h3>
+        <table>
+          <tr><td class="k">001</td><td class="v">Week 1A — Backend Foundation</td></tr>
+          <tr><td class="k">002</td><td class="v">Week 1B/2 FE 라우트 골격 + Week 6 다크·PWA 골격</td></tr>
+          <tr><td class="k">003</td><td class="v">Week 1B — 인증 (BE)</td></tr>
+          <tr><td class="k">004</td><td class="v">Week 2 — Project 메타 + Character (BE)</td></tr>
+          <tr><td class="k">005</td><td class="v">Week 2 — 화면 (FE) + 인증 쿠키 전환</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>코드 실측 근거</h3>
+        <table>
+          <tr><td class="k">BE</td><td class="v">컨트롤러 4종: Auth / Character / Health / Project (메모·세션·캡처 0건)</td></tr>
+          <tr><td class="k">DB</td><td class="v">마이그레이션 V1~V5 (메모·세션 스키마 미생성)</td></tr>
+          <tr><td class="k">FE</td><td class="v">page.tsx 23개 — write·memos·write/preview 는 정적 셸</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section style="margin-top:24px">
+    <h2 class="section-title">다음 진입점 · 보류 트랙</h2>
+    <div class="note">
+      <h3>▶ 다음 진입점 — Week 3 (에디터 + 원고지)</h3>
+      <ul>
+        <li>3-1 Document entity + 자동 저장 API (<code>PUT /api/documents/{id}</code>) — 마이그레이션 V6+</li>
+        <li>3-2 TipTap 셋업 (Week 0 통과 extension만) → 정적 셸 <code>write/page.tsx</code> 실동작화</li>
+        <li>3-3~3-5 분량 카운터 · 원고지 격자/매수 카운팅</li>
+      </ul>
+    </div>
+    <div class="note hold">
+      <h3>⏸ 보류 / 추적 (vault [[03-ISSUES]])</h3>
+      <ul>
+        <li>ISSUE-001 · 004 T062 사용자 dogfooding (curl 9건) — 사용자 영역</li>
+        <li>ISSUE-016 · frontend 도구 chain Node 20.10 호환 제약 (vitest3/vite5/jsdom26 고정)</li>
+        <li>develop 미배포 — Vercel/Render/Supabase 프로덕션 분리는 Week 7-5</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    write-note V1 · 진척 대시보드 · 데이터 갱신 시 <code>02-progress.md §0-A</code> 와 동기 의무
+  </footer>
+</div>
+</body>
+</html>

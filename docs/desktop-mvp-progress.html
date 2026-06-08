@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Desktop MVP 진행 현황 — write-note</title>
+<style>
+:root {
+  --fg: #1f2328;
+  --fg-muted: #59636e;
+  --bg: #ffffff;
+  --bg-subtle: #f6f8fa;
+  --border: #d1d9e0;
+  --accent: #0969da;
+  --green: #1a7f37;
+  --green-bg: #dafbe1;
+  --amber: #9a6700;
+  --amber-bg: #fff8c5;
+  --red: #cf222e;
+  --red-bg: #ffebe9;
+  --neutral: #59636e;
+  --neutral-bg: #eaeef2;
+}
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo",
+    "Malgun Gothic", "Noto Sans KR", sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+  line-height: 1.7;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 48px 24px 96px;
+  font-size: 16px;
+  word-break: keep-all;
+}
+h1 { font-size: 1.9em; line-height: 1.3; margin: 0 0 8px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+h2 { font-size: 1.4em; margin: 40px 0 12px; }
+h3 { font-size: 1.15em; margin: 24px 0 8px; }
+p, li { font-size: 1em; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  background: var(--bg-subtle);
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 0.88em;
+}
+table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: middle; }
+th { background: var(--bg-subtle); font-weight: 600; }
+tr:nth-child(even) td { background: #fafbfc; }
+.doc-meta { color: var(--fg-muted); font-size: 0.9em; margin: -4px 0 24px; }
+.summary {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin: 20px 0;
+}
+.summary h2 { margin-top: 0; font-size: 1.1em; }
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.82em;
+  font-weight: 600;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.badge-green   { background: var(--green-bg);   color: var(--green); }
+.badge-amber   { background: var(--amber-bg);   color: var(--amber); }
+.badge-red     { background: var(--red-bg);     color: var(--red); }
+.badge-neutral { background: var(--neutral-bg); color: var(--neutral); }
+.health {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: 8px;
+  margin: 16px 0 24px;
+  font-weight: 600;
+}
+.health-green { background: var(--green-bg); color: var(--green); }
+.health-amber { background: var(--amber-bg); color: var(--amber); }
+.health-red   { background: var(--red-bg);   color: var(--red); }
+.health .dot { font-size: 1.3em; line-height: 1; }
+.callout {
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: 18px 0;
+  border-left: 4px solid;
+}
+.callout-warning { background: var(--red-bg);   border-color: var(--red); }
+.callout-caution { background: var(--amber-bg); border-color: var(--amber); }
+.callout-info    { background: var(--bg-subtle); border-color: var(--accent); }
+.callout-title { font-weight: 700; margin-bottom: 4px; }
+
+/* 전체 진행바 */
+.progress-overall { margin: 8px 0 4px; }
+.bar {
+  height: 14px;
+  background: var(--neutral-bg);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 6px 0;
+}
+.bar > span { display: block; height: 100%; background: var(--green); border-radius: 999px; }
+.progress-label { font-size: 0.9em; color: var(--fg-muted); }
+
+/* phase 카드 */
+.phase {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin: 16px 0;
+  border-left: 5px solid var(--border);
+}
+.phase.done    { border-left-color: var(--green); background: #fbfffc; }
+.phase.next    { border-left-color: var(--accent); background: #f7fbff; }
+.phase.todo    { border-left-color: var(--neutral); }
+.phase-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.phase-head .num {
+  font-weight: 700;
+  font-size: 1.05em;
+  color: var(--fg-muted);
+  min-width: 56px;
+}
+.phase-head .title { font-weight: 700; font-size: 1.1em; }
+.phase-goal { color: var(--fg-muted); margin: 4px 0 10px; }
+.phase dl { display: grid; grid-template-columns: 92px 1fr; gap: 4px 14px; margin: 8px 0 0; }
+.phase dt { font-weight: 600; color: var(--fg-muted); font-size: 0.9em; }
+.phase dd { margin: 0; font-size: 0.95em; }
+.phase ul { margin: 4px 0; padding-left: 20px; }
+.phase li { margin: 3px 0; font-size: 0.95em; }
+.meta-line { font-size: 0.88em; color: var(--fg-muted); margin-top: 10px; }
+@media print {
+  body { padding: 0; max-width: none; font-size: 12pt; }
+  h2 { page-break-after: avoid; }
+  .phase, table, .callout { page-break-inside: avoid; }
+  a { color: var(--fg); }
+}
+</style>
+</head>
+<body>
+
+<h1>Desktop MVP 진행 현황 — write-note</h1>
+<p class="doc-meta">최종 갱신: 2026-06-05 · 트랙: Electron 로컬 우선 데스크탑 앱 · 브랜치: <code>007-phase-5-memo-capture-inbox</code> (Phase 5 완료 · dogfooding 통과 · develop merge 대기)</p>
+
+<div class="health health-green">
+  <span class="dot">🟢</span>
+  On Track — Phase 1~5 완료(메모 캡처·inbox dogfooding 통과 2026-06-05). 다음 Phase 6(메모 연결·side panel). develop merge 대기. 현재 blocker 없음.
+</div>
+
+<div class="summary">
+  <h2>요약</h2>
+  <p>WEB(브라우저) 트랙을 멈추고 <strong>로컬 우선 데스크탑 앱(Electron)</strong>으로 피벗한 트랙. 준비 단계(0·0.5)와 구현 Phase 1~4가 완료됐다 — 실데이터 결선·로컬 SQLite 저장·작품 workspace에 더해, <strong>Phase 4에서 집필 에디터 본문 결선 + 자동저장(on/off·수동 ⌘S) + 줄노트 + 한글 IME 안정화 + 작품 삭제 + 설정 패널</strong>까지 동작한다(2026-06-04 dogfooding 통과·develop merge). 이어서 <strong>Phase 5(빠른 메모 캡처 + inbox)</strong>가 SDD 풀파이프(작업지시서→specify→plan→tasks→analyze→implement)로 완료됐다(2026-06-05, 브랜치 <code>007</code>, <strong>dogfooding 통과</strong>) — 캡처(모달+inbox 인라인)·자동연결·전체/미연결 필터·soft delete(<code>deleted_at</code> v3)·되돌리기 토스트. TDD 75 tests + tsc + build(회귀 0). 다음은 <strong>Phase 6(메모 연결 + side panel)</strong>. Phase 7까지 끝나면 "실사용 가능한 프로토타입", Phase 8은 다음 단계 결정 gate다.</p>
+  <div class="progress-overall">
+    <div class="bar"><span style="width:62.5%"></span></div>
+    <p class="progress-label">구현 Phase 진척: <strong>1·2·3·4·5 완료</strong> / 8 (62.5%) — 준비 단계 0·0.5 별도 완료</p>
+  </div>
+</div>
+
+<h2>Phase 진행 대시보드</h2>
+<table>
+  <thead>
+    <tr><th style="width:64px">Phase</th><th>이름</th><th>목표 한 줄</th><th style="width:150px">상태</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>0</td><td>WEB Pause</td><td>WEB 중단 선언 + Desktop 트랙 기준선</td><td><span class="badge badge-green">✅ 완료</span></td></tr>
+    <tr><td>0.5</td><td>Design Definition</td><td>'따뜻한 문학 작업실' 디자인 기준 확정</td><td><span class="badge badge-green">✅ 완료</span></td></tr>
+    <tr><td>1</td><td>Scaffold</td><td>Electron/Vite 최소 실행 환경</td><td><span class="badge badge-green">✅ 완료</span></td></tr>
+    <tr><td>2</td><td>Local Persistence</td><td>로컬 저장 경계 + Project/Document/Memo</td><td><span class="badge badge-green">✅ 완료</span></td></tr>
+    <tr><td>3</td><td>Projects Workspace</td><td>작품 생성·선택·진입 workspace</td><td><span class="badge badge-green">✅ 완료</span></td></tr>
+    <tr><td>4</td><td>Write Studio + Autosave</td><td>일반 에디터 + 로컬 자동저장</td><td><span class="badge badge-green">✅ 완료</span></td></tr>
+    <tr><td>5</td><td>Memo Capture + Inbox</td><td>빠른 메모 캡처 + inbox</td><td><span class="badge badge-green">✅ 완료</span></td></tr>
+    <tr><td>6</td><td>Memo Linking + Side Panel</td><td>메모-작품 연결 + 집필창 side panel</td><td><span class="badge badge-neutral">⬜ 대기</span></td></tr>
+    <tr><td>7</td><td>Prototype Usability</td><td>실사용 가능한 프로토타입 polish</td><td><span class="badge badge-neutral">⬜ 대기</span></td></tr>
+    <tr><td>8</td><td>MVP Review Gate</td><td>다음 단계·WEB 재개 여부 판정</td><td><span class="badge badge-neutral">⬜ 대기</span></td></tr>
+  </tbody>
+</table>
+<p class="progress-label">Phase 7까지 완료 시 "사용 가능한 데스크탑 프로토타입"으로 판정. Phase 8은 구현이 아닌 의사결정 gate.</p>
+
+<h2>✅ 완료된 Phase</h2>
+
+<div class="phase done">
+  <div class="phase-head"><span class="num">Phase 0</span><span class="title">WEB Pause</span><span class="badge badge-green">완료</span></div>
+  <p class="phase-goal">WEB(<code>frontend/</code>·<code>backend/</code>) 개발을 일시 중단하고 Desktop 트랙의 기준선을 명시.</p>
+  <dl>
+    <dt>산출물</dt><dd>WEB 트랙 paused 선언, 코드 삭제·이동 없이 보존. <code>docs/STATUS.md</code> active track 진입점 신설.</dd>
+  </dl>
+</div>
+
+<div class="phase done">
+  <div class="phase-head"><span class="num">Phase 0.5</span><span class="title">Design Definition</span><span class="badge badge-green">완료 · 2026-06-03 승인</span></div>
+  <p class="phase-goal">구현 전 Desktop MVP 디자인 기준 확정.</p>
+  <dl>
+    <dt>산출물</dt><dd>'따뜻한 문학 작업실' 비주얼 시스템(<code>docs/DESIGN.md</code>) + 4화면(작품/집필/메모/기록) + Quick Capture + A4 집필창·줌·페이지뷰 확정. 본문 서식 = BubbleMenu, 고운바탕 18px 고정.</dd>
+  </dl>
+</div>
+
+<div class="phase done">
+  <div class="phase-head"><span class="num">Phase 1</span><span class="title">Scaffold</span><span class="badge badge-green">완료 · PR #27</span></div>
+  <p class="phase-goal">Electron/Vite 데스크탑 앱의 최소 실행 환경 구축.</p>
+  <dl>
+    <dt>산출물</dt><dd><code>desktop/</code>에 Electron shell(<code>electron/main.ts</code>·<code>preload.ts</code> + BrowserWindow + dev/prod 로드), vite-plugin-electron, <code>base:'./'</code>.</dd>
+    <dt>환경 결정</dt><dd>Node 20.20.1 핀(<code>.nvmrc</code>, require(ESM) 백포트로 electron 설치 블로커 해소) + pnpm onlyBuiltDependencies. contextIsolation 격리.</dd>
+    <dt>검증</dt><dd>자동화 GREEN(typecheck/build/test/dev 기동).</dd>
+  </dl>
+</div>
+
+<div class="phase done">
+  <div class="phase-head"><span class="num">Phase 2</span><span class="title">Local Persistence</span><span class="badge badge-green">완료 · PR #28</span></div>
+  <p class="phase-goal">로컬 저장 경계와 Project/Document/Memo persistence 확정.</p>
+  <dl>
+    <dt>산출물</dt><dd><strong>node:sqlite</strong>(Node 24 내장 DatabaseSync — better-sqlite3 대체로 네이티브 모듈 ABI·패키징 함정 제거) + 4테이블(STRICT+FK) + Project/Document/Memo/Setting repository + Store(트랜잭션 use-case) + IPC 경계(contract/handlers/preload). renderer DB 직접접근 차단.</dd>
+    <dt>검증</dt><dd>TDD 24 tests, dev 실측 <code>.db</code>+WAL 생성. Node 20.20.1 → 24.14.0.</dd>
+  </dl>
+</div>
+
+<div class="phase done">
+  <div class="phase-head"><span class="num">Phase 3</span><span class="title">Projects Workspace</span><span class="badge badge-green">완료 · 2026-06-04</span></div>
+  <p class="phase-goal">사용자가 작품을 만들고, 선택하고, 집필 화면으로 진입할 수 있게 한다.</p>
+  <dl>
+    <dt>산출물</dt><dd>renderer 실데이터 결선(<code>electronAPI.projects.list/create</code>, <code>activeProject</code> 진입 상태) + 작품 화면 <strong>3상태 craft</strong>(작업실 입구 빈 상태/serif 카드 목록/생성, 모달 회피 인라인 전환) + <code>projectView</code>(도메인→view 매핑, 상대시간) + <strong>genre 확장</strong>(<code>projects.genre</code>, schema v1→v2 마이그레이션, 추가 정보 disclosure) + 정렬 <code>updated_at DESC</code>.</dd>
+    <dt>회귀 수정</dt><dd>preload 로드 회귀(<code>6b9d6e4</code>, sandbox:false→true) — Phase 1부터 잠재했던 결손이 renderer 첫 IPC 호출에서 표면화. agent-workflow §8에 "preload smoke test" self-check 영구화.</dd>
+    <dt>검증</dt><dd>TDD 44 tests + build GREEN. dogfooding(다크모드·IME·마이그레이션) 사용자 확인 완료.</dd>
+  </dl>
+  <p class="meta-line">커밋: <code>b9bdfed</code> + merge <code>5aab0fe</code> · 회고 <code>f771286</code></p>
+</div>
+
+<div class="phase done">
+  <div class="phase-head"><span class="num">Phase 4</span><span class="title">Write Studio + General Editor Autosave</span><span class="badge badge-green">✅ 완료 · 2026-06-04</span></div>
+  <p class="phase-goal">작품 문서를 일반 에디터에서 작성하고, 로컬 자동저장으로 복원할 수 있게 한다.</p>
+  <dl>
+    <dt>산출물</dt>
+    <dd>
+      <ul>
+        <li><strong>본문 결선</strong>: <code>Editor</code> 더미 제거 → <code>bodyJson</code>(ProseMirror JSON) 결선. <code>App</code>이 <code>documents.getByProject</code>로 본문·글자수 로드, debounce 후 <code>documents.update</code> 저장. <code>store.updateDocument</code>가 저장 시 <code>project.updated_at</code> touch(TDD)</li>
+        <li><strong>자동저장 on/off</strong>: 설정 패널 토글 + <code>app_settings</code> 영속. OFF 시 <code>저장 안 됨</code> 표시 + <strong>⌘S·저장 버튼</strong> 수동 저장, 켜는 순간 미저장분 flush</li>
+        <li><strong>줄노트 토글</strong>: 집필 titlebar에서 본문 가로 줄선 on/off(블록 간격 줄 높이 정수배 정렬)</li>
+        <li><strong>한글 IME guard</strong>: <code>onUpdate</code>에서 <code>editor.view.composing</code> 중 부모 갱신 skip — 조합 중 re-render로 자모가 분리되던 회귀 수정</li>
+        <li><strong>본문 재진입 반영</strong>: 작품 열 때마다 고유 <code>editorKey</code> remount + 저장 시 <code>activeDoc</code> 동기화</li>
+      </ul>
+    </dd>
+    <dt>추가</dt><dd><strong>작품 삭제</strong>(FK cascade — 본문 함께 삭제·메모 연결 해제, 확인 모달, TDD) · <strong>Dock 데모 컨트롤 → 설정 패널</strong>(접힘 가능, 테마·자동저장. 저장/메모 데모 토글 제거)</dd>
+    <dt>제외</dt><dd>원고지 모드 · 메모 pin · 세션 노트 · 충돌 해결 UI · 서버 저장 · export</dd>
+    <dt>검증</dt><dd>TDD 51 tests + typecheck + build GREEN, 회귀 0. dogfooding(재실행 복원·한글 IME·자동저장·작품삭제·줄노트 정렬) 사용자 확인 완료</dd>
+  </dl>
+  <p class="meta-line">커밋: 작품삭제 <code>afdf12c</code> · 집필보강 <code>ee503ab</code> · STATUS <code>af96004</code> → develop merge·push</p>
+</div>
+
+<h2>⬜ 잔여 Phase</h2>
+
+<div class="phase done">
+  <div class="phase-head"><span class="num">Phase 5</span><span class="title">Quick Memo Capture + Inbox</span><span class="badge badge-green">✅ 완료 · dogfooding 통과</span></div>
+  <p class="phase-goal">떠오른 메모를 빠르게 캡처하고 inbox에서 확인할 수 있게 한다. SDD 풀파이프(작업지시서→specify→plan→tasks→analyze→implement)로 진행.</p>
+  <dl>
+    <dt>산출물</dt>
+    <dd>
+      <ul>
+        <li><strong>캡처 2진입점</strong>: 빠른 메모 모달(<code>QuickCapture</code> 결선) + inbox 인라인 입력란. body만 저장, 빈값 가드. active project 있으면 자동연결 / 없으면 미연결</li>
+        <li><strong>Inbox</strong>: <code>memos.list</code> 자체 fetch + <code>memoView</code> 매핑, 최신순 표시, 전체/미연결 필터, 연결 작품 제목 표시(<code>projects.list</code> 맵 주입)</li>
+        <li><strong>soft delete</strong>: <code>memos.deleted_at</code>(스키마 v2→v3 ALTER) + <code>softDelete</code>/<code>restore</code> repository + IPC <code>memos.delete</code>/<code>restore</code>. 낙관적 제거 → <strong>되돌리기 토스트</strong>(<code>Toast</code> 신설, 자동 소멸)</li>
+        <li><strong>공용화</strong>: 상대시간 <code>relativeDate</code> 추출(projectView 행위 보존) · App <code>memoRefresh</code> 브리지(모달 캡처 ↔ inbox 재조회)</li>
+      </ul>
+    </dd>
+    <dt>제외</dt><dd>모바일 캡처 · 전역 단축키 필수 · 태그 · 이유 노트 · 메모 검색 · 다중 프로젝트 연결. <strong>연결/해제 동작·Write Studio side panel은 Phase 6</strong></dd>
+    <dt>검증</dt><dd>TDD 14 files <strong>75 tests</strong>(+24, 회귀 0) + tsc + vite build GREEN. analyze A1·C1(active project 정의·인라인 미연결) spec/tasks 반영. <strong>dogfooding 통과(2026-06-05)</strong> — 캡처·자동연결·필터·삭제/되돌리기·실데이터 inbox 정상.</dd>
+    <dt>발견</dt><dd>집필 화면 우측 '연결된 메모' 패널(<code>MemoPanel</code>)이 하드코딩 더미라 작품 연결 캡처가 거기 안 뜨는 혼란 → 설계상 <strong>Phase 6 영역(side panel)으로 명시 분리</strong>됨을 재확인. Phase 5 inbox(메모 화면)는 정상. Phase 6에서 <code>MemoPanel</code> 실데이터 결선 예정.</dd>
+  </dl>
+  <p class="meta-line">커밋: 작업지시서 <code>b2abc16</code> · spec/plan/tasks <code>818bff8~72d5f87</code> · 구현 <code>87c92a9</code> · 스타일 <code>e2faa22</code> · 환경: 셸 Node v20 ↔ node:sqlite는 24 필요(<code>PATH</code> 선행)</p>
+</div>
+
+<div class="phase todo">
+  <div class="phase-head"><span class="num">Phase 6</span><span class="title">Project Memo Linking + Studio Side Panel</span><span class="badge badge-neutral">대기</span></div>
+  <p class="phase-goal">메모를 작품에 연결/해제하고, 집필 화면에서 현재 작품 메모를 볼 수 있게 한다.</p>
+  <dl>
+    <dt>범위</dt>
+    <dd>
+      <ul>
+        <li>Inbox에서 메모의 작품 연결/해제 UI + 작품 목록 기반 selector</li>
+        <li>Write Studio의 얇은 side panel — 현재 작품 연결 메모만 표시(canvas보다 시각적으로 약하게)</li>
+        <li>연결 변경 후 side panel 즉시 갱신</li>
+      </ul>
+    </dd>
+    <dt>제외</dt><dd>메모 pin · 태그/이유 노트 · 다중 연결 · drag-and-drop 큐레이션 · 모바일 큐레이션</dd>
+    <dt>완료 기준</dt><dd>미연결 메모를 작품에 연결·해제 → Write Studio에서 현재 작품 연결 메모만 표시 → 초기 빈 상태에서도 UI가 무겁지 않음</dd>
+  </dl>
+</div>
+
+<div class="phase todo">
+  <div class="phase-head"><span class="num">Phase 7</span><span class="title">Prototype Usability Pass</span><span class="badge badge-neutral">대기</span></div>
+  <p class="phase-goal">프로토타입을 실제 글쓰기 세션에 쓸 수 있을 정도로 정리(신규 기능 추가 없음).</p>
+  <dl>
+    <dt>범위</dt>
+    <dd>
+      <ul>
+        <li>Focus Studio visual pass + empty/loading/error 상태 정리</li>
+        <li>keyboard focus·기본 단축키 정리 + data loss 흐름 점검(저장 중 종료·재시작·창 닫기)</li>
+        <li>README/quickstart 문서 작성 + 10분 이상 실제 글쓰기 세션 검증</li>
+      </ul>
+    </dd>
+    <dt>제외</dt><dd>새 기능 · 원고지 모드 선행 · 디자인 전면 재작성 · 서버 동기화 · 배포 자동화</dd>
+    <dt>완료 기준</dt><dd>처음 쓰는 사용자가 작품 생성→작성→메모 캡처→연결까지 막힘 없음 → 재시작 후 전 데이터 복원 → 저장/DB 실패 시 화면이 완전히 깨지지 않음</dd>
+  </dl>
+</div>
+
+<div class="phase todo">
+  <div class="phase-head"><span class="num">Phase 8</span><span class="title">Desktop MVP Review Gate</span><span class="badge badge-neutral">대기 · 의사결정 gate</span></div>
+  <p class="phase-goal">첫 Desktop MVP가 다음 단계로 넘어갈 준비가 됐는지 판단(구현이 아닌 review).</p>
+  <dl>
+    <dt>범위</dt>
+    <dd>
+      <ul>
+        <li>MVP 성공 기준 체크리스트 + 실사용 마찰 기록 + blocker/non-blocker 분리</li>
+        <li>다음 phase 1순위 결정: <strong>원고지 모드 vs richer memo curation</strong></li>
+        <li>WEB 트랙 재개 조건 재판단</li>
+      </ul>
+    </dd>
+    <dt>제외</dt><dd>review 없는 새 기능 착수 · 원고지 모드 즉시 구현 · WEB 무조건 재개 · 실사용 기록 없는 추측 우선순위</dd>
+    <dt>완료 기준</dt><dd>사용 가능 프로토타입인지 명확히 판정 → 다음 phase 1순위 문서화 → 이슈가 추측이 아닌 실사용 기록 기반으로 정리</dd>
+  </dl>
+</div>
+
+<h2>다음 단계</h2>
+<ul>
+  <li><strong>develop merge</strong> — Phase 5 dogfooding 통과(2026-06-05). <code>007-phase-5-memo-capture-inbox</code> 브랜치를 develop에 통합.</li>
+  <li><strong>Phase 6</strong>(Project Memo Linking + Studio Side Panel) — inbox 연결/해제 UI(<code>memos.link</code> 결선) + 집필창 <code>MemoPanel</code> 실데이터 결선(Phase 5 dogfooding에서 더미로 혼란 확인된 그 패널을 현재 작품 연결 메모로 결선).</li>
+  <li><strong>회고</strong> — Phase 5 SDD 풀파이프 + 더미 패널 스코프 혼란 교훈 5축 회고 누적.</li>
+</ul>
+
+<div class="callout callout-info">
+  <div class="callout-title">참고 — SoT 및 보존된 WEB 트랙</div>
+  Desktop 트랙 기준 문서: <code>PRODUCT.md</code>(전략) · <code>docs/DESIGN.md</code>(비주얼) · <code>docs/STATUS.md</code>(active 진입점) · <code>docs/phase/</code>(phase별 지침). Phase 단위 요약 SoT는 외부 vault <code>~/obsidian/write-note/02-PROGRESS.md</code>.
+  <br><br>
+  WEB 트랙(001~006)은 paused·코드 보존 상태로 약 70%(39/56 phase) 진척에서 동결. 재개 여부는 Phase 8 review gate에서 판단.
+</div>
+
+</body>
+</html>
