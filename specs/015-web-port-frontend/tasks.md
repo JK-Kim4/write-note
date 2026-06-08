@@ -128,14 +128,14 @@ description: "Task list — Web 포팅 Front 이식 (015)"
 
 ### Tests for US4
 
-- [ ] T034 [P] [US4] shim 매핑 테스트(msw) `frontend/src/lib/electron-api/contact.test.ts` — contact.send 가 문의 endpoint 호출 + web 메타 첨부 검증
+- [x] T034 [P] [US4] shim 매핑 테스트(msw) `frontend/src/lib/electron-api/contact.test.ts` — contact.send 가 문의 endpoint 호출 + web 메타 첨부 검증
 
 ### Implementation for US4
 
-- [ ] T035 [US4] shim contact/shell/settings — `frontend/src/lib/electron-api/contact.ts`(send + navigator·빌드버전 메타), `shell.ts`(`window.open(url,'_blank','noopener')`), `settings.ts`(localStorage/zustand preferences) → T034 GREEN
-- [ ] T036 [US4] 문의 화면 이식 — `desktop/src/screens/ContactScreen.tsx` → `frontend/src/app/contact/page.tsx`(`'use client'`, 이메일 폼 + 카카오 링크 `window.open`)
-- [ ] T037 [US4] `pnpm build` + RTL(문의 폼 제출/외부 링크 행위)
-- [ ] T038 [US4] **US4 dogfooding** — 문의 전송 + 카카오 링크 새 탭
+- [x] T035 [US4] shim contact/shell/settings — `frontend/src/lib/electron-api/contact.ts`(send + navigator·빌드버전 메타), `shell.ts`(`window.open(url,'_blank','noopener')`), `settings.ts`(localStorage/zustand preferences) → T034 GREEN
+- [x] T036 [US4] 문의 화면 이식 — `desktop/src/screens/ContactScreen.tsx` → `frontend/src/app/contact/page.tsx`(`'use client'`, 이메일 폼 + 카카오 링크 `window.open`)
+- [x] T037 [US4] `pnpm build` + RTL(문의 폼 제출/외부 링크 행위)
+- [x] T038 [US4] **US4 dogfooding** — 문의 전송 + 카카오 링크 새 탭
 
 **Checkpoint**: US1~US4 전부 동작.
 

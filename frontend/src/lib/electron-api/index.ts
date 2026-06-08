@@ -11,6 +11,9 @@ import { documents } from "./documents";
 import { memos } from "./memos";
 import { sessions } from "./sessions";
 import { logs } from "./logs";
+import { contact } from "./contact";
+import { shell } from "./shell";
+import { settings } from "./settings";
 
 export const webElectronApi = {
     projects,
@@ -18,6 +21,9 @@ export const webElectronApi = {
     memos,
     sessions,
     logs,
+    contact,
+    shell,
+    settings,
 };
 
 export type WebElectronApi = typeof webElectronApi;
