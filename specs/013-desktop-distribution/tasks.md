@@ -91,7 +91,7 @@ description: "Task list — 013 Desktop 앱 공개 배포 (Windows + macOS)"
 
 - [X] T015 [P] 릴리스 절차 문서화(FR-010) — `quickstart.md` 절차를 `desktop/README.md`에 반영(버전 상향 → 태그 push → 자동 게시 + 검증 게이트 요약).
 - [X] T016 [P] vault 동기 — `~/obsidian/write-note/02-PROGRESS.md`(013 Phase 진척 + 다음 진입점) + `03-ISSUES.md`(무서명 macOS 타기기 실행 리스크 / 서명 fallback 트랙 / SmartScreen 한계).
-- [ ] T017 회고 후보 surfacing — 룰 #8(Electron 패키징 환경 선확인)이 CI로 실제 작동했는지 + G2 결과를 회고 입력으로.
+- [X] T017 회고 후보 surfacing — 룰 #8(Electron 패키징 환경 선확인)이 CI로 실제 작동했는지 + G2 결과를 회고 입력으로.
 
 ---
 
