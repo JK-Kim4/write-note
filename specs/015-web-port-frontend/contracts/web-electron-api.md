@@ -19,12 +19,17 @@ desktop `desktop/electron/ipc/contract.ts` 의 `ElectronAPI` 인터페이스를 
 | `update(id, patch)` | ♻️ `PUT/PATCH …/document` — 409 시 `ConflictError`(client.ts 기존, 자동저장 충돌) |
 
 ## memos
-| `create(input)` | ♻️ `POST /api/memos` |
+| `create(input)` | ♻️ `POST /api/memos` + linkProjectId 시 `PUT …/curation`(아래 구현주 1) |
 | `list()` | ♻️ `GET /api/memos` |
 | `listByProject(projectId)` | ✅ `GET /api/projects/{id}/memos`(014, pinned 포함) |
 | `setPin(memoId, projectId, pinned)` | ✅ `PUT /api/projects/{projectId}/memos/{memoId}/pin`(014) |
-| `addLink/removeLink` | ♻️ `PUT /api/memos/{id}/curation`(선언적 큐레이션으로 매핑) |
-| `pickReentry/delete/restore` | ♻️ 기존 memo endpoint |
+| `addLink/removeLink` | ♻️ `GET /api/memos/{id}` + `PUT …/curation`(선언적 전체상태로 차이 반영) |
+| `pickReentry` | 🧩 `listByProject` 의 pinned 1장 파생(US3 ReentryCard용) |
+| `delete/restore` | ⛔ **보류** — 백엔드 영구삭제만·restore 부재(아래 구현주 2 / vault ISSUE-026) |
+
+**구현주(015 실측):**
+1. **캡처는 작품을 연결하지 않는다** — `POST /api/memos` 는 `activeProjectAtCapture`(맥락)만 기록하고 `memo_projects` 링크를 만들지 않는다(`MemoService.captureDesktop` 실측). 따라서 `create({linkProjectId})` 가 작품 서랍(listByProject)에 나타나려면 shim 이 캡처 후 `curation` 으로 연결한다(백엔드 변경 없이 shim 합성).
+2. **delete/restore 보류** — desktop 책상은 soft-delete + "되돌리기"(Toast)인데 014/006 `DELETE /api/memos/{id}` 는 영구삭제이고 restore endpoint 가 없다. 본 계약의 `restore → ♻️ 기존 endpoint` 가정은 오류. 사용자 결정으로 책상 삭제 기능 보류, 백엔드 soft-delete 별도 트랙(vault ISSUE-026).
 
 ## logs
 | `listByProject(projectId)` | ✅ `GET /api/projects/{id}/logs`(014) |
@@ -36,9 +41,11 @@ desktop `desktop/electron/ipc/contract.ts` 의 `ElectronAPI` 인터페이스를 
 | `endWithLog(projectId, body)` | ✅ `POST …/work-sessions/end-with-log`(014) |
 
 ## contact / shell / settings (electron 대체)
-| `contact.send(input)` | 🔁 기존 문의 endpoint + web 메타(navigator·빌드버전) |
+| `contact.send(input)` | 🔁 Formsubmit ajax 직접 POST(desktop contactSender 의 web 판본) + web 메타(navigator·빌드버전). ⚠️ 브라우저 CORS 미검증(vault ISSUE-027) |
 | `shell.openExternal(url)` | 🔁 `window.open(url, '_blank', 'noopener')` |
-| `settings.get/set(key)` | 🔁 localStorage(zustand preferences, R7) |
+| `settings.get/set(key)` | 🔁 localStorage(보기 설정은 zustand preferences, R7) |
+
+> contact 는 백엔드 문의 endpoint 가 없어 desktop 과 동일하게 외부 Formsubmit 으로 직접 보낸다("기존 문의 endpoint" = Formsubmit). desktop 의 server-side `Referer` 트릭은 브라우저 자동전송으로 불필요. 브라우저 cross-origin CORS 허용 여부는 배포 전 실브라우저 검증 필요(ISSUE-027).
 
 ## 계약 검증 게이트 (SC-004/005)
 - 본 표의 ✅/♻️ 행이 실제 014 endpoint 와 1:1 결선되고, 🧩 조립이 작품별 카드 표시값을 채워야 한다.

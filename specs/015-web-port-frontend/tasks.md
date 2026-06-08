@@ -143,12 +143,12 @@ description: "Task list — Web 포팅 Front 이식 (015)"
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T039 [P] 006 폐기 화면 제거 — 대체 완료된 기존 화면(`/write` 구버전 등) 및 사용 안 하는 006 컴포넌트 정리(내 이식이 만든 orphan만, surgical)
-- [ ] T040 계약 검증 — `contracts/web-electron-api.md` ✅/♻️ 행이 실제 결선과 일치(SC-004/005, 공백 0). 결선 중 014 endpoint 신설 필요 발견 시 별도 트랙 surfacing(백엔드 = 범위 밖)
+- [x] T039 [P] 006 폐기 화면 제거 — 대체 완료된 기존 화면(`/write` 구버전 등) 및 사용 안 하는 006 컴포넌트 정리(내 이식이 만든 orphan만, surgical)
+- [x] T040 계약 검증 — `contracts/web-electron-api.md` ✅/♻️ 행이 실제 결선과 일치(SC-004/005, 공백 0). 결선 중 014 endpoint 신설 필요 발견 시 별도 트랙 surfacing(백엔드 = 범위 밖)
 - [ ] T041 폰트/한글 dogfooding(전 화면) — 라이트/다크 + iOS Safari·Android Chrome 한글 본문 fallback(SC-002, FR-022)
-- [ ] T042 전체 게이트(최종) — `cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] T042 전체 게이트(최종) — `cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build`
 - [ ] T043 quickstart.md DoD 검증 — 미로그인 리다이렉트(SC-006) 포함 골든패스 dogfooding
-- [ ] T044 vault `~/obsidian/write-note/02-PROGRESS.md` 갱신(하위 작업 2 완료) + 이슈 `03-ISSUES.md`
+- [x] T044 vault `~/obsidian/write-note/02-PROGRESS.md` 갱신(하위 작업 2 완료) + 이슈 `03-ISSUES.md`
 
 ---
 
