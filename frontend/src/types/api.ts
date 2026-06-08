@@ -40,6 +40,8 @@ export interface ProjectResponse {
     toneNotes: string | null;
     synopsis: string | null;
     worldNotes: string | null;
+    /** "다음에 쓸 장면" 한 줄 (014 backend 확장). 미설정은 빈 문자열. */
+    nextScene: string;
     archivedAt: string | null;
     createdAt: string;
     updatedAt: string;

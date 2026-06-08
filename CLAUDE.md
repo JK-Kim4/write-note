@@ -135,7 +135,8 @@ timeout / cap 룰은 글로벌 [`~/.claude/rules/shared/long-running-bash.md`](f
 <!-- SPECKIT START -->
 Current implementation plan:
 
-- [014 Web 포팅 — Backend 확장 (next_scene · pinned · project_logs · work_sessions + IPC↔REST 계약)](specs/014-web-port-backend-extension/plan.md)
+- [015 Web 포팅 — Front 이식 (desktop 화면 → Next.js, electronAPI→fetch, projects 풀스택 먼저 + 페이지분할/한글 PoC 선증명)](specs/015-web-port-frontend/plan.md)
+- [014 Web 포팅 — Backend 확장 (next_scene · pinned · project_logs · work_sessions + IPC↔REST 계약) — 구현 완료](specs/014-web-port-backend-extension/plan.md)
 
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan above.

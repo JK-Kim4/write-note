@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Serif_KR, Nanum_Myeongjo } from "next/font/google";
 import "./globals.css";
+import "@/styles/desktop-app.css";
 import { SWRegister } from "./sw-register";
 import { Providers } from "./providers";
 

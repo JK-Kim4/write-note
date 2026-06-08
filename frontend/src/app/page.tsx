@@ -1,157 +1,248 @@
 "use client";
 
-import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { listProjects } from "@/lib/api/projects";
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/lib/auth/guard";
-import { EmptyHero } from "@/components/ui/EmptyHero";
-import { HintCard } from "@/components/ui/HintCard";
-import { TopBar } from "@/components/shell/TopBar";
-import { ProgressRing } from "@/components/shell/ProgressRing";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { Rail } from "@/components/workspace/Rail";
+import { Titlebar } from "@/components/workspace/Titlebar";
+import { ProjectWallCard } from "@/components/workspace/ProjectWallCard";
+import { toProjectCardView } from "@/lib/projectView";
+import { useCreateProject, useDeleteProject, useProjectCards, useUpdateProject } from "@/lib/query/useProjects";
+import type { ProjectCardView } from "@/lib/projectView";
 
 /**
- * Home page — 동적 변형 (프로젝트 0 → H0, 1+ → 일반 홈).
- *
- * Spec reference: contracts/route-surfaces.md §2-1 + Clarification §Q4 + FR-005
+ * 작품 벽 (015 US1) — desktop ProjectsScreen 1:1 이식. 006 home 폐기.
+ * .app(Rail+main) 셸 + Titlebar + work-wall + ProjectWallCard. 데이터는 React Query 훅.
  */
-
-const PHONE_ICON = (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="6" y="2" width="12" height="20" rx="2" stroke="currentColor" strokeWidth="1.5" />
-        <circle cx="12" cy="18" r="1" fill="currentColor" />
-    </svg>
-);
-
-const KEYBOARD_ICON = (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-);
-
-export default function HomePage() {
+export default function ProjectsWallPage() {
     useAuthGuard("requireAuth");
-    const projectsQuery = useQuery({
-        queryKey: ["projects", { page: 0, size: 20 }],
-        queryFn: () => listProjects({ page: 0, size: 20, sort: "updatedAt,desc" }),
-        retry: false,
-    });
+    const router = useRouter();
+    const cardsQuery = useProjectCards();
+    const createProject = useCreateProject();
+    const updateProject = useUpdateProject();
+    const deleteProject = useDeleteProject();
 
-    const isEmpty =
-        !projectsQuery.isLoading &&
-        !projectsQuery.isError &&
-        projectsQuery.data?.totalElements === 0;
+    const [mode, setMode] = useState<"list" | "create">("list");
+    const [title, setTitle] = useState("");
+    const [summary, setSummary] = useState("");
+    const [genre, setGenre] = useState("");
+    const [targetLength, setTargetLength] = useState("");
+    const [tone, setTone] = useState("");
+    const [showMore, setShowMore] = useState(false);
+    const [createError, setCreateError] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState<ProjectCardView | null>(null);
+
+    const projects: ProjectCardView[] | null = cardsQuery.data ? cardsQuery.data.map(toProjectCardView) : null;
+
+    const resetForm = () => {
+        setTitle("");
+        setSummary("");
+        setGenre("");
+        setTargetLength("");
+        setTone("");
+        setShowMore(false);
+    };
+
+    const handleSubmit = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!title.trim() || createProject.isPending) return;
+        setCreateError(false);
+        const parsed = Number(targetLength.trim());
+        const target = targetLength.trim() !== "" && Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+        try {
+            const { project } = await createProject.mutateAsync({
+                title: title.trim(),
+                synopsis: summary.trim() || null,
+                toneNotes: tone.trim() || null,
+                genre: genre.trim() || null,
+                targetLength: target,
+            });
+            resetForm();
+            setMode("list");
+            router.push(`/projects/${project.id}/write`);
+        } catch {
+            setCreateError(true);
+        }
+    };
 
     return (
-        <div className="flex flex-col min-h-screen" style={{ backgroundColor: "var(--w-parchment)" }}>
-            <TopBar
-                title="write-note"
-                actions={<ThemeToggle />}
-            />
-            {projectsQuery.isError ? (
-                <EmptyHero
-                    title="프로젝트를 불러오지 못했습니다"
-                    lede="네트워크 또는 세션 문제일 수 있습니다. 다시 시도해 주세요."
-                    cta={
-                        <button
-                            type="button"
-                            onClick={() => projectsQuery.refetch()}
-                            className="px-8 py-4 rounded-card-mode font-semibold"
-                            style={{ backgroundColor: "var(--w-accent)", color: "var(--w-canvas)" }}
-                        >
-                            다시 시도
-                        </button>
-                    }
-                />
-            ) : isEmpty ? (
-                <EmptyHero
-                    title="환영합니다"
-                    lede="첫 프로젝트를 만들어 작가의 작업공간을 시작해 보세요."
-                    cta={
-                        <Link
-                            href="/projects/new"
-                            className="px-8 py-4 rounded-card-mode font-semibold"
-                            style={{ backgroundColor: "var(--w-accent)", color: "var(--w-canvas)" }}
-                        >
-                            + 첫 프로젝트 만들기
-                        </Link>
-                    }
-                    hints={
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full mt-4">
-                            <HintCard
-                                icon={PHONE_ICON}
-                                title="모바일에서 메모"
-                                description="iOS Shortcut 으로 영감을 즉시 캡처합니다."
-                            />
-                            <HintCard
-                                icon={KEYBOARD_ICON}
-                                title="⌘ + N 빠른 입력"
-                                description="데스크탑에서 어느 화면이든 단축키로 메모합니다."
-                            />
-                        </div>
-                    }
-                />
-            ) : (
-                <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-12">
-                    <section className="flex items-center justify-between mb-8">
-                        <h1
-                            className="font-display font-semibold"
-                            style={{ fontSize: "28px", color: "var(--w-ink)" }}
-                        >
-                            프로젝트
-                        </h1>
-                        <div className="flex items-center gap-3">
-                            <Link
-                                href="/projects/new"
-                                className="text-sm px-3 py-2 rounded-button-pill font-semibold"
-                                style={{ backgroundColor: "var(--w-accent)", color: "var(--w-canvas)" }}
-                            >
-                                + 새 프로젝트
-                            </Link>
-                            <Link
-                                href="/memos"
-                                className="text-sm px-3 py-2 rounded-button-utility"
-                                style={{ color: "var(--w-accent)" }}
-                            >
-                                메모 inbox →
-                            </Link>
-                        </div>
-                    </section>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {(projectsQuery.data?.content ?? []).map((p) => (
-                            <article
-                                key={p.id}
-                                className="p-6 rounded-card-project"
-                                style={{
-                                    backgroundColor: "var(--w-canvas)",
-                                    border: "1px solid var(--w-hairline)",
-                                }}
-                            >
-                                <div className="flex items-center justify-between mb-3">
-                                    <h2
-                                        className="font-display font-semibold"
-                                        style={{ fontSize: "20px", color: "var(--w-ink)" }}
-                                    >
-                                        {p.title}
-                                    </h2>
-                                    <ProgressRing value={0} label="0%" />
+        <div className="app">
+            <Rail />
+            <div className="main">
+                <Titlebar title={mode === "create" ? "새 작품" : "작품"} />
+                <div className="screen-body screen-body--solo">
+                    <div className="screen-main">
+                        {projects === null && !cardsQuery.isError ? (
+                            <div className="projects-skel" aria-hidden="true">
+                                <div className="skel">
+                                    <div className="skel__bar" />
+                                    <div className="skel__bar" />
+                                    <div className="skel__bar" />
                                 </div>
-                                <p
-                                    style={{
-                                        color: "var(--w-ink)",
-                                        opacity: 0.6,
-                                        fontSize: "14px",
-                                        fontStyle: "italic",
-                                    }}
-                                >
-                                    {/* 지난 세션 hero 인용 placeholder — Week 5 SessionNote 합류 */}
-                                    지난 세션 인용은 Week 5 에 합류 예정
+                            </div>
+                        ) : mode === "create" ? (
+                            <form className="newproject" onSubmit={handleSubmit} aria-label="새 작품 만들기">
+                                <div className="create-head">
+                                    <h1 className="screen-h1">새 작품을 시작합니다</h1>
+                                    <p className="newproject__sub">제목만으로 시작하고, 나머지는 쓰면서 채워도 됩니다.</p>
+                                </div>
+                                <div className="newproject__form">
+                                    <label className="field">
+                                        <span className="field__label">제목</span>
+                                        <input
+                                            className="input"
+                                            type="text"
+                                            value={title}
+                                            onChange={(e) => setTitle(e.target.value)}
+                                            placeholder="예: 바다가 보이는 방"
+                                            autoFocus
+                                        />
+                                    </label>
+                                    <label className="field">
+                                        <span className="field__label">
+                                            시놉시스 · 큰 그림 <em>선택</em>
+                                        </span>
+                                        <textarea
+                                            className="input textarea"
+                                            value={summary}
+                                            onChange={(e) => setSummary(e.target.value)}
+                                            placeholder="이 작품이 어떤 이야기인지, 어디로 향하는지."
+                                        />
+                                    </label>
+                                    <button
+                                        type="button"
+                                        className="disclosure__toggle"
+                                        aria-expanded={showMore}
+                                        onClick={() => setShowMore((v) => !v)}
+                                    >
+                                        추가 정보 <span className="disclosure__hint">장르 · 목표 분량 · 톤</span>
+                                    </button>
+                                    {showMore && (
+                                        <div className="disclosure__body">
+                                            <label className="field">
+                                                <span className="field__label">장르</span>
+                                                <input
+                                                    className="input"
+                                                    type="text"
+                                                    value={genre}
+                                                    onChange={(e) => setGenre(e.target.value)}
+                                                    placeholder="단편소설 · 시 · 단막극"
+                                                />
+                                            </label>
+                                            <div className="field-row">
+                                                <label className="field">
+                                                    <span className="field__label">목표 분량 (자)</span>
+                                                    <input
+                                                        className="input"
+                                                        type="number"
+                                                        min="0"
+                                                        value={targetLength}
+                                                        onChange={(e) => setTargetLength(e.target.value)}
+                                                        placeholder="예: 8000"
+                                                    />
+                                                </label>
+                                                <label className="field">
+                                                    <span className="field__label">톤</span>
+                                                    <input
+                                                        className="input"
+                                                        type="text"
+                                                        value={tone}
+                                                        onChange={(e) => setTone(e.target.value)}
+                                                        placeholder="담담하게, 1인칭 회상"
+                                                    />
+                                                </label>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {createError && (
+                                        <p role="alert" style={{ color: "var(--danger, #c0392b)", fontSize: 13 }}>
+                                            작품을 만들지 못했습니다. 다시 시도해 주세요.
+                                        </p>
+                                    )}
+                                    <div className="create-foot">
+                                        <button type="submit" className="btn btn--primary" disabled={!title.trim() || createProject.isPending}>
+                                            작품 만들기
+                                        </button>
+                                        <button type="button" className="btn btn--ghost" onClick={() => { setMode("list"); resetForm(); }}>
+                                            취소
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        ) : cardsQuery.isError ? (
+                            <div className="projects-error" role="alert">
+                                <span>작품 목록을 불러오지 못했습니다.</span>
+                                <button type="button" className="btn btn--ghost" onClick={() => cardsQuery.refetch()}>
+                                    다시 시도
+                                </button>
+                            </div>
+                        ) : projects && projects.length === 0 ? (
+                            <section className="welcome" aria-label="작업실 입구">
+                                <span className="welcome__mark" aria-hidden="true" />
+                                <p className="welcome__brand">나래 노트</p>
+                                <h1 className="welcome__title">작업실이 준비됐습니다</h1>
+                                <p className="welcome__sub">
+                                    메모와 등장인물, 톤과 목표 분량, 지난 세션의 마지막 한 줄까지 한자리에. 며칠 만에 다시 열어도
+                                    작품의 맥락이 그대로 남아, 흐름을 처음부터 되짚지 않아도 됩니다.
                                 </p>
-                            </article>
-                        ))}
+                                <button type="button" className="btn btn--primary" onClick={() => setMode("create")}>
+                                    첫 작품 시작하기
+                                </button>
+                            </section>
+                        ) : (
+                            <div className="projects-list-wrap">
+                                <div className="projects-head">
+                                    <h1 className="projects-head__title">이어 쓸 작품</h1>
+                                    <button type="button" className="btn btn--secondary" onClick={() => setMode("create")}>
+                                        새 작품
+                                    </button>
+                                </div>
+                                <div className="work-wall">
+                                    {(projects ?? []).map((p, i) => (
+                                        <ProjectWallCard
+                                            key={p.id}
+                                            card={p}
+                                            index={i}
+                                            onOpen={() => router.push(`/projects/${p.id}/write`)}
+                                            onSaveNextScene={(next) => updateProject.mutate({ id: p.id, patch: { nextScene: next } })}
+                                            onDelete={() => setConfirmDelete(p)}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
-                </main>
+                </div>
+            </div>
+
+            {confirmDelete && (
+                <div className="modal-backdrop" onClick={() => !deleteProject.isPending && setConfirmDelete(null)}>
+                    <div
+                        className="modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="작품 삭제 확인"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="modal__head">
+                            <h2 className="modal__title">작품을 삭제할까요?</h2>
+                        </div>
+                        <p className="modal__text">‘{confirmDelete.title}’과 작성한 본문이 영구 삭제됩니다. 되돌릴 수 없습니다.</p>
+                        <div className="modal__foot">
+                            <button type="button" className="btn btn--ghost" onClick={() => setConfirmDelete(null)} disabled={deleteProject.isPending}>
+                                취소
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn--danger"
+                                disabled={deleteProject.isPending}
+                                onClick={() => deleteProject.mutate(confirmDelete.id, { onSuccess: () => setConfirmDelete(null) })}
+                            >
+                                삭제
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

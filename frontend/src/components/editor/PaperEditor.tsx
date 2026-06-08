@@ -1,0 +1,159 @@
+"use client";
+
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useEditor, EditorContent, type Content } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
+import { StarterKit } from "@tiptap/starter-kit";
+import { pageCount, globalLineAt, pageNumberTopsPx, LINE_PX, PAGE_STRIDE_PX, SHEET_H_PX } from "./pageLayout";
+
+/**
+ * 진짜 페이지 분할 본문 에디터 — desktop `src/components/Editor.tsx` 이식(015 T001, PoC).
+ *
+ * - StarterKit. 한국어 IME 조합은 `view.composing` 가드(PoC 0-1) — 조합 중 부모 갱신 억제.
+ * - 페이지 분할 = CSS column-wrap(.prose) + JS 기하(pageLayout) + ResizeObserver. 분할은 브라우저 레이아웃.
+ * - 기존 006 `Editor.tsx`(ManuscriptGrid)와 별개 — US1 에서 /write 정식 교체.
+ */
+
+/** 에디터 본문 변경 페이로드 — documents.update 로 전달. desktop `types.ts` DocumentChange 이식. */
+export type DocumentChange = { bodyJson: string; plainText: string; wordCount: number };
+
+/** bodyJson(ProseMirror JSON 문자열) → TipTap content. 빈 문자열/파싱 실패는 빈 문서. */
+function parseContent(bodyJson: string): Content {
+    if (!bodyJson) return "";
+    try {
+        return JSON.parse(bodyJson) as Content;
+    } catch {
+        return "";
+    }
+}
+
+type PaperEditorProps = {
+    title: string;
+    initialBodyJson: string;
+    onChange: (change: DocumentChange) => void;
+    lined: boolean;
+    zoom?: number;
+};
+
+export function PaperEditor({ title, initialBodyJson, onChange, lined, zoom = 1 }: PaperEditorProps) {
+    const paperRef = useRef<HTMLElement>(null);
+    const [pages, setPages] = useState(1);
+
+    const editor = useEditor({
+        extensions: [StarterKit],
+        content: parseContent(initialBodyJson),
+        immediatelyRender: false,
+        onUpdate: ({ editor: e }) => {
+            // 조합 도중 re-render 되면 composition 이 깨져 자모가 분리 입력된다.
+            if (e.view.composing) return;
+            const text = e.getText();
+            onChange({
+                bodyJson: JSON.stringify(e.getJSON()),
+                plainText: text,
+                wordCount: text.replace(/\s/g, "").length,
+            });
+        },
+    });
+
+    useEffect(() => {
+        const pm = paperRef.current?.querySelector<HTMLElement>(".ProseMirror");
+        if (!pm) return;
+        const measure = () => setPages(pageCount(pm.getBoundingClientRect().height, zoom));
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(pm);
+        return () => ro.disconnect();
+    }, [zoom, editor]);
+
+    const handlePaperMouseDown = (e: ReactMouseEvent<HTMLElement>) => {
+        if (!editor) return;
+        const pm = paperRef.current?.querySelector<HTMLElement>(".ProseMirror");
+        if (!pm) return;
+        const pmTop = pm.getBoundingClientRect().top;
+        const lineUnit = LINE_PX * zoom;
+        const targetLine = globalLineAt((e.clientY - pmTop) / lineUnit);
+        const endTop = editor.view.coordsAtPos(editor.state.doc.content.size).top;
+        const lastLine = globalLineAt((endTop - pmTop) / lineUnit);
+        if (targetLine <= lastLine) return;
+        e.preventDefault();
+        const fill = Math.min(1000, targetLine - lastLine);
+        editor
+            .chain()
+            .focus("end")
+            .insertContent(Array.from({ length: fill }, () => ({ type: "paragraph" })))
+            .run();
+    };
+
+    return (
+        <main className="editor-scroll" aria-label="본문 편집기">
+            <h1 className="doc-title">{title}</h1>
+            <article
+                ref={paperRef}
+                className="paper"
+                style={{ minHeight: `${(pages - 1) * PAGE_STRIDE_PX + SHEET_H_PX}px` }}
+                onMouseDown={handlePaperMouseDown}
+            >
+                <div className="sheets" aria-hidden="true">
+                    {Array.from({ length: pages }, (_, i) => (
+                        <div
+                            key={i}
+                            className={lined ? "sheet sheet--lined" : "sheet"}
+                            style={{ top: `${i * PAGE_STRIDE_PX}px`, height: `${SHEET_H_PX}px` }}
+                        />
+                    ))}
+                </div>
+                {editor && (
+                    <BubbleMenu editor={editor} className="bubble">
+                        <button
+                            type="button"
+                            aria-label="굵게"
+                            className={editor.isActive("bold") ? "is-active" : ""}
+                            onClick={() => editor.chain().focus().toggleBold().run()}
+                        >
+                            <strong>B</strong>
+                        </button>
+                        <button
+                            type="button"
+                            aria-label="기울임"
+                            className={editor.isActive("italic") ? "is-active" : ""}
+                            onClick={() => editor.chain().focus().toggleItalic().run()}
+                        >
+                            <em>I</em>
+                        </button>
+                        <span className="bubble__div" aria-hidden="true" />
+                        <button
+                            type="button"
+                            aria-label="제목"
+                            className={editor.isActive("heading", { level: 2 }) ? "is-active" : ""}
+                            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                        >
+                            H
+                        </button>
+                        <button
+                            type="button"
+                            aria-label="인용"
+                            className={editor.isActive("blockquote") ? "is-active" : ""}
+                            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                        >
+                            &ldquo;
+                        </button>
+                        <button
+                            type="button"
+                            aria-label="목록"
+                            className={editor.isActive("bulletList") ? "is-active" : ""}
+                            onClick={() => editor.chain().focus().toggleBulletList().run()}
+                        >
+                            &bull;
+                        </button>
+                    </BubbleMenu>
+                )}
+                <EditorContent editor={editor} className="prose" />
+                {pageNumberTopsPx(pages).map((top, i) => (
+                    <div key={i} className="page-num" style={{ top: `${top}px` }} aria-label={`${i + 1}쪽`}>
+                        {i + 1}
+                    </div>
+                ))}
+            </article>
+        </main>
+    );
+}
