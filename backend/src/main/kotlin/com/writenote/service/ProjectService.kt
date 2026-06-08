@@ -91,6 +91,7 @@ class ProjectService(
         request.toneNotes?.let { project.toneNotes = it }
         request.synopsis?.let { project.synopsis = it }
         request.worldNotes?.let { project.worldNotes = it }
+        request.nextScene?.let { project.nextScene = it }
 
         return projectMapper.toResponse(project)
     }

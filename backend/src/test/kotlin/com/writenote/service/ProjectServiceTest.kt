@@ -48,6 +48,7 @@ class ProjectServiceTest {
                 toneNotes = project.toneNotes,
                 synopsis = project.synopsis,
                 worldNotes = project.worldNotes,
+                nextScene = project.nextScene,
                 archivedAt = project.archivedAt,
                 createdAt = project.createdAt ?: Instant.now(),
                 updatedAt = project.updatedAt ?: Instant.now(),

@@ -15,6 +15,7 @@ class ProjectMapper {
             toneNotes = project.toneNotes,
             synopsis = project.synopsis,
             worldNotes = project.worldNotes,
+            nextScene = project.nextScene,
             archivedAt = project.archivedAt,
             createdAt = requireNotNull(project.createdAt),
             updatedAt = requireNotNull(project.updatedAt),
