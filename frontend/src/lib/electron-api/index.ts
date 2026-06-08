@@ -8,10 +8,12 @@
  */
 import { projects } from "./projects";
 import { documents } from "./documents";
+import { memos } from "./memos";
 
 export const webElectronApi = {
     projects,
     documents,
+    memos,
 };
 
 export type WebElectronApi = typeof webElectronApi;

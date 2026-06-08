@@ -4,7 +4,7 @@
  * 데이터는 014 backend 소유. 본 타입은 webElectronApi shim 이 반환하는 화면용 형태다.
  * ID 는 014 가 `number`(BIGSERIAL) — desktop UUID(string) 와 다름.
  */
-import type { ProjectResponse, MemoResponse } from "@/types/api";
+import type { ProjectResponse } from "@/types/api";
 
 /** 작품 — 014 ProjectResponse(nextScene 포함). */
 export type Project = ProjectResponse;
@@ -24,8 +24,40 @@ export type ProjectDocument = {
     updatedAt: string;
 };
 
-/** 곁쪽지(작품 맥락) — 메모 + 그 작품에서의 고정 여부(014 pinned). */
-export type ProjectMemo = MemoResponse & { pinned: boolean };
+/** 메모에 연결된 작품(제목 포함) — 책상 칩·붙이기 팝오버 표시용(desktop LinkedProject). */
+export type LinkedProject = { id: number; title: string };
+
+/** 곁쪽지(전역) — 본문 + 연결 작품(다대다). 책상(메모 인박스)이 소비. desktop Memo 의 web 판본. */
+export type Memo = {
+    id: number;
+    body: string;
+    source: string;
+    capturedAt: string;
+    /** 연결된 작품(제목 포함). 미연결이면 빈 배열. MemoResponse.projects 매핑. */
+    linkedProjects: LinkedProject[];
+};
+
+/** 곁쪽지(작품 맥락) — 그 작품에서의 고정 여부 포함(014 ProjectMemoResponse, memoId→id). */
+export type ProjectMemo = {
+    id: number;
+    projectId: number;
+    body: string;
+    source: string;
+    capturedAt: string;
+    pinned: boolean;
+};
+
+/** 책상·서랍 표시용 메모 뷰 — 상대 날짜 라벨 + 연결 작품. pinned 는 작품 맥락(서랍) 전용. */
+export type InboxMemo = {
+    id: number;
+    body: string;
+    /** capturedAt → "오늘/어제/N일 전/N주 전" 상대 라벨. */
+    dateLabel: string;
+    /** 연결된 작품(제목). 서랍 뷰에선 빈 배열. */
+    linkedProjects: LinkedProject[];
+    /** 현재 작품 맥락의 곁쪽지 고정 여부(서랍 전용). 책상 뷰에선 undefined. */
+    pinned?: boolean;
+};
 
 /** 집필 기록 — 014 ProjectLog. */
 export type ProjectLog = {

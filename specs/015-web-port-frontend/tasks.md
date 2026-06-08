@@ -82,16 +82,16 @@ description: "Task list — Web 포팅 Front 이식 (015)"
 
 ### Tests for US2
 
-- [ ] T020 [P] [US2] shim 매핑 테스트(msw) `frontend/src/lib/electron-api/memos.test.ts` — listByProject(pinned)/setPin(014 pin)/create/curation(addLink·removeLink) 매핑 검증
+- [x] T020 [P] [US2] shim 매핑 테스트(msw) `frontend/src/lib/electron-api/memos.test.ts` — listByProject(pinned)/setPin(014 pin)/create/curation(addLink·removeLink) 매핑 검증
 
 ### Implementation for US2
 
-- [ ] T021 [US2] shim memos 도메인 — `frontend/src/lib/electron-api/memos.ts`(create/list/listByProject/setPin/addLink/removeLink/pickReentry/delete/restore → contracts 매핑) → T020 GREEN
-- [ ] T022 [P] [US2] React Query 훅 — `frontend/src/lib/query/useMemos.ts`(작품별 메모/미분류 useQuery, 고정·연결 useMutation + 무효화)
-- [ ] T023 [US2] 곁쪽지 책상 이식 — `desktop/src/screens/MemoInboxScreen.tsx` → `frontend/src/app/memos/page.tsx`(`'use client'`, 필터/큐레이션/연결, 006 `/memos` 교체)
-- [ ] T024 [P] [US2] 집필실 서랍 이식 — `desktop/src/components/MemoPanel.tsx`·`QuickCapture.tsx` → `frontend/src/components/`(서랍 곁쪽지 목록 + 고정 + 빠른 캡처)
-- [ ] T025 [US2] `pnpm build` + 컴포넌트 RTL(고정 토글/연결 행위)
-- [ ] T026 [US2] **US2 dogfooding** — 캡처→서랍→고정(작품당 1개 전환)→책상 연결/필터(SC-004)
+- [x] T021 [US2] shim memos 도메인 — `frontend/src/lib/electron-api/memos.ts`(create/list/listByProject/setPin/addLink/removeLink/pickReentry/delete/restore → contracts 매핑) → T020 GREEN
+- [x] T022 [P] [US2] React Query 훅 — `frontend/src/lib/query/useMemos.ts`(작품별 메모/미분류 useQuery, 고정·연결 useMutation + 무효화)
+- [x] T023 [US2] 곁쪽지 책상 이식 — `desktop/src/screens/MemoInboxScreen.tsx` → `frontend/src/app/memos/page.tsx`(`'use client'`, 필터/큐레이션/연결, 006 `/memos` 교체)
+- [x] T024 [P] [US2] 집필실 서랍 이식 — `desktop/src/components/MemoPanel.tsx`·`QuickCapture.tsx` → `frontend/src/components/`(서랍 곁쪽지 목록 + 고정 + 빠른 캡처)
+- [x] T025 [US2] `pnpm build` + 컴포넌트 RTL(고정 토글/연결 행위)
+- [x] T026 [US2] **US2 dogfooding** — 캡처→서랍→고정(작품당 1개 전환)→책상 연결/필터(SC-004)
 
 **Checkpoint**: US1+US2 동작.
 

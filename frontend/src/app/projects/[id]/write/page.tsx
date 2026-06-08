@@ -1,15 +1,18 @@
 "use client";
 
-import { useCallback, useState, type CSSProperties } from "react";
+import { useCallback, useMemo, useState, type CSSProperties } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
 import { documentKeys, useProjectDocument } from "@/lib/query/useDocument";
 import { useProject } from "@/lib/query/useProjects";
+import { useProjectMemos, useRemoveLinkMemo, useSetPinMemo } from "@/lib/query/useMemos";
+import { toDrawerMemoView } from "@/lib/memoView";
 import type { ProjectDocument } from "@/lib/types/domain";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { Rail } from "@/components/workspace/Rail";
 import { Titlebar } from "@/components/workspace/Titlebar";
+import { MemoPanel } from "@/components/workspace/MemoPanel";
 import { PaperEditor } from "@/components/editor/PaperEditor";
 import { ConflictDialog } from "@/components/editor/ConflictDialog";
 
@@ -34,6 +37,14 @@ export default function ProjectWritePage() {
     const [editorKey, setEditorKey] = useState(0);
     const [lined, setLined] = useState(true);
     const [zoom, setZoom] = useState(1);
+    const [panelOpen, setPanelOpen] = useState(false);
+
+    // 곁쪽지 서랍 — 이 작품에 연결된 곁쪽지(고정 포함).
+    const now = useMemo(() => new Date(), []);
+    const projectMemosQuery = useProjectMemos(projectId);
+    const setPinMemo = useSetPinMemo();
+    const removeLinkMemo = useRemoveLinkMemo();
+    const drawerMemos = (projectMemosQuery.data ?? []).map((m) => toDrawerMemoView(m, now));
 
     const initialBody = body ?? doc?.bodyJson ?? null;
 
@@ -83,6 +94,19 @@ export default function ProjectWritePage() {
             <button type="button" className="btn btn--secondary btn--compact" onClick={() => setZoom((z) => Math.min(2, Math.round((z + 0.1) * 10) / 10))}>
                 +
             </button>
+            <button
+                type="button"
+                className={panelOpen ? "panel-toggle is-open" : "panel-toggle"}
+                aria-pressed={panelOpen}
+                aria-label="곁쪽지 서랍"
+                title="곁쪽지 서랍"
+                onClick={() => setPanelOpen((v) => !v)}
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <line x1="15" y1="4" x2="15" y2="20" />
+                </svg>
+            </button>
         </>
     );
 
@@ -91,7 +115,7 @@ export default function ProjectWritePage() {
             <Rail />
             <div className="main" style={{ ["--zoom"]: zoom } as CSSProperties}>
                 <Titlebar title={projectTitle ? `${projectTitle} — 집필` : "집필"} right={right} />
-                <div className="screen-body screen-body--solo">
+                <div className={`screen-body ${panelOpen ? "" : "screen-body--solo"}`}>
                     <div className="studio">
                         {Number.isNaN(projectId) ? (
                             <p style={{ padding: "2rem" }}>잘못된 작품입니다.</p>
@@ -115,6 +139,14 @@ export default function ProjectWritePage() {
                             />
                         )}
                     </div>
+                    {panelOpen && (
+                        <MemoPanel
+                            memos={drawerMemos}
+                            loading={projectMemosQuery.isLoading}
+                            onUnlink={(memoId) => removeLinkMemo.mutate({ memoId, projectId })}
+                            onSetPin={(memoId, pinned) => setPinMemo.mutate({ memoId, projectId, pinned })}
+                        />
+                    )}
                 </div>
                 {autoSave.status === "conflict" && autoSave.conflict != null && (
                     <ConflictDialog conflict={autoSave.conflict} onReload={handleReload} onOverwrite={handleOverwrite} />

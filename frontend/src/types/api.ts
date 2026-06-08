@@ -102,6 +102,18 @@ export interface MemoResponse {
     projects: MemoProjectResponse[];
 }
 
+/** 작품 맥락 곁쪽지 응답 (014) — GET /api/projects/{id}/memos, PUT …/pin. id 는 memoId. */
+export interface ProjectMemoResponse {
+    memoId: number;
+    projectId: number;
+    body: string;
+    source: string;
+    capturedAt: string;
+    reasonNote: string | null;
+    tags: string[];
+    pinned: boolean;
+}
+
 /** 토큰 목록 항목 — GET /api/api-tokens 응답 원소 (token 필드 없음) */
 export interface ApiTokenListItem {
     id: number;

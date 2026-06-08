@@ -1,237 +1,181 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState, type FormEvent } from "react";
 import { useAuthGuard } from "@/lib/auth/guard";
-import { listMemos } from "@/lib/api/memo";
-import { listProjects } from "@/lib/api/projects";
-import { TopBar } from "@/components/shell/TopBar";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { FilterChips, today } from "@/components/memos/FilterChips";
-import { CurationCard } from "@/components/memos/CurationCard";
-import type { FilterId, MemoFilterParams } from "@/components/memos/FilterChips";
-import type { MemoResponse } from "@/types/api";
+import { Rail } from "@/components/workspace/Rail";
+import { Titlebar } from "@/components/workspace/Titlebar";
+import { LinkPopover } from "@/components/memos/LinkPopover";
+import { toInboxMemoView } from "@/lib/memoView";
+import { useAddLinkMemo, useCaptureMemo, useInboxMemos, useRemoveLinkMemo } from "@/lib/query/useMemos";
+import { useProjectCards } from "@/lib/query/useProjects";
+import type { LinkedProject } from "@/lib/types/domain";
 
 /**
- * 메모 inbox page — 실데이터 결선 + 큐레이션/필터 (006 US3 T048 + US4 T061).
+ * 곁쪽지 책상 (015 US2) — desktop MemoInboxScreen 1:1 이식. 006 `/memos` 폐기·교체.
+ * 흩어진 쪽지를 본문 중심으로 모아 보고, 어느 작품에 다시 붙일지 정한다(작품 단위 추림).
  *
- * - GET /api/memos 필터 파라미터 실제 동작 (전체/미분류/프로젝트/인물/태그/q)
- * - 메모 카드 클릭 시 CurationCard 펼침 (한 번에 하나)
- * - FilterChips: 전체/미분류/오늘 + 프로젝트 동적 칩 + overlap 카운트
- * - US3 inbox 기존 동작 보존 (빈 상태 / 에러 / 로딩)
- *
- * Spec reference: contracts/route-surfaces.md §2-3 + 006 US4 backend 계약
+ * 보류(별도 트랙): 쪽지 버리기 + 되돌리기 — 백엔드가 영구 삭제만 지원(soft-delete·restore 부재).
+ * desktop 의 삭제/Toast 는 014 에 deletedAt + restore endpoint 추가 후 복원(015 범위 밖).
  */
+export default function MemoDeskPage() {
+    useAuthGuard("requireAuth");
+    const now = useMemo(() => new Date(), []);
+    const memosQuery = useInboxMemos();
+    const cardsQuery = useProjectCards();
+    const captureMemo = useCaptureMemo();
+    const addLink = useAddLinkMemo();
+    const removeLink = useRemoveLinkMemo();
 
-const SOURCE_LABEL: Record<string, string> = {
-    DESKTOP: "💻",
-    MOBILE: "📱",
-};
+    // 추림 — null 이면 전부, projectId 면 그 작품에 붙은 쪽지만.
+    const [siftProjectId, setSiftProjectId] = useState<number | null>(null);
+    const [draft, setDraft] = useState("");
+    // 붙이기 팝오버가 열린 메모 id (한 번에 하나).
+    const [linkMenuFor, setLinkMenuFor] = useState<number | null>(null);
 
-const formatCapturedAt = (isoString: string): string => {
-    const date = new Date(isoString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
+    const memos = memosQuery.data ? memosQuery.data.map((m) => toInboxMemoView(m, now)) : null;
+    const projects: LinkedProject[] = (cardsQuery.data ?? []).map((p) => ({ id: p.id, title: p.title }));
 
-    if (diffHours < 24 && date.getDate() === now.getDate()) {
-        return `오늘 ${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
-    }
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-    if (date.getDate() === yesterday.getDate() && date.getMonth() === yesterday.getMonth()) {
-        return `어제 ${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
-    }
-    return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
-};
+    const handleAddInline = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!draft.trim() || captureMemo.isPending) return;
+        // 책상 인라인 캡처는 정리 공간 입력이라 미연결로 저장.
+        await captureMemo.mutateAsync({ body: draft.trim(), linkProjectId: null });
+        setDraft("");
+    };
 
-/** 오늘 날짜 string (YYYY-MM-DD) 기준 필터 */
-const isCapturedToday = (isoString: string): boolean => {
-    const d = new Date(isoString);
-    const t = today();
-    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    return dateStr === t;
-};
+    const handleToggleLink = (memoId: number, projectId: number, next: boolean) => {
+        if (next) addLink.mutate({ memoId, projectId });
+        else removeLink.mutate({ memoId, projectId });
+    };
 
-interface MemoCardProps {
-    memo: MemoResponse;
-    isExpanded: boolean;
-    onToggle: () => void;
-    onCurationClose: () => void;
-}
+    const handleUnlink = (memoId: number, projectId: number) => removeLink.mutate({ memoId, projectId });
 
-function MemoCard({ memo, isExpanded, onToggle, onCurationClose }: MemoCardProps) {
-    const projectCount = memo.projects.length;
-    const isClassified = projectCount > 0;
+    // 추림에 쓸 작품 — 쪽지가 실제로 붙어 있는 작품만 노출(빈 추림 칩 방지).
+    const siftProjects = useMemo(() => {
+        if (memos === null) return [];
+        const used = new Set(memos.flatMap((m) => m.linkedProjects.map((lp) => lp.id)));
+        return projects.filter((p) => used.has(p.id));
+    }, [memos, projects]);
+
+    // 선택한 추림 작품이 더 이상 후보에 없으면(연결 전부 해제 등) 전부로 간주(렌더 중 파생 — effect setState 회피).
+    const effectiveSiftId = siftProjectId !== null && siftProjects.some((p) => p.id === siftProjectId) ? siftProjectId : null;
+
+    const shown =
+        memos === null
+            ? []
+            : effectiveSiftId === null
+              ? memos
+              : memos.filter((m) => m.linkedProjects.some((lp) => lp.id === effectiveSiftId));
 
     return (
-        <li>
-            <div
-                className="p-5 rounded-card-memo"
-                style={{
-                    backgroundColor: "var(--w-canvas)",
-                    border: isExpanded ? "1px solid var(--w-accent)" : "1px solid var(--w-hairline)",
-                    cursor: "pointer",
-                    transition: "border-color 0.15s ease",
-                }}
-                onClick={onToggle}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        onToggle();
-                    }
-                }}
-                aria-expanded={isExpanded}
-                aria-label={`메모: ${memo.body.slice(0, 40)}${memo.body.length > 40 ? "…" : ""}`}
-            >
-                <p style={{ color: "var(--w-ink)", lineHeight: 1.6 }}>{memo.body}</p>
-                <div
-                    className="flex items-center gap-3 mt-3 flex-wrap"
-                    style={{ fontSize: "12px", color: "var(--w-ink)", opacity: 0.5 }}
-                >
-                    <span>{SOURCE_LABEL[memo.source] ?? memo.source}</span>
-                    <span>{formatCapturedAt(memo.capturedAt)}</span>
-                    {memo.tags.length > 0 && (
-                        <span>{memo.tags.map((t) => `#${t}`).join(" ")}</span>
-                    )}
-                    {isClassified ? (
-                        <span style={{ marginLeft: "auto", opacity: 0.8 }}>
-                            {memo.projects.map((p) => p.title).join(", ")}
-                        </span>
-                    ) : (
-                        <span style={{ marginLeft: "auto" }}>분류하기 →</span>
-                    )}
+        <div className="app">
+            <Rail />
+            <div className="main">
+                <Titlebar title="쪽지" />
+                <div className="screen-body screen-body--solo">
+                    <div className="screen-main">
+                        <div className="memo-deck">
+                            <div className="memo-deck__bar">
+                                <h1 className="memo-deck__head">책상 위 쪽지</h1>
+                                {siftProjects.length > 0 && (
+                                    <div className="sift-row" role="group" aria-label="작품으로 추리기">
+                                        <button
+                                            type="button"
+                                            className={effectiveSiftId === null ? "sift is-on" : "sift"}
+                                            aria-pressed={effectiveSiftId === null}
+                                            onClick={() => setSiftProjectId(null)}
+                                        >
+                                            전부
+                                        </button>
+                                        {siftProjects.map((p) => (
+                                            <button
+                                                key={p.id}
+                                                type="button"
+                                                className={effectiveSiftId === p.id ? "sift is-on" : "sift"}
+                                                aria-pressed={effectiveSiftId === p.id}
+                                                onClick={() => setSiftProjectId(p.id)}
+                                            >
+                                                {p.title}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <form className="memo-jot" onSubmit={handleAddInline}>
+                                <input
+                                    className="input"
+                                    type="text"
+                                    placeholder="쪽지 한 줄 적기…"
+                                    value={draft}
+                                    onChange={(e) => setDraft(e.target.value)}
+                                />
+                                <button type="submit" className="btn btn--secondary" disabled={!draft.trim() || captureMemo.isPending}>
+                                    추가
+                                </button>
+                            </form>
+
+                            <div className="scatter">
+                                {shown.map((m, i) => (
+                                    <article
+                                        key={m.id}
+                                        className={linkMenuFor === m.id ? "scrap is-linking" : "scrap"}
+                                        style={{ animationDelay: `${40 + i * 45}ms` }}
+                                    >
+                                        {m.linkedProjects.length > 0 && (
+                                            <div className="scrap__tabs">
+                                                {m.linkedProjects.map((lp) => (
+                                                    <span key={lp.id} className="scrap__tab" title="붙인 작품">
+                                                        {lp.title}
+                                                        <button
+                                                            type="button"
+                                                            className="scrap__tab-x"
+                                                            aria-label={`${lp.title} 연결 해제`}
+                                                            onClick={() => handleUnlink(m.id, lp.id)}
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <p className="scrap__body">{m.body}</p>
+                                        <div className="scrap__foot">
+                                            <span className="scrap__when">{m.dateLabel}</span>
+                                            <div className="link-anchor">
+                                                <button
+                                                    type="button"
+                                                    className="scrap__attach"
+                                                    aria-label={m.linkedProjects.length > 0 ? "다른 작품에도 붙이기" : "작품에 붙이기"}
+                                                    onClick={() => setLinkMenuFor((cur) => (cur === m.id ? null : m.id))}
+                                                >
+                                                    <span aria-hidden="true">＋</span>
+                                                    {m.linkedProjects.length > 0 ? "다른 작품에도 붙이기" : "작품에 붙이기"}
+                                                </button>
+                                                {linkMenuFor === m.id && (
+                                                    <LinkPopover
+                                                        projects={projects}
+                                                        linkedProjectIds={m.linkedProjects.map((lp) => lp.id)}
+                                                        onToggle={(pid, next) => handleToggleLink(m.id, pid, next)}
+                                                        onClose={() => setLinkMenuFor(null)}
+                                                    />
+                                                )}
+                                            </div>
+                                        </div>
+                                    </article>
+                                ))}
+                                {memos !== null && shown.length === 0 && (
+                                    <div className="panel__empty">
+                                        {effectiveSiftId !== null
+                                            ? "이 작품에 붙인 쪽지가 아직 없어요."
+                                            : "아직 쪽지가 없어요. 떠오른 생각을 적어두세요."}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            {isExpanded && (
-                <CurationCard
-                    memo={memo}
-                    onClose={onCurationClose}
-                />
-            )}
-        </li>
-    );
-}
-
-export default function MemosPage() {
-    useAuthGuard("requireAuth");
-
-    const [activeFilter, setActiveFilter] = useState<FilterId>("all");
-    const [filterParams, setFilterParams] = useState<MemoFilterParams>({});
-    const [expandedMemoId, setExpandedMemoId] = useState<number | null>(null);
-
-    // 필터 적용 메모 목록 쿼리
-    const memosQuery = useQuery({
-        queryKey: ["memos", { page: 0, size: 50, ...filterParams }],
-        queryFn: () =>
-            listMemos({
-                page: 0,
-                size: 50,
-                sort: "capturedAt,desc",
-                unclassified: filterParams.unclassified,
-                projectId: filterParams.projectId,
-                characterId: filterParams.characterId,
-                tag: filterParams.tag,
-            }),
-        retry: false,
-    });
-
-    // 미분류 카운트 (FilterChips overlap 카운트용)
-    const unclassifiedQuery = useQuery({
-        queryKey: ["memos", { page: 0, size: 1, unclassified: true }],
-        queryFn: () => listMemos({ page: 0, size: 1, unclassified: true }),
-        retry: false,
-    });
-
-    // 프로젝트 목록 (동적 필터 칩용)
-    const projectsQuery = useQuery({
-        queryKey: ["projects", { page: 0, size: 100 }],
-        queryFn: () => listProjects({ page: 0, size: 100 }),
-        retry: false,
-    });
-
-    const handleFilterChange = useCallback((filterId: FilterId, params: MemoFilterParams) => {
-        setActiveFilter(filterId);
-        setFilterParams(params);
-        setExpandedMemoId(null); // 필터 변경 시 펼쳐진 카드 닫기
-    }, []);
-
-    const handleMemoToggle = useCallback((memoId: number) => {
-        setExpandedMemoId((prev) => (prev === memoId ? null : memoId));
-    }, []);
-
-    const handleCurationClose = useCallback(() => {
-        setExpandedMemoId(null);
-    }, []);
-
-    // 오늘 필터 클라이언트 후처리 (backend 미지원 — capturedAt 기준)
-    const rawMemos = memosQuery.data?.content ?? [];
-    const memos =
-        filterParams.todayOnly === true ? rawMemos.filter((m) => isCapturedToday(m.capturedAt)) : rawMemos;
-
-    const totalCount = memosQuery.data?.totalElements ?? 0;
-    const unclassifiedCount = unclassifiedQuery.data?.totalElements ?? 0;
-    const projects = projectsQuery.data?.content ?? [];
-
-    return (
-        <div className="flex flex-col min-h-screen" style={{ backgroundColor: "var(--w-parchment)" }}>
-            <TopBar title="메모 inbox" actions={<ThemeToggle />} />
-            <main className="flex-1 max-w-4xl w-full mx-auto px-6 py-8">
-                <FilterChips
-                    activeFilter={activeFilter}
-                    totalCount={totalCount}
-                    unclassifiedCount={unclassifiedCount}
-                    projects={projects}
-                    onFilterChange={handleFilterChange}
-                />
-
-                {memosQuery.isLoading && (
-                    <p style={{ color: "var(--w-ink)", opacity: 0.5, textAlign: "center", marginTop: "4rem" }}>
-                        불러오는 중…
-                    </p>
-                )}
-
-                {memosQuery.isError && (
-                    <div style={{ textAlign: "center", marginTop: "4rem" }}>
-                        <p style={{ color: "var(--w-ink)", opacity: 0.7 }}>메모를 불러오지 못했습니다.</p>
-                        <button
-                            type="button"
-                            onClick={() => void memosQuery.refetch()}
-                            className="mt-4 px-6 py-2 rounded-button-pill text-sm font-semibold"
-                            style={{ backgroundColor: "var(--w-accent)", color: "var(--w-canvas)" }}
-                        >
-                            다시 시도
-                        </button>
-                    </div>
-                )}
-
-                {!memosQuery.isLoading && !memosQuery.isError && memos.length === 0 && (
-                    <div style={{ textAlign: "center", marginTop: "4rem" }}>
-                        <p style={{ color: "var(--w-ink)", opacity: 0.6, fontSize: "15px" }}>
-                            아직 메모가 없습니다.
-                        </p>
-                        <p style={{ color: "var(--w-ink)", opacity: 0.4, fontSize: "13px", marginTop: "0.5rem" }}>
-                            ⌘+N 으로 빠르게 캡처해 보세요.
-                        </p>
-                    </div>
-                )}
-
-                {memos.length > 0 && (
-                    <ul className="flex flex-col gap-3">
-                        {memos.map((m) => (
-                            <MemoCard
-                                key={m.id}
-                                memo={m}
-                                isExpanded={expandedMemoId === m.id}
-                                onToggle={() => handleMemoToggle(m.id)}
-                                onCurationClose={handleCurationClose}
-                            />
-                        ))}
-                    </ul>
-                )}
-            </main>
         </div>
     );
 }

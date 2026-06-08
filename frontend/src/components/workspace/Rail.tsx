@@ -1,10 +1,17 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { QuickCapture } from "@/components/QuickCapture";
 
-/** 화면 전환 rail — desktop Rail 이식(web 라우팅). 하단 잉크 버튼 = 빠른 메모(US2 전까지 메모 책상 이동). */
+/** 화면 전환 rail — desktop Rail 이식(web 라우팅). 하단 잉크 버튼 = 빠른 메모 캡처(QuickCapture). */
 type Item = { key: string; label: string; href: string; match: (p: string) => boolean; icon: ReactNode };
+
+/** 집필실 경로(`/projects/{id}/write`)면 그 작품 id 를 캡처 기본 연결 대상으로 쓴다. 아니면 미연결(null). */
+function activeProjectIdFrom(pathname: string): number | null {
+    const m = pathname.match(/^\/projects\/(\d+)\/write/);
+    return m ? Number(m[1]) : null;
+}
 
 const ITEMS: Item[] = [
     {
@@ -57,6 +64,7 @@ const ITEMS: Item[] = [
 export function Rail() {
     const pathname = usePathname();
     const router = useRouter();
+    const [captureOpen, setCaptureOpen] = useState(false);
 
     return (
         <nav className="rail" aria-label="화면 전환">
@@ -79,12 +87,16 @@ export function Rail() {
                     </button>
                 ))}
             </div>
-            <button type="button" className="rail__ink" onClick={() => router.push("/memos")} aria-label="빠른 메모">
+            <button type="button" className="rail__ink" onClick={() => setCaptureOpen(true)} aria-label="빠른 메모">
                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M12 3.2c.38 0 .72.21.9.55 1.06 2.02 4.6 7.1 4.6 10.45a5.5 5.5 0 0 1-11 0c0-3.35 3.54-8.43 4.6-10.45.18-.34.52-.55.9-.55Z" />
                 </svg>
                 <span className="rail__ink-label">잉크 한 방울</span>
             </button>
+
+            {captureOpen && (
+                <QuickCapture activeProjectId={activeProjectIdFrom(pathname)} onClose={() => setCaptureOpen(false)} />
+            )}
         </nav>
     );
 }
