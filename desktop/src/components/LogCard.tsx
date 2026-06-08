@@ -39,28 +39,42 @@ export function LogCard({ card, now }: Props) {
     <article className="log-card">
       <header className="log-card__header">
         <h2 className="log-card__title">{project.title}</h2>
-        <span className="log-card__date">{relativeDate}</span>
       </header>
 
-      <div className="log-card__progress">
+      <div className="log-card__field">
+        <span className="log-card__label">진척도</span>
         {progress !== null ? (
-          <>
+          <div className="log-card__progress">
             <div className="log-card__bar" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
               <div className="log-card__bar-fill" style={{ width: `${Math.min(progress, 100)}%` }} />
             </div>
             <span className="log-card__percent">{progress}%</span>
-          </>
+          </div>
         ) : (
           <span className="log-card__no-target">목표 미설정</span>
         )}
       </div>
 
-      {sentence && <p className="log-card__sentence">{sentence}</p>}
+      <div className="log-card__field">
+        <span className="log-card__label">최근 수정</span>
+        <span className="log-card__value">{relativeDate}</span>
+      </div>
 
-      <div className="log-card__duration">{duration}</div>
+      {sentence && (
+        <div className="log-card__field">
+          <span className="log-card__label">마지막 문장</span>
+          <p className="log-card__sentence">{sentence}</p>
+        </div>
+      )}
+
+      <div className="log-card__field">
+        <span className="log-card__label">총 작업 시간</span>
+        <span className="log-card__value">{duration}</span>
+      </div>
 
       <div className="log-card__log-section">
         <div className="log-card__latest-log">
+          <span className="log-card__label">마지막 기록</span>
           {latestLog ? (
             <>
               <span className="log-card__latest-body">{latestLog.body}</span>
