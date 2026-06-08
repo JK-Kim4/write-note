@@ -1,8 +1,10 @@
 # 핸드오프 — 015 Web 포팅 Front 이식 (세션 인계)
 
-**작성:** 2026-06-08 | **브랜치:** `015-web-port-frontend` (014 기반) | **최신 커밋:** `e9bdbb4`
+**작성:** 2026-06-08 | **갱신:** 2026-06-09 | **브랜치:** `015-web-port-frontend` (014 기반) | **최신 커밋:** `17501af`
 
 다음 세션이 이 문서만 읽고 이어서 작업할 수 있도록 현재 상태·실행법·다음 할 일·함정을 정리한다.
+
+> **2026-06-09 진행:** US2(곁쪽지)·US3(기록+세션)·US4(문의)·Polish **구현 완료·커밋**(`b5f78b4`→`a8903cd`→`121555a`→`17501af`). tasks **38/44**. 게이트 GREEN(lint clean·typecheck·test 65·build), 014 E2E 스모크 통과(US2·US3), US별 서브에이전트 검토 2회. **잔여=브라우저 시각 dogfooding + 아래 보류 결정.** 상세는 §3·§8.
 
 ---
 
@@ -32,10 +34,20 @@
 
 ## 3. ❌ 아직 안 된 것 (다음 세션 작업)
 
-**US2 곁쪽지 (다음 우선):** 집필실 우측 **곁쪽지 서랍**(MemoPanel) + **메모 책상**(`/memos`, 006 폐기·교체) + 빠른 캡처(QuickCapture) + 고정(014 pin)
-**US3 기록+작업세션:** **작업 세션 추적**(집필실 진입 start / 라우트 이탈·탭 닫기 end, R6) + **작업 종료+기록** 버튼 + **기록 화면**(`/logs`, 미존재) + 재진입 한 장(ReentryCard)
-**US4 문의:** `/contact`(미존재) — ContactScreen 이식 + `shell.openExternal`→`window.open`
-**기타:** 카드 **"마지막 문장"** placeholder(R6 — 작품별 document 본문 파생 미연동) · 보기메뉴 풀버전(테마·자동저장 토글) · auth 화면 desktop화(범위 밖) · Rail "메모/기록/문의" → 현재 006/404
+**US2~US4 + Polish 구현은 완료**(위 2026-06-09 진행). 남은 것은 **브라우저 시각 dogfooding**과 **보류 결정**:
+
+**브라우저 dogfooding (자동 불가 — 사용자 영역):**
+- T041 폰트/한글 전 화면(라이트/다크 + iOS Safari·Android Chrome 한글 본문 fallback)
+- T043 골든패스(미로그인→로그인 redirect SC-006 가드는 배선 확인됨 / 캡처→서랍→고정→연결→필터 / 세션→종료+기록→기록화면 / 문의 전송·카카오)
+- T016/T018/T019 (US1 잔여 — Rail/ViewMenu·RTL·연동 dogfooding)
+
+**보류 결정 (surface 됨, 사용자/후속):**
+- **곁쪽지 삭제+되돌리기** → 백엔드 soft-delete+restore 별도 트랙([[03-ISSUES]] **ISSUE-026**). 현재 책상에 삭제 버튼 없음(보류).
+- **문의 CORS 미검증** → 브라우저→formsubmit.co cross-origin, 배포 전 실브라우저 확인([[03-ISSUES]] **ISSUE-027**). 실패해도 graceful `ok:false`.
+- **전역 캡처 중복** → 006 `QuickCaptureModal`(providers, ⌘+N)이 내 Rail "잉크 한 방울"(QuickCapture)과 캡처 경로 2개 공존. 통합/⌘+N 마이그레이션 결정 필요(내 orphan 아니라 자동삭제 안 함).
+- **legacy 006 라우트** `/projects/new`·`/projects/[id]`·`/projects/[id]/edit`(006 프로젝트 CRUD, Rail 미링크) + `/write`·`/write/preview` 정리 — 내 orphan 아닌 006 leftover.
+- 카드 **"마지막 문장"**: 작품 벽 카드는 placeholder 유지(`projects.listCards` lastSentenceSource:""). **기록 화면 LogCard 는 `extractPlainText`로 파생 연동됨**(R6 부분 해소).
+- 보기메뉴 풀버전(ViewMenu 테마·자동저장 토글, T016) 미이식 — 집필실 Titlebar 는 minimal(줄노트·줌·작업종료·서랍).
 
 ---
 
@@ -96,4 +108,11 @@ cd frontend && pnpm install && pnpm dev                                    # :30
 
 ## 8. 다음 세션 시작점
 
-**US2(곁쪽지)부터** — `tasks.md` T020~T026. 메모 shim(listByProject/setPin/addLink/removeLink) + 메모 책상(`/memos` 교체, `desktop/src/screens/MemoInboxScreen.tsx`) + 집필실 곁쪽지 서랍(`desktop/src/components/MemoPanel.tsx`·`QuickCapture.tsx`). 014 곁쪽지 endpoint: `GET /api/projects/{id}/memos`(pinned), `PUT /api/projects/{id}/memos/{memoId}/pin`.
+**US1~US4 + Polish 구현 완료.** 다음 후보(사용자 결정 영역):
+
+1. **브라우저 dogfooding** (가장 우선) — `pnpm dev`(:3000) + dogfood 계정 로그인 후 §3 "브라우저 dogfooding" 항목 전수 확인(한글 폰트·페이지분할·캡처/고정/연결/필터·세션/기록·문의·미로그인 redirect). 발견 시 fix.
+2. **보류 결정 처리** (§3) — 전역 캡처 중복(QuickCaptureModal↔Rail) 통합 / legacy 006 라우트 정리 / 곁쪽지 삭제 백엔드 트랙(ISSUE-026) / 문의 CORS 검증(ISSUE-027).
+3. **하위작업 3** — 등장인물 UI·모바일 캡처·로컬 `.db` 가져오기(베타 이후).
+4. **하위작업 4** — Vercel(front) + Render(backend) 런칭 + V7 마이그레이션 운영 적용(Supabase, 사용자 컨펌).
+
+**커밋 체인:** `e9bdbb4`(US1)→`b5f78b4`(US2)→`a8903cd`(US3)→`121555a`(US4)→`17501af`(Polish). 미push(원격 동기는 사용자 결정 — push 시 sync-vault hook 발화).
