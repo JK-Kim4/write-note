@@ -26,7 +26,7 @@ description: "Task list — 013 Desktop 앱 공개 배포 (Windows + macOS)"
 
 ## Phase 1: Setup
 
-- [ ] T001 로컬 빌드 기준선 확인 — `cd desktop && pnpm install && pnpm build`가 GREEN인지 확인(배포 변경 전 회귀 기준선). 실패 시 먼저 해소.
+- [X] T001 로컬 빌드 기준선 확인 — `cd desktop && pnpm install && pnpm build`가 GREEN인지 확인(배포 변경 전 회귀 기준선). 실패 시 먼저 해소.
 
 ---
 
@@ -34,12 +34,12 @@ description: "Task list — 013 Desktop 앱 공개 배포 (Windows + macOS)"
 
 **목적**: 산출물 계약(고정 파일명·타깃·서명)을 확정. US1(빌드)·US2(링크)·US3(링크 불변)이 모두 의존.
 
-- [ ] T002 `desktop/electron-builder.yml` 확장 — `contracts/release-pipeline.md` §B대로:
+- [X] T002 `desktop/electron-builder.yml` 확장 — `contracts/release-pipeline.md` §B대로:
   - `artifactName` 고정(공백 회피, 하이픈): mac `Narae-Note.${ext}`, win NSIS 산출물명을 `Narae-Note-Setup.exe`로
   - `mac`: `arch: [universal]`, `identity: "-"`(null→ad-hoc), `hardenedRuntime: false`
   - `win`: `target: nsis`, `icon: assets/icon.png`
   - `nsis`: `oneClick: true`, `perMachine: false`
-- [ ] T003 [human] 로컬 macOS 빌드 1회로 설정 검증 — `cd desktop && pnpm build && pnpm exec electron-builder --mac`. 확인: `desktop/release/Narae-Note.dmg` 생성 / universal(`lipo -archs`) / ad-hoc 서명(`codesign -dv` 결과에 `Signature=adhoc`). (Windows 산출물은 로컬 빌드 불가 → CI에서만)
+- [X] T003 [human] 로컬 macOS 빌드 1회로 설정 검증 — `cd desktop && pnpm build && pnpm exec electron-builder --mac`. 확인: `desktop/release/Narae-Note.dmg` 생성 / universal(`lipo -archs`) / ad-hoc 서명(`codesign -dv` 결과에 `Signature=adhoc`). (Windows 산출물은 로컬 빌드 불가 → CI에서만)
 
 **Checkpoint**: electron-builder.yml이 양 OS 산출물 계약을 만족 → US1·US2 진입 가능.
 
@@ -51,7 +51,7 @@ description: "Task list — 013 Desktop 앱 공개 배포 (Windows + macOS)"
 
 **Independent Test**: 테스트 태그 push 시 사람 개입 없이 양 OS 자산이 Release에 나타나고, 각 자산이 실제 기기에서 설치·실행된다.
 
-- [ ] T004 [US1] `.github/workflows/release.yml` 작성 — `contracts/release-pipeline.md` §A대로: `on.push.tags: ['v*']` / `permissions: contents: write` / matrix(macos-latest `--mac`, windows-latest `--win`) `fail-fast: false` / `working-directory: desktop` / Node는 `desktop/.nvmrc`(24.14.0) / `corepack enable`(pnpm 8) / `pnpm install` / `pnpm build` / `pnpm exec electron-builder ${{matrix.target}} --publish always` (`GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}`)
+- [X] T004 [US1] `.github/workflows/release.yml` 작성 — `contracts/release-pipeline.md` §A대로: `on.push.tags: ['v*']` / `permissions: contents: write` / matrix(macos-latest `--mac`, windows-latest `--win`) `fail-fast: false` / `working-directory: desktop` / Node는 `desktop/.nvmrc`(24.14.0) / `corepack enable`(pnpm 8) / `pnpm install` / `pnpm build` / `pnpm exec electron-builder ${{matrix.target}} --publish always` (`GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}`)
 - [ ] T005 [US1] [human] 파이프라인 검증(G1) — 테스트 태그(예: `v0.0.1-test`) push → Actions 양 OS job GREEN + Release에 `Narae-Note.dmg` + `Narae-Note-Setup.exe` 자동 업로드(수동 0회). 한쪽 job 실패 주입 시 다른 자산 정상 게시(`fail-fast:false`) 확인.
 - [ ] T006 [US1] [human] ⚠️ macOS 실제 실행 검증(G2, 최대 리스크) — **빌드한 Mac이 아닌 다른 Mac**(또는 `xattr -w com.apple.quarantine`)에서 dmg 다운로드 → 응용 프로그램 드래그 → 시스템 설정 → 개인정보 보호 및 보안 → "확인 없이 열기" → 실행 성공. Apple Silicon + (가능 시) Intel. **실패 시**: ad-hoc 배포 불가 결론 → macOS 서명+공증($99) fallback을 별도 트랙으로 surfacing(03-ISSUES).
 - [ ] T007 [US1] [human] Windows 실제 설치 검증(G3) — `Narae-Note-Setup.exe` → SmartScreen "추가 정보 → 실행" → 관리자 권한 프롬프트 없이 설치 + 앱 실행.
@@ -67,10 +67,10 @@ description: "Task list — 013 Desktop 앱 공개 배포 (Windows + macOS)"
 
 **Independent Test**: 비개발자에게 `/download` 링크만 주고, 페이지 안내문만으로 설치·실행 완료.
 
-- [ ] T009 [P] [US2] `/download` 페이지 작성 — `frontend/src/app/download/page.tsx` + 필요한 client 컴포넌트(`'use client'`): `navigator.userAgent`/`platform`로 OS 감지 → 방문 OS 버튼 강조, Windows/Mac 버튼 2개 항상 노출. 링크는 `contracts/release-pipeline.md` §C 고정 URL(`releases/latest/download/Narae-Note-Setup.exe` / `Narae-Note.dmg`).
-- [ ] T010 [P] [US2] 설치 안내문 섹션 — `frontend/src/app/download/` 내: Windows(SmartScreen 추가정보→실행) + macOS(시스템 설정→개인정보 보호 및 보안→확인 없이 열기) 한국어 단계. 한국어 우선(DESIGN.md 전제 #5).
-- [ ] T011 [P] [US2] (선택) behavior 테스트 — `frontend/src/app/download/page.test.tsx`: OS 감지 분기로 강조 버튼 전환 + 양 버튼 `href`가 고정 latest/download 링크인지(RTL `getByRole`, 시스템 경계 navigator만 mock).
-- [ ] T012 [US2] `pnpm build`(frontend) — RSC server/client 경계 검출(HARD-GATE, lint 만으로 미검출). T009/T010 직후.
+- [X] T009 [P] [US2] `/download` 페이지 작성 — `frontend/src/app/download/page.tsx` + 필요한 client 컴포넌트(`'use client'`): `navigator.userAgent`/`platform`로 OS 감지 → 방문 OS 버튼 강조, Windows/Mac 버튼 2개 항상 노출. 링크는 `contracts/release-pipeline.md` §C 고정 URL(`releases/latest/download/Narae-Note-Setup.exe` / `Narae-Note.dmg`).
+- [X] T010 [P] [US2] 설치 안내문 섹션 — `frontend/src/app/download/` 내: Windows(SmartScreen 추가정보→실행) + macOS(시스템 설정→개인정보 보호 및 보안→확인 없이 열기) 한국어 단계. 한국어 우선(DESIGN.md 전제 #5).
+- [X] T011 [P] [US2] (선택) behavior 테스트 — `frontend/src/app/download/page.test.tsx`: OS 감지 분기로 강조 버튼 전환 + 양 버튼 `href`가 고정 latest/download 링크인지(RTL `getByRole`, 시스템 경계 navigator만 mock).
+- [X] T012 [US2] `pnpm build`(frontend) — RSC server/client 경계 검출(HARD-GATE, lint 만으로 미검출). T009/T010 직후.
 - [ ] T013 [US2] [human] 페이지 dogfooding(G5) — 배포된 `/download` 접속: 방문 OS 강조 + 양 버튼 다운로드 동작 + 안내문 표시. (실제 다운로드는 T005의 릴리스 게시 후 가능)
 
 **Checkpoint**: 사용자 진입점 완성 — 비개발자가 페이지만으로 설치 도달.
@@ -89,7 +89,7 @@ description: "Task list — 013 Desktop 앱 공개 배포 (Windows + macOS)"
 
 ## Phase 6: Polish & Cross-Cutting
 
-- [ ] T015 [P] 릴리스 절차 문서화(FR-010) — `quickstart.md` 절차를 `desktop/README.md`에 반영(버전 상향 → 태그 push → 자동 게시 + 검증 게이트 요약).
+- [X] T015 [P] 릴리스 절차 문서화(FR-010) — `quickstart.md` 절차를 `desktop/README.md`에 반영(버전 상향 → 태그 push → 자동 게시 + 검증 게이트 요약).
 - [ ] T016 [P] vault 동기 — `~/obsidian/write-note/02-PROGRESS.md`(013 Phase 진척 + 다음 진입점) + `03-ISSUES.md`(무서명 macOS 타기기 실행 리스크 / 서명 fallback 트랙 / SmartScreen 한계).
 - [ ] T017 회고 후보 surfacing — 룰 #8(Electron 패키징 환경 선확인)이 CI로 실제 작동했는지 + G2 결과를 회고 입력으로.
 
