@@ -52,7 +52,7 @@ description: "Task list — 013 Desktop 앱 공개 배포 (Windows + macOS)"
 **Independent Test**: 테스트 태그 push 시 사람 개입 없이 양 OS 자산이 Release에 나타나고, 각 자산이 실제 기기에서 설치·실행된다.
 
 - [X] T004 [US1] `.github/workflows/release.yml` 작성 — `contracts/release-pipeline.md` §A대로: `on.push.tags: ['v*']` / `permissions: contents: write` / matrix(macos-latest `--mac`, windows-latest `--win`) `fail-fast: false` / `working-directory: desktop` / Node는 `desktop/.nvmrc`(24.14.0) / `corepack enable`(pnpm 8) / `pnpm install` / `pnpm build` / `pnpm exec electron-builder ${{matrix.target}} --publish always` (`GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}`)
-- [ ] T005 [US1] [human] 파이프라인 검증(G1) — 테스트 태그(예: `v0.0.1-test`) push → Actions 양 OS job GREEN + Release에 `Narae-Note.dmg` + `Narae-Note-Setup.exe` 자동 업로드(수동 0회). 한쪽 job 실패 주입 시 다른 자산 정상 게시(`fail-fast:false`) 확인.
+- [X] T005 [US1] [human] 파이프라인 검증(G1) — 테스트 태그(예: `v0.0.1-test`) push → Actions 양 OS job GREEN + Release에 `Narae-Note.dmg` + `Narae-Note-Setup.exe` 자동 업로드(수동 0회). 한쪽 job 실패 주입 시 다른 자산 정상 게시(`fail-fast:false`) 확인.
 - [ ] T006 [US1] [human] ⚠️ macOS 실제 실행 검증(G2, 최대 리스크) — **빌드한 Mac이 아닌 다른 Mac**(또는 `xattr -w com.apple.quarantine`)에서 dmg 다운로드 → 응용 프로그램 드래그 → 시스템 설정 → 개인정보 보호 및 보안 → "확인 없이 열기" → 실행 성공. Apple Silicon + (가능 시) Intel. **실패 시**: ad-hoc 배포 불가 결론 → macOS 서명+공증($99) fallback을 별도 트랙으로 surfacing(03-ISSUES).
 - [ ] T007 [US1] [human] Windows 실제 설치 검증(G3) — `Narae-Note-Setup.exe` → SmartScreen "추가 정보 → 실행" → 관리자 권한 프롬프트 없이 설치 + 앱 실행.
 - [ ] T008 [US1] [human] 기능 회귀 검증(G4) — 설치 앱에서 집필실·메모·기록 동작 + 로컬 `node:sqlite` DB 생성·읽기·쓰기 확인(양 OS).
