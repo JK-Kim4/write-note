@@ -1,7 +1,7 @@
 {
   "name": "write-note-desktop",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "write-note 데스크탑 MVP (Electron + Vite + React 19 + TipTap). 집필실 디자인 + 실제 에디터.",
   "author": "Narae Note",
