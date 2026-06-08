@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
@@ -12,6 +12,7 @@ import { toDrawerMemoView } from "@/lib/memoView";
 import type { ProjectDocument } from "@/lib/types/domain";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { useWorkSession } from "@/hooks/useWorkSession";
+import { rememberLastProject } from "@/lib/lastProject";
 import { Rail } from "@/components/workspace/Rail";
 import { Titlebar } from "@/components/workspace/Titlebar";
 import { MemoPanel } from "@/components/workspace/MemoPanel";
@@ -53,6 +54,11 @@ export default function ProjectWritePage() {
 
     // 작업 세션 — 집필실 진입 시작 / 라우트 이탈·탭 닫기 종료(R6). endWithLog 는 "작업 종료+기록".
     const { endWithLog } = useWorkSession(projectId);
+
+    // Rail "집필" 네비가 돌아올 작품으로 기억(web 은 전역 활성작품이 없음).
+    useEffect(() => {
+        if (Number.isFinite(projectId)) rememberLastProject(projectId);
+    }, [projectId]);
 
     const handleEndWork = async () => {
         const trimmed = endWorkBody.trim();

@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { QuickCapture } from "@/components/QuickCapture";
+import { getLastProject } from "@/lib/lastProject";
 
 /** 화면 전환 rail — desktop Rail 이식(web 라우팅). 하단 잉크 버튼 = 빠른 메모 캡처(QuickCapture). */
 type Item = { key: string; label: string; href: string; match: (p: string) => boolean; icon: ReactNode };
@@ -66,6 +67,16 @@ export function Rail() {
     const router = useRouter();
     const [captureOpen, setCaptureOpen] = useState(false);
 
+    // "집필"은 전역 활성작품이 없어 마지막으로 연 작품의 집필실로 보낸다(없으면 작품 벽).
+    const handleNav = (item: Item) => {
+        if (item.key === "write") {
+            const last = getLastProject();
+            router.push(last !== null ? `/projects/${last}/write` : "/");
+            return;
+        }
+        router.push(item.href);
+    };
+
     return (
         <nav className="rail" aria-label="화면 전환">
             <div className="rail__mark" aria-hidden="true" title="나래 노트">
@@ -78,7 +89,7 @@ export function Rail() {
                         type="button"
                         className="rail__item"
                         aria-current={item.match(pathname) ? "page" : undefined}
-                        onClick={() => router.push(item.href)}
+                        onClick={() => handleNav(item)}
                     >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                             {item.icon}
