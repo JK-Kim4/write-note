@@ -7,10 +7,8 @@
 
 /* === Light (평평한 양피지 + 떠 있는 종이) === */
 :root {
-  /* 로고 마크(나래 노트 책) — 풀컬러 칩(텍스트 없는 책 마크, 배경 크림 타일). */
-  --logo-book: url('./narae-book.png');
-  /* 전체 로고(책 + "나래 노트" 글자) — 환영 화면 브랜드. */
-  --logo-full: url('./narae-logo.png');
+  /* 로고 마크(펜촉+날개) — 알파 마스크, mask-image 로 테마 색 적용. */
+  --logo-mask: url('./narae-mark.png');
 
   /* 앱 배경 = 평평한 양피지 (안식처 바닥) */
   --bg:             oklch(0.945 0.006 85);
@@ -146,22 +144,18 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border-right: 1px solid var(--hairline);
 }
 .rail__mark {
-  display: flex; flex-direction: column; align-items: center; gap: 5px;
-  margin-bottom: 16px; flex: none;
+  width: 28px; height: 28px; display: grid; place-items: center;
+  margin-bottom: 14px; flex: none;
 }
-.rail__wordmark {
-  font-size: 10px; font-weight: 700; color: var(--ink-soft);
-  letter-spacing: -0.02em; white-space: nowrap;
-}
-/* 나래 노트 책 마크 — 풀컬러 칩(라운드 타일). */
+/* 펜촉+날개 마크 — 알파 마스크를 accent 색으로 칠해 라이트/다크 양쪽 자동 대응. */
 .rail__logo {
-  width: 26px; height: 26px; display: block; border-radius: 7px;
-  background: var(--logo-book) center / cover no-repeat;
-  border: 1px solid var(--hairline);
+  width: 23px; height: 24px; display: block; background-color: var(--accent-ink);
+  -webkit-mask: var(--logo-mask) center / contain no-repeat;
+  mask: var(--logo-mask) center / contain no-repeat;
 }
 .rail__nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
 .rail__item {
-  width: 58px; height: 52px;
+  width: 48px; height: 52px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
   border: none; background: transparent; border-radius: var(--radius-sm);
   color: var(--muted);
@@ -934,10 +928,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
   text-align: center; display: flex; flex-direction: column; align-items: center;
   animation: rise var(--dur-enter) var(--ease-out) both;
 }
-/* 작업실 입구 브랜드 — 나래 노트 전체 로고(책 + 글자, 첫인상). */
+/* 작업실 입구 브랜드 — 펜촉+날개 마크 + 워드마크(첫인상). */
 .welcome__mark {
-  width: 150px; height: 150px; display: block; margin: 0 auto 18px; border-radius: 20px;
-  background: var(--logo-full) center / cover no-repeat;
+  width: 46px; height: 48px; display: block; margin-bottom: 14px; background-color: var(--accent-ink);
+  -webkit-mask: var(--logo-mask) center / contain no-repeat;
+  mask: var(--logo-mask) center / contain no-repeat;
+}
+.welcome__brand {
+  font-family: var(--font-serif); font-size: 14px; font-weight: 700; letter-spacing: 0.04em;
+  color: var(--muted); margin: 0 0 18px;
 }
 .welcome__title {
   font-family: var(--font-serif); font-size: 30px; font-weight: 700; line-height: 1.32;
