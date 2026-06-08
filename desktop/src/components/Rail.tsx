@@ -41,8 +41,9 @@ type RailProps = {
 export function Rail({ active, onNavigate, onCapture }: RailProps) {
   return (
     <nav className="rail" aria-label="화면 전환">
-      <div className="rail__mark" aria-hidden="true" title="나래 노트">
-        <span className="rail__logo" />
+      <div className="rail__mark" title="나래 노트">
+        <span className="rail__logo" role="img" aria-label="나래 노트" />
+        <span className="rail__wordmark">나래 노트</span>
       </div>
       <div className="rail__nav">
         {ITEMS.map((item) => (

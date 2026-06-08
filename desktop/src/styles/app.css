@@ -146,8 +146,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border-right: 1px solid var(--hairline);
 }
 .rail__mark {
-  width: 28px; height: 28px; display: grid; place-items: center;
-  margin-bottom: 14px; flex: none;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  margin-bottom: 16px; flex: none;
+}
+.rail__wordmark {
+  font-size: 10px; font-weight: 700; color: var(--ink-soft);
+  letter-spacing: -0.02em; white-space: nowrap;
 }
 /* 나래 노트 책 마크 — 풀컬러 칩(라운드 타일). */
 .rail__logo {
@@ -157,7 +161,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .rail__nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
 .rail__item {
-  width: 48px; height: 52px;
+  width: 58px; height: 52px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
   border: none; background: transparent; border-radius: var(--radius-sm);
   color: var(--muted);
