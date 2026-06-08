@@ -80,13 +80,13 @@
       <div><b>날짜</b> 2026-06-08</div>
       <div><b>방식</b> 브레인스토밍 → SDD(spec→plan→tasks) → subagent 구현 + Opus advisor 검증 → 리뷰 2회</div>
       <div><b>상태</b> <span class="pill ok">구현 완료 · 검증 GREEN</span></div>
-      <div><b>머지</b> develop 미머지 (대기)</div>
+      <div><b>머지</b> develop 머지 완료 · origin push (<code>99650ca</code>)</div>
     </div>
   </header>
 
   <h2><span class="dot"></span>한눈에</h2>
   <div class="grid cards4">
-    <div class="stat green"><div class="n">270</div><div class="l">테스트 통과 (기존 198 → +72)</div></div>
+    <div class="stat green"><div class="n">271</div><div class="l">테스트 통과 (기존 198 → +73)</div></div>
     <div class="stat green"><div class="n">GREEN</div><div class="l">tsc --noEmit · vite build</div></div>
     <div class="stat accent"><div class="n">3</div><div class="l">사용자 스토리 (US1·US2·US3)</div></div>
     <div class="stat accent"><div class="n">0</div><div class="l">회귀 (기존 기능 영향)</div></div>
@@ -197,13 +197,15 @@
     <div class="tl"><div class="h"><code>021c5d9</code> US3</div><div class="d">workSessionRepository · 세션 생명주기 · main 훅 (265)</div></div>
     <div class="tl fix"><div class="h"><code>e9da24a</code> 리뷰 1회차 수정</div><div class="d">음수 duration · 아코디언 · 이중 종료 가드 (267)</div></div>
     <div class="tl fix"><div class="h"><code>099075f</code> 리뷰 2회차 수정</div><div class="d">CSS 스타일 · 세션 종료 견고성 · dead code (270)</div></div>
+    <div class="tl"><div class="h"><code>96d5646</code> 카드 라벨 + 집필하기 버튼</div><div class="d">값 라벨 · 작품 집필 바로가기 (271)</div></div>
+    <div class="tl"><div class="h"><code>99650ca</code> develop 머지 + push</div><div class="d">271 GREEN · origin 반영</div></div>
   </div>
 
   <h2><span class="dot"></span>남은 일 (사용자 영역)</h2>
   <p class="chk"><span>[ ]</span> <b>dogfooding</b> — 실제 앱 실행해 확인: 진척% 정확성 · 작업 종료 기록 · 아코디언 · 작업 시간 누적 · 30초 미만 제외 · 앱 닫고 재시작 · 작품 삭제 연동</p>
-  <p class="chk"><span>[ ]</span> <b>develop 머지 여부 결정</b> (현재 <code>012-desktop-log-record</code> 브랜치, 미머지)</p>
+  <p class="chk"><span>[x]</span> <b>develop 머지 + origin push 완료</b> (<code>99650ca</code>)</p>
   <p class="chk"><span>[ ]</span> 자동검증 불가 영역은 dogfooding으로만 종단 확인 가능 (세션 시간 실측 · 앱 종료 훅)</p>
-  <div class="note">실행: <code>cd desktop &amp;&amp; pnpm dev</code> (Node 24 PATH 선행). 검증 재현: <code>node_modules/.bin/vitest run</code> → 270 GREEN.</div>
+  <div class="note">실행: <code>cd desktop &amp;&amp; pnpm dev</code> (Node 24 PATH 선행). 검증 재현: <code>node_modules/.bin/vitest run</code> → 271 GREEN.</div>
 
   <footer>
     write-note · 나래 노트 — 기록(Log) 기능 구현 보고 · 2026-06-08<br/>
