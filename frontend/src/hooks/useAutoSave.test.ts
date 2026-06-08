@@ -88,6 +88,51 @@ describe("useAutoSave", () => {
         expect(result.current.conflict?.currentBody).toBe(BODY);
     });
 
+    it("version prop 이 현재 syncedVersion 보다 낮게 재동기화돼도 syncedVersion 을 되돌리지 않는다(거짓 충돌 방지)", async () => {
+        // 서버 버전을 추적: 보낸 version 이 서버와 같으면 +1, 다르면 409.
+        let serverVersion = 6;
+        server.use(
+            http.put(`${ORIGIN}/api/documents/${DOC_ID}`, async ({ request }) => {
+                const { version } = (await request.json()) as { version: number };
+                if (version !== serverVersion) {
+                    return HttpResponse.json(
+                        {
+                            success: false,
+                            data: { code: "DOCUMENT_VERSION_CONFLICT", currentVersion: serverVersion, currentBody: BODY },
+                            error: { code: "DOCUMENT_VERSION_CONFLICT", message: "충돌" },
+                        },
+                        { status: 409 },
+                    );
+                }
+                serverVersion += 1;
+                return HttpResponse.json({
+                    success: true,
+                    data: { id: DOC_ID, body: BODY, wordCount: 0, version: serverVersion, updatedAt: "2024-01-01T00:00:00Z" },
+                    error: null,
+                });
+            }),
+        );
+
+        const { result, rerender } = renderHook((props) => useAutoSave(props, 0), {
+            initialProps: { documentId: DOC_ID, body: "A", version: 6 },
+        });
+
+        // 마운트 저장: A(v6) → 서버 7
+        await waitFor(() => expect(result.current.syncedVersion).toBe(7));
+        // 사용자 편집: B → 서버 8
+        rerender({ documentId: DOC_ID, body: "B", version: 6 });
+        await waitFor(() => expect(result.current.syncedVersion).toBe(8));
+
+        // stale refetch 모사: version prop 이 7(현재 syncedVersion 8 보다 낮음)로 재동기화.
+        // syncedVersion 을 7 로 되돌리면 다음 저장이 v7→서버8 과 충돌(거짓 409). 되돌리면 안 된다.
+        rerender({ documentId: DOC_ID, body: "B", version: 7 });
+
+        // 잠시 후에도 syncedVersion 은 8 유지(7 로 회귀 X), 충돌 없음.
+        await new Promise((r) => setTimeout(r, 20));
+        expect(result.current.syncedVersion).toBe(8);
+        expect(result.current.status).not.toBe("conflict");
+    });
+
     it("409 후 dismissConflict 호출 시 conflict 가 해제된다", async () => {
         server.use(
             http.put(`${ORIGIN}/api/documents/${DOC_ID}`, () =>

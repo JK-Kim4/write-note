@@ -60,13 +60,19 @@ export function useAutoSave(
         syncedVersionRef.current = syncedVersion;
     }, [syncedVersion]);
 
-    // version prop 변경 시 syncedVersion 동기화 (외부에서 문서를 다시 로드한 경우)
+    // version prop 변경 시 syncedVersion 동기화 (외부에서 문서를 다시 로드한 경우).
+    // **전진만 허용** — 서버 문서 버전은 단조 증가하므로, 현재 syncedVersion 보다 낮은 version 은 항상 stale 이다.
+    // (편집 중 끼어든 background refetch 가 최근 저장 직전 버전을 돌려줄 때 syncedVersion 을 되돌리면,
+    //  다음 저장이 stale version 으로 나가 거짓 409 충돌을 내고 conflictRef 로 이후 저장이 전부 막힌다.)
+    // conflict 해제(reload/overwrite)는 항상 더 높은 서버 버전으로 가므로 전진 가드와 무관하다.
     const prevVersionRef = useRef(version);
     useEffect(() => {
         if (version !== prevVersionRef.current) {
             prevVersionRef.current = version;
-            setSyncedVersion(version);
-            syncedVersionRef.current = version;
+            if (version > syncedVersionRef.current) {
+                setSyncedVersion(version);
+                syncedVersionRef.current = version;
+            }
         }
     }, [version]);
 
