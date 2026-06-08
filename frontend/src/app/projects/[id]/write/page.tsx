@@ -84,6 +84,11 @@ export default function ProjectWritePage() {
         documentId: doc?.id ?? 0,
         body: initialBody ?? EMPTY_DOC,
         version: doc?.version ?? 0,
+        // 저장 성공마다 캐시를 서버 최신(version/wordCount/body)으로 갱신 → 재진입·refetch 시 stale 버전 재사용 방지.
+        onSaved: (res) =>
+            queryClient.setQueryData<ProjectDocument | undefined>(documentKeys.byProject(projectId), (old) =>
+                old ? { ...old, version: res.version, wordCount: res.wordCount, bodyJson: res.body } : old,
+            ),
     });
 
     const handleChange = useCallback((change: { bodyJson: string }) => setBody(change.bodyJson), []);

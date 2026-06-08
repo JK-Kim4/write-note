@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { saveDocument } from "@/lib/api/document";
+import type { DocumentSaveResponse } from "@/types/api";
 import { ConflictError } from "@/lib/api/client";
 
 /**
@@ -26,6 +27,8 @@ interface UseAutoSaveParams {
     documentId: number;
     body: string;
     version: number;
+    /** 저장 성공 시 호출 — 부모가 서버 캐시(version/wordCount/body)를 갱신해 stale 재사용을 막는다. */
+    onSaved?: (result: DocumentSaveResponse) => void;
 }
 
 interface UseAutoSaveResult {
@@ -42,7 +45,7 @@ interface UseAutoSaveResult {
 const DEFAULT_DEBOUNCE_MS = 800;
 
 export function useAutoSave(
-    { documentId, body, version }: UseAutoSaveParams,
+    { documentId, body, version, onSaved }: UseAutoSaveParams,
     debounceMs = DEFAULT_DEBOUNCE_MS,
 ): UseAutoSaveResult {
     const [status, setStatus] = useState<AutoSaveStatus>("idle");
@@ -54,6 +57,12 @@ export function useAutoSave(
     const conflictRef = useRef(false);
     const syncedVersionRef = useRef(syncedVersion);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // onSaved 는 매 렌더 새 함수일 수 있으므로 ref 로 최신값 유지(저장 콜백에서 최신 호출).
+    const onSavedRef = useRef(onSaved);
+    useEffect(() => {
+        onSavedRef.current = onSaved;
+    });
 
     // syncedVersion state 변경 시 ref 도 동기화
     useEffect(() => {
@@ -95,6 +104,8 @@ export function useAutoSave(
                     syncedVersionRef.current = res.version;
                     setWordCount(res.wordCount);
                     setStatus("saved");
+                    // 캐시를 서버 최신으로 갱신 → 재진입·refetch 시 stale version 재사용 방지(근본).
+                    onSavedRef.current?.(res);
                 })
                 .catch((err: unknown) => {
                     if (err instanceof ConflictError) {
