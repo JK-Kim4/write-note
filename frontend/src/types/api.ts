@@ -114,6 +114,33 @@ export interface ProjectMemoResponse {
     pinned: boolean;
 }
 
+/** 집필 기록 응답 (014) — GET/POST /api/projects/{id}/logs. desktop ProjectLog 대응. */
+export interface ProjectLogResponse {
+    id: number;
+    projectId: number;
+    body: string;
+    createdAt: string;
+}
+
+/** 작업 세션 응답 (014). endedAt=null 이면 진행 중. */
+export interface WorkSessionResponse {
+    id: number;
+    projectId: number;
+    startedAt: string;
+    endedAt: string | null;
+}
+
+/** 종료+기록 결과 (014) — 보존된 세션(없으면 null) + 생성된 집필 기록. */
+export interface EndWithLogResponse {
+    session: WorkSessionResponse | null;
+    log: ProjectLogResponse;
+}
+
+/** 총 작업시간(ms) 응답 (014) — 카드 집계용. */
+export interface TotalDurationResponse {
+    totalDurationMs: number;
+}
+
 /** 토큰 목록 항목 — GET /api/api-tokens 응답 원소 (token 필드 없음) */
 export interface ApiTokenListItem {
     id: number;

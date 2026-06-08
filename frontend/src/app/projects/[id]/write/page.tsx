@@ -7,9 +7,11 @@ import { useAuthGuard } from "@/lib/auth/guard";
 import { documentKeys, useProjectDocument } from "@/lib/query/useDocument";
 import { useProject } from "@/lib/query/useProjects";
 import { useProjectMemos, useRemoveLinkMemo, useSetPinMemo } from "@/lib/query/useMemos";
+import { logKeys } from "@/lib/query/useLogs";
 import { toDrawerMemoView } from "@/lib/memoView";
 import type { ProjectDocument } from "@/lib/types/domain";
 import { useAutoSave } from "@/hooks/useAutoSave";
+import { useWorkSession } from "@/hooks/useWorkSession";
 import { Rail } from "@/components/workspace/Rail";
 import { Titlebar } from "@/components/workspace/Titlebar";
 import { MemoPanel } from "@/components/workspace/MemoPanel";
@@ -38,6 +40,9 @@ export default function ProjectWritePage() {
     const [lined, setLined] = useState(true);
     const [zoom, setZoom] = useState(1);
     const [panelOpen, setPanelOpen] = useState(false);
+    const [endWorkOpen, setEndWorkOpen] = useState(false);
+    const [endWorkBody, setEndWorkBody] = useState("");
+    const [endingWork, setEndingWork] = useState(false);
 
     // 곁쪽지 서랍 — 이 작품에 연결된 곁쪽지(고정 포함).
     const now = useMemo(() => new Date(), []);
@@ -45,6 +50,27 @@ export default function ProjectWritePage() {
     const setPinMemo = useSetPinMemo();
     const removeLinkMemo = useRemoveLinkMemo();
     const drawerMemos = (projectMemosQuery.data ?? []).map((m) => toDrawerMemoView(m, now));
+
+    // 작업 세션 — 집필실 진입 시작 / 라우트 이탈·탭 닫기 종료(R6). endWithLog 는 "작업 종료+기록".
+    const { endWithLog } = useWorkSession(projectId);
+
+    const handleEndWork = async () => {
+        const trimmed = endWorkBody.trim();
+        if (!trimmed || endingWork) return;
+        setEndingWork(true);
+        try {
+            await endWithLog(trimmed);
+            await queryClient.invalidateQueries({ queryKey: logKeys.all });
+            setEndWorkOpen(false);
+            setEndWorkBody("");
+            // desktop: 작업 종료 후 작품 벽으로 이동(세션 종료 신호). closedRef=true 라 이탈 시 이중 종료 없음.
+            router.push("/");
+        } catch {
+            // 종료 실패 — 모달 유지(재시도 가능). closedRef 는 useWorkSession 이 복원.
+        } finally {
+            setEndingWork(false);
+        }
+    };
 
     const initialBody = body ?? doc?.bodyJson ?? null;
 
@@ -93,6 +119,16 @@ export default function ProjectWritePage() {
             <span style={{ fontSize: 12, minWidth: 38, textAlign: "center" }}>{Math.round(zoom * 100)}%</span>
             <button type="button" className="btn btn--secondary btn--compact" onClick={() => setZoom((z) => Math.min(2, Math.round((z + 0.1) * 10) / 10))}>
                 +
+            </button>
+            <button
+                type="button"
+                className="btn btn--secondary btn--compact"
+                onClick={() => {
+                    setEndWorkBody("");
+                    setEndWorkOpen(true);
+                }}
+            >
+                작업 종료
             </button>
             <button
                 type="button"
@@ -152,6 +188,33 @@ export default function ProjectWritePage() {
                     <ConflictDialog conflict={autoSave.conflict} onReload={handleReload} onOverwrite={handleOverwrite} />
                 )}
             </div>
+
+            {endWorkOpen && (
+                <div className="modal-backdrop" onClick={() => !endingWork && setEndWorkOpen(false)}>
+                    <div className="modal capture" role="dialog" aria-modal="true" aria-label="작업 종료" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal__head">
+                            <h2 className="modal__title">작업 종료</h2>
+                            <span className="modal__hint">오늘의 기록을 남겨보세요</span>
+                        </div>
+                        <textarea
+                            autoFocus
+                            className="capture__input"
+                            placeholder="오늘의 기록을 남겨보세요…"
+                            rows={4}
+                            value={endWorkBody}
+                            onChange={(e) => setEndWorkBody(e.target.value)}
+                        />
+                        <div className="modal__foot">
+                            <button type="button" className="btn btn--ghost" onClick={() => setEndWorkOpen(false)} disabled={endingWork}>
+                                취소
+                            </button>
+                            <button type="button" className="btn btn--primary" onClick={handleEndWork} disabled={endWorkBody.trim().length === 0 || endingWork}>
+                                저장
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

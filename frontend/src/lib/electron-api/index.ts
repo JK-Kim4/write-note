@@ -9,11 +9,15 @@
 import { projects } from "./projects";
 import { documents } from "./documents";
 import { memos } from "./memos";
+import { sessions } from "./sessions";
+import { logs } from "./logs";
 
 export const webElectronApi = {
     projects,
     documents,
     memos,
+    sessions,
+    logs,
 };
 
 export type WebElectronApi = typeof webElectronApi;

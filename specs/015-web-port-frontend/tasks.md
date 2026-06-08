@@ -105,16 +105,16 @@ description: "Task list — Web 포팅 Front 이식 (015)"
 
 ### Tests for US3
 
-- [ ] T027 [P] [US3] shim 매핑 테스트(msw) `frontend/src/lib/electron-api/sessions.test.ts`·`logs.test.ts` — sessions.start/end/endWithLog(014), logs.listByProject + LogCard 클라 집계(latest+total+wordCount) 검증
+- [x] T027 [P] [US3] shim 매핑 테스트(msw) `frontend/src/lib/electron-api/sessions.test.ts`·`logs.test.ts` — sessions.start/end/endWithLog(014), logs.listByProject + LogCard 클라 집계(latest+total+wordCount) 검증
 
 ### Implementation for US3
 
-- [ ] T028 [US3] shim sessions/logs 도메인 — `frontend/src/lib/electron-api/sessions.ts`·`logs.ts`(start/end/endWithLog, listByProject, LogCard 집계 → contracts) → T027 GREEN
-- [ ] T029 [US3] 세션 라이프사이클 결선 — 집필실(`/projects/[id]/write`) 진입 시 `sessions.start`, **라우트 이탈 시 + 탭 닫기(`pagehide`→`navigator.sendBeacon`) 시 `sessions.end`**(R6, FR-019). `frontend/src/components/editor/` 또는 전용 훅
-- [ ] T030 [P] [US3] 기록 화면 이식 — `desktop/src/screens/LogScreen.tsx` → `frontend/src/app/logs/page.tsx`(`'use client'`, 작품별 LogCard: 최근 기록 + 누적 작업 시간 + 마지막 문장 클라 파생)
-- [ ] T031 [US3] "작업 종료+기록" UI — 집필실에서 endWithLog 호출(기록 한 줄 + 세션 종료)
-- [ ] T032 [US3] `pnpm build` + RTL(기록 카드 렌더/endWithLog 행위)
-- [ ] T033 [US3] **US3 dogfooding** — 세션 시작→종료+기록→기록 화면 카드→탭 닫기 종료 확인(SC-004)
+- [x] T028 [US3] shim sessions/logs 도메인 — `frontend/src/lib/electron-api/sessions.ts`·`logs.ts`(start/end/endWithLog, listByProject, LogCard 집계 → contracts) → T027 GREEN
+- [x] T029 [US3] 세션 라이프사이클 결선 — 집필실(`/projects/[id]/write`) 진입 시 `sessions.start`, **라우트 이탈 시 + 탭 닫기(`pagehide`→`navigator.sendBeacon`) 시 `sessions.end`**(R6, FR-019). `frontend/src/components/editor/` 또는 전용 훅
+- [x] T030 [P] [US3] 기록 화면 이식 — `desktop/src/screens/LogScreen.tsx` → `frontend/src/app/logs/page.tsx`(`'use client'`, 작품별 LogCard: 최근 기록 + 누적 작업 시간 + 마지막 문장 클라 파생)
+- [x] T031 [US3] "작업 종료+기록" UI — 집필실에서 endWithLog 호출(기록 한 줄 + 세션 종료)
+- [x] T032 [US3] `pnpm build` + RTL(기록 카드 렌더/endWithLog 행위)
+- [x] T033 [US3] **US3 dogfooding** — 세션 시작→종료+기록→기록 화면 카드→탭 닫기 종료 확인(SC-004)
 
 **Checkpoint**: US1~US3 동작.
 
