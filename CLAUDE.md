@@ -135,7 +135,7 @@ timeout / cap 룰은 글로벌 [`~/.claude/rules/shared/long-running-bash.md`](f
 <!-- SPECKIT START -->
 Current implementation plan:
 
-- [012 기록(Log) (Desktop) — 작품별 진척%·최근 수정일·마지막 문장·기록 메모 누적·총 작업 시간](specs/012-desktop-log-record/plan.md)
+- [013 Desktop 공개 배포 (Windows + macOS) — GitHub Actions 빌드 → Releases, 무서명+안내문, /download 페이지](specs/013-desktop-distribution/plan.md)
 
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan above.
