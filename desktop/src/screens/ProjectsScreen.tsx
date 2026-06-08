@@ -218,8 +218,7 @@ export function ProjectsScreen({ onOpenProject }: Props) {
             </div>
           ) : projects.length === 0 ? (
             <section className="welcome" aria-label="작업실 입구">
-              <span className="welcome__mark" aria-hidden="true" />
-              <p className="welcome__brand">나래 노트</p>
+              <span className="welcome__mark" role="img" aria-label="나래 노트" />
               <h1 className="welcome__title">작업실이 준비됐습니다</h1>
               <p className="welcome__sub">
                 메모와 등장인물, 톤과 목표 분량, 지난 세션의 마지막 한 줄까지 한자리에. 며칠 만에 다시 열어도 작품의

@@ -9,6 +9,8 @@
 :root {
   /* 로고 마크(나래 노트 책) — 풀컬러 칩(텍스트 없는 책 마크, 배경 크림 타일). */
   --logo-book: url('./narae-book.png');
+  /* 전체 로고(책 + "나래 노트" 글자) — 환영 화면 브랜드. */
+  --logo-full: url('./narae-logo.png');
 
   /* 앱 배경 = 평평한 양피지 (안식처 바닥) */
   --bg:             oklch(0.945 0.006 85);
@@ -928,15 +930,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
   text-align: center; display: flex; flex-direction: column; align-items: center;
   animation: rise var(--dur-enter) var(--ease-out) both;
 }
-/* 작업실 입구 브랜드 — 나래 노트 책 마크(풀컬러 칩) + 워드마크(첫인상). */
+/* 작업실 입구 브랜드 — 나래 노트 전체 로고(책 + 글자, 첫인상). */
 .welcome__mark {
-  width: 64px; height: 64px; display: block; margin-bottom: 14px; border-radius: 15px;
-  background: var(--logo-book) center / cover no-repeat;
-  border: 1px solid var(--paper-edge); box-shadow: var(--shadow-panel);
-}
-.welcome__brand {
-  font-family: var(--font-serif); font-size: 14px; font-weight: 700; letter-spacing: 0.04em;
-  color: var(--muted); margin: 0 0 18px;
+  width: 150px; height: 150px; display: block; margin: 0 auto 18px; border-radius: 20px;
+  background: var(--logo-full) center / cover no-repeat;
 }
 .welcome__title {
   font-family: var(--font-serif); font-size: 30px; font-weight: 700; line-height: 1.32;
