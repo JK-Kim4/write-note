@@ -224,18 +224,17 @@ export function App() {
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
+  // 작품 열기 — 선택한 작품을 집필 화면으로(작품 화면·기록 화면 공용).
+  const openProject = useCallback((p: { id: string; title: string; nextScene: string }) => {
+    setActiveProject({ id: p.id, title: p.title, nextScene: p.nextScene });
+    setScreen("write");
+  }, []);
+
   return (
     <div className="app">
       <Rail active={screen} onNavigate={setScreen} onCapture={() => setCaptureOpen(true)} />
 
-      {screen === "projects" && (
-        <ProjectsScreen
-          onOpenProject={(p) => {
-            setActiveProject({ id: p.id, title: p.title, nextScene: p.nextScene });
-            setScreen("write");
-          }}
-        />
-      )}
+      {screen === "projects" && <ProjectsScreen onOpenProject={openProject} />}
       {/* 펼친 작품이 없으면 편집기 대신 빈 상태 — 작품을 골라야 쓸 곳(document)이 생긴다. */}
       {screen === "write" && !activeProject && (
         <WriteEmptyScreen onGoToProjects={() => setScreen("projects")} />
@@ -275,7 +274,9 @@ export function App() {
         />
       )}
       {screen === "memo" && <MemoInboxScreen refresh={memoRefresh} />}
-      {screen === "log" && <LogScreen panelOpen={panelOpen} onTogglePanel={togglePanel} />}
+      {screen === "log" && (
+        <LogScreen panelOpen={panelOpen} onTogglePanel={togglePanel} onOpenProject={openProject} />
+      )}
       {screen === "contact" && <ContactScreen />}
 
       {/* 집필 편집기는 보기 메뉴(WriteStudioScreen)가 테마·자동저장을 품으므로 전역 Dock 을 숨긴다(설정 진입점 중복 회피).

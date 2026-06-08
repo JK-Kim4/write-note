@@ -848,8 +848,19 @@ button { font: inherit; color: inherit; cursor: pointer; }
   box-shadow: var(--shadow-panel); padding: 20px 22px;
   animation: rise var(--dur-enter) var(--ease-out) both;
 }
-.log-card__header { margin-bottom: 2px; }
-.log-card__title { font-size: 16px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; margin: 0; }
+.log-card__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 2px; }
+.log-card__title { font-size: 16px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log-card__open {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12.5px; font-weight: 600; color: var(--accent-ink);
+  background: var(--accent-soft); border: none; border-radius: var(--radius-pill);
+  padding: 6px 12px;
+  transition: background-color var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+}
+.log-card__open svg { width: 14px; height: 14px; }
+.log-card__open:hover { background: var(--accent); color: var(--on-accent); }
+.log-card__open:active { transform: scale(0.96); }
+.log-card__open:focus-visible { box-shadow: 0 0 0 3px var(--accent-soft); }
 
 /* 라벨-값 행 — 각 값이 무엇인지 좌측 라벨로 설명 */
 .log-card__field { display: flex; align-items: baseline; gap: 12px; }

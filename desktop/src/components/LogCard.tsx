@@ -7,13 +7,15 @@ import { formatRelativeDay } from "../lib/relativeDate";
 type Props = {
   card: LogCardData;
   now: Date;
+  /** "집필하기" — 그 작품을 집필 화면으로 연다. */
+  onOpenProject: (project: { id: string; title: string; nextScene: string }) => void;
 };
 
 /**
  * 기록 화면 작품 카드 — 제목·진척 바+수치·최근 수정일·마지막 문장·총 작업 시간.
  * latestLog 최신 기록 1줄 + 아코디언 토글(펼침 시 logs.listByProject lazy 조회).
  */
-export function LogCard({ card, now }: Props) {
+export function LogCard({ card, now, onOpenProject }: Props) {
   const { project, wordCount, lastSentenceSource, latestLog, totalDurationMs } = card;
   const progress = calcProgress(wordCount, project.targetLength);
   const sentence = lastSentence(lastSentenceSource);
@@ -39,6 +41,17 @@ export function LogCard({ card, now }: Props) {
     <article className="log-card">
       <header className="log-card__header">
         <h2 className="log-card__title">{project.title}</h2>
+        <button
+          type="button"
+          className="log-card__open"
+          onClick={() => onOpenProject(project)}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+          </svg>
+          집필하기
+        </button>
       </header>
 
       <div className="log-card__field">

@@ -45,7 +45,7 @@ afterEach(() => {
 describe("LogScreen", () => {
   it("should_show_empty_state_when_no_projects", async () => {
     stubLogs([]);
-    render(<LogScreen panelOpen={false} onTogglePanel={() => {}} />);
+    render(<LogScreen panelOpen={false} onTogglePanel={() => {}} onOpenProject={() => {}} />);
 
     // FR-006: 작품 0개 → 빈 상태 안내
     expect(await screen.findByText(/작품을 만들면/)).toBeInTheDocument();
@@ -53,7 +53,7 @@ describe("LogScreen", () => {
 
   it("should_render_project_card_when_logs_list_returns_cards", async () => {
     stubLogs([makeCard()]);
-    render(<LogScreen panelOpen={false} onTogglePanel={() => {}} />);
+    render(<LogScreen panelOpen={false} onTogglePanel={() => {}} onOpenProject={() => {}} />);
 
     // 카드 목록 — LogCard 가 작품 제목을 표시
     expect(await screen.findByText("바다가 보이는 방")).toBeInTheDocument();

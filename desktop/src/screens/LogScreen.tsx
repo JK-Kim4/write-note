@@ -4,10 +4,15 @@ import { LogCard } from "../components/LogCard";
 import { PanelToggle } from "../components/PanelToggle";
 import { Titlebar } from "../components/Titlebar";
 
-type Props = { panelOpen: boolean; onTogglePanel: () => void };
+type Props = {
+  panelOpen: boolean;
+  onTogglePanel: () => void;
+  /** 카드의 "집필하기" — 그 작품을 집필 화면으로 연다. */
+  onOpenProject: (project: { id: string; title: string; nextScene: string }) => void;
+};
 
 /** 기록 화면 — 작품별 진척 카드 목록. */
-export function LogScreen({ panelOpen, onTogglePanel }: Props) {
+export function LogScreen({ panelOpen, onTogglePanel, onOpenProject }: Props) {
   const [cards, setCards] = useState<LogCardData[]>([]);
   const now = new Date();
 
@@ -45,7 +50,7 @@ export function LogScreen({ panelOpen, onTogglePanel }: Props) {
             <ul className="log-card-list">
               {cards.map((card) => (
                 <li key={card.project.id}>
-                  <LogCard card={card} now={now} />
+                  <LogCard card={card} now={now} onOpenProject={onOpenProject} />
                 </li>
               ))}
             </ul>

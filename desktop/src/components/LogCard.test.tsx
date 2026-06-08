@@ -45,12 +45,25 @@ afterEach(() => {
 
 describe("LogCard", () => {
   it("should_show_project_title", () => {
-    render(<LogCard card={makeCard()} now={new Date("2026-06-08T00:00:00.000Z")} />);
+    render(<LogCard card={makeCard()} now={new Date("2026-06-08T00:00:00.000Z")} onOpenProject={() => {}} />);
     expect(screen.getByText("테스트 작품")).toBeInTheDocument();
   });
 
+  it("should_call_onOpenProject_with_project_when_집필하기_clicked", () => {
+    const onOpenProject = vi.fn();
+    render(
+      <LogCard
+        card={makeCard()}
+        now={new Date("2026-06-08T00:00:00.000Z")}
+        onOpenProject={onOpenProject}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /집필하기/ }));
+    expect(onOpenProject).toHaveBeenCalledWith(expect.objectContaining({ id: "p1", title: "테스트 작품" }));
+  });
+
   it("should_show_progress_percent_when_targetLength_set", () => {
-    render(<LogCard card={makeCard({ wordCount: 31000 })} now={new Date("2026-06-08T00:00:00.000Z")} />);
+    render(<LogCard card={makeCard({ wordCount: 31000 })} now={new Date("2026-06-08T00:00:00.000Z")} onOpenProject={() => {}} />);
     // 31000 / 50000 = 62%
     expect(screen.getByText("62%")).toBeInTheDocument();
   });
@@ -60,6 +73,7 @@ describe("LogCard", () => {
       <LogCard
         card={makeCard({ project: makeProject({ targetLength: null }) })}
         now={new Date("2026-06-08T00:00:00.000Z")}
+        onOpenProject={() => {}}
       />,
     );
     expect(screen.getByText("목표 미설정")).toBeInTheDocument();
@@ -70,6 +84,7 @@ describe("LogCard", () => {
       <LogCard
         card={makeCard({ project: makeProject({ targetLength: null }) })}
         now={new Date("2026-06-08T00:00:00.000Z")}
+        onOpenProject={() => {}}
       />,
     );
     expect(screen.queryByText(/%/)).not.toBeInTheDocument();
@@ -80,6 +95,7 @@ describe("LogCard", () => {
       <LogCard
         card={makeCard({ lastSentenceSource: "첫 문장. 마지막 문장." })}
         now={new Date("2026-06-08T00:00:00.000Z")}
+        onOpenProject={() => {}}
       />,
     );
     expect(screen.getByText("마지막 문장.")).toBeInTheDocument();
@@ -87,7 +103,7 @@ describe("LogCard", () => {
 
   it("should_not_show_last_sentence_when_body_empty", () => {
     render(
-      <LogCard card={makeCard({ lastSentenceSource: "" })} now={new Date("2026-06-08T00:00:00.000Z")} />,
+      <LogCard card={makeCard({ lastSentenceSource: "" })} now={new Date("2026-06-08T00:00:00.000Z")} onOpenProject={() => {}} />,
     );
     // 빈 본문이면 마지막 문장 미표시
     expect(screen.queryByRole("paragraph", { name: /마지막/ })).not.toBeInTheDocument();
@@ -98,6 +114,7 @@ describe("LogCard", () => {
       <LogCard
         card={makeCard({ project: makeProject({ updatedAt: "2026-06-07T00:00:00.000Z" }) })}
         now={new Date("2026-06-08T00:00:00.000Z")}
+        onOpenProject={() => {}}
       />,
     );
     // 1일 전 = "어제"
@@ -105,7 +122,7 @@ describe("LogCard", () => {
   });
 
   it("should_show_기록_없음_when_totalDurationMs_zero", () => {
-    render(<LogCard card={makeCard({ totalDurationMs: 0 })} now={new Date("2026-06-08T00:00:00.000Z")} />);
+    render(<LogCard card={makeCard({ totalDurationMs: 0 })} now={new Date("2026-06-08T00:00:00.000Z")} onOpenProject={() => {}} />);
     expect(screen.getByText("기록 없음")).toBeInTheDocument();
   });
 
@@ -115,6 +132,7 @@ describe("LogCard", () => {
       <LogCard
         card={makeCard({ latestLog: makeProjectLog({ body: "오늘 집필 세션 완료" }) })}
         now={new Date("2026-06-08T00:00:00.000Z")}
+        onOpenProject={() => {}}
       />,
     );
     expect(screen.getByText("오늘 집필 세션 완료")).toBeInTheDocument();
@@ -122,7 +140,7 @@ describe("LogCard", () => {
 
   it("should_show_아직_기록_없음_text_when_latestLog_null", () => {
     render(
-      <LogCard card={makeCard({ latestLog: null })} now={new Date("2026-06-08T00:00:00.000Z")} />,
+      <LogCard card={makeCard({ latestLog: null })} now={new Date("2026-06-08T00:00:00.000Z")} onOpenProject={() => {}} />,
     );
     expect(screen.getByText("아직 기록 없음")).toBeInTheDocument();
   });
@@ -132,6 +150,7 @@ describe("LogCard", () => {
       <LogCard
         card={makeCard({ latestLog: makeProjectLog() })}
         now={new Date("2026-06-08T00:00:00.000Z")}
+        onOpenProject={() => {}}
       />,
     );
     expect(screen.getByRole("button", { name: /기록 펼치기|기록 접기/ })).toBeInTheDocument();
@@ -151,6 +170,7 @@ describe("LogCard", () => {
       <LogCard
         card={makeCard({ latestLog: makeProjectLog() })}
         now={new Date("2026-06-08T00:00:00.000Z")}
+        onOpenProject={() => {}}
       />,
     );
 
@@ -174,6 +194,7 @@ describe("LogCard", () => {
       <LogCard
         card={makeCard({ latestLog: makeProjectLog() })}
         now={new Date("2026-06-08T00:00:00.000Z")}
+        onOpenProject={() => {}}
       />,
     );
 
