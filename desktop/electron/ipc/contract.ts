@@ -1,4 +1,4 @@
-import type { Document, Memo, Project, ProjectCard, ProjectMemo } from "../db/types";
+import type { Document, LogCard, Memo, Project, ProjectCard, ProjectLog, ProjectMemo } from "../db/types";
 import type { CreateProjectInput, UpdateProjectInput } from "../db/projectRepository";
 import type { UpdateDocumentInput } from "../db/documentRepository";
 import type { CaptureMemoInput } from "../db/store";
@@ -45,6 +45,20 @@ export type ElectronAPI = {
   shell: {
     openExternal: (url: string) => Promise<void>;
   };
+  logs: {
+    /** 기록 화면 카드 집계(작품별 진척 소스 + 최신 기록 + 총 작업 시간). */
+    list: () => Promise<LogCard[]>;
+    /** 아코디언 펼침 시 그 작품의 누적 기록 메모 전체(최신순). */
+    listByProject: (projectId: string) => Promise<ProjectLog[]>;
+  };
+  sessions: {
+    /** 집필 진입 시 작업 세션 시작(작품당 열린 세션 1개 보장). */
+    start: (projectId: string) => Promise<void>;
+    /** 화면 이탈·작품 전환 시 자동 종료(30초 미만 폐기). */
+    end: (projectId: string) => Promise<void>;
+    /** 작업 종료 버튼 — 세션 종료 + 기록 메모 추가(트랜잭션, 짧아도 보존). */
+    endWithLog: (projectId: string, body: string) => Promise<void>;
+  };
 };
 
 /** IPC 채널명 — main(registerHandlers)과 preload 가 공유한다. */
@@ -70,4 +84,9 @@ export const CHANNELS = {
   settingsSet: "settings:set",
   contactSend: "contact:send",
   shellOpenExternal: "shell:openExternal",
+  logsList: "logs:list",
+  logsListByProject: "logs:listByProject",
+  sessionsStart: "sessions:start",
+  sessionsEnd: "sessions:end",
+  sessionsEndWithLog: "sessions:endWithLog",
 } as const;

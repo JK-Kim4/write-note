@@ -98,6 +98,30 @@ export function App() {
     };
   }, [activeProject]);
 
+  // 명시 종료("작업 종료" 버튼)가 endWithLog 로 세션을 이미 닫은 경우, 직후 화면 전환으로
+  // 발화하는 effect cleanup 의 중복 sessions.end 를 1회 스킵한다(이중 종료 IPC 방지).
+  const skipNextSessionEnd = useRef(false);
+
+  // 세션 생명주기 — 집필 화면 진입 시 세션 시작, 이탈/작품 전환 시 세션 종료(30s 폐기).
+  // cleanup 이 직전 pid 를 캡처하므로 stale closure 회피.
+  // sessions API 가 없으면 no-op (테스트·환경 guard).
+  useEffect(() => {
+    if (screen !== "write" || !activeProject) return;
+    const pid = activeProject.id;
+    if (window.electronAPI?.sessions) {
+      void window.electronAPI.sessions.start(pid);
+    }
+    return () => {
+      if (skipNextSessionEnd.current) {
+        skipNextSessionEnd.current = false;
+        return;
+      }
+      if (window.electronAPI?.sessions) {
+        void window.electronAPI.sessions.end(pid);
+      }
+    };
+  }, [screen, activeProject]);
+
   // 현재 작품 연결 메모 로드(집필 패널). 캡처/연결 변경(memoRefresh) + 집필 화면 진입(screen) 시 재조회(FR-009).
   // screen 을 의존에 넣어, 메모 화면에서 연결을 바꾼 뒤 레일로 집필에 들어와도 패널이 최신 상태를 반영한다.
   useEffect(() => {
@@ -200,18 +224,17 @@ export function App() {
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
+  // 작품 열기 — 선택한 작품을 집필 화면으로(작품 화면·기록 화면 공용).
+  const openProject = useCallback((p: { id: string; title: string; nextScene: string }) => {
+    setActiveProject({ id: p.id, title: p.title, nextScene: p.nextScene });
+    setScreen("write");
+  }, []);
+
   return (
     <div className="app">
       <Rail active={screen} onNavigate={setScreen} onCapture={() => setCaptureOpen(true)} />
 
-      {screen === "projects" && (
-        <ProjectsScreen
-          onOpenProject={(p) => {
-            setActiveProject({ id: p.id, title: p.title, nextScene: p.nextScene });
-            setScreen("write");
-          }}
-        />
-      )}
+      {screen === "projects" && <ProjectsScreen onOpenProject={openProject} />}
       {/* 펼친 작품이 없으면 편집기 대신 빈 상태 — 작품을 골라야 쓸 곳(document)이 생긴다. */}
       {screen === "write" && !activeProject && (
         <WriteEmptyScreen onGoToProjects={() => setScreen("projects")} />
@@ -236,10 +259,24 @@ export function App() {
           theme={theme}
           onTheme={setTheme}
           onAutoSave={setAutoSave}
+          onEndWork={(body) => {
+            skipNextSessionEnd.current = true;
+            void window.electronAPI.sessions
+              .endWithLog(activeProject.id, body)
+              .then(() => {
+                setScreen("projects");
+              })
+              .catch(() => {
+                // 종료 실패 시 스킵 플래그 복원 — 다음 정상 이탈에서 세션이 제대로 닫히도록.
+                skipNextSessionEnd.current = false;
+              });
+          }}
         />
       )}
       {screen === "memo" && <MemoInboxScreen refresh={memoRefresh} />}
-      {screen === "log" && <LogScreen panelOpen={panelOpen} onTogglePanel={togglePanel} />}
+      {screen === "log" && (
+        <LogScreen panelOpen={panelOpen} onTogglePanel={togglePanel} onOpenProject={openProject} />
+      )}
       {screen === "contact" && <ContactScreen />}
 
       {/* 집필 편집기는 보기 메뉴(WriteStudioScreen)가 테마·자동저장을 품으므로 전역 Dock 을 숨긴다(설정 진입점 중복 회피).

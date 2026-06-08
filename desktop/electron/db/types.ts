@@ -42,3 +42,26 @@ export type ProjectMemo = Memo & { pinned: boolean };
 
 /** 작품 벽 카드용 집계 — 작품(nextScene 포함) + 그 본문 plainText(마지막 문장 파생 소스). */
 export type ProjectCard = Project & { lastSentenceSource: string };
+
+export type ProjectLog = {
+  id: string;
+  projectId: string;
+  body: string;
+  createdAt: string; // ISO
+};
+
+export type WorkSession = {
+  id: string;
+  projectId: string;
+  startedAt: string; // ISO
+  endedAt: string | null; // null = 진행 중
+};
+
+/** 기록 화면 카드용 집계 — 작품 + 파생 표시값 + 최신 기록 1개 + 총 작업 시간. */
+export type LogCard = {
+  project: Project; // title, targetLength, updatedAt 등
+  wordCount: number; // 그 작품 단일 document 의 word_count(공백 제외 글자수)
+  lastSentenceSource: string; // document.plain_text (renderer 가 lastSentence() 파생)
+  latestLog: ProjectLog | null; // 최신 기록 메모 1개(없으면 null)
+  totalDurationMs: number; // 종료된 세션 합(진행 중·폐기 제외)
+};

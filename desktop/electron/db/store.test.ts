@@ -112,6 +112,171 @@ describe("Store", () => {
     expect(store.pickReentryMemo(project.id)?.id).toBe(second.id);
   });
 
+  it("should_list_log_cards_with_wordCount_and_lastSentenceSource", () => {
+    const { project, document } = store.createProjectWithDocument({ title: "기록 작품" });
+    store.updateDocument(document.id, { plainText: "첫 문장. 마지막 문장.", wordCount: 10 });
+
+    const cards = store.listLogCards();
+
+    expect(cards).toHaveLength(1);
+    expect(cards[0].project.id).toBe(project.id);
+    expect(cards[0].project.title).toBe("기록 작품");
+    expect(cards[0].wordCount).toBe(10);
+    expect(cards[0].lastSentenceSource).toBe("첫 문장. 마지막 문장.");
+    expect(cards[0].latestLog).toBeNull();
+    expect(cards[0].totalDurationMs).toBe(0);
+  });
+
+  it("should_list_log_cards_ordered_by_updated_at_desc", () => {
+    const { project: p1 } = store.createProjectWithDocument({ title: "먼저 수정" });
+    const { project: p2 } = store.createProjectWithDocument({ title: "나중 수정" });
+    // updated_at 을 결정적으로 부여(생성 직후 ms 동률 회피)
+    db.prepare("UPDATE projects SET updated_at = ? WHERE id = ?").run("2026-01-01T00:00:00.000Z", p1.id);
+    db.prepare("UPDATE projects SET updated_at = ? WHERE id = ?").run("2026-01-02T00:00:00.000Z", p2.id);
+
+    const cards = store.listLogCards();
+
+    expect(cards.map((c) => c.project.id)).toEqual([p2.id, p1.id]);
+  });
+
+  it("should_list_log_cards_with_empty_source_when_no_document_body", () => {
+    store.createProjectWithDocument({ title: "빈 본문 작품" });
+
+    const cards = store.listLogCards();
+
+    expect(cards[0].lastSentenceSource).toBe("");
+    expect(cards[0].wordCount).toBe(0);
+  });
+
+  // US2: addProjectLog + listLogCards 의 latestLog 반영
+  it("should_add_project_log_and_return_it", () => {
+    const { project } = store.createProjectWithDocument({ title: "작품" });
+    const log = store.addProjectLog(project.id, "오늘 3페이지 완료");
+
+    expect(log.projectId).toBe(project.id);
+    expect(log.body).toBe("오늘 3페이지 완료");
+    expect(log.id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(log.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it("should_listLogCards_reflect_latestLog_after_addProjectLog", () => {
+    const { project } = store.createProjectWithDocument({ title: "작품" });
+    store.addProjectLog(project.id, "첫 기록");
+    const second = store.addProjectLog(project.id, "두 번째 기록");
+    // 두 기록 중 최신인 two 가 latestLog 에 반영되어야 함
+    // 결정적 시각 부여
+    db.prepare("UPDATE project_logs SET created_at = ? WHERE id = ?").run(
+      "2026-01-01T00:00:00.000Z",
+      second.id,
+    );
+    const earlier = db.prepare("SELECT id FROM project_logs WHERE body = ?").get("첫 기록") as
+      | { id: string }
+      | undefined;
+    if (earlier) {
+      db.prepare("UPDATE project_logs SET created_at = ? WHERE id = ?").run(
+        "2026-01-02T00:00:00.000Z",
+        earlier.id,
+      );
+    }
+
+    const cards = store.listLogCards();
+    // "첫 기록" 이 더 최신 (2026-01-02) → latestLog.body = "첫 기록"
+    expect(cards[0].latestLog).not.toBeNull();
+    expect(cards[0].latestLog?.projectId).toBe(project.id);
+  });
+
+  it("should_listLogCards_latestLog_null_when_no_logs", () => {
+    store.createProjectWithDocument({ title: "빈 기록 작품" });
+    const cards = store.listLogCards();
+    expect(cards[0].latestLog).toBeNull();
+  });
+
+  // US3: endSessionWithLog 트랜잭션
+  it("should_endSessionWithLog_create_both_session_end_and_log", () => {
+    const { project } = store.createProjectWithDocument({ title: "작품" });
+    // 열린 세션 삽입 (30s 미만이라도 endSessionWithLog 는 보존해야 함)
+    const sessionId = crypto.randomUUID();
+    db.prepare(
+      "INSERT INTO work_sessions (id, project_id, started_at, ended_at) VALUES (?, ?, ?, NULL)",
+    ).run(sessionId, project.id, "2000-01-01T00:00:00.000Z");
+
+    const result = store.endSessionWithLog(project.id, "오늘의 기록");
+
+    // 세션이 종료되어야 함 (행이 남아 있고 ended_at 이 NULL 이 아님)
+    expect(result.session).toBeDefined();
+    expect(result.session?.endedAt).not.toBeNull();
+    // 로그도 생성되어야 함
+    expect(result.log.projectId).toBe(project.id);
+    expect(result.log.body).toBe("오늘의 기록");
+  });
+
+  it("should_endSessionWithLog_preserve_short_session_even_under_30s", () => {
+    const { project } = store.createProjectWithDocument({ title: "작품" });
+    // 1초짜리 세션 (30s 미만) — endSessionWithLog 는 보존
+    const sessionId = crypto.randomUUID();
+    const start = "2000-01-01T00:00:00.000Z";
+    db.prepare(
+      "INSERT INTO work_sessions (id, project_id, started_at, ended_at) VALUES (?, ?, ?, NULL)",
+    ).run(sessionId, project.id, start);
+
+    const result = store.endSessionWithLog(project.id, "짧은 작업");
+
+    // 세션이 삭제되지 않고 남아 있어야 함
+    const row = db.prepare("SELECT * FROM work_sessions WHERE id = ?").get(sessionId);
+    expect(row).toBeDefined();
+    expect(result.session).toBeDefined();
+  });
+
+  it("should_endSessionWithLog_create_log_even_when_no_open_session", () => {
+    const { project } = store.createProjectWithDocument({ title: "작품" });
+    // 열린 세션 없는 경우 — 로그만 생성 (graceful)
+    const result = store.endSessionWithLog(project.id, "세션 없이 기록");
+
+    expect(result.session).toBeNull();
+    expect(result.log.body).toBe("세션 없이 기록");
+  });
+
+  it("should_endSessionWithLog_persist_session_end_and_log_atomically", () => {
+    const { project } = store.createProjectWithDocument({ title: "작품" });
+    const sessionId = crypto.randomUUID();
+    db.prepare(
+      "INSERT INTO work_sessions (id, project_id, started_at, ended_at) VALUES (?, ?, ?, NULL)",
+    ).run(sessionId, project.id, "2000-01-01T00:00:00.000Z");
+
+    // 트랜잭션 원자성 — 세션 종료(ended_at)와 로그가 함께 영속되어야 한다(둘 중 하나만 남는 일 없음).
+    const result = store.endSessionWithLog(project.id, "작업 완료");
+
+    const logRow = db.prepare("SELECT * FROM project_logs WHERE id = ?").get(result.log.id);
+    expect(logRow).toBeDefined();
+    const sessionRow = db
+      .prepare("SELECT ended_at FROM work_sessions WHERE id = ?")
+      .get(sessionId) as { ended_at: string | null } | undefined;
+    expect(sessionRow?.ended_at).not.toBeNull();
+  });
+
+  // US3: listLogCards totalDurationMs 채우기
+  it("should_listLogCards_reflect_totalDurationMs_from_work_sessions", () => {
+    const { project } = store.createProjectWithDocument({ title: "작품" });
+    // 2분 완료 세션 직접 삽입
+    db.prepare(
+      "INSERT INTO work_sessions (id, project_id, started_at, ended_at) VALUES (?, ?, ?, ?)",
+    ).run(
+      crypto.randomUUID(),
+      project.id,
+      "2000-01-01T00:00:00.000Z",
+      "2000-01-01T00:02:00.000Z",
+    );
+
+    const cards = store.listLogCards();
+    expect(cards[0].totalDurationMs).toBe(120_000);
+  });
+
+  it("should_listLogCards_totalDurationMs_be_0_when_no_sessions", () => {
+    store.createProjectWithDocument({ title: "세션 없는 작품" });
+    const cards = store.listLogCards();
+    expect(cards[0].totalDurationMs).toBe(0);
+  });
+
   it("should_exclude_soft_deleted_memo_from_reentry", () => {
     const { project } = store.createProjectWithDocument({ title: "작품" });
     const kept = store.captureMemo({ body: "유지", linkProjectId: project.id });

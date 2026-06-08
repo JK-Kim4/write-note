@@ -28,6 +28,7 @@ function renderScreen(over: Partial<Parameters<typeof WriteStudioScreen>[0]> = {
     theme: "light" as Theme,
     onTheme: vi.fn(),
     onAutoSave: vi.fn(),
+    onEndWork: vi.fn(),
     ...over,
   };
   render(<WriteStudioScreen {...props} />);
@@ -97,5 +98,49 @@ describe("WriteStudioScreen", () => {
     expect(screen.getByLabelText("이어 쓰기 안내")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "이어 쓰기 안내 닫기" }));
     expect(screen.queryByLabelText("이어 쓰기 안내")).not.toBeInTheDocument();
+  });
+
+  // US2: 작업 종료 버튼 + 기록 메모 모달
+  it("should_show_작업_종료_button", () => {
+    renderScreen();
+    expect(screen.getByRole("button", { name: "작업 종료" })).toBeInTheDocument();
+  });
+
+  it("should_open_modal_when_작업_종료_clicked", () => {
+    renderScreen();
+    fireEvent.click(screen.getByRole("button", { name: "작업 종료" }));
+    // 모달 다이얼로그가 표시된다
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    // 텍스트 입력 영역이 있다
+    expect(screen.getByPlaceholderText(/기록/)).toBeInTheDocument();
+  });
+
+  it("should_call_onEndWork_with_body_when_saved", () => {
+    const onEndWork = vi.fn();
+    renderScreen({ onEndWork });
+    fireEvent.click(screen.getByRole("button", { name: "작업 종료" }));
+    fireEvent.change(screen.getByPlaceholderText(/기록/), { target: { value: "오늘 3페이지 완료" } });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    expect(onEndWork).toHaveBeenCalledWith("오늘 3페이지 완료");
+  });
+
+  it("should_not_call_onEndWork_when_body_empty_and_saved", () => {
+    const onEndWork = vi.fn();
+    renderScreen({ onEndWork });
+    fireEvent.click(screen.getByRole("button", { name: "작업 종료" }));
+    // body 비어 있는 상태에서 저장 버튼은 비활성이어야 한다
+    const saveBtn = screen.getByRole("button", { name: "저장" });
+    expect(saveBtn).toBeDisabled();
+    expect(onEndWork).not.toHaveBeenCalled();
+  });
+
+  it("should_close_modal_without_calling_onEndWork_when_cancelled", () => {
+    const onEndWork = vi.fn();
+    renderScreen({ onEndWork });
+    fireEvent.click(screen.getByRole("button", { name: "작업 종료" }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(onEndWork).not.toHaveBeenCalled();
   });
 });

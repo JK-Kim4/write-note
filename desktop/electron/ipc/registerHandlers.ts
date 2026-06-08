@@ -63,4 +63,19 @@ export function registerHandlers(store: Store): void {
   ipcMain.handle(CHANNELS.shellOpenExternal, async (_e, url: string) => {
     if (/^https?:\/\//i.test(url)) await shell.openExternal(url);
   });
+
+  ipcMain.handle(CHANNELS.logsList, () => store.listLogCards());
+  ipcMain.handle(CHANNELS.logsListByProject, (_e, projectId: string) =>
+    store.projectLogs.listByProject(projectId),
+  );
+
+  ipcMain.handle(CHANNELS.sessionsStart, (_e, projectId: string) =>
+    store.workSessions.start(projectId),
+  );
+  ipcMain.handle(CHANNELS.sessionsEnd, (_e, projectId: string) =>
+    store.workSessions.endOpen(projectId, new Date().toISOString()),
+  );
+  ipcMain.handle(CHANNELS.sessionsEndWithLog, (_e, projectId: string, body: string) =>
+    store.endSessionWithLog(projectId, body),
+  );
 }

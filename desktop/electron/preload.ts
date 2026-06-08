@@ -37,6 +37,16 @@ const api: ElectronAPI = {
   shell: {
     openExternal: (url) => ipcRenderer.invoke(CHANNELS.shellOpenExternal, url),
   },
+  logs: {
+    list: () => ipcRenderer.invoke(CHANNELS.logsList),
+    listByProject: (projectId: string) => ipcRenderer.invoke(CHANNELS.logsListByProject, projectId),
+  },
+  sessions: {
+    start: (projectId: string) => ipcRenderer.invoke(CHANNELS.sessionsStart, projectId),
+    end: (projectId: string) => ipcRenderer.invoke(CHANNELS.sessionsEnd, projectId),
+    endWithLog: (projectId: string, body: string) =>
+      ipcRenderer.invoke(CHANNELS.sessionsEndWithLog, projectId, body),
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", api);
