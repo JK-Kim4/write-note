@@ -1,0 +1,393 @@
+<!-- 작가님의 대시보드 (Writer's Dashboard) -->
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Narae Note - Digital Sanctuary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:wght@400;700&amp;family=Noto+Serif+KR:wght@400;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline": "#8b8374",
+                        "on-tertiary-fixed": "#341100",
+                        "error-container": "#ffdad6",
+                        "primary-container": "#0066cc",
+                        "on-secondary-container": "#64635b",
+                        "background": "#faf6ee",
+                        "on-secondary-fixed": "#1c1c16",
+                        "on-background": "#2a2620",
+                        "surface-container-highest": "#e9e1d4",
+                        "primary-fixed": "#d7e3ff",
+                        "secondary": "#5f5f57",
+                        "primary-fixed-dim": "#aac7ff",
+                        "on-secondary-fixed-variant": "#474740",
+                        "primary": "#004e9f",
+                        "on-tertiary-container": "#ffe3d6",
+                        "on-primary-fixed-variant": "#00458e",
+                        "tertiary-container": "#af4900",
+                        "on-surface-variant": "#574f43",
+                        "on-secondary": "#ffffff",
+                        "on-primary-container": "#dfe8ff",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "on-primary": "#ffffff",
+                        "inverse-primary": "#aac7ff",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed": "#ffdbcb",
+                        "tertiary": "#883700",
+                        "inverse-surface": "#303032",
+                        "secondary-container": "#e2e0d6",
+                        "on-tertiary-fixed-variant": "#793000",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#faf6ee",
+                        "on-primary-fixed": "#001b3e",
+                        "surface-dim": "#dcd9dc",
+                        "surface-container-high": "#ede7db",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface": "#2a2620",
+                        "inverse-on-surface": "#f3f0f2",
+                        "surface-tint": "#005cba",
+                        "surface": "#faf6ee",
+                        "secondary-fixed-dim": "#c9c6bd",
+                        "surface-variant": "#e9e1d4",
+                        "surface-container-low": "#f7f2e9",
+                        "secondary-fixed": "#e5e2d9",
+                        "outline-variant": "#e0d6c4",
+                        "on-error-container": "#93000a",
+                        "surface-container": "#f2ede2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-page": "48px",
+                        "margin-mobile": "20px",
+                        "panel-width": "320px",
+                        "manuscript-max-width": "720px",
+                        "rail-width": "240px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "ui-small": ["Inter"],
+                        "prose-body": ["Noto Serif KR"],
+                        "display-title": ["Libre Caslon Text"],
+                        "ui-label": ["Inter"],
+                        "meta-data": ["Inter"],
+                        "headline-lg": ["Libre Caslon Text"],
+                        "headline-lg-mobile": ["Libre Caslon Text"]
+                    },
+                    "fontSize": {
+                        "ui-small": ["13px", {"lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "400"}],
+                        "prose-body": ["18px", {"lineHeight": "1.85", "letterSpacing": "0.01em", "fontWeight": "400"}],
+                        "display-title": ["42px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "400"}],
+                        "ui-label": ["15px", {"lineHeight": "20px", "fontWeight": "500"}],
+                        "meta-data": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                        "headline-lg": ["30px", {"lineHeight": "40px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .paper-grain {
+            position: relative;
+        }
+        .paper-grain::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url("https://www.transparenttextures.com/patterns/natural-paper.png");
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .writing-sheet-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid theme('colors.outline-variant');
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: theme('colors.outline-variant');
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .ink-accent {
+            color: theme('colors.primary');
+        }
+
+        .manuscript-cream {
+            background-color: #fdfcf8;
+        }
+
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 24px;
+        }
+    </style>
+<style>
+  /* === 부드럽고 포근한 보정 (warm & soft pass) === */
+  * { transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+  .writing-sheet-shadow {
+    box-shadow: 0 12px 32px -14px rgba(74, 58, 40, 0.20), 0 2px 8px -4px rgba(74, 58, 40, 0.08) !important;
+    border-color: #ece2d1 !important;
+  }
+  .manuscript-cream { background-color: #fbf7ef !important; }
+  .manuscript-paper {
+    box-shadow: 0 8px 26px -16px rgba(74, 58, 40, 0.18);
+    border-color: #ece2d1 !important;
+  }
+  .manuscript-paper:hover { box-shadow: 0 16px 36px -14px rgba(0, 78, 159, 0.16); }
+  .writing-card-hover { box-shadow: 0 8px 26px -18px rgba(74, 58, 40, 0.16); transition: box-shadow .25s ease, transform .25s ease, background-color .25s ease; }
+  .writing-card-hover:hover { box-shadow: 0 16px 36px -16px rgba(0, 78, 159, 0.14); }
+  /* soft paper-card surfaces (Tailwind border + bg-surface) get a gentle lift */
+  .bg-surface { box-shadow: 0 6px 22px -18px rgba(74, 58, 40, 0.16); }
+</style>
+</head>
+<body class="overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="fixed left-0 top-0 h-full w-rail-width bg-surface-container border-r border-outline-variant flex flex-col py-margin-page px-6 gap-8 z-50">
+<div class="brand-section">
+<h1 class="font-display-title text-[28px] leading-tight text-primary">Narae Note</h1>
+<p class="font-ui-small text-on-surface-variant opacity-60">Digital Sanctuary</p>
+</div>
+<nav class="flex flex-col gap-2 mt-4">
+<!-- Dashboard Active -->
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg bg-surface-container-high text-primary font-bold transition-colors cursor-pointer active:opacity-80" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-ui-label">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-on-surface-variant opacity-70 hover:bg-surface-container-high transition-colors cursor-pointer active:opacity-80" href="#">
+<span class="material-symbols-outlined">edit_note</span>
+<span class="font-ui-label">Studio</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-on-surface-variant opacity-70 hover:bg-surface-container-high transition-colors cursor-pointer active:opacity-80" href="#">
+<span class="material-symbols-outlined">auto_stories</span>
+<span class="font-ui-label">Library</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-on-surface-variant opacity-70 hover:bg-surface-container-high transition-colors cursor-pointer active:opacity-80" href="#">
+<span class="material-symbols-outlined">lightbulb</span>
+<span class="font-ui-label">Inspiration</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-on-surface-variant opacity-70 hover:bg-surface-container-high transition-colors cursor-pointer active:opacity-80" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-ui-label">Settings</span>
+</a>
+</nav>
+<div class="mt-auto flex items-center gap-3 px-2">
+<div class="w-10 h-10 rounded-full bg-primary-container overflow-hidden">
+<img alt="User profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAt_aJLjiHnAPWo4dlKI9I3fxKkDxjXxg57SLGnDj79TkQTpt8o3BvlTB71ihhYi7QRlWoLgx4mw-qsvwM8W8jsS1goRvG_9f_48J1h5npTAAoyGkSytg4KXlRk6VJ4Tctopr9ODapQsmCmRoxQPlAM20Yt2OufeCS7DkO7A0-klEYVtWlYmLyUzdYkBxf9nobuBOg6__gVUvjCNvRSj4rMsDOHerP0X_ftsZsj09f8VVavu-0lcmsICa7y5G_SrAvOzC1fsRcYdde4"/>
+</div>
+<div class="flex flex-col">
+<span class="font-ui-label text-on-surface leading-tight">나래</span>
+<span class="font-meta-data text-on-surface-variant opacity-60">Scholar Tier</span>
+</div>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<main class="ml-rail-width h-screen overflow-y-auto custom-scrollbar bg-background paper-grain relative">
+<!-- Top App Bar -->
+<header class="sticky top-0 w-full flex justify-between items-center px-margin-page py-6 z-40 bg-background/80 backdrop-blur-sm">
+<div>
+<h2 class="font-headline-lg text-on-surface">Writer's Dashboard</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant opacity-50 group-focus-within:text-primary transition-colors">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-low border-b border-outline-variant focus:border-primary focus:ring-0 text-ui-small w-64 transition-all" placeholder="문장, 메모 검색..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">notifications</button>
+<div class="h-8 w-px bg-outline-variant"></div>
+<button class="flex items-center gap-2 group">
+<span class="font-ui-label text-on-surface-variant group-hover:text-primary transition-colors">2024. 05. 24</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Bento Grid Layout Container -->
+<div class="px-margin-page pb-12 max-w-[1200px] mx-auto">
+<div class="bento-grid">
+<!-- 1. Welcome Message (Col-8) -->
+<section class="col-span-8 flex flex-col justify-center py-6">
+<h3 class="font-prose-body text-3xl text-on-background mb-1">안녕하세요, <span class="text-primary font-bold">나래님.</span></h3>
+<p class="font-ui-label text-on-surface-variant flex items-center gap-2">
+<span>오늘은 5월 24일 금요일입니다.</span>
+<span class="inline-flex items-center gap-1 bg-tertiary-container text-on-tertiary-container px-3 py-1 rounded-full text-meta-data">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+                            12일 연속 집필 중
+                        </span>
+</p>
+</section>
+<!-- 2. Today's Sentence (Col-12 Full Width) -->
+<article class="col-span-12 manuscript-cream writing-sheet-shadow p-12 relative overflow-hidden group hover:border-primary/30 transition-all">
+<div class="absolute top-0 right-0 p-4">
+<span class="material-symbols-outlined text-outline-variant opacity-30 text-5xl">format_quote</span>
+</div>
+<div class="max-w-[720px] mx-auto text-center py-8">
+<blockquote class="font-prose-body text-2xl leading-relaxed text-primary mb-8 italic">
+                            "진심이 닿지 않는 문장은 차가운 금속과 같아서, 읽는 이의 마음을 울리지 못한다."
+                        </blockquote>
+<cite class="font-meta-data text-on-surface-variant tracking-widest">— 미상</cite>
+</div>
+</article>
+<!-- 3. Continue Writing (Col-8 Bento Large) -->
+<section class="col-span-8 manuscript-cream writing-sheet-shadow overflow-hidden flex flex-col group hover:border-primary/40 transition-all">
+<div class="h-48 overflow-hidden relative">
+<img alt="Writer's desk with old manuscripts" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="A vintage wooden writer's desk captured in soft, golden morning light. On the desk lies a stack of high-quality parchment paper, an elegant ink pen, and a ceramic cup of dark coffee. The atmosphere is quiet, studious, and deeply creative, echoing the digital sanctuary aesthetic with warm tones and sharp, clean details." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkbT0LmegW2BrpHy2e-z7lkxO35agRyXkXQiwf7m-McXArEbkWb2w4lfb2ERQuFNqkovB9yQI7SWjgB8NYc_jHR1ZPuJ-ymBgblhCxBzjH6yEWxPx-9H7OGX_QoJ_La19Pjif95Wnp1QjLOQeSN0Q6cB72IJylsGvKpE5PNpaxzwv6P5tb0ACQLVpFdi13ekRq0YVu13ihgVOdLEhljzVWUH9KxThz90fVGMU7JcR_iK86EIyh3PHSari6ZcMBzkoUAuS5Ta9LDce6"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
+<h4 class="font-prose-body text-2xl text-white">여름의 끝, 우리가 머물던 곳</h4>
+</div>
+</div>
+<div class="p-8 flex flex-col gap-4">
+<p class="font-prose-body text-on-surface-variant line-clamp-3 leading-relaxed opacity-80">
+                            "윤슬이 부서지는 바다를 바라보며 그녀는 생각했다. 계절이 바뀌는 것은 단순히 온도의 변화가 아니라, 누군가의 기억이 옅어지는 과정일지도 모른다고. 모래사장에 남겨진 발자국들이..."
+                        </p>
+<div class="flex items-center justify-between pt-4 border-t border-outline-variant/30">
+<div class="flex gap-6">
+<div class="flex flex-col">
+<span class="font-meta-data text-outline">CHARACTER COUNT</span>
+<span class="font-ui-label text-on-surface">42,500 chars</span>
+</div>
+<div class="flex flex-col">
+<span class="font-meta-data text-outline">LAST UPDATED</span>
+<span class="font-ui-label text-on-surface">2 hours ago</span>
+</div>
+</div>
+<button class="bg-primary text-white px-6 py-2 font-ui-label rounded hover:bg-on-primary-fixed-variant transition-colors active:scale-95">
+                                이어서 쓰기
+                            </button>
+</div>
+</div>
+</section>
+<!-- 4. Today's Record (Col-4 Bento Tall) -->
+<section class="col-span-4 manuscript-cream writing-sheet-shadow p-8 flex flex-col">
+<div class="flex justify-between items-center mb-8">
+<h4 class="font-ui-label text-on-surface">Today's Record</h4>
+<span class="material-symbols-outlined text-primary">auto_graph</span>
+</div>
+<div class="flex flex-col items-center justify-center py-4 mb-8">
+<div class="relative w-40 h-40">
+<svg class="w-full h-full" viewbox="0 0 36 36">
+<path class="stroke-current text-surface-container-highest" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="2.5"></path>
+<path class="stroke-current text-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="62, 100" stroke-linecap="round" stroke-width="2.5"></path>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="font-headline-lg text-primary leading-none">62%</span>
+<span class="font-meta-data text-outline">1,240 / 2,000</span>
+</div>
+</div>
+<p class="font-ui-small text-on-surface-variant mt-4 text-center">오늘의 목표까지<br/><span class="font-bold">760단어</span> 남았습니다.</p>
+</div>
+<div class="mt-auto">
+<div class="flex justify-between items-end gap-2 h-24">
+<div class="flex-1 bg-surface-container-highest h-[40%] rounded-t-sm"></div>
+<div class="flex-1 bg-surface-container-highest h-[70%] rounded-t-sm"></div>
+<div class="flex-1 bg-surface-container-highest h-[55%] rounded-t-sm"></div>
+<div class="flex-1 bg-surface-container-highest h-[90%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary h-[62%] rounded-t-sm"></div>
+<div class="flex-1 bg-surface-container h-[10%] rounded-t-sm opacity-30"></div>
+<div class="flex-1 bg-surface-container h-[10%] rounded-t-sm opacity-30"></div>
+</div>
+<div class="flex justify-between mt-2 font-meta-data text-outline text-[10px] tracking-tight">
+<span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span class="text-primary font-bold">FRI</span><span>SAT</span><span>SUN</span>
+</div>
+</div>
+</section>
+<!-- 5. Recent Memos (Col-12 Grid) -->
+<div class="col-span-12 grid grid-cols-4 gap-6">
+<!-- Memo 1 -->
+<div class="manuscript-cream p-6 writing-sheet-shadow hover:bg-surface-container-lowest transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-4">
+<span class="font-meta-data text-primary">SCENE NOTES</span>
+<span class="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
+</div>
+<p class="font-prose-body text-on-surface leading-snug">겨울 바다의 냄새는 소금기보다는 시린 금속향에 가깝다...</p>
+<time class="block mt-4 font-meta-data text-outline">2 hours ago</time>
+</div>
+<!-- Memo 2 -->
+<div class="manuscript-cream p-6 writing-sheet-shadow hover:bg-surface-container-lowest transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-4">
+<span class="font-meta-data text-primary">CHARACTER</span>
+<span class="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
+</div>
+<p class="font-prose-body text-on-surface leading-snug">인물 설정: 은하는 왜 자꾸만 뒤를 돌아보는가? 후회인가 미련인가.</p>
+<time class="block mt-4 font-meta-data text-outline">Yesterday</time>
+</div>
+<!-- Memo 3 -->
+<div class="manuscript-cream p-6 writing-sheet-shadow hover:bg-surface-container-lowest transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-4">
+<span class="font-meta-data text-primary">TITLE IDEAS</span>
+<span class="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
+</div>
+<p class="font-prose-body text-on-surface leading-snug">제목 후보: 파란색의 온도, 침묵의 건축가, 흩어지는 목소리들.</p>
+<time class="block mt-4 font-meta-data text-outline">May 21</time>
+</div>
+<!-- Memo 4 -->
+<div class="manuscript-cream p-6 writing-sheet-shadow hover:bg-surface-container-lowest transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-4">
+<span class="font-meta-data text-primary">RESEARCH</span>
+<span class="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
+</div>
+<p class="font-prose-body text-on-surface leading-snug">1950년대 서울의 골목길 풍경. 전차 노선도와 상점 간판들.</p>
+<time class="block mt-4 font-meta-data text-outline">May 20</time>
+</div>
+</div>
+</div>
+</div>
+<!-- Atmospheric Footer / Decor -->
+<footer class="px-margin-page py-12 border-t border-outline-variant/20 flex justify-between items-center opacity-40">
+<p class="font-meta-data text-on-surface-variant">© 2024 NARAE NOTE. WRITING IS SACRED.</p>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-sm">local_cafe</span>
+<span class="material-symbols-outlined text-sm">ink_pen</span>
+<span class="material-symbols-outlined text-sm">hourglass_bottom</span>
+</div>
+</footer>
+</main>
+<!-- Interactive Script for micro-interactions -->
+<script>
+        // Simple scale effect on hover for cards
+        document.querySelectorAll('.writing-sheet-shadow').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-2px)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+
+        // Search bar focus interaction
+        const searchInput = document.querySelector('input[type="text"]');
+        searchInput.addEventListener('focus', () => {
+            searchInput.parentElement.classList.add('scale-105');
+        });
+        searchInput.addEventListener('blur', () => {
+            searchInput.parentElement.classList.remove('scale-105');
+        });
+    </script>
+</body></html>
