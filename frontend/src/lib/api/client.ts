@@ -24,13 +24,13 @@ export class ApiError extends Error {
     }
 }
 
-/** 문서 버전 충돌(409) 전용 에러 — currentVersion 과 currentBody 포함 (006 US1). */
+/** 문서 버전 충돌(409) 전용 에러 — currentVersion(불투명 토큰 문자열) 과 currentBody 포함 (006 US1 / 016). */
 export class ConflictError extends Error {
     code: string;
-    currentVersion: number;
+    currentVersion: string;
     currentBody: string;
 
-    constructor(currentVersion: number, currentBody: string) {
+    constructor(currentVersion: string, currentBody: string) {
         super("문서가 다른 곳에서 변경되었습니다.");
         this.name = "ConflictError";
         this.code = "DOCUMENT_VERSION_CONFLICT";
@@ -79,7 +79,7 @@ const unwrap = async <T>(response: Response): Promise<T> => {
         const code = typeof error?.["code"] === "string" ? error["code"] : undefined;
         if (code === "DOCUMENT_VERSION_CONFLICT") {
             const data = b["data"] as Record<string, unknown> | null | undefined;
-            const currentVersion = typeof data?.["currentVersion"] === "number" ? data["currentVersion"] : 0;
+            const currentVersion = typeof data?.["currentVersion"] === "string" ? data["currentVersion"] : "";
             const currentBody = typeof data?.["currentBody"] === "string" ? data["currentBody"] : "";
             throw new ConflictError(currentVersion, currentBody);
         }

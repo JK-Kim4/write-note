@@ -135,7 +135,9 @@ timeout / cap 룰은 글로벌 [`~/.claude/rules/shared/long-running-bash.md`](f
 <!-- SPECKIT START -->
 Current implementation plan:
 
-- [013 Desktop 공개 배포 (Windows + macOS) — GitHub Actions 빌드 → Releases, 무서명+안내문, /download 페이지](specs/013-desktop-distribution/plan.md)
+- [016 자동저장 재설계 — 로컬 우선 보존(localStorage draft) + 수정시각(updatedAt 겸용) @Version 버전 토큰. 거짓 409 충돌 근본 해결 + 작성분 복구 + 비동기 공동집필 토대](specs/016-autosave-localstorage-redesign/plan.md)
+- [015 Web 포팅 — Front 이식 (desktop 화면 → Next.js, electronAPI→fetch, projects 풀스택 먼저 + 페이지분할/한글 PoC 선증명)](specs/015-web-port-frontend/plan.md)
+- [014 Web 포팅 — Backend 확장 (next_scene · pinned · project_logs · work_sessions + IPC↔REST 계약) — 구현 완료](specs/014-web-port-backend-extension/plan.md)
 
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan above.

@@ -1,0 +1,93 @@
+package com.writenote.service
+
+import com.writenote.entity.Project
+import com.writenote.entity.WorkSession
+import com.writenote.model.response.ProjectLogResponse
+import com.writenote.repository.ProjectRepository
+import com.writenote.repository.WorkSessionRepository
+import io.mockk.every
+import io.mockk.justRun
+import io.mockk.mockk
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import java.time.Instant
+import java.util.Optional
+
+class WorkSessionServiceTest {
+    private val workSessionRepository = mockk<WorkSessionRepository>()
+    private val projectRepository = mockk<ProjectRepository>()
+    private val projectLogService = mockk<ProjectLogService>()
+    private val service = WorkSessionService(workSessionRepository, projectRepository, projectLogService, minSessionSeconds = 30L)
+
+    @BeforeEach
+    fun stubCommon() {
+        every { projectRepository.findByIdAndUserId(100L, 1L) } returns Optional.of(Project(id = 100L, userId = 1L))
+        every { workSessionRepository.save(any<WorkSession>()) } answers {
+            firstArg<WorkSession>().apply { if (id == null) id = 99L }
+        }
+        justRun { workSessionRepository.flush() }
+        justRun { workSessionRepository.delete(any<WorkSession>()) }
+    }
+
+    @Test
+    @DisplayName("start — 기존 열린 세션(≥30s)을 종료 보존하고 새 세션을 연다")
+    fun `start closes existing open session then opens new`() {
+        val existing = WorkSession(id = 5L, projectId = 100L, startedAt = Instant.now().minusSeconds(120))
+        every { workSessionRepository.findFirstByProjectIdAndEndedAtIsNull(100L) } returns existing
+
+        val result = service.start(userId = 1L, projectId = 100L)
+
+        assertThat(existing.endedAt).isNotNull() // 120s ≥ 30s → 보존(종료)
+        assertThat(result.endedAt).isNull() // 새 세션은 열림
+        assertThat(result.projectId).isEqualTo(100L)
+    }
+
+    @Test
+    @DisplayName("totalDurationMs — 종료된 세션 지속의 합(ms)")
+    fun `total sums ended session durations`() {
+        val base = Instant.parse("2026-06-08T00:00:00Z")
+        every { workSessionRepository.findByProjectIdAndEndedAtIsNotNull(100L) } returns
+            listOf(
+                WorkSession(id = 1L, projectId = 100L, startedAt = base, endedAt = base.plusMillis(1_000)),
+                WorkSession(id = 2L, projectId = 100L, startedAt = base, endedAt = base.plusMillis(2_000)),
+            )
+
+        assertThat(service.totalDurationMs(userId = 1L, projectId = 100L)).isEqualTo(3_000L)
+    }
+
+    @Test
+    @DisplayName("end — 열린 세션이 없으면 null")
+    fun `end returns null when no open session`() {
+        every { workSessionRepository.findFirstByProjectIdAndEndedAtIsNull(100L) } returns null
+
+        assertThat(service.end(userId = 1L, projectId = 100L)).isNull()
+    }
+
+    @Test
+    @DisplayName("endWithLog — 기록 생성 실패 시 예외 전파(트랜잭션 롤백 신호)")
+    fun `endWithLog propagates failure from log creation`() {
+        val open = WorkSession(id = 7L, projectId = 100L, startedAt = Instant.now().minusSeconds(5))
+        every { workSessionRepository.findFirstByProjectIdAndEndedAtIsNull(100L) } returns open
+        every { projectLogService.create(1L, 100L, "기록") } throws IllegalStateException("log insert failed")
+
+        assertThrows<IllegalStateException> { service.endWithLog(userId = 1L, projectId = 100L, body = "기록") }
+    }
+
+    @Test
+    @DisplayName("endWithLog — 짧은 세션도 종료 보존 + 기록 생성")
+    fun `endWithLog preserves short session and creates log`() {
+        val open = WorkSession(id = 7L, projectId = 100L, startedAt = Instant.now().minusSeconds(5))
+        every { workSessionRepository.findFirstByProjectIdAndEndedAtIsNull(100L) } returns open
+        every { projectLogService.create(1L, 100L, "기록") } returns
+            ProjectLogResponse(id = 50L, projectId = 100L, body = "기록", createdAt = Instant.now())
+
+        val result = service.endWithLog(userId = 1L, projectId = 100L, body = "기록")
+
+        assertThat(open.endedAt).isNotNull() // 5s < 30s 이지만 endWithLog 는 보존
+        assertThat(result.session?.endedAt).isNotNull()
+        assertThat(result.log.id).isEqualTo(50L)
+    }
+}

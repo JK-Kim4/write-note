@@ -127,6 +127,113 @@ class ProjectControllerIT {
     }
 
     @Test
+    fun `nextScene defaults empty, is saved on patch, returned on get, and cleared by empty value`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+        val projectId =
+            mockMvc
+                .perform(
+                    post("/api/projects")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"title":"다음 장면 작품"}"""),
+                ).andExpect(status().isCreated)
+                .andExpect(jsonPath("$.data.nextScene").value(""))
+                .andReturn()
+                .response
+                .contentAsString
+                .let(::extractProjectId)
+
+        // AS1 — 저장 후 조회 반환
+        mockMvc
+            .perform(
+                patch("/api/projects/{projectId}", projectId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"nextScene":"3장 도입부, 갈등 고조"}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.nextScene").value("3장 도입부, 갈등 고조"))
+
+        mockMvc
+            .perform(get("/api/projects/{projectId}", projectId).header("Authorization", bearer))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.nextScene").value("3장 도입부, 갈등 고조"))
+
+        // AS2 — 빈 값으로 비우기
+        mockMvc
+            .perform(
+                patch("/api/projects/{projectId}", projectId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"nextScene":""}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.nextScene").value(""))
+    }
+
+    @Test
+    fun `nextScene-only patch preserves other metadata`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+        val projectId =
+            mockMvc
+                .perform(
+                    post("/api/projects")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"title":"보존 확인","genre":"치유물","targetLength":2000}"""),
+                ).andExpect(status().isCreated)
+                .andReturn()
+                .response
+                .contentAsString
+                .let(::extractProjectId)
+
+        // AS4 — nextScene 만 갱신 시 타 메타 불변
+        mockMvc
+            .perform(
+                patch("/api/projects/{projectId}", projectId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"nextScene":"다음 회차"}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.nextScene").value("다음 회차"))
+            .andExpect(jsonPath("$.data.title").value("보존 확인"))
+            .andExpect(jsonPath("$.data.genre").value("치유물"))
+            .andExpect(jsonPath("$.data.targetLength").value(2000))
+    }
+
+    @Test
+    fun `cross user patch of nextScene returns 404 and leaves value unchanged`() {
+        val ownerA = createUser()
+        val ownerB = createUser()
+        val projectId =
+            mockMvc
+                .perform(
+                    post("/api/projects")
+                        .header("Authorization", bearerFor(ownerA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"title":"A의 작품"}"""),
+                ).andExpect(status().isCreated)
+                .andReturn()
+                .response
+                .contentAsString
+                .let(::extractProjectId)
+
+        // AS3 — 타 계정 수정 거부
+        mockMvc
+            .perform(
+                patch("/api/projects/{projectId}", projectId)
+                    .header("Authorization", bearerFor(ownerB))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"nextScene":"침입 시도"}"""),
+            ).andExpect(status().isNotFound)
+
+        mockMvc
+            .perform(get("/api/projects/{projectId}", projectId).header("Authorization", bearerFor(ownerA)))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.nextScene").value(""))
+    }
+
+    @Test
     fun `partial update preserves unspecified fields`() {
         val owner = createUser()
         val bearer = bearerFor(owner)

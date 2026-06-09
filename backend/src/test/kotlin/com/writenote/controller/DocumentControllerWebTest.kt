@@ -5,6 +5,7 @@ import com.writenote.entity.Document
 import com.writenote.entity.User
 import com.writenote.repository.DocumentRepository
 import com.writenote.repository.UserRepository
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -70,6 +71,22 @@ class DocumentControllerWebTest {
         val document = documentRepository.findByProjectId(projectId).orElseThrow()
         return Pair(projectId, document)
     }
+
+    /** 응답 JSON 에서 version(ISO8601 불투명 토큰 문자열) 추출. 클라이언트가 받는 그대로의 토큰. */
+    private fun extractVersion(json: String): String = Regex(""""version":"([^"]+)"""").find(json)!!.groupValues[1]
+
+    /** document id 로 GET → 현재 version 토큰 문자열 반환. */
+    private fun currentVersionToken(
+        bearer: String,
+        documentId: Long,
+    ): String =
+        mockMvc
+            .perform(get("/api/documents/{id}", documentId).header("Authorization", bearer))
+            .andExpect(status().isOk)
+            .andReturn()
+            .response
+            .contentAsString
+            .let(::extractVersion)
 
     // D1: GET /api/projects/{projectId}/document
 
@@ -154,36 +171,46 @@ class DocumentControllerWebTest {
     // D3: PUT /api/documents/{id}
 
     @Test
-    @DisplayName("D3 — version 일치 저장 200 + wordCount 재계산 (US1 핵심)")
+    @DisplayName("D3 — version(토큰) 일치 저장 200 + wordCount 재계산 + version 문자열 전진 (US1 핵심)")
     fun `D3 save document succeeds on version match`() {
         val owner = createUser()
         val bearer = bearerFor(owner)
         val (_, document) = createProjectAndGetDocument(bearer)
+        val documentId = document.id!!
+        val token0 = currentVersionToken(bearer, documentId)
 
         val bodyJson =
             """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"안녕 세계"}]}]}"""
 
-        mockMvc
-            .perform(
-                put("/api/documents/{id}", document.id)
-                    .header("Authorization", bearer)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"body":"${bodyJson.replace("\"", "\\\"")}","version":0}"""),
-            ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.wordCount").value(4))
-            .andExpect(jsonPath("$.data.version").value(1))
+        val responseJson =
+            mockMvc
+                .perform(
+                    put("/api/documents/{id}", documentId)
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"body":"${bodyJson.replace("\"", "\\\"")}","version":"$token0"}"""),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.wordCount").value(4))
+                .andExpect(jsonPath("$.data.version").isString)
+                .andReturn()
+                .response
+                .contentAsString
+
+        // 저장 응답의 version 토큰은 저장 전 토큰과 다른 새 값(전진)
+        assertThat(extractVersion(responseJson)).isNotEqualTo(token0)
     }
 
     @Test
-    @DisplayName("D3 — version 불일치 409 DOCUMENT_VERSION_CONFLICT + currentVersion/currentBody")
+    @DisplayName("D3 — version(토큰) 불일치 409 DOCUMENT_VERSION_CONFLICT + currentVersion/currentBody")
     fun `D3 returns 409 on version conflict with current state`() {
         val owner = createUser()
         val bearer = bearerFor(owner)
         val (_, document) = createProjectAndGetDocument(bearer)
         val documentId = document.id!!
+        val token0 = currentVersionToken(bearer, documentId)
 
-        // version 0 으로 먼저 저장 (version 0 → 1)
+        // token0 으로 먼저 저장 (토큰 전진)
         val firstBodyJson =
             """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"첫 저장"}]}]}"""
         mockMvc
@@ -191,10 +218,10 @@ class DocumentControllerWebTest {
                 put("/api/documents/{id}", documentId)
                     .header("Authorization", bearer)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"body":"${firstBodyJson.replace("\"", "\\\"")}","version":0}"""),
+                    .content("""{"body":"${firstBodyJson.replace("\"", "\\\"")}","version":"$token0"}"""),
             ).andExpect(status().isOk)
 
-        // 구버전(version = 0) 으로 충돌 요청
+        // 구 토큰(token0) 으로 충돌 요청
         val conflictBodyJson =
             """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"충돌"}]}]}"""
         mockMvc
@@ -202,11 +229,11 @@ class DocumentControllerWebTest {
                 put("/api/documents/{id}", documentId)
                     .header("Authorization", bearer)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"body":"${conflictBodyJson.replace("\"", "\\\"")}","version":0}"""),
+                    .content("""{"body":"${conflictBodyJson.replace("\"", "\\\"")}","version":"$token0"}"""),
             ).andExpect(status().isConflict)
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.error.code").value("DOCUMENT_VERSION_CONFLICT"))
-            .andExpect(jsonPath("$.data.currentVersion").value(1))
+            .andExpect(jsonPath("$.data.currentVersion").isString)
             .andExpect(jsonPath("$.data.currentBody").exists())
     }
 

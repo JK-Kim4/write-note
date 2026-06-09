@@ -1,6 +1,6 @@
 import { apiFetch } from "./client";
 import type { Page } from "@/types/api";
-import type { MemoResponse } from "@/types/api";
+import type { MemoResponse, ProjectMemoResponse } from "@/types/api";
 
 /**
  * 메모 API (006 US3 데스크탑 캡처 + US4 큐레이션).
@@ -41,6 +41,24 @@ const buildQuery = (params: ListMemosParams): string => {
 
 export function listMemos(params: ListMemosParams = {}): Promise<Page<MemoResponse>> {
     return apiFetch<Page<MemoResponse>>(`/api/memos${buildQuery(params)}`, { method: "GET" });
+}
+
+/** GET /api/memos/{id} — 단건(연결·태그·사유 포함). addLink/removeLink 가 현재 큐레이션 상태를 읽는 데 사용. */
+export function getMemo(id: number): Promise<MemoResponse> {
+    return apiFetch<MemoResponse>(`/api/memos/${id}`, { method: "GET" });
+}
+
+/** GET /api/projects/{projectId}/memos — 작품에 연결된 곁쪽지(고정 포함, 014). */
+export function listProjectMemos(projectId: number): Promise<ProjectMemoResponse[]> {
+    return apiFetch<ProjectMemoResponse[]>(`/api/projects/${projectId}/memos`, { method: "GET" });
+}
+
+/** PUT /api/projects/{projectId}/memos/{memoId}/pin — 곁쪽지 고정 토글(작품당 1개, 014). */
+export function setProjectMemoPin(projectId: number, memoId: number, pinned: boolean): Promise<ProjectMemoResponse> {
+    return apiFetch<ProjectMemoResponse>(`/api/projects/${projectId}/memos/${memoId}/pin`, {
+        method: "PUT",
+        body: JSON.stringify({ pinned }),
+    });
 }
 
 export interface CaptureMemoInput {

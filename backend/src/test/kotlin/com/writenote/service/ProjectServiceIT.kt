@@ -83,7 +83,6 @@ class ProjectServiceIT
             assertThat(jsonMapper.readTree(document.body))
                 .isEqualTo(jsonMapper.readTree(Document.EMPTY_DOC_JSON))
             assertThat(document.wordCount).isEqualTo(0)
-            assertThat(document.version).isEqualTo(0)
             assertThat(document.createdAt).isNotNull()
             assertThat(document.updatedAt).isNotNull()
         }

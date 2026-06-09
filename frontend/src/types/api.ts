@@ -40,6 +40,8 @@ export interface ProjectResponse {
     toneNotes: string | null;
     synopsis: string | null;
     worldNotes: string | null;
+    /** "다음에 쓸 장면" 한 줄 (014 backend 확장). 미설정은 빈 문자열. */
+    nextScene: string;
     archivedAt: string | null;
     createdAt: string;
     updatedAt: string;
@@ -71,7 +73,8 @@ export interface DocumentResponse {
     title: string;
     body: string; // ProseMirror JSON 문자열
     wordCount: number;
-    version: number;
+    /** 016 — updatedAt 겸용 불투명 버전 토큰(ISO8601 문자열). 파싱·증감 금지, 받은 값 그대로 전달. */
+    version: string;
     updatedAt: string;
 }
 
@@ -98,6 +101,45 @@ export interface MemoResponse {
     reasonNote: string | null;
     tags: string[];
     projects: MemoProjectResponse[];
+}
+
+/** 작품 맥락 곁쪽지 응답 (014) — GET /api/projects/{id}/memos, PUT …/pin. id 는 memoId. */
+export interface ProjectMemoResponse {
+    memoId: number;
+    projectId: number;
+    body: string;
+    source: string;
+    capturedAt: string;
+    reasonNote: string | null;
+    tags: string[];
+    pinned: boolean;
+}
+
+/** 집필 기록 응답 (014) — GET/POST /api/projects/{id}/logs. desktop ProjectLog 대응. */
+export interface ProjectLogResponse {
+    id: number;
+    projectId: number;
+    body: string;
+    createdAt: string;
+}
+
+/** 작업 세션 응답 (014). endedAt=null 이면 진행 중. */
+export interface WorkSessionResponse {
+    id: number;
+    projectId: number;
+    startedAt: string;
+    endedAt: string | null;
+}
+
+/** 종료+기록 결과 (014) — 보존된 세션(없으면 null) + 생성된 집필 기록. */
+export interface EndWithLogResponse {
+    session: WorkSessionResponse | null;
+    log: ProjectLogResponse;
+}
+
+/** 총 작업시간(ms) 응답 (014) — 카드 집계용. */
+export interface TotalDurationResponse {
+    totalDurationMs: number;
 }
 
 /** 토큰 목록 항목 — GET /api/api-tokens 응답 원소 (token 필드 없음) */
@@ -134,7 +176,8 @@ export interface DocumentSaveResponse {
     id: number;
     body: string;
     wordCount: number;
-    version: number;
+    /** 016 — flush 후 확정된 새 버전 토큰(ISO8601 문자열, 불투명). */
+    version: string;
     updatedAt: string;
 }
 

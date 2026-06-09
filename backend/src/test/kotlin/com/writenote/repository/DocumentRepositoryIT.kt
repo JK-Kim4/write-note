@@ -43,7 +43,6 @@ class DocumentRepositoryIT
             assertThat(found.body).contains("\"content\"")
             assertThat(found.body).contains("[]")
             assertThat(found.wordCount).isZero()
-            assertThat(found.version).isZero()
             assertThat(found.createdAt).isNotNull()
             assertThat(found.updatedAt).isNotNull()
         }

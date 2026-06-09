@@ -4,6 +4,7 @@ import com.writenote.error.ResourceNotFoundException
 import com.writenote.model.response.MemoCharacterResponse
 import com.writenote.model.response.MemoProjectResponse
 import com.writenote.model.response.MemoResponse
+import com.writenote.model.response.ProjectMemoResponse
 import com.writenote.repository.CharacterRepository
 import com.writenote.repository.MemoProjectCharacterRepository
 import com.writenote.repository.MemoProjectRepository
@@ -61,6 +62,34 @@ class MemoQueryService(
             }
 
         return memoPage.map { toResponse(it) }
+    }
+
+    /**
+     * 작품 맥락 곁쪽지 목록 — 그 작품에서의 고정 여부 포함. `memos:listByProject` 대응.
+     *
+     * 작품 소유권 검증 선행. 고정 우선·최신순.
+     */
+    @Transactional(readOnly = true)
+    fun listByProject(
+        userId: Long,
+        projectId: Long,
+    ): List<ProjectMemoResponse> {
+        projectRepository
+            .findByIdAndUserId(projectId, userId)
+            .orElseThrow { ResourceNotFoundException("Project not found") }
+        return memoProjectRepository.findAllByProjectIdWithMemo(projectId).map { mp ->
+            val memo = mp.memo
+            ProjectMemoResponse(
+                memoId = requireNotNull(memo.id),
+                projectId = mp.projectId,
+                body = memo.body,
+                source = memo.source,
+                capturedAt = requireNotNull(memo.capturedAt),
+                reasonNote = memo.reasonNote,
+                tags = memo.tags,
+                pinned = mp.pinned,
+            )
+        }
     }
 
     /**
