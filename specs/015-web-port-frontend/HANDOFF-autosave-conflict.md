@@ -1,10 +1,11 @@
-# 핸드오프 — 자동저장 거짓 충돌 버그 (미해결)
+# 핸드오프 — 자동저장 거짓 충돌 버그 (✅ 해결 — 016)
 
 **작성:** 2026-06-09 | **브랜치:** `015-web-port-frontend` | **최신 커밋:** `b7bc951`
+**해결:** 2026-06-09 | 016 브랜치(`016-autosave-localstorage-redesign`) | 아래 [§해결](#해결-016-자동저장-재설계) 참조
 
 집필실(`/projects/[id]/write`) 자동저장이 거짓 409 충돌을 반복하고, 충돌 후 저장이 동결되는 버그. **3회 수정 시도 모두 실패.** 다음 세션이 이 문서만 읽고 이어서 디버깅할 수 있도록 정리한다.
 
-> ⚠️ 본 버그가 해결될 때까지 015 는 **dogfooding 불가**(핵심 집필 흐름이 깨짐). 최우선.
+> ✅ **해결됨** — 016 자동저장 재설계에서 거짓충돌 근본 제거 + 작성분 무유실 확보. 문서 끝 [§해결](#해결-016-자동저장-재설계) 참조.
 
 ---
 
@@ -109,3 +110,31 @@ PUT  /api/documents/540
 ## 8. 015 전체 맥락
 
 자동저장 버그를 제외하면 015(Web 포팅 front)는 **US1~US4 + Polish 구현 완료**(tasks 38/44, 게이트 GREEN). 잔여 = 본 버그 + 브라우저 시각 dogfooding + 보류 결정([[03-ISSUES]] ISSUE-026 곁쪽지 삭제 / ISSUE-027 문의 CORS / 전역 QuickCaptureModal 중복 / legacy 라우트). 전체 인계 = `specs/015-web-port-frontend/HANDOFF.md`.
+
+---
+
+## 해결 (016 자동저장 재설계)
+
+**브랜치:** `016-autosave-localstorage-redesign` | **spec:** `specs/016-autosave-localstorage-redesign/`
+
+### 실제 원인 (2가지)
+
+1. **거짓 409 충돌** — version 출처가 분산(편집 중 끼어든 GET 이 저장으로 추월된 서버 버전으로 세션 토큰을 되돌림). §3 "편집 중 반복 GET" 단서가 트리거였다.
+2. **작성분 유실(016 dogfooding 중 추가 발견)** — `PaperEditor.onUpdate` 가 `if (e.view.composing) return` 으로 **한국어 IME 조합 중 onChange 를 차단** → 조합 중 텍스트가 body·localStorage 어디에도 기록되지 않은 채 화면에만 존재 → 메뉴 이동(언마운트) 시 유실. (Enter 로 조합을 확정하면 살아남는 증상이 결정적 단서였다. 자동저장/draft 레이어를 3회 헛고친 뒤에야 에디터 onChange 통로가 범인임을 규명.)
+
+### 해결책
+
+- **거짓충돌**: 편집 세션이 version 토큰을 단독 소유(`useDocumentSession`). 진입 1회 로드 후 편집 중 서버 재조회 차단(`useDocument` `staleTime:Infinity`), 토큰은 저장 응답으로만 전진. 백엔드는 `updatedAt @Version Instant` 겸용 + flush 후 새 토큰 응답.
+- **무유실**: 타자 즉시 `localStorage` draft(`draftStore`) 보존 + 진입 시 자동 복원(`restoredBody`). **IME 조합 중에도 재렌더 없이 draft 만 갱신**(`PaperEditor.onDraftUpdate` → `useDocumentSession.flushDraft`) + 언마운트 직전 flush. 동기화 no-clobber(최신 로컬을 과거 본문으로 덮지 않음).
+- **충돌 선별**: baseVersion 불일치(실제 서버 변경)만 409 → ConflictDialog([다시 불러오기]/[덮어쓰기]), 작성분 보존.
+
+### 검증
+
+- 자동화: 프론트 83 테스트(거짓충돌 회귀·flushDraft 복원 포함) + 백엔드 게이트(토큰 라운드트립 정밀도) + 양쪽 build GREEN.
+- dogfooding: 거짓충돌 0 / 한국어 조합 중 메뉴 이동 후 작성분 복원 사용자 확인.
+
+### 정리 완료 / 잔여
+
+- `middleware.ts`(디버그 로깅) · `useAutoSave` · 레거시 `/write` 트리 제거.
+- ⚠️ V8 마이그레이션(`documents.version` DROP)은 **로컬 dev DB만 적용**, 운영 적용은 별도 컨펌.
+- 별개 잔존 버그: `POST /api/projects/{id}/work-sessions/start` 409(`uq_work_session_open` 중복 — 작업세션 종료 누락/중복 시작, 014/015 `useWorkSession` 영역). 자동저장과 무관, 후속 추적.
