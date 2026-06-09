@@ -11,12 +11,12 @@
   --logo-mask: url('./narae-mark.png');
 
   /* 앱 배경 = 평평한 양피지 (안식처 바닥) */
-  --bg:             oklch(0.945 0.006 85);
+  --bg:             oklch(0.945 0.013 88);
 
-  --surface:        oklch(0.962 0.006 85);
-  --surface-sunken: oklch(0.930 0.006 84);
-  --paper:          oklch(0.996 0.001 85);
-  --paper-edge:     oklch(0.912 0.006 82);
+  --surface:        oklch(0.962 0.012 88);
+  --surface-sunken: oklch(0.930 0.012 87);
+  --paper:          oklch(0.993 0.011 90);
+  --paper-edge:     oklch(0.903 0.014 88);
 
   /* 쪽지(메모) 면 — 종이와 구분되는 옅은 크림옐로(포스트잇). */
   --scrap:          oklch(0.945 0.050 92);
@@ -43,11 +43,11 @@
   --danger-ink:  oklch(0.470 0.150 27);
 
   --radius-sm: 8px;
-  --radius:    12px;
-  --radius-lg: 16px;
+  --radius:    14px;
+  --radius-lg: 18px;
   --radius-pill: 999px;
 
-  --shadow-panel: 0 1px 2px -1px oklch(0.30 0.03 60 / .20), 0 8px 24px -16px oklch(0.30 0.03 60 / .30);
+  --shadow-panel: 0 1px 2px -1px oklch(0.34 0.045 55 / .17), 0 14px 32px -18px oklch(0.32 0.05 50 / .32);
   --shadow-paper: 0 1px 0 var(--paper-edge), 0 24px 52px -26px oklch(0.22 0.03 50 / .58);
   --shadow-modal: 0 30px 70px -30px oklch(0.20 0.02 60 / .55);
 
@@ -73,8 +73,8 @@
 
   --surface:        oklch(0.262 0.012 64);
   --surface-sunken: oklch(0.232 0.010 62);
-  --paper:          oklch(0.288 0.014 66);
-  --paper-edge:     oklch(0.350 0.016 66);
+  --paper:          oklch(0.300 0.020 70);
+  --paper-edge:     oklch(0.362 0.022 70);
 
   /* 쪽지 면 — 다크는 채도 낮춘 짙은 변형. */
   --scrap:          oklch(0.330 0.035 92);
@@ -101,7 +101,7 @@
   --danger-ink:  oklch(0.820 0.130 25);
 
   --shadow-paper: 0 1px 0 var(--paper-edge), 0 24px 52px -28px oklch(0 0 0 / .70);
-  --shadow-panel: 0 1px 2px -1px oklch(0 0 0 / .40), 0 10px 28px -18px oklch(0 0 0 / .55);
+  --shadow-panel: 0 1px 2px -1px oklch(0 0 0 / .40), 0 14px 34px -20px oklch(0 0 0 / .58);
 }
 
 /* ── reset ── */
