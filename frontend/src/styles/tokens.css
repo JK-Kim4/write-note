@@ -6,28 +6,31 @@
  *
  * 본 파일은 raw CSS variable 정의만 담는다. Tailwind 4 의 @theme directive 위임은
  * frontend/src/app/globals.css 에서 수행한다. 다크 모드 toggle 은 :root.dark 클래스 적용으로 동작.
+ *
+ * 2026-06 웜 리스킨(Scope A): 인증/폼이 쓰는 본 토큰을 메인 앱(desktop-app.css)의
+ *   "평평한 양피지 + 잉크블루" 웜 시스템과 정합되도록 차가운 값 → 따뜻한 값으로 통일.
  */
 
 :root {
-  /* === Surface (Light) === */
-  --w-canvas: #ffffff;
-  --w-parchment: #f5f5f7;        /* 기본 surface */
-  --w-manuscript-cream: #fbf8ee; /* 원고지 paper light */
+  /* === Surface (Light) — 웜 양피지 === */
+  --w-canvas: #fffdf8;           /* 종이 화이트 (살짝 웜) */
+  --w-parchment: #f3ede1;        /* 기본 surface — 평평한 양피지 */
+  --w-manuscript-cream: #fbf7ee; /* 원고지 paper light */
 
   /* === Surface (Dark — 라이트 토큰을 dark scope 에서 재정의) === */
 
   /* === Text === */
-  --w-ink: #1d1d1f;              /* 라이트 본문 */
-  --w-on-dark: #f4f4f6;          /* 다크 본문 (다크 scope 에서 사용) */
+  --w-ink: #2a2620;              /* 라이트 본문 — 웜 near-black */
+  --w-on-dark: #f2ece1;          /* 다크 본문 (다크 scope 에서 사용) */
 
-  /* === Accent (Action Blue) === */
-  --w-accent: #0066cc;           /* 라이트 */
+  /* === Accent (Ink Blue) === */
+  --w-accent: #1f5aa6;           /* 라이트 — 잉크블루 (메인 앱 accent 와 정합) */
 
   /* === System Red (Apple System Red) === */
   --w-error: #d70015;            /* 라이트 */
 
   /* === Hairline === */
-  --w-hairline: #e0e0e0;
+  --w-hairline: #e7ddcc;         /* 웜 소프트 hairline */
 
   /* === Radius === */
   --w-radius-card-memo: 14px;
@@ -58,21 +61,21 @@
 }
 
 :root.dark {
-  /* === Surface (Dark) === */
-  --w-canvas: #1c1c1e;            /* tile-1 */
-  --w-parchment: #242426;         /* tile-2 */
+  /* === Surface (Dark) — 촛불 아래 짙은 양피지 === */
+  --w-canvas: #211d18;            /* tile-1 (웜 다크) */
+  --w-parchment: #2a251f;         /* tile-2 (웜 다크) */
   --w-manuscript-cream: #28231d;  /* warm cream-dark — DESIGN.md §6 촛불 아래 원고 정서 */
 
   /* === Text === */
-  --w-ink: #f4f4f6;               /* 다크에서는 ink = on-dark light tone */
-  --w-on-dark: #f4f4f6;
+  --w-ink: #f2ece1;               /* 다크에서는 ink = on-dark light tone (웜) */
+  --w-on-dark: #f2ece1;
 
-  /* === Accent (Action Blue 다크) === */
-  --w-accent: #2997ff;            /* DESIGN.md §6 자동 #0066cc → #2997ff */
+  /* === Accent (Ink Blue 다크) === */
+  --w-accent: #5a97da;            /* 다크 — 밝은 잉크블루 */
 
   /* === System Red 다크 === */
   --w-error: #ff453a;
 
-  /* === Hairline 다크 (육안 검증) === */
-  --w-hairline: #2c2c2e;          /* tile-3 톤 */
+  /* === Hairline 다크 (웜) === */
+  --w-hairline: #332e26;          /* tile-3 웜 톤 */
 }
