@@ -23,9 +23,9 @@ export const documents = {
     getByProject: async (projectId: number): Promise<ProjectDocument> => toDocument(await getProjectDocument(projectId)),
 
     /**
-     * 본문 저장(낙관적 버전). 자동저장은 useAutoSave(006)가 saveDocument 를 직접 debounce 호출하므로
+     * 본문 저장(낙관적 버전). 자동저장은 useDocumentSession(016)이 saveDocument 를 직접 호출하므로
      * 본 메서드는 명시 저장/계약 완결용. 409 시 client.ts 가 ConflictError throw.
      */
-    update: (id: number, patch: { bodyJson: string; version: number }): Promise<DocumentSaveResponse> =>
+    update: (id: number, patch: { bodyJson: string; version: string }): Promise<DocumentSaveResponse> =>
         saveDocument(id, { body: patch.bodyJson, version: patch.version }),
 };

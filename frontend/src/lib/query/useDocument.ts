@@ -1,6 +1,6 @@
 "use client";
 
-/** document React Query 훅 (015 T013) — 활성 작품 문서 로드. 저장은 useAutoSave(006) 담당. */
+/** document React Query 훅 (015 T013) — 활성 작품 문서 로드. 저장은 useDocumentSession(016) 담당. */
 import { useQuery } from "@tanstack/react-query";
 import { webElectronApi } from "@/lib/electron-api";
 
@@ -14,10 +14,11 @@ export function useProjectDocument(projectId: number) {
         queryFn: () => webElectronApi.documents.getByProject(projectId),
         enabled: Number.isFinite(projectId),
         retry: false,
-        // 편집 중 문서는 autosave 가 버전의 주인. 편집 도중 끼어드는 background refetch(창 포커스 전환·네트워크
-        // 재연결)는 useAutoSave 의 version 동기화를 (이미 저장으로 추월된) 서버 버전으로 되돌려 거짓 409 충돌을 낸다.
-        // → 이 둘만 끈다. 마운트 시 refetch 는 유지(작품 재진입 시 서버 최신 버전으로 fresh 로드). 실제 교차기기
-        // 충돌은 저장 시 409 로 감지된다.
+        // 016 — 편집 세션이 버전의 단독 소유자. 진입 1회 로드 후 편집 중 서버 재조회를 구조적으로 차단한다.
+        // staleTime: Infinity 로 캐시를 영구 fresh 처리(자동 refetch 트리거 제거) + 창 포커스/재연결 refetch 차단.
+        // 편집 중 끼어든 GET 이 (저장으로 이미 추월된) 서버 버전으로 세션 토큰을 되돌리던 거짓 409 충돌의 뿌리를 끊는다.
+        // 작품 재진입 시 fresh 로드는 마운트(새 queryKey)에서 수행. 실제 교차기기 충돌은 저장 시 409 로 감지.
+        staleTime: Infinity,
         refetchOnWindowFocus: false,
         refetchOnReconnect: false,
     });

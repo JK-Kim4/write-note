@@ -73,7 +73,8 @@ export interface DocumentResponse {
     title: string;
     body: string; // ProseMirror JSON 문자열
     wordCount: number;
-    version: number;
+    /** 016 — updatedAt 겸용 불투명 버전 토큰(ISO8601 문자열). 파싱·증감 금지, 받은 값 그대로 전달. */
+    version: string;
     updatedAt: string;
 }
 
@@ -175,7 +176,8 @@ export interface DocumentSaveResponse {
     id: number;
     body: string;
     wordCount: number;
-    version: number;
+    /** 016 — flush 후 확정된 새 버전 토큰(ISO8601 문자열, 불투명). */
+    version: string;
     updatedAt: string;
 }
 

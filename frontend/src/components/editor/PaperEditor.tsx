@@ -31,29 +31,54 @@ type PaperEditorProps = {
     title: string;
     initialBodyJson: string;
     onChange: (change: DocumentChange) => void;
+    /**
+     * 본문 변경 시 호출되는 경량 통로 — IME 조합 중에도 매 변경마다 발동.
+     * setState/re-render 없이 localStorage draft 만 갱신하는 용도(조합을 깨지 않음). 작성분 무유실의 핵심.
+     */
+    onDraftUpdate?: (bodyJson: string) => void;
     lined: boolean;
     zoom?: number;
 };
 
-export function PaperEditor({ title, initialBodyJson, onChange, lined, zoom = 1 }: PaperEditorProps) {
+export function PaperEditor({ title, initialBodyJson, onChange, onDraftUpdate, lined, zoom = 1 }: PaperEditorProps) {
     const paperRef = useRef<HTMLElement>(null);
     const [pages, setPages] = useState(1);
+
+    // onChange/onDraftUpdate 의 최신 참조 — 언마운트 flush 에서 stale 클로저 방지.
+    const onChangeRef = useRef(onChange);
+    const onDraftUpdateRef = useRef(onDraftUpdate);
+    useEffect(() => {
+        onChangeRef.current = onChange;
+        onDraftUpdateRef.current = onDraftUpdate;
+    });
 
     const editor = useEditor({
         extensions: [StarterKit],
         content: parseContent(initialBodyJson),
         immediatelyRender: false,
         onUpdate: ({ editor: e }) => {
-            // 조합 도중 re-render 되면 composition 이 깨져 자모가 분리 입력된다.
+            const bodyJson = JSON.stringify(e.getJSON());
+            // 조합 중에도 draft 는 항상 보존(re-render 없음 → IME 안전). 작성분 무유실.
+            onDraftUpdateRef.current?.(bodyJson);
+            // 조합 도중 re-render 되면 composition 이 깨져 자모가 분리 입력된다 → 조합 끝에만 부모 state 갱신.
             if (e.view.composing) return;
             const text = e.getText();
             onChange({
-                bodyJson: JSON.stringify(e.getJSON()),
+                bodyJson,
                 plainText: text,
                 wordCount: text.replace(/\s/g, "").length,
             });
         },
     });
+
+    // 언마운트(메뉴 이동 등) 직전 현재 에디터 내용을 draft 에 강제 flush — 조합 중이던 작성분까지 보존.
+    useEffect(() => {
+        if (!editor) return;
+        return () => {
+            if (editor.isDestroyed) return;
+            onDraftUpdateRef.current?.(JSON.stringify(editor.getJSON()));
+        };
+    }, [editor]);
 
     useEffect(() => {
         const pm = paperRef.current?.querySelector<HTMLElement>(".ProseMirror");

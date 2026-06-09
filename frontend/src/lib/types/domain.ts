@@ -20,7 +20,8 @@ export type ProjectDocument = {
     /** ProseMirror JSON 문자열 (DocumentResponse.body). */
     bodyJson: string;
     wordCount: number;
-    version: number;
+    /** 016 — 불투명 버전 토큰(ISO8601 문자열, updatedAt 겸용). 파싱·증감 금지. */
+    version: string;
     updatedAt: string;
 };
 

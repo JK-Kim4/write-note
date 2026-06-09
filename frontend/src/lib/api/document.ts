@@ -20,7 +20,8 @@ export function getDocument(id: number): Promise<DocumentResponse> {
 
 export interface SaveDocumentInput {
     body: string;
-    version: number;
+    /** 016 — 세션이 소유한 불투명 버전 토큰(ISO8601 문자열). 받은 값 그대로 전달. */
+    version: string;
 }
 
 export function saveDocument(id: number, input: SaveDocumentInput): Promise<DocumentSaveResponse> {

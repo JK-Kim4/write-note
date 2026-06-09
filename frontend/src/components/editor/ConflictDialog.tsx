@@ -1,19 +1,23 @@
 "use client";
 
 /**
- * 문서 버전 충돌 선택 UI (006 T019).
+ * 문서 버전 충돌 선택 UI (006 T019 / 016 T024).
  *
- * 자동저장 409 → useAutoSave 가 conflict 상태 노출 → 본 다이얼로그 표시.
+ * 자동저장 409 → useDocumentSession 이 conflict 상태 노출 → 본 다이얼로그 표시.
  * - 다시 불러오기: 서버 최신본(currentBody)으로 교체 (로컬 편집 내용 폐기)
- * - 덮어쓰기: 내 편집을 currentVersion 으로 강제 저장
+ * - 덮어쓰기: 내 편집을 currentVersion(불투명 토큰)으로 강제 저장
  */
 
-import type { ConflictData } from "@/hooks/useAutoSave";
+/** 충돌 데이터 — currentVersion 은 불투명 버전 토큰(ISO8601 문자열). */
+export interface ConflictData {
+    currentVersion: string;
+    currentBody: string;
+}
 
 interface ConflictDialogProps {
     conflict: ConflictData;
     onReload: (currentBody: string) => void;
-    onOverwrite: (currentVersion: number) => void;
+    onOverwrite: (currentVersion: string) => void;
 }
 
 export function ConflictDialog({ conflict, onReload, onOverwrite }: ConflictDialogProps) {
@@ -37,8 +41,7 @@ export function ConflictDialog({ conflict, onReload, onOverwrite }: ConflictDial
                     문서가 다른 곳에서 변경되었습니다
                 </h2>
                 <p style={{ fontSize: "14px", opacity: 0.7 }}>
-                    현재 열린 문서보다 최신 버전(v{conflict.currentVersion})이 서버에 있습니다.
-                    어떻게 처리할까요?
+                    현재 열린 문서보다 최신 버전이 서버에 있습니다. 어떻게 처리할까요?
                 </p>
                 <div className="flex flex-col gap-2">
                     <button

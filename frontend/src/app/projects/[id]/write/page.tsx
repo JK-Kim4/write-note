@@ -10,7 +10,7 @@ import { useProjectMemos, useRemoveLinkMemo, useSetPinMemo } from "@/lib/query/u
 import { logKeys } from "@/lib/query/useLogs";
 import { toDrawerMemoView } from "@/lib/memoView";
 import type { ProjectDocument } from "@/lib/types/domain";
-import { useAutoSave } from "@/hooks/useAutoSave";
+import { useDocumentSession } from "@/hooks/useDocumentSession";
 import { useWorkSession } from "@/hooks/useWorkSession";
 import { rememberLastProject } from "@/lib/lastProject";
 import { Rail } from "@/components/workspace/Rail";
@@ -20,9 +20,9 @@ import { PaperEditor } from "@/components/editor/PaperEditor";
 import { ConflictDialog } from "@/components/editor/ConflictDialog";
 
 /**
- * 집필실 (015 US1) — desktop WriteStudioScreen 1:1 이식.
+ * 집필실 (015 US1 / 016) — desktop WriteStudioScreen 1:1 이식.
  * .app(Rail+main) 셸 + Titlebar + .studio > PaperEditor(desktop app.css 페이지 분할).
- * 자동저장(006 useAutoSave 재사용) + 409 ConflictDialog. 곁쪽지 서랍·작업종료는 US2/US3.
+ * 자동저장(016 useDocumentSession — localStorage draft + 수정시각 버전 토큰). 충돌·복구 결선은 US2/US3.
  */
 const EMPTY_DOC = JSON.stringify({ type: "doc", content: [] });
 
@@ -37,6 +37,7 @@ export default function ProjectWritePage() {
     const { data: doc, isLoading, isError } = useProjectDocument(projectId);
 
     const [body, setBody] = useState<string | null>(null);
+    // editorKey: 복구/충돌 시 PaperEditor 강제 리마운트용(본문 교체 반영).
     const [editorKey, setEditorKey] = useState(0);
     const [lined, setLined] = useState(true);
     const [zoom, setZoom] = useState(1);
@@ -78,47 +79,60 @@ export default function ProjectWritePage() {
         }
     };
 
-    const initialBody = body ?? doc?.bodyJson ?? null;
-
-    const autoSave = useAutoSave({
+    const session = useDocumentSession({
         documentId: doc?.id ?? 0,
-        body: initialBody ?? EMPTY_DOC,
-        version: doc?.version ?? 0,
-        // 저장 성공마다 캐시를 서버 최신(version/wordCount/body)으로 갱신 → 재진입·refetch 시 stale 버전 재사용 방지.
+        projectId,
+        serverBody: doc?.bodyJson ?? EMPTY_DOC,
+        serverVersion: doc?.version ?? "",
+        body: body ?? doc?.bodyJson ?? EMPTY_DOC,
+        // 저장 성공마다 캐시를 서버 최신(version/wordCount/body)으로 갱신 → 재진입 시 stale 버전 재사용 방지.
         onSaved: (res) =>
             queryClient.setQueryData<ProjectDocument | undefined>(documentKeys.byProject(projectId), (old) =>
                 old ? { ...old, version: res.version, wordCount: res.wordCount, bodyJson: res.body } : old,
             ),
     });
 
+    // localStorage-first 자동 복원 — 미동기화 draft 가 있으면 에디터 초기 본문으로 즉시 복원(배너·대기 없음).
+    const initialBody = body ?? session.restoredBody ?? doc?.bodyJson ?? null;
+
+    // 복원 본문을 현재 편집 본문으로 채택 → 세션이 서버에도 재동기화(로컬은 이미 보존됨).
+    useEffect(() => {
+        if (session.restoredBody != null) setBody((b) => b ?? session.restoredBody);
+    }, [session.restoredBody]);
+
     const handleChange = useCallback((change: { bodyJson: string }) => setBody(change.bodyJson), []);
+
+    // 진짜 충돌(US3) — 다시 불러오기: 서버 최신본으로 교체 / 덮어쓰기: 내 본문 강제 저장.
     const handleReload = useCallback(
         (currentBody: string) => {
-            const currentVersion = autoSave.conflict?.currentVersion ?? doc?.version ?? 0;
+            const currentVersion = session.conflict?.currentVersion ?? doc?.version ?? "";
             queryClient.setQueryData<ProjectDocument | undefined>(documentKeys.byProject(projectId), (old) =>
                 old ? { ...old, bodyJson: currentBody, version: currentVersion } : old,
             );
             setBody(currentBody);
             setEditorKey((k) => k + 1);
-            autoSave.dismissConflict();
+            session.dismissConflict();
         },
-        [autoSave, queryClient, projectId, doc?.version],
+        [session, queryClient, projectId, doc?.version],
     );
-    const handleOverwrite = useCallback((currentVersion: number) => autoSave.overwrite(currentVersion), [autoSave]);
+    const handleOverwrite = useCallback((currentVersion: string) => session.overwrite(currentVersion), [session]);
 
     const projectTitle = projectQuery.data?.title ?? "";
+    // syncStatus → 기존 savestate 클래스/라벨 어휘로 매핑.
+    const saveStateClass =
+        session.syncStatus === "syncing" ? "saving" : session.syncStatus === "synced" ? "saved" : session.syncStatus;
     const saveLabel =
-        autoSave.status === "saving"
+        session.syncStatus === "syncing"
             ? "저장 중…"
-            : autoSave.status === "error"
+            : session.syncStatus === "error"
               ? "저장 실패"
-              : autoSave.status === "conflict"
+              : session.syncStatus === "conflict"
                 ? "충돌"
                 : "저장됨";
 
     const right = (
         <>
-            <span className={`savestate savestate--${autoSave.status}`} role="status" aria-live="polite">
+            <span className={`savestate savestate--${saveStateClass}`} role="status" aria-live="polite">
                 {saveLabel}
             </span>
             <label className="view-menu__row" style={{ fontSize: 12 }}>
@@ -181,6 +195,7 @@ export default function ProjectWritePage() {
                                 title={projectTitle}
                                 initialBodyJson={initialBody ?? doc.bodyJson}
                                 onChange={handleChange}
+                                onDraftUpdate={session.flushDraft}
                                 lined={lined}
                                 zoom={zoom}
                             />
@@ -195,8 +210,8 @@ export default function ProjectWritePage() {
                         />
                     )}
                 </div>
-                {autoSave.status === "conflict" && autoSave.conflict != null && (
-                    <ConflictDialog conflict={autoSave.conflict} onReload={handleReload} onOverwrite={handleOverwrite} />
+                {session.conflict != null && (
+                    <ConflictDialog conflict={session.conflict} onReload={handleReload} onOverwrite={handleOverwrite} />
                 )}
             </div>
 
