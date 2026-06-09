@@ -97,22 +97,23 @@ class DocumentService(
     ): DocumentSaveResponse {
         // 입력 검증(400) → 상태 검증(409) 순서: 잘못된 body 는 version 과 무관하게 400
         val parsedBody = parseValidProseMirrorDoc(request.body)
-        if (document.version != request.version) {
+        if (document.updatedAt != request.version) {
             throw DocumentConflictException(
-                currentVersion = document.version,
+                currentVersion = requireNotNull(document.updatedAt),
                 currentBody = document.body,
             )
         }
         document.body = request.body
         document.wordCount = countTextChars(parsedBody)
 
-        // version 은 @Version 어노테이션에 의해 flush 시 자동 증가하므로 응답에는 +1 반영
+        // datetime 버전 토큰은 +1 예측 불가 → flush 로 Hibernate(@Version)가 set 한 새 updatedAt 을 읽어 응답
+        val saved = documentRepository.saveAndFlush(document)
         return DocumentSaveResponse(
-            id = requireNotNull(document.id),
-            body = document.body,
-            wordCount = document.wordCount,
-            version = document.version + 1,
-            updatedAt = requireNotNull(document.updatedAt),
+            id = requireNotNull(saved.id),
+            body = saved.body,
+            wordCount = saved.wordCount,
+            version = requireNotNull(saved.updatedAt),
+            updatedAt = requireNotNull(saved.updatedAt),
         )
     }
 
@@ -182,7 +183,7 @@ class DocumentService(
             title = title,
             body = body,
             wordCount = wordCount,
-            version = version,
+            version = requireNotNull(updatedAt),
             updatedAt = requireNotNull(updatedAt),
         )
 }
