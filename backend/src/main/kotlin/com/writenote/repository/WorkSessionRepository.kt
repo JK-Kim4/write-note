@@ -13,4 +13,7 @@ interface WorkSessionRepository : JpaRepository<WorkSession, Long> {
 
     /** dangling 정리 — 임계 시각 이전 시작된 열린 세션 폐기(FR-021). 삭제 행 수 반환. */
     fun deleteByEndedAtIsNullAndStartedAtBefore(threshold: Instant): Long
+
+    /** 카드 집계용 일괄 조회(018) — 여러 작품의 종료된 세션을 IN 으로 한 번에. */
+    fun findByProjectIdInAndEndedAtIsNotNull(projectIds: Collection<Long>): List<WorkSession>
 }

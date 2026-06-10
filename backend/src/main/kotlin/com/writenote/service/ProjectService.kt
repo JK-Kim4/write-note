@@ -7,10 +7,12 @@ import com.writenote.mapper.ProjectMapper
 import com.writenote.model.request.CreateProjectRequest
 import com.writenote.model.request.UpdateProjectRequest
 import com.writenote.model.response.PageResponse
+import com.writenote.model.response.ProjectCardResponse
 import com.writenote.model.response.ProjectResponse
 import com.writenote.repository.DocumentRepository
 import com.writenote.repository.ProjectRepository
 import com.writenote.repository.UserRepository
+import com.writenote.repository.WorkSessionRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -22,6 +24,7 @@ class ProjectService(
     private val userRepository: UserRepository,
     private val projectMapper: ProjectMapper,
     private val documentRepository: DocumentRepository,
+    private val workSessionRepository: WorkSessionRepository,
 ) {
     @Transactional(rollbackFor = [Exception::class])
     fun createProject(
@@ -65,6 +68,45 @@ class ProjectService(
             }
 
         return PageResponse.from(projects.map(projectMapper::toResponse))
+    }
+
+    /**
+     * 카드 집계(018) — 활성 작품 전량 + 문서 글자수·저장 시각·누적 작업시간(종료 세션 합).
+     * 3쿼리 일괄(작품/문서 IN/세션 IN) 후 projectId 그룹 조립 — 작품 수와 무관(SQL N+1 금지).
+     */
+    @Transactional(readOnly = true)
+    fun listCards(userId: Long): List<ProjectCardResponse> {
+        requireExistingUser(userId)
+        val projects = projectRepository.findByUserIdAndArchivedAtIsNull(userId)
+        if (projects.isEmpty()) {
+            return emptyList()
+        }
+
+        val projectIds = projects.map { requireNotNull(it.id) }
+        val documentsByProjectId = documentRepository.findByProjectIdIn(projectIds).associateBy { it.projectId }
+        val durationByProjectId =
+            workSessionRepository
+                .findByProjectIdInAndEndedAtIsNotNull(projectIds)
+                .groupBy { it.projectId }
+                .mapValues { (_, sessions) ->
+                    sessions.sumOf {
+                        requireNotNull(it.endedAt).toEpochMilli() - requireNotNull(it.startedAt).toEpochMilli()
+                    }
+                }
+
+        return projects.map { project ->
+            val projectId = requireNotNull(project.id)
+            // 문서는 작품 생성 시 1:1 자동 생성되는 불변식(FR-009/010) — 부재는 데이터 정합 깨짐.
+            val document =
+                documentsByProjectId[projectId]
+                    ?: throw ResourceNotFoundException("Document not found for project $projectId")
+            ProjectCardResponse.from(
+                base = projectMapper.toResponse(project),
+                wordCount = document.wordCount,
+                documentUpdatedAt = requireNotNull(document.updatedAt),
+                totalDurationMs = durationByProjectId[projectId] ?: 0L,
+            )
+        }
     }
 
     @Transactional(readOnly = true)

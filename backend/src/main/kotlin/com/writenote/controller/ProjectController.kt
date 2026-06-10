@@ -4,6 +4,7 @@ import com.writenote.auth.AuthenticatedPrincipal
 import com.writenote.model.request.CreateProjectRequest
 import com.writenote.model.request.UpdateProjectRequest
 import com.writenote.model.response.PageResponse
+import com.writenote.model.response.ProjectCardResponse
 import com.writenote.model.response.ProjectResponse
 import com.writenote.model.response.Result
 import com.writenote.service.ProjectService
@@ -66,6 +67,21 @@ class ProjectController(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
     ): Result<PageResponse<ProjectResponse>> = Result.success(projectService.listProjects(principal.userId, page, size, archived))
+
+    @GetMapping("/cards")
+    @Operation(
+        summary = "작품 카드 집계 (018)",
+        description = "활성 작품 전량 + 문서 글자수·저장 시각·누적 작업시간(종료 세션 합). 본문 미포함 — 카드 표시용",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공 (배열 — 페이지네이션 없음, 베타 작품 소수 전제)"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+        ],
+    )
+    fun listProjectCards(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+    ): Result<List<ProjectCardResponse>> = Result.success(projectService.listCards(principal.userId))
 
     @GetMapping("/{projectId}")
     @Operation(summary = "프로젝트 단건 조회", description = "본인 프로젝트만 (보관 상태 무관). 다른 사용자 리소스 접근 시 404 NOT_FOUND")

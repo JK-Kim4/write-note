@@ -1,5 +1,5 @@
 import { apiFetch } from "./client";
-import type { Page, ProjectResponse } from "@/types/api";
+import type { Page, ProjectCardResponse, ProjectResponse } from "@/types/api";
 
 /**
  * Projects placeholder query — Phase 1A `/api/projects` 호출.
@@ -29,6 +29,11 @@ export function listProjects(params: ListProjectsParams = {}): Promise<Page<Proj
     return apiFetch<Page<ProjectResponse>>(`/api/projects${buildQuery(params)}`, {
         method: "GET",
     });
+}
+
+/** 카드 집계(018) — 활성 작품 전량 + 글자수·문서 저장 시각·누적 작업시간(본문 미포함). */
+export function listProjectCards(): Promise<ProjectCardResponse[]> {
+    return apiFetch<ProjectCardResponse[]>("/api/projects/cards", { method: "GET" });
 }
 
 export interface CreateProjectInput {

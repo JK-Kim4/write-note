@@ -9,8 +9,17 @@ import type { ProjectResponse } from "@/types/api";
 /** 작품 — 014 ProjectResponse(nextScene 포함). */
 export type Project = ProjectResponse;
 
-/** 작품 벽/기록 카드용 — 작품 + 본문에서 파생한 마지막 문장(클라 파생, 014 R6). */
-export type ProjectCard = Project & { lastSentenceSource: string };
+/** 작품 벽/홈 카드용 — 작품 + 카드 집계(018 BE 동봉) + 본문에서 파생한 마지막 문장 원료(클라 파생). */
+export type ProjectCard = Project & {
+    /** 본문 plainText(마지막 문장 파생 원료, 클라 파생). 빈 문자열 = 본문 없음. */
+    lastSentenceSource: string;
+    /** 문서 글자수. */
+    wordCount: number;
+    /** 문서 저장 시각(ISO8601) — 최근작 정렬 키. */
+    docUpdatedAt: string;
+    /** 작품별 누적 작업시간(ms) — 종료된 세션 합. */
+    totalDurationMs: number;
+};
 
 /** 집필 문서 — DocumentResponse 의 화면용 형태(body=ProseMirror JSON). plainText 는 클라 파생. */
 export type ProjectDocument = {

@@ -14,8 +14,8 @@
 
 **Purpose**: implement 진입 게이트(quickstart §게이트) — 코드 사실 정합 + 기준선 확보
 
-- [ ] T001 정합 grep + 기준선 확인 — `grep -rn "WorkSessionService\|TotalDurationResponse" backend/src/main/kotlin | head` · `grep -rn "listCards\|useProjectCards\|useInboxMemos\|formatDuration" frontend/src/lib | head` · FE `node_modules/.bin/vitest run`(103 pass)·`npx tsc --noEmit`(기존 1건)·`node_modules/.bin/eslint src`(기존 1건) · BE `cd backend && ./gradlew test`(GREEN). 불일치 발견 시 tasks.md 갱신 후 진행
-- [ ] T002 [P] Next 공식 문서 정독 — `frontend/node_modules/next/dist/docs/01-app/03-api-reference/04-functions/use-search-params.md`(Suspense 경계 요건) + 전례 `frontend/src/app/auth/verify/page.tsx` 패턴 확인
+- [x] T001 정합 grep + 기준선 확인 — `grep -rn "WorkSessionService\|TotalDurationResponse" backend/src/main/kotlin | head` · `grep -rn "listCards\|useProjectCards\|useInboxMemos\|formatDuration" frontend/src/lib | head` · FE `node_modules/.bin/vitest run`(103 pass)·`npx tsc --noEmit`(기존 1건)·`node_modules/.bin/eslint src`(기존 1건) · BE `cd backend && ./gradlew test`(GREEN). 불일치 발견 시 tasks.md 갱신 후 진행
+- [x] T002 [P] Next 공식 문서 정독 — `frontend/node_modules/next/dist/docs/01-app/03-api-reference/04-functions/use-search-params.md`(Suspense 경계 요건) + 전례 `frontend/src/app/auth/verify/page.tsx` 패턴 확인
 
 ---
 
@@ -23,8 +23,8 @@
 
 **Purpose**: US2(shim)·US1(UI)이 공유하는 타입 선언 (TDD 예외 §5-5 — 타입 선언)
 
-- [ ] T003 [P] `frontend/src/types/api.ts`에 `ProjectCardResponse`(ProjectResponse + wordCount·documentUpdatedAt·totalDurationMs) 추가 — contracts/backend-api.md §BE-2 응답 형태
-- [ ] T004 [P] `frontend/src/types/domain.ts`의 `ProjectCard`를 4필드(lastSentenceSource·wordCount·docUpdatedAt·totalDurationMs)로 확장 — data-model.md §2 주석 포함
+- [x] T003 [P] `frontend/src/types/api.ts`에 `ProjectCardResponse`(ProjectResponse + wordCount·documentUpdatedAt·totalDurationMs) 추가 — contracts/backend-api.md §BE-2 응답 형태
+- [x] T004 [P] `frontend/src/types/domain.ts`의 `ProjectCard`를 4필드(lastSentenceSource·wordCount·docUpdatedAt·totalDurationMs)로 확장 — data-model.md §2 주석 포함
 
 **Checkpoint**: FE `tsc --noEmit` 기존 1건 외 0 (기존 소비처 비파괴 확인)
 
@@ -36,15 +36,15 @@
 
 **Independent Test**: spec US2 — 본문·세션 있는 작품 2편 계정으로 카드 집계 조회 → 수치 정확·소유권 격리·기존 목록 불변.
 
-- [ ] T005 [US2] 리포지토리 derived 추가(인터페이스 선언 — 서비스 테스트가 커버): `backend/src/main/kotlin/com/writenote/repository/DocumentRepository.kt`에 `findByProjectIdIn`, `WorkSessionRepository.kt`에 `findByProjectIdInAndEndedAtIsNotNull`
-- [ ] T006 [US2] RED: `ProjectService.listCards` 단위 테스트 — 조립 정확성(글자수·문서시각·세션 합 eq 정확값)/세션 0 작품=0/아카이브 제외/타 사용자 제외. 위치: `backend/src/test/kotlin/com/writenote/service/` 신규 또는 기존 `*ServiceTest` 패턴 정합(T001 grep 결과 따름)
-- [ ] T007 [US2] GREEN: `backend/src/main/kotlin/com/writenote/model/response/ProjectCardResponse.kt` 신규 + `service/ProjectService.kt`에 `listCards(userId)` 구현 — 3쿼리 일괄(활성 작품/문서 IN/종료 세션 IN) 후 조립, `@Transactional(readOnly = true)`, body 미포함
-- [ ] T008 [US2] RED: `backend/src/test/kotlin/com/writenote/controller/ProjectControllerIT.kt` 확장 — `GET /api/projects/cards` 200 필드 검증/빈 배열/401 + **기존 목록·작품별 total 회귀 무변화 단언**
-- [ ] T009 [US2] GREEN: `backend/src/main/kotlin/com/writenote/controller/ProjectController.kt`에 `listProjectCards()` 추가(리터럴 `cards`가 `/{projectId}` 템플릿보다 우선 매칭)
-- [ ] T010 [US2] BE 게이트(포어그라운드): `cd backend && ./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build`
-- [ ] T011 [US2] FE 어댑터: `frontend/src/lib/api/projects.ts`에 `listProjectCards(): Promise<ProjectCardResponse[]>` 추가(기존 어댑터 패턴)
-- [ ] T012 [US2] RED: `frontend/src/lib/electron-api/projects.test.ts` 확장 — listCards가 카드 응답+문서 본문(`extractPlainText`)을 합쳐 `ProjectCard[]` 반환 / 한 조회 실패 시 전체 reject(부분 배열 금지). 기존 mock 패턴 준수
-- [ ] T013 [US2] GREEN: `frontend/src/lib/electron-api/projects.ts`의 `listCards()` 재구현 — `listProjectCards()` 1회 + 작품별 `getProjectDocument(id)` 병렬 → `lastSentenceSource` 채움(placeholder 주석 제거)
+- [x] T005 [US2] 리포지토리 derived 추가(인터페이스 선언 — 서비스 테스트가 커버): `backend/src/main/kotlin/com/writenote/repository/DocumentRepository.kt`에 `findByProjectIdIn`, `WorkSessionRepository.kt`에 `findByProjectIdInAndEndedAtIsNotNull`
+- [x] T006 [US2] RED: `ProjectService.listCards` 단위 테스트 — 조립 정확성(글자수·문서시각·세션 합 eq 정확값)/세션 0 작품=0/아카이브 제외/타 사용자 제외. 위치: `backend/src/test/kotlin/com/writenote/service/` 신규 또는 기존 `*ServiceTest` 패턴 정합(T001 grep 결과 따름)
+- [x] T007 [US2] GREEN: `backend/src/main/kotlin/com/writenote/model/response/ProjectCardResponse.kt` 신규 + `service/ProjectService.kt`에 `listCards(userId)` 구현 — 3쿼리 일괄(활성 작품/문서 IN/종료 세션 IN) 후 조립, `@Transactional(readOnly = true)`, body 미포함
+- [x] T008 [US2] RED: `backend/src/test/kotlin/com/writenote/controller/ProjectControllerIT.kt` 확장 — `GET /api/projects/cards` 200 필드 검증/빈 배열/401 + **기존 목록·작품별 total 회귀 무변화 단언**
+- [x] T009 [US2] GREEN: `backend/src/main/kotlin/com/writenote/controller/ProjectController.kt`에 `listProjectCards()` 추가(리터럴 `cards`가 `/{projectId}` 템플릿보다 우선 매칭)
+- [x] T010 [US2] BE 게이트(포어그라운드): `cd backend && ./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build`
+- [x] T011 [US2] FE 어댑터: `frontend/src/lib/api/projects.ts`에 `listProjectCards(): Promise<ProjectCardResponse[]>` 추가(기존 어댑터 패턴)
+- [x] T012 [US2] RED: `frontend/src/lib/electron-api/projects.test.ts` 확장 — listCards가 카드 응답+문서 본문(`extractPlainText`)을 합쳐 `ProjectCard[]` 반환 / 한 조회 실패 시 전체 reject(부분 배열 금지). 기존 mock 패턴 준수
+- [x] T013 [US2] GREEN: `frontend/src/lib/electron-api/projects.ts`의 `listCards()` 재구현 — `listProjectCards()` 1회 + 작품별 `getProjectDocument(id)` 병렬 → `lastSentenceSource` 채움(placeholder 주석 제거)
 
 **Checkpoint**: BE 게이트 GREEN + FE vitest GREEN — 카드 데이터 경로 완성(벽 마지막 문장 회복의 토대)
 
