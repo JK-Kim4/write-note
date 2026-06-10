@@ -33,6 +33,25 @@ export function startOfWeekMonday(now: Date): Date {
     return start;
 }
 
+/** 요일 구간(018 v4) — 월요일 시작 7구간, 각 [그날 00:00, 다음날 00:00) 로컬 경계. */
+export function weekDayRanges(now: Date): Array<{ from: Date; to: Date; isToday: boolean }> {
+    const weekStart = startOfWeekMonday(now);
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return Array.from({ length: 7 }, (_, i) => {
+        const from = new Date(weekStart);
+        from.setDate(weekStart.getDate() + i);
+        const to = new Date(from);
+        to.setDate(from.getDate() + 1);
+        return { from, to, isToday: from.getTime() === todayStart.getTime() };
+    });
+}
+
+/** 막대 상대 높이(018 v4) — 최대값 기준 0~1. 전부 0이면 전부 0(NaN 금지). */
+export function barScale(values: ReadonlyArray<number>): number[] {
+    const max = Math.max(0, ...values);
+    return values.map((v) => (max === 0 ? 0 : v / max));
+}
+
 const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;

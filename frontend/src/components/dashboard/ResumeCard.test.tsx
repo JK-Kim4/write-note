@@ -35,7 +35,7 @@ describe("ResumeCard", () => {
         expect(screen.getByText(/기억이 옅어지는 과정일지도 모른다\./)).toBeInTheDocument();
         expect(screen.getByText(/은하가 등대지기를 처음 만나는 장면/)).toBeInTheDocument();
         expect(screen.getByText(/42,500자/)).toBeInTheDocument();
-        expect(screen.getByText(/총 3시간 20분/)).toBeInTheDocument();
+        expect(screen.queryByText(/총 /)).not.toBeInTheDocument(); // v4 — 누적 총시간은 집필 리듬 카드 소관
     });
 
     it("본문이 비면 마지막 문장 자리에 placeholder 카피를 보여준다", () => {
@@ -48,13 +48,6 @@ describe("ResumeCard", () => {
         render(<ResumeCard card={card({ nextScene: "" })} onOpen={() => {}} />);
 
         expect(screen.queryByText(/다음 장면/)).not.toBeInTheDocument();
-    });
-
-    it("누적 작업시간 0 이면 '총 …' 토막을 숨긴다", () => {
-        render(<ResumeCard card={card({ totalDurationMs: 0 })} onOpen={() => {}} />);
-
-        expect(screen.queryByText(/총 /)).not.toBeInTheDocument();
-        expect(screen.getByText(/42,500자/)).toBeInTheDocument();
     });
 
     it("[이어서 쓰기] 버튼 클릭 시 onOpen 을 호출한다", async () => {

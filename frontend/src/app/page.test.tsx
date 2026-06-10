@@ -5,6 +5,7 @@ import { http, HttpResponse } from "msw";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { server } from "@/test/msw/server";
+import { weekDayRanges } from "@/lib/dashboardView";
 import DashboardPage from "./page";
 
 /**
@@ -52,11 +53,14 @@ function stubAuthed() {
     );
 }
 
-function stubWeekly(totalDurationMs: number) {
+function stubWeekly(msByDayIndex: Record<number, number> = {}) {
+    const ranges = weekDayRanges(new Date());
     server.use(
-        http.get(`${ORIGIN}/api/work-sessions/total`, () =>
-            HttpResponse.json({ success: true, data: { totalDurationMs }, error: null }),
-        ),
+        http.get(`${ORIGIN}/api/work-sessions/total`, ({ request }) => {
+            const from = new URL(request.url).searchParams.get("from") ?? "";
+            const idx = ranges.findIndex((r) => r.from.toISOString() === from);
+            return HttpResponse.json({ success: true, data: { totalDurationMs: msByDayIndex[idx] ?? 0 }, error: null });
+        }),
     );
 }
 
@@ -109,7 +113,7 @@ function renderPage() {
 describe("DashboardPage(/ 재진입 허브)", () => {
     it("인사(이름 없음)와 오늘 날짜를 표시한다", async () => {
         stubAuthed();
-        stubWeekly(0);
+        stubWeekly();
         server.use(http.get(`${ORIGIN}/api/projects/cards`, () => HttpResponse.json({ success: true, data: [], error: null })));
 
         renderPage();
@@ -126,7 +130,7 @@ describe("DashboardPage(/ 재진입 허브)", () => {
 
     it("문서 저장 시각이 최신인 작품을 이어서 쓰기 타일로 보여주고, 클릭하면 집필실로 이동한다", async () => {
         stubAuthed();
-        stubWeekly(0);
+        stubWeekly();
         server.use(
             http.get(`${ORIGIN}/api/projects/cards`, () =>
                 HttpResponse.json({
@@ -154,7 +158,7 @@ describe("DashboardPage(/ 재진입 허브)", () => {
 
     it("Rail 에 '홈' 항목이 있고 '작품'은 /library 로 보낸다(FR-008·016)", async () => {
         stubAuthed();
-        stubWeekly(0);
+        stubWeekly();
         server.use(http.get(`${ORIGIN}/api/projects/cards`, () => HttpResponse.json({ success: true, data: [], error: null })));
 
         renderPage();
@@ -166,7 +170,7 @@ describe("DashboardPage(/ 재진입 허브)", () => {
 
     it("작품이 0편이면 환영 블록과 '첫 작품 시작하기' CTA(→ /library?new=1)를 보여준다", async () => {
         stubAuthed();
-        stubWeekly(0);
+        stubWeekly();
         server.use(http.get(`${ORIGIN}/api/projects/cards`, () => HttpResponse.json({ success: true, data: [], error: null })));
 
         renderPage();
@@ -178,7 +182,7 @@ describe("DashboardPage(/ 재진입 허브)", () => {
 
     it("카드 조회 실패 시 안내와 '다시 시도'를 보여준다(반쪽 렌더 금지)", async () => {
         stubAuthed();
-        stubWeekly(0);
+        stubWeekly();
         server.use(
             http.get(
                 `${ORIGIN}/api/projects/cards`,
@@ -192,25 +196,29 @@ describe("DashboardPage(/ 재진입 허브)", () => {
         expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
     });
 
-    it("이번 주 종료 세션이 있으면 '이번 주 집필 시간' 한 줄을 보여준다(US3)", async () => {
+    it("집필 리듬 카드 — 이번 주 합계와 요일 막대, 작품별 누적 막대를 보여준다(US3 v4)", async () => {
         stubAuthed();
-        stubWeekly(12_000_000);
+        stubWeekly({ 0: 12_000_000 });
         server.use(
             http.get(`${ORIGIN}/api/projects/cards`, () =>
-                HttpResponse.json({ success: true, data: [cardJson(1, "작품", "2026-06-10T02:00:00Z")], error: null }),
+                HttpResponse.json(
+                    { success: true, data: [cardJson(1, "작품", "2026-06-10T02:00:00Z", { totalDurationMs: 7_200_000 })], error: null },
+                ),
             ),
         );
         stubDocument(1, "문장.");
 
         renderPage();
 
-        expect(await screen.findByText(/이번 주 집필 시간/)).toBeInTheDocument();
-        expect(screen.getByText("3시간 20분")).toBeInTheDocument();
+        expect(await screen.findByText("이번 주")).toBeInTheDocument();
+        expect(await screen.findByText("3시간 20분")).toBeInTheDocument();
+        expect(screen.getByText(/작품별 쌓인 시간/)).toBeInTheDocument();
+        expect(screen.getByText("2시간")).toBeInTheDocument();
     });
 
-    it("이번 주 0분이면 그 줄 자체가 없다(압박 없는 처리)", async () => {
+    it("이번 주 0분이면 리듬 카드 합계 자리에 '기록 없음'(카드는 유지)", async () => {
         stubAuthed();
-        stubWeekly(0);
+        stubWeekly();
         server.use(
             http.get(`${ORIGIN}/api/projects/cards`, () =>
                 HttpResponse.json({ success: true, data: [cardJson(1, "작품", "2026-06-10T02:00:00Z")], error: null }),
@@ -220,8 +228,8 @@ describe("DashboardPage(/ 재진입 허브)", () => {
 
         renderPage();
 
-        expect(await screen.findByText("작품")).toBeInTheDocument();
-        expect(screen.queryByText(/이번 주 집필 시간/)).not.toBeInTheDocument();
+        expect(await screen.findByText("이번 주")).toBeInTheDocument();
+        expect(await screen.findByText("기록 없음")).toBeInTheDocument();
     });
 
     it("주간 조회가 실패하면 전체 에러 상태로 처리한다(반쪽 렌더 금지)", async () => {
@@ -244,7 +252,7 @@ describe("DashboardPage(/ 재진입 허브)", () => {
 
     it("최근작을 제외한 나머지 작품을 미니 카드로 보여주고, 클릭하면 그 작품 집필실로 간다(US4)", async () => {
         stubAuthed();
-        stubWeekly(0);
+        stubWeekly();
         server.use(
             http.get(`${ORIGIN}/api/projects/cards`, () =>
                 HttpResponse.json({
@@ -273,9 +281,9 @@ describe("DashboardPage(/ 재진입 허브)", () => {
         expect(pushMock).toHaveBeenCalledWith("/projects/3/write");
     });
 
-    it("'+ 새 작품' 카드는 /library?new=1 로 보낸다 — 작품 1편뿐이면 새 작품 카드만 남는다(US4)", async () => {
+    it("'모든 작품 보기' 링크는 /library 로 — 작품 1편뿐이면 미니 카드 영역이 비고 새 작품 카드도 없다(US4 v4)", async () => {
         stubAuthed();
-        stubWeekly(0);
+        stubWeekly();
         server.use(
             http.get(`${ORIGIN}/api/projects/cards`, () =>
                 HttpResponse.json({ success: true, data: [cardJson(1, "유일 작품", "2026-06-10T02:00:00Z")], error: null }),
@@ -285,16 +293,17 @@ describe("DashboardPage(/ 재진입 허브)", () => {
 
         renderPage();
 
-        const newCard = await screen.findByRole("button", { name: "+ 새 작품" });
+        const link = await screen.findByRole("button", { name: /모든 작품 보기/ });
         expect(screen.queryByRole("button", { name: /유일 작품/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "+ 새 작품" })).not.toBeInTheDocument();
 
-        await userEvent.click(newCard);
-        expect(pushMock).toHaveBeenCalledWith("/library?new=1");
+        await userEvent.click(link);
+        expect(pushMock).toHaveBeenCalledWith("/library");
     });
 
-    it("최근 곁쪽지 2장을 상대 날짜와 함께 보여주고, 클릭하면 메모 화면으로 간다(US5)", async () => {
+    it("최근 곁쪽지 3장 + '+ 새 곁쪽지'를 보여주고, 곁쪽지 클릭은 /memos·새 곁쪽지는 빠른 메모 모달(US5 v4)", async () => {
         stubAuthed();
-        stubWeekly(0);
+        stubWeekly();
         server.use(
             http.get(`${ORIGIN}/api/projects/cards`, () =>
                 HttpResponse.json({ success: true, data: [cardJson(1, "작품", "2026-06-10T02:00:00Z")], error: null }),
@@ -302,25 +311,33 @@ describe("DashboardPage(/ 재진입 허브)", () => {
         );
         stubDocument(1, "문장.");
         stubMemos([
-            memoJson(1, "오래된 메모", "2026-06-01T00:00:00Z"),
+            memoJson(1, "가장 오래된 메모", "2026-05-01T00:00:00Z"),
             memoJson(2, "가장 최근 메모", new Date().toISOString()),
             memoJson(3, "중간 메모", "2026-06-08T00:00:00Z"),
+            memoJson(4, "오래된 메모", "2026-06-01T00:00:00Z"),
         ]);
 
         renderPage();
 
         expect(await screen.findByText(/가장 최근 메모/)).toBeInTheDocument();
         expect(screen.getByText(/중간 메모/)).toBeInTheDocument();
-        expect(screen.queryByText(/오래된 메모/)).not.toBeInTheDocument();
+        expect(screen.getByText(/^오래된 메모/)).toBeInTheDocument();
+        expect(screen.queryByText(/가장 오래된 메모/)).not.toBeInTheDocument();
         expect(screen.getByText("오늘")).toBeInTheDocument();
 
         await userEvent.click(screen.getByRole("button", { name: /가장 최근 메모/ }));
         expect(pushMock).toHaveBeenCalledWith("/memos");
+
+        await userEvent.click(screen.getByRole("button", { name: /모든 곁쪽지 보기/ }));
+        expect(pushMock).toHaveBeenCalledWith("/memos");
+
+        await userEvent.click(screen.getByRole("button", { name: /새 곁쪽지/ }));
+        expect(await screen.findByRole("dialog", { name: "빠른 메모" })).toBeInTheDocument();
     });
 
     it("곁쪽지가 0장이면 라벨은 유지하고 조용한 빈 문구를 보여준다(US5)", async () => {
         stubAuthed();
-        stubWeekly(0);
+        stubWeekly();
         server.use(
             http.get(`${ORIGIN}/api/projects/cards`, () =>
                 HttpResponse.json({ success: true, data: [cardJson(1, "작품", "2026-06-10T02:00:00Z")], error: null }),

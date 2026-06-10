@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatRelativeTime, selectDashboard, startOfWeekMonday } from "./dashboardView";
+import { barScale, formatRelativeTime, selectDashboard, startOfWeekMonday, weekDayRanges } from "./dashboardView";
 import type { ProjectCard } from "@/lib/types/domain";
 
 function card(over: Partial<ProjectCard> & { id: number; docUpdatedAt: string }): ProjectCard {
@@ -93,5 +93,33 @@ describe("startOfWeekMonday", () => {
     it("일요일이면 6일 전 월요일 — 일요일은 주의 마지막 날", () => {
         const sun = new Date(2026, 5, 14, 23, 59, 59);
         expect(startOfWeekMonday(sun)).toEqual(new Date(2026, 5, 8, 0, 0, 0, 0));
+    });
+});
+
+describe("weekDayRanges", () => {
+    it("월요일 시작 7구간 — 각 구간은 [그날 00:00, 다음날 00:00) (로컬)", () => {
+        const wed = new Date(2026, 5, 10, 15, 30, 0); // 수요일
+        const ranges = weekDayRanges(wed);
+
+        expect(ranges).toHaveLength(7);
+        expect(ranges[0].from).toEqual(new Date(2026, 5, 8, 0, 0, 0, 0)); // 월
+        expect(ranges[0].to).toEqual(new Date(2026, 5, 9, 0, 0, 0, 0));
+        expect(ranges[6].from).toEqual(new Date(2026, 5, 14, 0, 0, 0, 0)); // 일
+        expect(ranges[6].to).toEqual(new Date(2026, 5, 15, 0, 0, 0, 0));
+    });
+
+    it("오늘 인덱스를 함께 준다(월=0 … 일=6)", () => {
+        const wed = new Date(2026, 5, 10, 9, 0, 0);
+        expect(weekDayRanges(wed).findIndex((r) => r.isToday)).toBe(2);
+    });
+});
+
+describe("barScale", () => {
+    it("최대값 기준 상대 비율(0~1)", () => {
+        expect(barScale([30, 60, 0, 15])).toEqual([0.5, 1, 0, 0.25]);
+    });
+
+    it("전부 0이면 전부 0 (NaN 금지)", () => {
+        expect(barScale([0, 0, 0])).toEqual([0, 0, 0]);
     });
 });

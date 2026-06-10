@@ -166,12 +166,12 @@ Setup(T001-T002) → Foundational(T003-T004)
 
 **Goal**: 시간 표시를 그래프(집필 리듬 카드)로, 레이아웃을 2단(B안)으로 재편. 설계 v4 §1·§2·§6 기준. 백엔드 변경 0(기간 endpoint 요일별 재사용).
 
-- [ ] T043 [P] RED: `frontend/src/lib/dashboardView.test.ts` 확장 — `weekDayRanges(now)`(로컬 자정 경계 7구간, 월요일 시작)·`barScale`(최대값 기준 상대 높이, 전부 0이면 0)
-- [ ] T044 GREEN: `dashboardView.ts`에 `weekDayRanges`·`barScale` 추가(순수)
-- [ ] T045 GREEN: `frontend/src/lib/query/useSessions.ts` — `useWeeklyByDay`(요일별 rangeTotal 병렬, 오늘 이후 요일은 호출 없이 0, 캐시 키 = 주 시작+오늘 날짜)
-- [ ] T046 [P] RED: `frontend/src/components/dashboard/RhythmCard.test.tsx` — 주간 합계/0이면 "기록 없음"/오늘 막대 강조/작품별 내림차순·0 행 생략·전부 0 절 생략/등급·퍼센트 부재
-- [ ] T047 GREEN: `frontend/src/components/dashboard/RhythmCard.tsx`(표시 전용 props)
-- [ ] T048 RED: `frontend/src/components/dashboard/ResumeCard.test.tsx` 갱신(메타에서 "총 …" 제거 — 글자수까지만) + `frontend/src/app/page.test.tsx` 갱신(2단: 모든 작품 보기→/library·곁쪽지 3장+새 곁쪽지 모달·리듬 카드 단언, 기존 "이번 주 한 줄" 테스트 대체)
-- [ ] T049 GREEN: `ResumeCard.tsx` 메타 축소 + `app/page.tsx` 2단 재편(RhythmCard·sec-head 링크·곁쪽지 3장+QuickCapture 모달) + `desktop-app.css` v4 클래스 이관(.dash-cols/.dash-col/.sec-*/.rhythm*/.week-*/.proj-*/.dash-memos 4열/.dash-memo--new, 미사용 .dash-week 제거)
-- [ ] T050 게이트: vitest 전체 → tsc(기존 1건 외 0) → eslint(신규 0) → `pnpm build`(작성 직후)
-- [ ] T051 시각 검증: 라이트/다크 × 주간 0 × 작품 1편 — 목업 B(높이 정렬판) 대조
+- [x] T043 [P] RED: `frontend/src/lib/dashboardView.test.ts` 확장 — `weekDayRanges(now)`(로컬 자정 경계 7구간, 월요일 시작)·`barScale`(최대값 기준 상대 높이, 전부 0이면 0)
+- [x] T044 GREEN: `dashboardView.ts`에 `weekDayRanges`·`barScale` 추가(순수)
+- [x] T045 GREEN: `frontend/src/lib/query/useSessions.ts` — `useWeeklyByDay`(요일별 rangeTotal 병렬, 오늘 이후 요일은 호출 없이 0, 캐시 키 = 주 시작+오늘 날짜)
+- [x] T046 [P] RED: `frontend/src/components/dashboard/RhythmCard.test.tsx` — 주간 합계/0이면 "기록 없음"/오늘 막대 강조/작품별 내림차순·0 행 생략·전부 0 절 생략/등급·퍼센트 부재
+- [x] T047 GREEN: `frontend/src/components/dashboard/RhythmCard.tsx`(표시 전용 props)
+- [x] T048 RED: `frontend/src/components/dashboard/ResumeCard.test.tsx` 갱신(메타에서 "총 …" 제거 — 글자수까지만) + `frontend/src/app/page.test.tsx` 갱신(2단: 모든 작품 보기→/library·곁쪽지 3장+새 곁쪽지 모달·리듬 카드 단언, 기존 "이번 주 한 줄" 테스트 대체)
+- [x] T049 GREEN: `ResumeCard.tsx` 메타 축소 + `app/page.tsx` 2단 재편(RhythmCard·sec-head 링크·곁쪽지 3장+QuickCapture 모달) + `desktop-app.css` v4 클래스 이관(.dash-cols/.dash-col/.sec-*/.rhythm*/.week-*/.proj-*/.dash-memos 4열/.dash-memo--new, 미사용 .dash-week 제거)
+- [x] T050 게이트: vitest 전체 → tsc(기존 1건 외 0) → eslint(신규 0) → `pnpm build`(작성 직후)
+- [x] T051 시각 검증: 라이트/다크 × 주간 0 × 작품 1편 — 목업 B(높이 정렬판) 대조

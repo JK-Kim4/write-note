@@ -2,7 +2,6 @@
 
 import { formatRelativeTime } from "@/lib/dashboardView";
 import { lastSentence } from "@/lib/lastSentence";
-import { formatDuration } from "@/lib/progress";
 import type { ProjectCard } from "@/lib/types/domain";
 
 type Props = {
@@ -13,15 +12,11 @@ type Props = {
 
 /**
  * 이어서 쓰기 타일(018 US1 ②) — 최근작의 재진입 맥락(제목·마지막 문장·다음 장면·메타) 표시 전용.
- * 누적 작업시간 0 은 토막 숨김, 다음 장면 빈 문자열은 줄 숨김(압박 없는 빈 상태).
+ * 다음 장면 빈 문자열은 줄 숨김. 누적 총시간은 v4부터 집필 리듬 카드(RhythmCard) 소관.
  */
 export function ResumeCard({ card, onOpen }: Props) {
     const sentence = lastSentence(card.lastSentenceSource);
-    const meta = [
-        `${formatRelativeTime(card.docUpdatedAt, new Date())} 저장`,
-        `${card.wordCount.toLocaleString()}자`,
-        ...(card.totalDurationMs > 0 ? [`총 ${formatDuration(card.totalDurationMs)}`] : []),
-    ].join(" · ");
+    const meta = [`${formatRelativeTime(card.docUpdatedAt, new Date())} 저장`, `${card.wordCount.toLocaleString()}자`].join(" · ");
 
     return (
         <div className="resume">
