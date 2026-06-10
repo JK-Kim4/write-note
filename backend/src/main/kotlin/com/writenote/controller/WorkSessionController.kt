@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -44,7 +45,17 @@ class WorkSessionController(
     fun start(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable projectId: Long,
-    ): Result<WorkSessionResponse> = Result.success(workSessionService.start(principal.userId, projectId))
+    ): Result<WorkSessionResponse> =
+        Result.success(
+            try {
+                workSessionService.start(principal.userId, projectId)
+            } catch (e: DataIntegrityViolationException) {
+                // 동시 start 경합(dev StrictMode 이중 마운트·빠른 재진입) — 작품당 열린 세션 1개(uq_work_session_open)
+                // 위반은 다른 요청이 이미 세션을 연 것이므로 그 세션을 재사용(멱등). PostgreSQL 은 경합 상대 커밋 후
+                // 위반을 확정하므로 이 시점엔 열린 세션이 보인다. 정말 없으면(이상) 원래 예외를 전파한다.
+                workSessionService.currentOpenSession(principal.userId, projectId) ?: throw e
+            },
+        )
 
     @PostMapping("/end")
     @Operation(summary = "작업 세션 자동 종료", description = "30초 미만 폐기, 이상 보존. 열린 세션 없으면 data=null.")

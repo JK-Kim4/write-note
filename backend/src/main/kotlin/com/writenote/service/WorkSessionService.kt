@@ -86,6 +86,16 @@ class WorkSessionService(
         }
     }
 
+    /** 동시 start 경합 흡수용(018) — 작품의 열린 세션을 반환. start 의 unique 위반 catch 후 재사용. */
+    @Transactional(readOnly = true)
+    fun currentOpenSession(
+        userId: Long,
+        projectId: Long,
+    ): WorkSessionResponse? {
+        requireOwnedProject(userId, projectId)
+        return workSessionRepository.findFirstByProjectIdAndEndedAtIsNull(projectId)?.toResponse()
+    }
+
     @Transactional(readOnly = true)
     fun totalDurationMs(
         userId: Long,

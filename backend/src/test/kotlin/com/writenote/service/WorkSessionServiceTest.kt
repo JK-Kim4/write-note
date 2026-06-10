@@ -2,6 +2,7 @@ package com.writenote.service
 
 import com.writenote.entity.Project
 import com.writenote.entity.WorkSession
+import com.writenote.error.ResourceNotFoundException
 import com.writenote.error.ValidationException
 import com.writenote.model.response.ProjectLogResponse
 import com.writenote.repository.ProjectRepository
@@ -133,5 +134,33 @@ class WorkSessionServiceTest {
 
         assertThrows<ValidationException> { service.rangeTotalDurationMs(userId = 1L, from = from, to = to) }
         assertThrows<ValidationException> { service.rangeTotalDurationMs(userId = 1L, from = to, to = to) }
+    }
+
+    @Test
+    @DisplayName("currentOpenSession — 작품의 열린 세션을 반환(동시 start 경합 흡수용)")
+    fun `currentOpenSession returns the open session`() {
+        val open = WorkSession(id = 7L, projectId = 100L, startedAt = Instant.parse("2026-06-10T00:00:00Z"))
+        every { workSessionRepository.findFirstByProjectIdAndEndedAtIsNull(100L) } returns open
+
+        val result = service.currentOpenSession(userId = 1L, projectId = 100L)
+
+        assertThat(result?.id).isEqualTo(7L)
+        assertThat(result?.endedAt).isNull()
+    }
+
+    @Test
+    @DisplayName("currentOpenSession — 열린 세션이 없으면 null")
+    fun `currentOpenSession returns null when none open`() {
+        every { workSessionRepository.findFirstByProjectIdAndEndedAtIsNull(100L) } returns null
+
+        assertThat(service.currentOpenSession(userId = 1L, projectId = 100L)).isNull()
+    }
+
+    @Test
+    @DisplayName("currentOpenSession — 타 사용자 작품이면 ResourceNotFoundException")
+    fun `currentOpenSession rejects non-owner`() {
+        every { projectRepository.findByIdAndUserId(100L, 9L) } returns Optional.empty()
+
+        assertThrows<ResourceNotFoundException> { service.currentOpenSession(userId = 9L, projectId = 100L) }
     }
 }

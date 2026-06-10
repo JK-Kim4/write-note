@@ -19,7 +19,14 @@ export function useWorkSession(projectId: number) {
     useEffect(() => {
         if (!Number.isFinite(projectId)) return;
         closedRef.current = false;
-        void webElectronApi.sessions.start(projectId);
+
+        // dev StrictMode 는 effect 를 mount→unmount→mount 로 두 번(동기) 실행한다. start 를 microtask 로 미뤄,
+        // 1차 effect 의 start 는 곧 이어지는 cleanup(active=false)에서 취소되고 2차 effect 의 start 만 살아남는다
+        // → 동시 이중 start 로 인한 uq_work_session_open 경합(서버 멱등 처리와 별개로 불필요 POST) 제거.
+        let active = true;
+        queueMicrotask(() => {
+            if (active) void webElectronApi.sessions.start(projectId);
+        });
 
         const onPageHide = () => {
             if (closedRef.current) return;
@@ -29,6 +36,7 @@ export function useWorkSession(projectId: number) {
         window.addEventListener("pagehide", onPageHide);
 
         return () => {
+            active = false;
             window.removeEventListener("pagehide", onPageHide);
             if (closedRef.current) return;
             closedRef.current = true;
