@@ -22,7 +22,7 @@ export function ResumeCard({ card, onOpen }: Props) {
         <div className="resume">
             <h2 className="resume__title">{card.title}</h2>
             {sentence ? (
-                <p className="resume__last">“{sentence}”</p>
+                <p className="resume__last">“…{sentence}”</p>
             ) : (
                 <p className="resume__last resume__last--empty">아직 첫 문장을 기다리는 중</p>
             )}

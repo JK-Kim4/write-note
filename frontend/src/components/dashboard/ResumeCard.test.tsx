@@ -38,7 +38,13 @@ describe("ResumeCard", () => {
         expect(screen.queryByText(/총 /)).not.toBeInTheDocument(); // v4 — 누적 총시간은 집필 리듬 카드 소관
     });
 
-    it("본문이 비면 마지막 문장 자리에 placeholder 카피를 보여준다", () => {
+    it("마지막 문장 앞에 … 인디케이터를 붙인다 (본문의 마지막 부분임을 표시)", () => {
+        render(<ResumeCard card={card()} onOpen={() => {}} />);
+
+        expect(screen.getByText(/^“…/)).toBeInTheDocument();
+    });
+
+    it("본문이 비면 … 없이 placeholder 카피만 보여준다", () => {
         render(<ResumeCard card={card({ lastSentenceSource: "" })} onOpen={() => {}} />);
 
         expect(screen.getByText("아직 첫 문장을 기다리는 중")).toBeInTheDocument();

@@ -16,7 +16,7 @@ export function WorkMiniCard({ card, onOpen }: Props) {
     return (
         <button type="button" className="work-card" onClick={onOpen}>
             <p className="work-card__t">{card.title}</p>
-            <p className="work-card__s">{sentence ? `“${sentence}”` : "아직 첫 문장을 기다리는 중"}</p>
+            <p className="work-card__s">{sentence ? `“…${sentence}”` : "아직 첫 문장을 기다리는 중"}</p>
         </button>
     );
 }

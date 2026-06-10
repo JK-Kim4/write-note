@@ -35,7 +35,13 @@ describe("WorkMiniCard", () => {
         expect(screen.getByText(/차갑다고 느낀 적이 없었다\./)).toBeInTheDocument();
     });
 
-    it("본문이 비면 placeholder 카피를 보여준다", () => {
+    it("마지막 문장 앞에 … 인디케이터를 붙인다", () => {
+        render(<WorkMiniCard card={card()} onOpen={() => {}} />);
+
+        expect(screen.getByText(/^“…/)).toBeInTheDocument();
+    });
+
+    it("본문이 비면 … 없이 placeholder 카피만 보여준다", () => {
         render(<WorkMiniCard card={card({ lastSentenceSource: "" })} onOpen={() => {}} />);
 
         expect(screen.getByText("아직 첫 문장을 기다리는 중")).toBeInTheDocument();
