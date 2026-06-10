@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatRelativeTime, selectDashboard } from "./dashboardView";
+import { formatRelativeTime, selectDashboard, startOfWeekMonday } from "./dashboardView";
 import type { ProjectCard } from "@/lib/types/domain";
 
 function card(over: Partial<ProjectCard> & { id: number; docUpdatedAt: string }): ProjectCard {
@@ -77,5 +77,22 @@ describe("formatRelativeTime", () => {
 
     it("그 외는 'N일 전'", () => {
         expect(formatRelativeTime("2026-06-07T12:00:00Z", now)).toBe("3일 전");
+    });
+});
+
+describe("startOfWeekMonday", () => {
+    it("수요일이면 이번 주 월요일 00:00(로컬)을 돌려준다", () => {
+        const wed = new Date(2026, 5, 10, 15, 30, 0); // 2026-06-10 수요일(로컬)
+        expect(startOfWeekMonday(wed)).toEqual(new Date(2026, 5, 8, 0, 0, 0, 0));
+    });
+
+    it("월요일 당일이면 그날 00:00 — 주 시작 직후 진입도 같은 주", () => {
+        const mon = new Date(2026, 5, 8, 0, 30, 0);
+        expect(startOfWeekMonday(mon)).toEqual(new Date(2026, 5, 8, 0, 0, 0, 0));
+    });
+
+    it("일요일이면 6일 전 월요일 — 일요일은 주의 마지막 날", () => {
+        const sun = new Date(2026, 5, 14, 23, 59, 59);
+        expect(startOfWeekMonday(sun)).toEqual(new Date(2026, 5, 8, 0, 0, 0, 0));
     });
 });

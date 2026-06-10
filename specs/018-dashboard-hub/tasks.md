@@ -77,14 +77,14 @@
 
 **Independent Test**: spec US3 — 이번 주 종료 세션 있는 계정 `/` 진입 → 합계 한 줄. 없으면 미표시. 기간 조회 직접 호출 정확.
 
-- [ ] T024 [US3] RED: `backend/src/test/kotlin/com/writenote/service/WorkSessionServiceTest.kt` 확장 — `rangeTotalDurationMs`: 범위 내 종료 세션 합/경계(from 포함·to 제외)/진행 중 제외/타 사용자 제외/빈 0/`from >= to` 검증 오류
-- [ ] T025 [US3] GREEN: `WorkSessionRepository.kt` JPQL(projects join — WorkSession에 userId 없음) + `service/WorkSessionService.kt` `rangeTotalDurationMs(userId, from, to)`(`@Transactional(readOnly = true)`, Kotlin 합산)
-- [ ] T026 [US3] RED: `backend/src/test/kotlin/com/writenote/controller/WorkSessionTotalControllerIT.kt` 신규 — 200 정상 합/400(`from>=to`·파라미터 누락)/401
-- [ ] T027 [US3] GREEN: `backend/src/main/kotlin/com/writenote/controller/WorkSessionTotalController.kt` 신규(`@RequestMapping("/api/work-sessions")`, `GET /total?from=&to=`, `TotalDurationResponse` 재사용)
-- [ ] T028 [US3] BE 게이트(포어그라운드): ktlint(main+test)+checkstyle+test+build
-- [ ] T029 [US3] RED: `frontend/src/lib/dashboardView.test.ts` 확장 — `startOfWeekMonday`(주중/월요일 당일/일요일/자정 경계, 로컬 기준)
-- [ ] T030 [US3] GREEN: `dashboardView.ts`에 `startOfWeekMonday` + `frontend/src/lib/electron-api/sessions.ts`에 `rangeTotal(fromIso, toIso)` + `frontend/src/lib/query/useSessions.ts` 신규 `useWeeklyTotal`(캐시 키에 주 시작 ISO 포함) — shim 테스트는 기존 sessions 테스트 패턴 확장
-- [ ] T031 [US3] RED→GREEN: `frontend/src/app/page.test.tsx` 확장(③ 한 줄 표시/0 숨김) → `page.tsx`에 ③ 결선(`formatDuration` 재사용) + CSS 한 줄 스타일(조용한 텍스트 — 점선 박스 아님)
+- [x] T024 [US3] RED: `backend/src/test/kotlin/com/writenote/service/WorkSessionServiceTest.kt` 확장 — `rangeTotalDurationMs`: 범위 내 종료 세션 합/경계(from 포함·to 제외)/진행 중 제외/타 사용자 제외/빈 0/`from >= to` 검증 오류
+- [x] T025 [US3] GREEN: `WorkSessionRepository.kt` JPQL(projects join — WorkSession에 userId 없음) + `service/WorkSessionService.kt` `rangeTotalDurationMs(userId, from, to)`(`@Transactional(readOnly = true)`, Kotlin 합산)
+- [x] T026 [US3] RED: `backend/src/test/kotlin/com/writenote/controller/WorkSessionTotalControllerIT.kt` 신규 — 200 정상 합/400(`from>=to`·파라미터 누락)/401
+- [x] T027 [US3] GREEN: `backend/src/main/kotlin/com/writenote/controller/WorkSessionTotalController.kt` 신규(`@RequestMapping("/api/work-sessions")`, `GET /total?from=&to=`, `TotalDurationResponse` 재사용)
+- [x] T028 [US3] BE 게이트(포어그라운드): ktlint(main+test)+checkstyle+test+build
+- [x] T029 [US3] RED: `frontend/src/lib/dashboardView.test.ts` 확장 — `startOfWeekMonday`(주중/월요일 당일/일요일/자정 경계, 로컬 기준)
+- [x] T030 [US3] GREEN: `dashboardView.ts`에 `startOfWeekMonday` + `frontend/src/lib/electron-api/sessions.ts`에 `rangeTotal(fromIso, toIso)` + `frontend/src/lib/query/useSessions.ts` 신규 `useWeeklyTotal`(캐시 키에 주 시작 ISO 포함) — shim 테스트는 기존 sessions 테스트 패턴 확장
+- [x] T031 [US3] RED→GREEN: `frontend/src/app/page.test.tsx` 확장(③ 한 줄 표시/0 숨김) → `page.tsx`에 ③ 결선(`formatDuration` 재사용) + CSS 한 줄 스타일(조용한 텍스트 — 점선 박스 아님)
 
 **Checkpoint**: BE·FE 게이트 GREEN + 이번 주 줄 동작
 

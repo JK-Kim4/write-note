@@ -52,6 +52,14 @@ function stubAuthed() {
     );
 }
 
+function stubWeekly(totalDurationMs: number) {
+    server.use(
+        http.get(`${ORIGIN}/api/work-sessions/total`, () =>
+            HttpResponse.json({ success: true, data: { totalDurationMs }, error: null }),
+        ),
+    );
+}
+
 function stubDocument(id: number, text: string) {
     server.use(
         http.get(`${ORIGIN}/api/projects/${id}/document`, () =>
@@ -84,6 +92,7 @@ function renderPage() {
 describe("DashboardPage(/ 재진입 허브)", () => {
     it("인사(이름 없음)와 오늘 날짜를 표시한다", async () => {
         stubAuthed();
+        stubWeekly(0);
         server.use(http.get(`${ORIGIN}/api/projects/cards`, () => HttpResponse.json({ success: true, data: [], error: null })));
 
         renderPage();
@@ -100,6 +109,7 @@ describe("DashboardPage(/ 재진입 허브)", () => {
 
     it("문서 저장 시각이 최신인 작품을 이어서 쓰기 타일로 보여주고, 클릭하면 집필실로 이동한다", async () => {
         stubAuthed();
+        stubWeekly(0);
         server.use(
             http.get(`${ORIGIN}/api/projects/cards`, () =>
                 HttpResponse.json({
@@ -127,6 +137,7 @@ describe("DashboardPage(/ 재진입 허브)", () => {
 
     it("Rail 에 '홈' 항목이 있고 '작품'은 /library 로 보낸다(FR-008·016)", async () => {
         stubAuthed();
+        stubWeekly(0);
         server.use(http.get(`${ORIGIN}/api/projects/cards`, () => HttpResponse.json({ success: true, data: [], error: null })));
 
         renderPage();
@@ -138,6 +149,7 @@ describe("DashboardPage(/ 재진입 허브)", () => {
 
     it("작품이 0편이면 환영 블록과 '첫 작품 시작하기' CTA(→ /library?new=1)를 보여준다", async () => {
         stubAuthed();
+        stubWeekly(0);
         server.use(http.get(`${ORIGIN}/api/projects/cards`, () => HttpResponse.json({ success: true, data: [], error: null })));
 
         renderPage();
@@ -149,6 +161,7 @@ describe("DashboardPage(/ 재진입 허브)", () => {
 
     it("카드 조회 실패 시 안내와 '다시 시도'를 보여준다(반쪽 렌더 금지)", async () => {
         stubAuthed();
+        stubWeekly(0);
         server.use(
             http.get(
                 `${ORIGIN}/api/projects/cards`,
@@ -160,5 +173,55 @@ describe("DashboardPage(/ 재진입 허브)", () => {
 
         expect(await screen.findByRole("alert")).toHaveTextContent("불러오지 못했습니다");
         expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
+    });
+
+    it("이번 주 종료 세션이 있으면 '이번 주 집필 시간' 한 줄을 보여준다(US3)", async () => {
+        stubAuthed();
+        stubWeekly(12_000_000);
+        server.use(
+            http.get(`${ORIGIN}/api/projects/cards`, () =>
+                HttpResponse.json({ success: true, data: [cardJson(1, "작품", "2026-06-10T02:00:00Z")], error: null }),
+            ),
+        );
+        stubDocument(1, "문장.");
+
+        renderPage();
+
+        expect(await screen.findByText(/이번 주 집필 시간/)).toBeInTheDocument();
+        expect(screen.getByText("3시간 20분")).toBeInTheDocument();
+    });
+
+    it("이번 주 0분이면 그 줄 자체가 없다(압박 없는 처리)", async () => {
+        stubAuthed();
+        stubWeekly(0);
+        server.use(
+            http.get(`${ORIGIN}/api/projects/cards`, () =>
+                HttpResponse.json({ success: true, data: [cardJson(1, "작품", "2026-06-10T02:00:00Z")], error: null }),
+            ),
+        );
+        stubDocument(1, "문장.");
+
+        renderPage();
+
+        expect(await screen.findByText("작품")).toBeInTheDocument();
+        expect(screen.queryByText(/이번 주 집필 시간/)).not.toBeInTheDocument();
+    });
+
+    it("주간 조회가 실패하면 전체 에러 상태로 처리한다(반쪽 렌더 금지)", async () => {
+        stubAuthed();
+        server.use(
+            http.get(`${ORIGIN}/api/projects/cards`, () =>
+                HttpResponse.json({ success: true, data: [cardJson(1, "작품", "2026-06-10T02:00:00Z")], error: null }),
+            ),
+            http.get(
+                `${ORIGIN}/api/work-sessions/total`,
+                () => HttpResponse.json({ success: false, data: null, error: { code: "INTERNAL_ERROR", message: "x" } }, { status: 500 }),
+            ),
+        );
+        stubDocument(1, "문장.");
+
+        renderPage();
+
+        expect(await screen.findByRole("alert")).toHaveTextContent("불러오지 못했습니다");
     });
 });

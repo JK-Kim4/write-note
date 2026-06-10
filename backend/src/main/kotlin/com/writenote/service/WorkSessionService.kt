@@ -2,6 +2,7 @@ package com.writenote.service
 
 import com.writenote.entity.WorkSession
 import com.writenote.error.ResourceNotFoundException
+import com.writenote.error.ValidationException
 import com.writenote.model.response.EndWithLogResponse
 import com.writenote.model.response.WorkSessionResponse
 import com.writenote.repository.ProjectRepository
@@ -65,6 +66,24 @@ class WorkSessionService(
             }
         val log = projectLogService.create(userId, projectId, body)
         return EndWithLogResponse(session = sessionResponse, log = log)
+    }
+
+    /**
+     * 기간 작업시간 합계(018) — 사용자 전체 작품 횡단, [from] 포함·[to] 제외 범위에 시작된 종료 세션 합(ms).
+     * 기간 경계에 걸친 세션은 시작 시각 기준 귀속(이중 계산 없음). 시간대 환산은 클라이언트 책임.
+     */
+    @Transactional(readOnly = true)
+    fun rangeTotalDurationMs(
+        userId: Long,
+        from: Instant,
+        to: Instant,
+    ): Long {
+        if (from >= to) {
+            throw ValidationException("from must be before to")
+        }
+        return workSessionRepository.findEndedByUserIdAndStartedAtRange(userId, from, to).sumOf {
+            requireNotNull(it.endedAt).toEpochMilli() - requireNotNull(it.startedAt).toEpochMilli()
+        }
     }
 
     @Transactional(readOnly = true)

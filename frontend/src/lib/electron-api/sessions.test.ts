@@ -7,6 +7,25 @@ import { sessions } from "./sessions";
 const ORIGIN = "http://localhost:3000";
 
 describe("webElectronApi.sessions", () => {
+    it("rangeTotal — GET /api/work-sessions/total?from=&to= 를 호출해 합계를 반환한다 (018)", async () => {
+        let seenFrom = "";
+        let seenTo = "";
+        server.use(
+            http.get(`${ORIGIN}/api/work-sessions/total`, ({ request }) => {
+                const url = new URL(request.url);
+                seenFrom = url.searchParams.get("from") ?? "";
+                seenTo = url.searchParams.get("to") ?? "";
+                return HttpResponse.json({ success: true, data: { totalDurationMs: 12000000 }, error: null });
+            }),
+        );
+
+        const result = await sessions.rangeTotal("2026-06-08T00:00:00.000Z", "2026-06-10T12:00:00.000Z");
+
+        expect(result.totalDurationMs).toBe(12000000);
+        expect(seenFrom).toBe("2026-06-08T00:00:00.000Z");
+        expect(seenTo).toBe("2026-06-10T12:00:00.000Z");
+    });
+
     it("start — POST /api/projects/{id}/work-sessions/start 를 호출한다", async () => {
         let called = false;
         server.use(

@@ -21,6 +21,18 @@ export function selectDashboard(cards: ReadonlyArray<ProjectCard>): {
     return { resume, others };
 }
 
+/**
+ * "이번 주" 경계(018 US3) — 사용자 로컬 시간대 기준 이번 주 월요일 00:00.
+ * 일요일은 주의 마지막 날(한국 관례). 기간 합계 from 으로 ISO 변환해 쓴다.
+ */
+export function startOfWeekMonday(now: Date): Date {
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const day = start.getDay(); // 0=일 … 6=토
+    const daysSinceMonday = (day + 6) % 7;
+    start.setDate(start.getDate() - daysSinceMonday);
+    return start;
+}
+
 const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;

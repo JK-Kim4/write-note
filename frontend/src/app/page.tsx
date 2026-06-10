@@ -7,7 +7,9 @@ import { Rail } from "@/components/workspace/Rail";
 import { Titlebar } from "@/components/workspace/Titlebar";
 import { ResumeCard } from "@/components/dashboard/ResumeCard";
 import { selectDashboard } from "@/lib/dashboardView";
+import { formatDuration } from "@/lib/progress";
 import { useProjectCards } from "@/lib/query/useProjects";
+import { useWeeklyTotal } from "@/lib/query/useSessions";
 
 /**
  * 대시보드(작가 홈) — 018 재진입 허브. `/`의 새 내용물(기존 작품 벽은 /library 로 이동).
@@ -17,6 +19,7 @@ export default function DashboardPage() {
     useAuthGuard("requireAuth");
     const router = useRouter();
     const cardsQuery = useProjectCards();
+    const weeklyQuery = useWeeklyTotal();
 
     // 날짜 등 new Date() 의존 표시는 마운트 후 렌더 — SSR 프리렌더와의 hydration mismatch 회피(research R5).
     const [mounted, setMounted] = useState(false);
@@ -38,7 +41,9 @@ export default function DashboardPage() {
                             <h1 className="dash-hello">안녕하세요.</h1>
                             <p className="dash-date">{mounted ? `${dateLabel} — 오늘도 곁에 있을게요.` : " "}</p>
 
-                            {cardsQuery.data === undefined && !cardsQuery.isError ? (
+                            {(cardsQuery.data === undefined || weeklyQuery.data === undefined) &&
+                            !cardsQuery.isError &&
+                            !weeklyQuery.isError ? (
                                 <div className="projects-skel" aria-hidden="true">
                                     <div className="skel">
                                         <div className="skel__bar" />
@@ -46,10 +51,17 @@ export default function DashboardPage() {
                                         <div className="skel__bar" />
                                     </div>
                                 </div>
-                            ) : cardsQuery.isError ? (
+                            ) : cardsQuery.isError || weeklyQuery.isError ? (
                                 <div className="projects-error" role="alert">
                                     <span>작업실을 불러오지 못했습니다.</span>
-                                    <button type="button" className="btn btn--ghost" onClick={() => cardsQuery.refetch()}>
+                                    <button
+                                        type="button"
+                                        className="btn btn--ghost"
+                                        onClick={() => {
+                                            void cardsQuery.refetch();
+                                            void weeklyQuery.refetch();
+                                        }}
+                                    >
                                         다시 시도
                                     </button>
                                 </div>
@@ -70,6 +82,11 @@ export default function DashboardPage() {
                                 <>
                                     <p className="dash-label">이어서 쓰기</p>
                                     <ResumeCard card={resume} onOpen={() => router.push(`/projects/${resume.id}/write`)} />
+                                    {(weeklyQuery.data?.totalDurationMs ?? 0) > 0 && (
+                                        <p className="dash-week">
+                                            이번 주 집필 시간 · <b>{formatDuration(weeklyQuery.data?.totalDurationMs ?? 0)}</b>
+                                        </p>
+                                    )}
                                 </>
                             )}
                         </div>

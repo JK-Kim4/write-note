@@ -2,6 +2,7 @@ package com.writenote.service
 
 import com.writenote.entity.Project
 import com.writenote.entity.WorkSession
+import com.writenote.error.ValidationException
 import com.writenote.model.response.ProjectLogResponse
 import com.writenote.repository.ProjectRepository
 import com.writenote.repository.WorkSessionRepository
@@ -89,5 +90,48 @@ class WorkSessionServiceTest {
         assertThat(open.endedAt).isNotNull() // 5s < 30s 이지만 endWithLog 는 보존
         assertThat(result.session?.endedAt).isNotNull()
         assertThat(result.log.id).isEqualTo(50L)
+    }
+
+    // ── 018 기간 합계 rangeTotalDurationMs ──────────────────────────────────
+
+    @Test
+    @DisplayName("rangeTotal — 범위 내(from 포함·to 제외) 시작된 종료 세션만 합산한다")
+    fun `rangeTotal sums ended sessions started within range`() {
+        val from = Instant.parse("2026-06-08T00:00:00Z")
+        val to = Instant.parse("2026-06-15T00:00:00Z")
+        every { workSessionRepository.findEndedByUserIdAndStartedAtRange(1L, from, to) } returns
+            listOf(
+                WorkSession(id = 1L, projectId = 100L, startedAt = from, endedAt = from.plusMillis(1_200_000)),
+                WorkSession(
+                    id = 2L,
+                    projectId = 200L,
+                    startedAt = from.plusSeconds(3600),
+                    endedAt = from.plusSeconds(3600).plusMillis(600_000),
+                ),
+            )
+
+        val total = service.rangeTotalDurationMs(userId = 1L, from = from, to = to)
+
+        assertThat(total).isEqualTo(1_800_000L)
+    }
+
+    @Test
+    @DisplayName("rangeTotal — 범위 내 세션이 없으면 0")
+    fun `rangeTotal returns zero when no session in range`() {
+        val from = Instant.parse("2026-06-08T00:00:00Z")
+        val to = Instant.parse("2026-06-15T00:00:00Z")
+        every { workSessionRepository.findEndedByUserIdAndStartedAtRange(1L, from, to) } returns emptyList()
+
+        assertThat(service.rangeTotalDurationMs(userId = 1L, from = from, to = to)).isEqualTo(0L)
+    }
+
+    @Test
+    @DisplayName("rangeTotal — from >= to 는 ValidationException(→ 400 VALIDATION_FAILED)")
+    fun `rangeTotal rejects inverted range`() {
+        val from = Instant.parse("2026-06-15T00:00:00Z")
+        val to = Instant.parse("2026-06-08T00:00:00Z")
+
+        assertThrows<ValidationException> { service.rangeTotalDurationMs(userId = 1L, from = from, to = to) }
+        assertThrows<ValidationException> { service.rangeTotalDurationMs(userId = 1L, from = to, to = to) }
     }
 }
