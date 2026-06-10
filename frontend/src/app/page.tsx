@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/lib/auth/guard";
 import { Rail } from "@/components/workspace/Rail";
@@ -25,9 +25,13 @@ export default function DashboardPage() {
     const weeklyQuery = useWeeklyTotal();
     const memosQuery = useInboxMemos();
 
-    // 날짜 등 new Date() 의존 표시는 마운트 후 렌더 — SSR 프리렌더와의 hydration mismatch 회피(research R5).
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => setMounted(true), []);
+    // 날짜 등 new Date() 의존 표시는 클라에서만 렌더 — SSR 프리렌더와의 hydration mismatch 회피(research R5).
+    // 서버 스냅샷 false → 클라 true: effect 의 setState 없이 hydration 직후 안전하게 전환된다.
+    const mounted = useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false,
+    );
 
     const { resume, others } = selectDashboard(cardsQuery.data ?? []);
     const dateLabel = mounted

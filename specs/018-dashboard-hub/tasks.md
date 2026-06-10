@@ -128,10 +128,10 @@
 
 ## Phase 9: Polish & Cross-Cutting
 
-- [ ] T039 FE 전체 게이트(포어그라운드): `node_modules/.bin/vitest run`(전체 GREEN) → `npx tsc --noEmit`(기존 1건 외 0) → `node_modules/.bin/eslint src`(신규 0 경고) → `pnpm build`
-- [ ] T040 BE 전체 게이트(포어그라운드): `./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` — 기존 endpoint 회귀 무변화 재확인
-- [ ] T041 시각 검증: headless Chrome 스크린샷 — 라이트(`--blink-settings=preferredColorScheme=1`)/다크 × 작품 있음/0편 × 곁쪽지 0 × 이번 주 0(줄 숨김). 목업 `docs/design/web/mockups/dashboard-reentry-hub.html` 대조 + 대비 AA·포커스·reduced-motion
-- [ ] T042 라이브 dogfooding 인계 정리(사용자 영역): 1클릭 재진입/이번 주 수치 체감 정합/벽 회복/로그인·작업 종료 귀환 — quickstart §dogfooding 체크리스트로 보고
+- [x] T039 FE 전체 게이트(포어그라운드): `node_modules/.bin/vitest run`(전체 GREEN) → `npx tsc --noEmit`(기존 1건 외 0) → `node_modules/.bin/eslint src`(신규 0 경고) → `pnpm build`
+- [x] T040 BE 전체 게이트(포어그라운드): `./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` — 기존 endpoint 회귀 무변화 재확인
+- [x] T041 시각 검증: headless Chrome 스크린샷 — 라이트(`--blink-settings=preferredColorScheme=1`)/다크 × 작품 있음/0편 × 곁쪽지 0 × 이번 주 0(줄 숨김). 목업 `docs/design/web/mockups/dashboard-reentry-hub.html` 대조 + 대비 AA·포커스·reduced-motion
+- [x] T042 라이브 dogfooding 인계 정리(사용자 영역): 1클릭 재진입/이번 주 수치 체감 정합/벽 회복/로그인·작업 종료 귀환 — quickstart §dogfooding 체크리스트로 보고
 
 ---
 

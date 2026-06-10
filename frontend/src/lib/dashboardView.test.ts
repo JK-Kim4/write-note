@@ -4,7 +4,6 @@ import type { ProjectCard } from "@/lib/types/domain";
 
 function card(over: Partial<ProjectCard> & { id: number; docUpdatedAt: string }): ProjectCard {
     return {
-        id: over.id,
         title: `작품 ${over.id}`,
         genre: null,
         targetLength: null,
