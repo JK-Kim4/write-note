@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>대시보드 목업 — 재진입 허브 (안)</title>
+<!-- 실제 앱 토큰/클래스 그대로 (file://로 열면 상대 링크 로드) -->
+<link rel="stylesheet" href="../../../../frontend/src/styles/desktop-app.css" />
+<style>
+  /* 목업 전용 — 대시보드 신규 레이아웃 제안(추후 desktop-app.css로 이관). 토큰은 위 링크에서 계승. */
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif; }
+  .dash-wrap { max-width: 920px; margin: 0 auto; padding: 48px 40px 80px; }
+  .dash-hello { font-family: Georgia, "Noto Serif KR", serif; font-size: 28px; letter-spacing: -.02em; margin: 0 0 4px; }
+  .dash-hello b { color: var(--accent); }
+  .dash-date { color: var(--muted); font-size: 14px; margin: 0 0 34px; }
+
+  .dash-label { font-size: 11.5px; font-weight: 700; letter-spacing: .04em; color: var(--accent);
+    text-transform: uppercase; margin: 0 0 12px; }
+
+  /* 이어서 쓰기 — 가장 큰 타일(재진입 = 핵심) */
+  .resume {
+    background: var(--paper); border: 1px solid var(--hairline); border-radius: var(--radius);
+    box-shadow: var(--shadow-paper, 0 8px 26px -16px rgba(74,58,40,.18)); padding: 28px 30px;
+    display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;
+  }
+  .resume__title { font-family: Georgia,"Noto Serif KR",serif; font-size: 22px; margin: 0; }
+  .resume__last { font-family: Georgia,"Noto Serif KR",serif; font-size: 17px; line-height: 1.7;
+    color: var(--ink); margin: 0; }
+  .resume__next { font-size: 13.5px; color: var(--muted); margin: 0; }
+  .resume__next b { color: var(--ink); font-weight: 600; }
+  .resume__foot { display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid var(--hairline); padding-top: 16px; }
+  .resume__meta { font-size: 12px; color: var(--muted); }
+  .btn-primary { background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm,9px);
+    padding: 9px 20px; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+  /* 다른 작품 빠른 진입 */
+  .works { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 34px; }
+  .work-card { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-sm,9px);
+    padding: 14px 16px; cursor: pointer; }
+  .work-card__t { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
+  .work-card__s { font-size: 12.5px; color: var(--muted); margin: 0; line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* 최근 메모 */
+  .memos { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 34px; }
+  .memo-card { background: var(--scrap); border: 1px solid var(--scrap-edge); border-radius: var(--radius-sm,9px);
+    padding: 14px 16px; color: var(--scrap-ink); }
+  .memo-card__body { font-family: Georgia,"Noto Serif KR",serif; font-size: 14.5px; line-height: 1.6; margin: 0 0 8px; }
+  .memo-card__date { font-size: 11px; color: var(--scrap-ink); opacity: .65; }
+
+  /* 절충안 — ghost 타일(선택 시 추가) */
+  .ghost { border: 1.5px dashed var(--hairline-strong,#d2c4ad); border-radius: var(--radius);
+    padding: 18px 22px; color: var(--muted); display: flex; align-items: center; justify-content: space-between;
+    background: transparent; margin-bottom: 14px; }
+  .ghost b { color: var(--ink); }
+  .ghost .tag { font-size: 11px; background: var(--accent-soft,#e7e0ef); color: var(--accent); padding: 3px 9px; border-radius: 6px; font-weight: 700; }
+
+  .excluded { font-size: 12.5px; color: var(--muted); line-height: 1.8; border-top: 1px solid var(--hairline);
+    padding-top: 16px; margin-top: 8px; }
+  .excluded del { opacity: .7; }
+</style>
+</head>
+<body>
+<div class="dash-wrap">
+  <h1 class="dash-hello">안녕하세요, <b>나래님</b>.</h1>
+  <p class="dash-date">2026년 6월 10일 수요일 — 오늘도 곁에 있을게요.</p>
+
+  <!-- 1. 이어서 쓰기 (가장 크게 = 재진입 핵심) -->
+  <p class="dash-label">이어서 쓰기</p>
+  <div class="resume">
+    <h2 class="resume__title">여름의 끝, 우리가 머물던 곳</h2>
+    <p class="resume__last">“윤슬이 부서지는 바다를 바라보며 그녀는 생각했다. 계절이 바뀌는 것은 단순히 온도의 변화가 아니라, 누군가의 기억이 옅어지는 과정일지도 모른다고.”</p>
+    <p class="resume__next">다음 장면 · <b>은하가 등대지기를 처음 만나는 장면</b></p>
+    <div class="resume__foot">
+      <span class="resume__meta">2시간 전 저장 · 42,500자</span>
+      <button class="btn-primary">이어서 쓰기 →</button>
+    </div>
+  </div>
+
+  <!-- 절충안일 때만 추가되는 ghost 타일 -->
+  <div class="ghost">
+    <span><b>이번 주 집필 시간</b> · 3시간 20분 <span style="opacity:.6">(기존 작업세션 데이터)</span></span>
+    <span class="tag">절충안 선택 시 추가</span>
+  </div>
+
+  <!-- 2. 다른 작품 빠른 진입 -->
+  <p class="dash-label">작품</p>
+  <div class="works">
+    <div class="work-card"><p class="work-card__t">파란색의 온도</p><p class="work-card__s">“그는 한 번도 파란색을 차갑다고 느낀 적이 없었다.”</p></div>
+    <div class="work-card"><p class="work-card__t">침묵의 건축가</p><p class="work-card__s">“설계도에는 방이 일곱 개였지만, 그는 여덟 번째 방을 알고 있었다.”</p></div>
+    <div class="work-card" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;">+ 새 작품</div>
+  </div>
+
+  <!-- 3. 최근 메모(곁쪽지) -->
+  <p class="dash-label">최근 곁쪽지</p>
+  <div class="memos">
+    <div class="memo-card"><p class="memo-card__body">겨울 바다의 냄새는 소금기보다는 시린 금속향에 가깝다…</p><span class="memo-card__date">2시간 전</span></div>
+    <div class="memo-card"><p class="memo-card__body">인물 설정: 은하는 왜 자꾸만 뒤를 돌아보는가? 후회인가 미련인가.</p><span class="memo-card__date">어제</span></div>
+  </div>
+
+  <p class="excluded">
+    <b style="color:var(--ink)">의도적으로 뺀 것</b> (제품 원칙 — “글쓰기 효율 아님 · 마찰 설계 &gt; 자동화”):<br/>
+    <del>연속 집필 12일 streak</del> · <del>오늘의 목표 진척 게이지 62%</del> · <del>주간 막대그래프</del> — 효율·게이미피케이션 + 데이터·백엔드 신규 필요.<br/>
+    <del>오늘의 문장 (자동 생성 인용구)</del> — 작가의 맥락이 아닌 자동 생성이라 “마찰 설계” 위배.
+  </p>
+</div>
+</body>
+</html>
