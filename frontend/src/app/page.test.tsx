@@ -60,6 +60,23 @@ function stubWeekly(totalDurationMs: number) {
     );
 }
 
+
+function memoJson(id: number, body: string, capturedAt: string) {
+    return { id, body, source: "web", capturedAt, projects: [], tags: [], reasonNote: null };
+}
+
+function stubMemos(memos: unknown[]) {
+    server.use(
+        http.get(`${ORIGIN}/api/memos`, () =>
+            HttpResponse.json({
+                success: true,
+                data: { content: memos, page: 0, size: 100, totalElements: memos.length, totalPages: 1 },
+                error: null,
+            }),
+        ),
+    );
+}
+
 function stubDocument(id: number, text: string) {
     server.use(
         http.get(`${ORIGIN}/api/projects/${id}/document`, () =>
@@ -223,5 +240,98 @@ describe("DashboardPage(/ 재진입 허브)", () => {
         renderPage();
 
         expect(await screen.findByRole("alert")).toHaveTextContent("불러오지 못했습니다");
+    });
+
+    it("최근작을 제외한 나머지 작품을 미니 카드로 보여주고, 클릭하면 그 작품 집필실로 간다(US4)", async () => {
+        stubAuthed();
+        stubWeekly(0);
+        server.use(
+            http.get(`${ORIGIN}/api/projects/cards`, () =>
+                HttpResponse.json({
+                    success: true,
+                    data: [
+                        cardJson(1, "옛 작품", "2026-06-01T00:00:00Z"),
+                        cardJson(2, "최신 작품", "2026-06-10T02:00:00Z"),
+                        cardJson(3, "중간 작품", "2026-06-05T00:00:00Z"),
+                    ],
+                    error: null,
+                }),
+            ),
+        );
+        stubDocument(1, "옛 문장.");
+        stubDocument(2, "최신 문장.");
+        stubDocument(3, "중간 문장.");
+
+        renderPage();
+
+        // 최근작(2)은 이어서 쓰기 타일 — 미니 카드는 3, 1 순(저장 시각 내림차순)
+        expect(await screen.findByRole("button", { name: /중간 작품/ })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /옛 작품/ })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /최신 작품/ })).not.toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole("button", { name: /중간 작품/ }));
+        expect(pushMock).toHaveBeenCalledWith("/projects/3/write");
+    });
+
+    it("'+ 새 작품' 카드는 /library?new=1 로 보낸다 — 작품 1편뿐이면 새 작품 카드만 남는다(US4)", async () => {
+        stubAuthed();
+        stubWeekly(0);
+        server.use(
+            http.get(`${ORIGIN}/api/projects/cards`, () =>
+                HttpResponse.json({ success: true, data: [cardJson(1, "유일 작품", "2026-06-10T02:00:00Z")], error: null }),
+            ),
+        );
+        stubDocument(1, "문장.");
+
+        renderPage();
+
+        const newCard = await screen.findByRole("button", { name: "+ 새 작품" });
+        expect(screen.queryByRole("button", { name: /유일 작품/ })).not.toBeInTheDocument();
+
+        await userEvent.click(newCard);
+        expect(pushMock).toHaveBeenCalledWith("/library?new=1");
+    });
+
+    it("최근 곁쪽지 2장을 상대 날짜와 함께 보여주고, 클릭하면 메모 화면으로 간다(US5)", async () => {
+        stubAuthed();
+        stubWeekly(0);
+        server.use(
+            http.get(`${ORIGIN}/api/projects/cards`, () =>
+                HttpResponse.json({ success: true, data: [cardJson(1, "작품", "2026-06-10T02:00:00Z")], error: null }),
+            ),
+        );
+        stubDocument(1, "문장.");
+        stubMemos([
+            memoJson(1, "오래된 메모", "2026-06-01T00:00:00Z"),
+            memoJson(2, "가장 최근 메모", new Date().toISOString()),
+            memoJson(3, "중간 메모", "2026-06-08T00:00:00Z"),
+        ]);
+
+        renderPage();
+
+        expect(await screen.findByText(/가장 최근 메모/)).toBeInTheDocument();
+        expect(screen.getByText(/중간 메모/)).toBeInTheDocument();
+        expect(screen.queryByText(/오래된 메모/)).not.toBeInTheDocument();
+        expect(screen.getByText("오늘")).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole("button", { name: /가장 최근 메모/ }));
+        expect(pushMock).toHaveBeenCalledWith("/memos");
+    });
+
+    it("곁쪽지가 0장이면 라벨은 유지하고 조용한 빈 문구를 보여준다(US5)", async () => {
+        stubAuthed();
+        stubWeekly(0);
+        server.use(
+            http.get(`${ORIGIN}/api/projects/cards`, () =>
+                HttpResponse.json({ success: true, data: [cardJson(1, "작품", "2026-06-10T02:00:00Z")], error: null }),
+            ),
+        );
+        stubDocument(1, "문장.");
+        stubMemos([]);
+
+        renderPage();
+
+        expect(await screen.findByText("최근 곁쪽지")).toBeInTheDocument();
+        expect(screen.getByText("아직 곁쪽지가 없어요")).toBeInTheDocument();
     });
 });

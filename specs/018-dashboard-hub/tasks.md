@@ -96,10 +96,10 @@
 
 **Independent Test**: spec US4 — 작품 3편 `/` 진입 → 2편 미니 카드 → 클릭 집필 이동, 새 작품 → 폼 열린 벽.
 
-- [ ] T032 [P] [US4] RED: `frontend/src/components/dashboard/WorkMiniCard.test.tsx` — 제목/마지막 문장 2줄 클램프/빈 본문 placeholder/onOpen
-- [ ] T033 [US4] GREEN: `frontend/src/components/dashboard/WorkMiniCard.tsx`
-- [ ] T034 [US4] RED: `frontend/src/app/page.test.tsx` 확장(④ 나머지 작품 정렬·작품 1편이면 "+ 새 작품"만) + `frontend/src/app/library/page.test.tsx` 확장(`?new=1` → create 모드)
-- [ ] T035 [US4] GREEN: `page.tsx` ④ 결선("+ 새 작품" → `/library?new=1`) + `library/page.tsx`에 Suspense+`useSearchParams` 초기 mode(전례 `auth/verify` 패턴) → 직후 `pnpm build`(RSC)
+- [x] T032 [P] [US4] RED: `frontend/src/components/dashboard/WorkMiniCard.test.tsx` — 제목/마지막 문장 2줄 클램프/빈 본문 placeholder/onOpen
+- [x] T033 [US4] GREEN: `frontend/src/components/dashboard/WorkMiniCard.tsx`
+- [x] T034 [US4] RED: `frontend/src/app/page.test.tsx` 확장(④ 나머지 작품 정렬·작품 1편이면 "+ 새 작품"만) + `frontend/src/app/library/page.test.tsx` 확장(`?new=1` → create 모드)
+- [x] T035 [US4] GREEN: `page.tsx` ④ 결선("+ 새 작품" → `/library?new=1`) + `library/page.tsx`에 Suspense+`useSearchParams` 초기 mode(전례 `auth/verify` 패턴) → 직후 `pnpm build`(RSC)
 
 **Checkpoint**: 미니 카드·새 작품 흐름 + build GREEN
 
@@ -111,7 +111,7 @@
 
 **Independent Test**: spec US6 — 본문 있는 작품 `/library` → 실제 마지막 문장(placeholder 아님).
 
-- [ ] T036 [US6] `frontend/src/app/library/page.test.tsx` 확장 — 본문 있는 카드 mock으로 벽 카드에 마지막 문장 표시/빈 본문은 기존 placeholder 카피 단언
+- [x] T036 [US6] `frontend/src/app/library/page.test.tsx` 확장 — 본문 있는 카드 mock으로 벽 카드에 마지막 문장 표시/빈 본문은 기존 placeholder 카피 단언
 
 ---
 
@@ -121,8 +121,8 @@
 
 **Independent Test**: spec US5 — 곁쪽지 3장 계정 `/` 진입 → 최신 2장 + 클릭 시 메모 화면.
 
-- [ ] T037 [US5] RED: `frontend/src/app/page.test.tsx` 확장 — 최신 2장 선별(capturedAt 내림차순)/상대 날짜 라벨/0장 빈 문구("아직 곁쪽지가 없어요")/클릭 → `/memos`
-- [ ] T038 [US5] GREEN: `page.tsx` ⑤ 결선 — `useInboxMemos` + 기존 `memoView.ts`(`formatRelativeDay`) 재사용 + `.memo-card*` CSS 이관
+- [x] T037 [US5] RED: `frontend/src/app/page.test.tsx` 확장 — 최신 2장 선별(capturedAt 내림차순)/상대 날짜 라벨/0장 빈 문구("아직 곁쪽지가 없어요")/클릭 → `/memos`
+- [x] T038 [US5] GREEN: `page.tsx` ⑤ 결선 — `useInboxMemos` + 기존 `memoView.ts`(`formatRelativeDay`) 재사용 + `.memo-card*` CSS 이관
 
 ---
 

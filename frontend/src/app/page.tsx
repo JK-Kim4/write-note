@@ -6,8 +6,11 @@ import { useAuthGuard } from "@/lib/auth/guard";
 import { Rail } from "@/components/workspace/Rail";
 import { Titlebar } from "@/components/workspace/Titlebar";
 import { ResumeCard } from "@/components/dashboard/ResumeCard";
+import { WorkMiniCard } from "@/components/dashboard/WorkMiniCard";
 import { selectDashboard } from "@/lib/dashboardView";
+import { toInboxMemoView } from "@/lib/memoView";
 import { formatDuration } from "@/lib/progress";
+import { useInboxMemos } from "@/lib/query/useMemos";
 import { useProjectCards } from "@/lib/query/useProjects";
 import { useWeeklyTotal } from "@/lib/query/useSessions";
 
@@ -20,15 +23,40 @@ export default function DashboardPage() {
     const router = useRouter();
     const cardsQuery = useProjectCards();
     const weeklyQuery = useWeeklyTotal();
+    const memosQuery = useInboxMemos();
 
     // 날짜 등 new Date() 의존 표시는 마운트 후 렌더 — SSR 프리렌더와의 hydration mismatch 회피(research R5).
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
 
-    const { resume } = selectDashboard(cardsQuery.data ?? []);
+    const { resume, others } = selectDashboard(cardsQuery.data ?? []);
     const dateLabel = mounted
         ? new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "long" }).format(new Date())
         : "";
+
+    // ⑤ 최근 곁쪽지 — 캡처 시각 최신 2장. 보조 맥락이라 조회 실패는 조용한 빈 상태로 격하(전체 차단 X).
+    const recentMemos = [...(memosQuery.data ?? [])]
+        .sort((a, b) => (a.capturedAt < b.capturedAt ? 1 : -1))
+        .slice(0, 2)
+        .map((memo) => toInboxMemoView(memo, new Date()));
+
+    const memoSection = (
+        <>
+            <p className="dash-label">최근 곁쪽지</p>
+            {recentMemos.length === 0 ? (
+                <p className="dash-empty">아직 곁쪽지가 없어요</p>
+            ) : (
+                <div className="dash-memos">
+                    {recentMemos.map((memo) => (
+                        <button key={memo.id} type="button" className="dash-memo" onClick={() => router.push("/memos")}>
+                            <p className="dash-memo__body">{memo.body}</p>
+                            <span className="dash-memo__date">{memo.dateLabel}</span>
+                        </button>
+                    ))}
+                </div>
+            )}
+        </>
+    );
 
     return (
         <div className="app">
@@ -87,6 +115,26 @@ export default function DashboardPage() {
                                             이번 주 집필 시간 · <b>{formatDuration(weeklyQuery.data?.totalDurationMs ?? 0)}</b>
                                         </p>
                                     )}
+
+                                    <p className="dash-label">작품</p>
+                                    <div className="works">
+                                        {others.map((card) => (
+                                            <WorkMiniCard
+                                                key={card.id}
+                                                card={card}
+                                                onOpen={() => router.push(`/projects/${card.id}/write`)}
+                                            />
+                                        ))}
+                                        <button
+                                            type="button"
+                                            className="work-card work-card--new"
+                                            onClick={() => router.push("/library?new=1")}
+                                        >
+                                            + 새 작품
+                                        </button>
+                                    </div>
+
+                                    {memoSection}
                                 </>
                             )}
                         </div>

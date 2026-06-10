@@ -116,4 +116,14 @@ describe("LibraryPage(작품 벽 — /library 이동)", () => {
 
         expect(await screen.findByText("아직 첫 문장을 기다리는 중")).toBeInTheDocument();
     });
+
+    it("?new=1 이면 새 작품 작성 폼이 바로 열린다(US4)", async () => {
+        searchParams = new URLSearchParams("new=1");
+        stubAuthed();
+        stubCards();
+
+        renderPage();
+
+        expect(await screen.findByText("새 작품을 시작합니다")).toBeInTheDocument();
+    });
 });

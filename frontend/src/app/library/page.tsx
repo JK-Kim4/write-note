@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthGuard } from "@/lib/auth/guard";
 import { Rail } from "@/components/workspace/Rail";
 import { Titlebar } from "@/components/workspace/Titlebar";
@@ -11,18 +11,29 @@ import { useCreateProject, useDeleteProject, useProjectCards, useUpdateProject }
 import type { ProjectCardView } from "@/lib/projectView";
 
 /**
- * 작품 벽 (015 US1) — desktop ProjectsScreen 1:1 이식. 006 home 폐기.
+ * 작품 벽 (015 US1 → 018 /library 이동) — desktop ProjectsScreen 1:1 이식. 006 home 폐기.
  * .app(Rail+main) 셸 + Titlebar + work-wall + ProjectWallCard. 데이터는 React Query 훅.
+ * `?new=1` 진입 시 새 작품 폼이 바로 열린다(대시보드 "+ 새 작품" 동선).
+ * useSearchParams 는 Suspense 경계 내부에서만 호출(전례: auth/verify, Next 공식 문서 권장).
  */
-export default function ProjectsWallPage() {
+export default function LibraryPage() {
+    return (
+        <Suspense fallback={<p style={{ padding: "2rem", opacity: 0.5 }}>여는 중…</p>}>
+            <ProjectsWallPage />
+        </Suspense>
+    );
+}
+
+function ProjectsWallPage() {
     useAuthGuard("requireAuth");
     const router = useRouter();
+    const wantsCreate = useSearchParams().get("new") === "1";
     const cardsQuery = useProjectCards();
     const createProject = useCreateProject();
     const updateProject = useUpdateProject();
     const deleteProject = useDeleteProject();
 
-    const [mode, setMode] = useState<"list" | "create">("list");
+    const [mode, setMode] = useState<"list" | "create">(wantsCreate ? "create" : "list");
     const [title, setTitle] = useState("");
     const [summary, setSummary] = useState("");
     const [genre, setGenre] = useState("");
