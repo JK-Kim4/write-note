@@ -56,16 +56,16 @@
 
 **Independent Test**: spec US1 — 작품 2편 계정 `/` 진입 → 최근작 타일(제목·마지막 문장·다음 장면·메타) → 클릭 1번 집필 화면. `/library` 벽 전 기능.
 
-- [ ] T014 [P] [US1] RED: `frontend/src/lib/dashboardView.test.ts` 신규 — `selectDashboard`(빈 배열→null/1편/`docUpdatedAt` 내림차순/동률 시 id 내림차순) · `formatRelativeTime`(방금/N분/N시간/N일, now 주입)
-- [ ] T015 [US1] GREEN: `frontend/src/lib/dashboardView.ts` 신규(순수, DOM/시계 비의존)
-- [ ] T016 [P] [US1] RED: `frontend/src/components/dashboard/ResumeCard.test.tsx` — 제목/인용 마지막 문장/빈 본문 placeholder/다음 장면 빈 줄 숨김/총시간 0 토막 숨김/onOpen 호출
-- [ ] T017 [US1] GREEN: `frontend/src/components/dashboard/ResumeCard.tsx`(`'use client'`, props만 — contracts §5)
-- [ ] T018 [US1] 벽 이동: `git mv frontend/src/app/page.tsx frontend/src/app/library/page.tsx`(내용 불변) + `frontend/src/app/library/page.test.tsx` 신규 렌더 스모크(쿼리 mock — 벽 행위 보존)
-- [ ] T019 [P] [US1] Rail 재편: `frontend/src/components/workspace/Rail.tsx` — "홈" 항목 신설(`/`, `p === "/"`) + "작품" `href:"/library"`·`match: p.startsWith("/library")`. 집필 fallback `push("/")` 유지
-- [ ] T020 [P] [US1] 집필 page 1줄: `frontend/src/app/projects/[id]/write/page.tsx:220` 부근 에러 버튼 `push("/") → push("/library")`(라벨 "작품 벽으로" 정합)
-- [ ] T021 [US1] RED: `frontend/src/app/page.test.tsx` 신규 — 인사(이름 없음)+날짜(마운트 게이트)/이어서 쓰기 타일 데이터/타일 클릭 → 집필 라우팅/Rail "홈"·"작품"(`/library`) 네비 단언(FR-008·016)/작품 0 환영 블록+CTA/로딩 skel/에러 재시도(쿼리 mock)
-- [ ] T022 [US1] GREEN: `frontend/src/app/page.tsx` 대시보드 신규(`'use client'`+`useAuthGuard("requireAuth")`+`.app` 셸+Titlebar "홈") — ①② + 빈 상태 + `useProjectCards`→`selectDashboard` 결선 + `frontend/src/styles/desktop-app.css`에 목업 클래스 이관(웜 토큰 계승)
-- [ ] T023 [US1] RSC 게이트(작성 직후): `cd frontend && pnpm build` — Suspense/use client 경계·hydration 콘솔 에러 0
+- [x] T014 [P] [US1] RED: `frontend/src/lib/dashboardView.test.ts` 신규 — `selectDashboard`(빈 배열→null/1편/`docUpdatedAt` 내림차순/동률 시 id 내림차순) · `formatRelativeTime`(방금/N분/N시간/N일, now 주입)
+- [x] T015 [US1] GREEN: `frontend/src/lib/dashboardView.ts` 신규(순수, DOM/시계 비의존)
+- [x] T016 [P] [US1] RED: `frontend/src/components/dashboard/ResumeCard.test.tsx` — 제목/인용 마지막 문장/빈 본문 placeholder/다음 장면 빈 줄 숨김/총시간 0 토막 숨김/onOpen 호출
+- [x] T017 [US1] GREEN: `frontend/src/components/dashboard/ResumeCard.tsx`(`'use client'`, props만 — contracts §5)
+- [x] T018 [US1] 벽 이동: `git mv frontend/src/app/page.tsx frontend/src/app/library/page.tsx`(내용 불변) + `frontend/src/app/library/page.test.tsx` 신규 렌더 스모크(쿼리 mock — 벽 행위 보존)
+- [x] T019 [P] [US1] Rail 재편: `frontend/src/components/workspace/Rail.tsx` — "홈" 항목 신설(`/`, `p === "/"`) + "작품" `href:"/library"`·`match: p.startsWith("/library")`. 집필 fallback `push("/")` 유지
+- [x] T020 [P] [US1] 집필 page 1줄: `frontend/src/app/projects/[id]/write/page.tsx:220` 부근 에러 버튼 `push("/") → push("/library")`(라벨 "작품 벽으로" 정합)
+- [x] T021 [US1] RED: `frontend/src/app/page.test.tsx` 신규 — 인사(이름 없음)+날짜(마운트 게이트)/이어서 쓰기 타일 데이터/타일 클릭 → 집필 라우팅/Rail "홈"·"작품"(`/library`) 네비 단언(FR-008·016)/작품 0 환영 블록+CTA/로딩 skel/에러 재시도(쿼리 mock)
+- [x] T022 [US1] GREEN: `frontend/src/app/page.tsx` 대시보드 신규(`'use client'`+`useAuthGuard("requireAuth")`+`.app` 셸+Titlebar "홈") — ①② + 빈 상태 + `useProjectCards`→`selectDashboard` 결선 + `frontend/src/styles/desktop-app.css`에 목업 클래스 이관(웜 토큰 계승)
+- [x] T023 [US1] RSC 게이트(작성 직후): `cd frontend && pnpm build` — Suspense/use client 경계·hydration 콘솔 에러 0
 
 **Checkpoint**: MVP — `/` 대시보드에서 1클릭 재진입 + `/library` 벽 + vitest·build GREEN
 

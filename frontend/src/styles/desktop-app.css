@@ -1084,3 +1084,62 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .disclosure__chevron { margin-left: auto; color: var(--faint); transition: transform var(--dur-base) var(--ease-out); }
 .disclosure__toggle[aria-expanded="true"] .disclosure__chevron { transform: rotate(180deg); }
 .disclosure__body { display: flex; flex-direction: column; gap: 16px; padding-top: 16px; animation: fade var(--dur-base) var(--ease-out); }
+
+/* ═══ 대시보드(작가 홈, 018) — 재진입 허브. 목업 dashboard-reentry-hub.html 이관, 웜 토큰 계승 ═══ */
+.dash-wrap { width: 100%; max-width: 920px; margin: 0 auto; padding: 48px 40px 80px; animation: fade var(--dur-base) var(--ease-out); }
+.dash-hello { font-family: var(--font-serif, Georgia), "Noto Serif KR", serif; font-size: 28px; letter-spacing: -0.02em; margin: 0 0 4px; color: var(--ink); }
+.dash-date { color: var(--muted); font-size: 14px; margin: 0 0 34px; min-height: 1.4em; }
+.dash-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--accent); text-transform: uppercase; margin: 0 0 12px; }
+
+/* ② 이어서 쓰기 — 가장 큰 타일(재진입 = 핵심) */
+.resume {
+  background: var(--paper); border: 1px solid var(--hairline); border-radius: var(--radius);
+  box-shadow: var(--shadow-paper); padding: 28px 30px;
+  display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;
+}
+.resume__title { font-family: var(--font-serif, Georgia), "Noto Serif KR", serif; font-size: 22px; margin: 0; color: var(--ink); }
+.resume__last { font-family: var(--font-serif, Georgia), "Noto Serif KR", serif; font-size: 17px; line-height: 1.7; color: var(--ink); margin: 0; }
+.resume__last--empty { color: var(--muted); font-style: italic; }
+.resume__next { font-size: 13.5px; color: var(--muted); margin: 0; }
+.resume__next b { color: var(--ink); font-weight: 600; }
+.resume__foot { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--hairline); padding-top: 16px; }
+.resume__meta { font-size: 12px; color: var(--muted); }
+
+/* ③ 이번 주 집필 시간 — 조용한 텍스트 한 줄(점선 박스 아님) */
+.dash-week { font-size: 13px; color: var(--muted); margin: 0 0 34px; padding: 0 2px; }
+.dash-week b { color: var(--ink); font-weight: 600; }
+
+/* ④ 다른 작품 빠른 진입 */
+.works { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 34px; }
+.work-card {
+  background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-sm);
+  padding: 14px 16px; cursor: pointer; text-align: left; font: inherit; color: inherit;
+  transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+}
+.work-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-paper); }
+.work-card:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.work-card__t { font-size: 14px; font-weight: 600; margin: 0 0 4px; color: var(--ink); }
+.work-card__s {
+  font-size: 12.5px; color: var(--muted); margin: 0; line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.work-card--new { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; background: transparent; border-style: dashed; }
+
+/* ⑤ 최근 곁쪽지 */
+.dash-memos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 34px; }
+.dash-memo {
+  background: var(--scrap); border: 1px solid var(--scrap-edge); border-radius: var(--radius-sm);
+  padding: 14px 16px; color: var(--scrap-ink); cursor: pointer; text-align: left; font: inherit;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.dash-memo:hover { transform: translateY(-2px); }
+.dash-memo:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.dash-memo__body { font-family: var(--font-serif, Georgia), "Noto Serif KR", serif; font-size: 14.5px; line-height: 1.6; margin: 0 0 8px; }
+.dash-memo__date { font-size: 11px; opacity: 0.65; }
+.dash-empty { font-size: 13px; color: var(--muted); margin: 0 0 34px; }
+
+@media (max-width: 720px) {
+  .dash-wrap { padding: 32px 20px 64px; }
+  .works { grid-template-columns: 1fr; }
+  .dash-memos { grid-template-columns: 1fr; }
+}

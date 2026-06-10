@@ -16,10 +16,22 @@ function activeProjectIdFrom(pathname: string): number | null {
 
 const ITEMS: Item[] = [
     {
-        key: "projects",
-        label: "작품",
+        key: "home",
+        label: "홈",
         href: "/",
         match: (p) => p === "/",
+        icon: (
+            <>
+                <path d="M3 11.5 12 4l9 7.5" />
+                <path d="M5.5 10.5V20h13v-9.5" />
+            </>
+        ),
+    },
+    {
+        key: "projects",
+        label: "작품",
+        href: "/library",
+        match: (p) => p.startsWith("/library"),
         icon: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />,
     },
     {
@@ -67,7 +79,7 @@ export function Rail() {
     const router = useRouter();
     const [captureOpen, setCaptureOpen] = useState(false);
 
-    // "집필"은 전역 활성작품이 없어 마지막으로 연 작품의 집필실로 보낸다(없으면 작품 벽).
+    // "집필"은 전역 활성작품이 없어 마지막으로 연 작품의 집필실로 보낸다(없으면 홈 — 재진입 허브가 그 역할).
     const handleNav = (item: Item) => {
         if (item.key === "write") {
             const last = getLastProject();

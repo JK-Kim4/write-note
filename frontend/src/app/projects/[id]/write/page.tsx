@@ -217,7 +217,7 @@ export default function ProjectWritePage() {
                         ) : isError || !doc ? (
                             <div style={{ padding: "2rem" }}>
                                 <p style={{ opacity: 0.6 }}>문서를 불러올 수 없습니다.</p>
-                                <button type="button" className="btn btn--ghost" onClick={() => router.push("/")}>
+                                <button type="button" className="btn btn--ghost" onClick={() => router.push("/library")}>
                                     작품 벽으로
                                 </button>
                             </div>
