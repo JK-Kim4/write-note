@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>목업 B — 2단 배치(좌 이어 쓰기 / 우 집필 리듬 사이드) (018 후속안)</title>
+<link rel="stylesheet" href="../../../../frontend/src/styles/desktop-app.css" />
+<style>
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif; }
+  .dash-wrap-b { width: 100%; max-width: 1080px; margin: 0 auto; padding: 48px 40px 80px; }
+
+  /* 섹션 헤더 — 라벨 + 우측 보조 링크 */
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 12px; }
+  .sec-link { font-size: 12px; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0; }
+
+  /* 2단: 좌(이어 쓰기+작품) 1.6fr / 우(집필 리듬) 1fr */
+  .dash-cols { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 24px; align-items: start; margin-bottom: 40px; }
+
+  /* 우측 사이드 카드 — 세로 스택 */
+  .rhythm-side {
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius);
+    padding: 22px 24px;
+  }
+  .rhythm-side h3 { font-size: 12px; font-weight: 700; color: var(--muted); margin: 0 0 2px; }
+  .rhythm-side .total { font-size: 20px; font-weight: 700; color: var(--ink); margin: 0 0 16px; font-family: var(--font-serif, Georgia), "Noto Serif KR", serif; }
+  .week-bars { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 7px; align-items: end; height: 84px; }
+  .week-bars .bar { background: var(--scrap-edge); border-radius: 4px 4px 2px 2px; min-height: 3px; }
+  .week-bars .bar--today { background: var(--accent); }
+  .week-bars .bar--zero { background: var(--hairline); height: 3px; }
+  .week-days { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 7px; margin-top: 6px; }
+  .week-days span { font-size: 11px; color: var(--muted); text-align: center; }
+  .week-days .today { color: var(--accent); font-weight: 700; }
+  .rhythm-side hr { border: none; border-top: 1px solid var(--hairline); margin: 18px 0 16px; }
+  .proj-rows { display: flex; flex-direction: column; gap: 10px; }
+  .proj-row__name { font-size: 12px; color: var(--ink); margin: 0 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .proj-row__bar { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .proj-row__track { position: relative; height: 9px; border-radius: 5px; background: var(--hairline); flex: 1; min-width: 0; }
+  .proj-row__fill { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--accent-soft); }
+  .proj-rows > div:first-of-type .proj-row__fill { background: var(--accent); }
+  .proj-row__time { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  /* 좌측 — resume 풀폭 + 작품 미니 2열 */
+  .works-b { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin-top: 16px; }
+
+  /* 하단 — 곁쪽지 4열(쪽지 2 + 새 메모) */
+  .dash-memos-b { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+  .dash-memo--new { background: transparent; border-style: dashed; color: var(--muted);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 12.5px; }
+  .dash-memo--new .plus { font-size: 22px; line-height: 1; color: var(--muted); }
+
+  @media (max-width: 860px) {
+    .dash-cols { grid-template-columns: 1fr; }
+    .dash-memos-b { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  }
+</style>
+</head>
+<body>
+<div class="dash-wrap-b">
+  <h1 class="dash-hello">안녕하세요.</h1>
+  <p class="dash-date">2026년 6월 10일 수요일 — 오늘도 곁에 있을게요.</p>
+
+  <div class="dash-cols">
+    <!-- 좌: 이어 쓰기 + 작품 -->
+    <div>
+      <div class="sec-head">
+        <p class="dash-label" style="margin:0">이어서 쓰기</p>
+        <button class="sec-link" type="button">모든 작품 보기 →</button>
+      </div>
+      <div class="resume">
+        <h2 class="resume__title">여름의 끝, 우리가 머물던 곳</h2>
+        <p class="resume__last">“윤슬이 부서지는 바다를 바라보며 그녀는 생각했다. 계절이 바뀌는 것은 단순히 온도의 변화가 아니라, 누군가의 기억이 옅어지는 과정일지도 모른다고.”</p>
+        <p class="resume__next">다음 장면 · <b>은하가 등대지기를 처음 만나는 장면</b></p>
+        <div class="resume__foot">
+          <span class="resume__meta">2시간 전 저장 · 42,500자</span>
+          <button class="btn btn--primary" type="button">이어서 쓰기 →</button>
+        </div>
+      </div>
+      <div class="works-b">
+        <button class="work-card" type="button"><p class="work-card__t">파란색의 온도</p><p class="work-card__s">“그는 한 번도 파란색을 차갑다고 느낀 적이 없었다.”</p></button>
+        <button class="work-card" type="button"><p class="work-card__t">침묵의 건축가</p><p class="work-card__s">“설계도에는 방이 일곱 개였지만, 그는 여덟 번째 방을 알고 있었다.”</p></button>
+      </div>
+    </div>
+
+    <!-- 우: 집필 리듬 사이드 카드 (세로 스택) -->
+    <div>
+      <div class="sec-head">
+        <p class="dash-label" style="margin:0">집필 리듬</p>
+      </div>
+      <div class="rhythm-side">
+        <h3>이번 주</h3>
+        <p class="total">14시간 55분</p>
+        <div class="week-bars">
+          <div class="bar" style="height:46%"></div>
+          <div class="bar" style="height:30%"></div>
+          <div class="bar bar--today" style="height:100%"></div>
+          <div class="bar bar--zero"></div>
+          <div class="bar" style="height:58%"></div>
+          <div class="bar" style="height:74%"></div>
+          <div class="bar bar--zero"></div>
+        </div>
+        <div class="week-days">
+          <span>월</span><span>화</span><span class="today">수</span><span>목</span><span>금</span><span>토</span><span>일</span>
+        </div>
+        <hr />
+        <h3 style="margin-bottom:12px">작품별 쌓인 시간 · 총 31시간 40분</h3>
+        <div class="proj-rows">
+          <div>
+            <p class="proj-row__name">여름의 끝, 우리가 머물던 곳</p>
+            <div class="proj-row__bar"><div class="proj-row__track"><div class="proj-row__fill" style="width:78%"></div></div><span class="proj-row__time">24시간 50분</span></div>
+          </div>
+          <div>
+            <p class="proj-row__name">파란색의 온도</p>
+            <div class="proj-row__bar"><div class="proj-row__track"><div class="proj-row__fill" style="width:18%"></div></div><span class="proj-row__time">5시간 35분</span></div>
+          </div>
+          <div>
+            <p class="proj-row__name">침묵의 건축가</p>
+            <div class="proj-row__bar"><div class="proj-row__track"><div class="proj-row__fill" style="width:4%"></div></div><span class="proj-row__time">1시간 15분</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 하단 전폭: 최근 곁쪽지 -->
+  <div class="sec-head">
+    <p class="dash-label" style="margin:0">최근 곁쪽지</p>
+    <button class="sec-link" type="button">모든 곁쪽지 보기 →</button>
+  </div>
+  <div class="dash-memos-b">
+    <button class="dash-memo" type="button"><p class="dash-memo__body">겨울 바다의 냄새는 소금기보다는 시린 금속향에 가깝다…</p><span class="dash-memo__date">오늘</span></button>
+    <button class="dash-memo" type="button"><p class="dash-memo__body">인물 설정: 은하는 왜 자꾸만 뒤를 돌아보는가? 후회인가 미련인가.</p><span class="dash-memo__date">어제</span></button>
+    <button class="dash-memo" type="button"><p class="dash-memo__body">제목 후보: 1. 투명한 문장들 2. 당신의 계절이 지나갈 때…</p><span class="dash-memo__date">2일 전</span></button>
+    <button class="dash-memo dash-memo--new" type="button"><span class="plus">+</span>새 곁쪽지</button>
+  </div>
+</div>
+</body>
+</html>
