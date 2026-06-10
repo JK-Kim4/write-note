@@ -86,6 +86,8 @@ class ResponseContractIT {
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.data").doesNotExist())
             .andExpect(jsonPath("$.error.code").value("CONFLICT"))
+            // ISSUE-029: DB 원문(SQL·제약명)을 노출하지 않고 고정 generic 메시지로 마스킹한다.
+            .andExpect(jsonPath("$.error.message").value("Resource conflict"))
     }
 }
 
@@ -106,7 +108,10 @@ class ResponseContractFixtureController {
     fun notFound(): Result<Unit> = throw ResourceNotFoundException("Fixture missing")
 
     @GetMapping("/conflict")
-    fun conflict(): Result<Unit> = throw DataIntegrityViolationException("duplicate")
+    fun conflict(): Result<Unit> =
+        throw DataIntegrityViolationException(
+            "could not execute statement [ERROR: duplicate key value violates unique constraint \"uq_work_session_open\"]",
+        )
 }
 
 data class FixtureRequest(

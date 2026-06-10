@@ -118,11 +118,15 @@ export function useDocumentSession(
         baselineBodyRef.current = serverBody;
         latestBodyRef.current = serverBody;
         lastSyncAtRef.current = Date.now();
+        // 진입 1회 — 세션 표시용 version state 를 로드된 서버 토큰으로 동기(initRef 가드로 1회만, 캐스케이드 없음).
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setVersion(serverVersion);
     }, [documentId, serverVersion, serverBody]);
 
     // 실제 저장 실행 — version 은 항상 세션 소유 토큰(versionRef)으로 보낸다.
+    // latest-ref 패턴: 매 렌더의 최신 클로저를 ref 에 보관해 타이머/큐잉 콜백이 stale 값을 안 잡게 한다(onSavedRef 와 동일 패턴).
     const runSync = useRef<() => void>(() => {});
+    // eslint-disable-next-line react-hooks/refs
     runSync.current = () => {
         if (conflictRef.current) return;
         // dirty 아님(현재 본문 = 마지막 동기화 본문)이면 저장 불필요.
@@ -199,7 +203,6 @@ export function useDocumentSession(
         const capRemaining = lastSyncAtRef.current + maxIntervalMs - Date.now();
         const delay = Math.max(0, Math.min(debounceMs, capRemaining));
         debounceTimerRef.current = setTimeout(() => runSync.current(), delay);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [body, documentId, projectId, debounceMs, maxIntervalMs]);
 
     useEffect(
