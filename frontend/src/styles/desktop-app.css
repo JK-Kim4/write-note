@@ -1097,8 +1097,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   box-shadow: var(--shadow-paper); padding: 28px 30px;
   display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;
 }
-.resume__title { font-family: var(--font-serif, Georgia), "Noto Serif KR", serif; font-size: 22px; margin: 0; color: var(--ink); }
-.resume__last { font-family: var(--font-serif, Georgia), "Noto Serif KR", serif; font-size: 17px; line-height: 1.7; color: var(--ink); margin: 0; }
+.resume__title { font-family: var(--font-serif, Georgia), "Noto Serif KR", serif; font-size: 22px; margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.resume__last { font-family: var(--font-serif, Georgia), "Noto Serif KR", serif; font-size: 17px; line-height: 1.7; color: var(--ink); margin: 0; overflow-wrap: anywhere; }
 .resume__last--empty { color: var(--muted); font-style: italic; }
 .resume__next { font-size: 13.5px; color: var(--muted); margin: 0; }
 .resume__next b { color: var(--ink); font-weight: 600; }
@@ -1110,31 +1110,34 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .dash-week b { color: var(--ink); font-weight: 600; }
 
 /* ④ 다른 작품 빠른 진입 */
-.works { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 34px; }
+.works { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 34px; }
 .work-card {
   background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-sm);
   padding: 14px 16px; cursor: pointer; text-align: left; font: inherit; color: inherit;
+  min-width: 0;
   transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
 }
 .work-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-paper); }
 .work-card:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
-.work-card__t { font-size: 14px; font-weight: 600; margin: 0 0 4px; color: var(--ink); }
+.work-card__t { font-size: 14px; font-weight: 600; margin: 0 0 4px; color: var(--ink); overflow-wrap: anywhere; }
 .work-card__s {
   font-size: 12.5px; color: var(--muted); margin: 0; line-height: 1.5;
+  overflow-wrap: anywhere; word-break: break-word;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .work-card--new { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; background: transparent; border-style: dashed; }
 
 /* ⑤ 최근 곁쪽지 */
-.dash-memos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 34px; }
+.dash-memos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 34px; }
 .dash-memo {
   background: var(--scrap); border: 1px solid var(--scrap-edge); border-radius: var(--radius-sm);
   padding: 14px 16px; color: var(--scrap-ink); cursor: pointer; text-align: left; font: inherit;
+  min-width: 0;
   transition: transform var(--dur-base) var(--ease-out);
 }
 .dash-memo:hover { transform: translateY(-2px); }
 .dash-memo:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
-.dash-memo__body { font-family: var(--font-serif, Georgia), "Noto Serif KR", serif; font-size: 14.5px; line-height: 1.6; margin: 0 0 8px; }
+.dash-memo__body { font-family: var(--font-serif, Georgia), "Noto Serif KR", serif; font-size: 14.5px; line-height: 1.6; margin: 0 0 8px; overflow-wrap: anywhere; }
 .dash-memo__date { font-size: 11px; opacity: 0.65; }
 .dash-empty { font-size: 13px; color: var(--muted); margin: 0 0 34px; }
 
