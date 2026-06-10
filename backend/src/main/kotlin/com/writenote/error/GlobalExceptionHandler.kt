@@ -57,12 +57,14 @@ class GlobalExceptionHandler {
             message = exception.message ?: "Validation failed",
         )
 
+    // ISSUE-029: DataIntegrityViolationException.message 는 DB 원문(SQL·제약명·컬럼)을 담으므로 클라이언트에 노출하지 않는다.
+    // 항상 고정 generic 메시지로 마스킹한다(클라이언트는 error.code 로 분기).
     @ExceptionHandler(DataIntegrityViolationException::class)
     fun handleConflict(exception: DataIntegrityViolationException): ResponseEntity<Result<Nothing>> =
         errorResponse(
             status = HttpStatus.CONFLICT,
             code = ErrorCode.CONFLICT,
-            message = exception.message ?: "Resource conflict",
+            message = "Resource conflict",
         )
 
     @ExceptionHandler(DocumentConflictException::class)

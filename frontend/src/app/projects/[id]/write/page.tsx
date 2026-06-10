@@ -104,6 +104,8 @@ export default function ProjectWritePage() {
 
     // 복원 본문을 현재 편집 본문으로 채택 → 세션이 서버에도 재동기화(로컬은 이미 보존됨).
     useEffect(() => {
+        // 미동기화 draft 를 편집 state 로 1회 채택(localStorage-first 복원). 외부(세션)→state 동기화라 effect 가 맞다.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (session.restoredBody != null) setBody((b) => b ?? session.restoredBody);
     }, [session.restoredBody]);
 

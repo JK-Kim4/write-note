@@ -40,6 +40,6 @@ describe("webElectronApi.documents", () => {
             ),
         );
 
-        await expect(documents.update(70, { bodyJson: '{"type":"doc"}', version: 3 })).rejects.toBeInstanceOf(ConflictError);
+        await expect(documents.update(70, { bodyJson: '{"type":"doc"}', version: "3" })).rejects.toBeInstanceOf(ConflictError);
     });
 });
