@@ -242,6 +242,103 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .studio { display: flex; min-width: 0; min-height: 0; overflow: hidden; }
 .studio .editor-scroll { flex: 1; min-width: 0; }
 
+/* ══ 집필실 3단 (017) — [아웃라인 | 원고 | 우측 스택]. screen-body 공통 골격 위 studio 전용 modifier. ══ */
+/* 열 개수는 접힘 상태에 따라 page 가 no-left/no-right 클래스로 제어(렌더되는 자식 수와 정합). */
+.screen-body--studio { grid-template-columns: 240px minmax(0, 1fr) 320px; }
+.screen-body--studio.no-left { grid-template-columns: minmax(0, 1fr) 320px; }
+.screen-body--studio.no-right { grid-template-columns: 240px minmax(0, 1fr); }
+.screen-body--studio.no-left.no-right { grid-template-columns: minmax(0, 1fr); }
+
+/* 아웃라인 패널(좌) — surface-sunken 톤으로 물러나게(원고는 종이 순도 유지). */
+.studio-outline {
+  background: var(--surface); border-right: 1px solid var(--hairline);
+  padding: 18px 14px; overflow-y: auto; min-height: 0;
+  display: flex; flex-direction: column; gap: 6px;
+  scrollbar-width: thin; scrollbar-color: var(--hairline-strong) transparent;
+}
+.outline__list { display: flex; flex-direction: column; gap: 1px; }
+.outline__item {
+  text-align: left; width: 100%; border: none; background: transparent;
+  font: inherit; color: var(--ink-soft); cursor: pointer;
+  padding: 6px 8px; border-radius: var(--radius-sm); line-height: 1.45;
+  border-left: 2px solid transparent;
+  transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.outline__item--h1 { font-size: 13.5px; font-weight: 600; }
+.outline__item--h2 { font-size: 13px; padding-left: 20px; color: var(--muted); }
+.outline__item:hover { background: var(--accent-soft); color: var(--ink); }
+.outline__item:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent-soft); }
+/* 현재 섹션 — 색만이 아니라 굵기+배경+좌측 막대 병행(AA: 색 단독 의존 금지). */
+.outline__item.is-current {
+  background: var(--accent-soft); color: var(--ink); font-weight: 700;
+  border-left-color: var(--accent);
+}
+.outline__item--empty { font-style: italic; opacity: .6; }
+
+/* 우측 스택(우) — 인물 노트 + 곁쪽지 세로 스택. */
+.studio-right {
+  background: var(--surface); border-left: 1px solid var(--hairline);
+  overflow-y: auto; min-height: 0;
+  display: flex; flex-direction: column;
+  scrollbar-width: thin; scrollbar-color: var(--hairline-strong) transparent;
+}
+.stack-section { display: flex; flex-direction: column; border-bottom: 1px solid var(--hairline); }
+.stack-section:last-child { border-bottom: none; }
+.stack-section__toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; border: none; background: transparent; cursor: pointer;
+  font-size: 12px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink-soft);
+  padding: 12px 16px 8px;
+}
+.stack-section__toggle:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent-soft); }
+.stack-section__chevron { color: var(--muted); font-size: 10px; }
+
+/* 인물 노트 패널. */
+.character-panel { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+.character-panel .panel__head--row { display: flex; justify-content: flex-end; }
+.character-panel__manage { font-size: 11.5px; color: var(--accent); text-decoration: none; }
+.character-panel__manage:hover { text-decoration: underline; }
+.character-panel__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.character-card { border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--paper); }
+.character-card__head {
+  display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left;
+  border: none; background: transparent; cursor: pointer; padding: 9px 11px; font: inherit;
+}
+.character-card__head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent-soft); border-radius: var(--radius); }
+.character-card__name { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.character-card__desc { font-size: 12px; color: var(--muted); }
+.character-card__notes { font-size: 12.5px; line-height: 1.55; color: var(--ink-soft); margin: 0; padding: 0 11px 10px; }
+.character-panel__add { display: flex; gap: 6px; }
+.character-panel__input {
+  flex: 1; min-width: 0; padding: 7px 10px; font-size: 13px; color: var(--ink);
+  background: var(--paper); border: 1px solid var(--hairline); border-radius: var(--radius-sm);
+}
+.character-panel__input:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.character-panel__error { font-size: 12px; color: var(--danger); margin: 0; }
+
+/* 반응형 — 좁아지면 아웃라인 먼저 물러남 → 우측 물러남(원고 우선). 모바일은 오버레이/시트. */
+@media (max-width: 1080px) {
+  .screen-body--studio,
+  .screen-body--studio.no-right { grid-template-columns: minmax(0, 1fr) 320px; }
+  .screen-body--studio.no-left,
+  .screen-body--studio.no-left.no-right { grid-template-columns: minmax(0, 1fr); }
+  /* 아웃라인은 열에서 빠지고 오버레이로(열려 있으면). */
+  .studio-outline {
+    position: fixed; left: 0; top: var(--titlebar-h, 56px); bottom: 0; width: 264px; z-index: 40;
+    box-shadow: var(--shadow-panel);
+  }
+}
+@media (max-width: 820px) {
+  .screen-body--studio,
+  .screen-body--studio.no-left,
+  .screen-body--studio.no-right { grid-template-columns: minmax(0, 1fr); }
+  .studio-right {
+    position: fixed; right: 0; top: var(--titlebar-h, 56px); bottom: 0; width: min(360px, 88vw); z-index: 40;
+    box-shadow: var(--shadow-panel);
+  }
+}
+
 /* 재진입 한 장 — 종이 옆 한 장. 곁쪽지 서랍과 달리 진입 직후 잠깐 펼쳐졌다 닫힌다. */
 .reentry {
   flex: none; width: 264px; align-self: flex-start;
