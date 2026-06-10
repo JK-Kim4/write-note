@@ -63,7 +63,7 @@
 - [ ] T018 [US1] 벽 이동: `git mv frontend/src/app/page.tsx frontend/src/app/library/page.tsx`(내용 불변) + `frontend/src/app/library/page.test.tsx` 신규 렌더 스모크(쿼리 mock — 벽 행위 보존)
 - [ ] T019 [P] [US1] Rail 재편: `frontend/src/components/workspace/Rail.tsx` — "홈" 항목 신설(`/`, `p === "/"`) + "작품" `href:"/library"`·`match: p.startsWith("/library")`. 집필 fallback `push("/")` 유지
 - [ ] T020 [P] [US1] 집필 page 1줄: `frontend/src/app/projects/[id]/write/page.tsx:220` 부근 에러 버튼 `push("/") → push("/library")`(라벨 "작품 벽으로" 정합)
-- [ ] T021 [US1] RED: `frontend/src/app/page.test.tsx` 신규 — 인사(이름 없음)+날짜(마운트 게이트)/이어서 쓰기 타일 데이터/타일 클릭 → 집필 라우팅/작품 0 환영 블록+CTA/로딩 skel/에러 재시도(쿼리 mock)
+- [ ] T021 [US1] RED: `frontend/src/app/page.test.tsx` 신규 — 인사(이름 없음)+날짜(마운트 게이트)/이어서 쓰기 타일 데이터/타일 클릭 → 집필 라우팅/Rail "홈"·"작품"(`/library`) 네비 단언(FR-008·016)/작품 0 환영 블록+CTA/로딩 skel/에러 재시도(쿼리 mock)
 - [ ] T022 [US1] GREEN: `frontend/src/app/page.tsx` 대시보드 신규(`'use client'`+`useAuthGuard("requireAuth")`+`.app` 셸+Titlebar "홈") — ①② + 빈 상태 + `useProjectCards`→`selectDashboard` 결선 + `frontend/src/styles/desktop-app.css`에 목업 클래스 이관(웜 토큰 계승)
 - [ ] T023 [US1] RSC 게이트(작성 직후): `cd frontend && pnpm build` — Suspense/use client 경계·hydration 콘솔 에러 0
 
