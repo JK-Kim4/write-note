@@ -3,7 +3,8 @@
 > **작성일**: 2026-06-10 · **브랜치**: `feat/studio-three-panel`
 > **전제**: 내용 방향 **A. 재진입 허브** 사용자 확정(2026-06-10, 재논의 없음). IA = `/`가 새 홈(대시보드), 기존 작품 벽 → `/library`.
 > **목업**: `docs/design/web/mockups/dashboard-reentry-hub.html` (ghost 타일 "이번 주 집필 시간"은 미채택 — 구현 제외)
-> **원칙**: PRODUCT.md — "카드 그득한 SaaS 대시보드" 금지 / 효율·게이미피케이션 배제 / AI·자동 생성 배제 / "조용한 작업실 입구"
+> **원칙**: PRODUCT.md — "카드 그득한 SaaS 대시보드" 금지 / 게이미피케이션 배제 / AI·자동 생성 배제 / "조용한 작업실 입구"
+> **갱신 (2026-06-10 v2)**: PRODUCT.md 원칙 4 완화(사용자 결정) — 작업 시간 같은 **작업 리듬 인디케이터를 연속 작업 유도 신호로 허용**. 이에 따라 ② 타일에 총 작업시간 표시 추가(§1·§2). "이번 주" 단위는 백엔드 부재로 후속(§8).
 
 ---
 
@@ -14,12 +15,13 @@
 | # | 블록 | 내용 | 동작 |
 |---|---|---|---|
 | ① | 인사 + 날짜 | 인사 한 줄 + "YYYY년 M월 D일 X요일" | 없음(정적) |
-| ② | 이어서 쓰기 | **최근작 1편** 최대 타일: 제목 + 마지막 문장(세리프 인용) + 다음 장면 한 줄 + "N시간 전 저장 · N자" + [이어서 쓰기 →] | 타일/버튼 → `/projects/{id}/write` |
+| ② | 이어서 쓰기 | **최근작 1편** 최대 타일: 제목 + 마지막 문장(세리프 인용) + 다음 장면 한 줄 + "N시간 전 저장 · N자 · 총 N시간 M분" + [이어서 쓰기 →] | 타일/버튼 → `/projects/{id}/write` |
 | ③ | 작품 | 최근작 **제외** 나머지 작품 미니 카드(제목 + 마지막 문장 2줄 클램프) + "+ 새 작품" 카드 | 카드 → 집필실, 새 작품 → `/library?new=1` |
 | ④ | 최근 곁쪽지 | 최신 곁쪽지 **2장**(쪽지 톤 `--scrap` 카드: 본문 + 상대 날짜) | 카드 → `/memos` |
 
 - 인사말에 **이름을 쓰지 않는다** — 검증 결과 사용자 이름 데이터가 없다(`AuthMeResponse` = userId/email/kakaoLinked뿐, nickname 부재. 목업의 "나래님"은 더미). 이메일 앞부분 표시는 정서에 어긋나 배제. 카피 예: "안녕하세요." / 날짜 밑 한 줄("오늘도 곁에 있을게요")은 목업 유지.
-- streak · 목표 게이지 · 주간 그래프 · 자동 인용구 · ghost 타일 — **전부 제외**(확정).
+- **총 작업시간(작업 리듬 인디케이터)은 포함** — 원칙 4 완화(v2)에 따라 ② 메타 줄에 조용한 한 토막으로. 성과 압박 장치(게이지·그래프·streak 보상)가 아닌 누적 시간 표시만.
+- streak · 목표 게이지 · 주간 그래프 · 자동 인용구 · ghost 타일("이번 주 집필 시간") — **여전히 제외**. 게이미피케이션 배제는 유지되고, "이번 주" 단위 시간은 백엔드 부재로 후속(§8).
 
 ## 2. 데이터 매핑 — 타일별 출처 (표시값 출처 명시, agent-discipline §9)
 
@@ -31,6 +33,7 @@
 | 마지막 문장 | 파생 표시 | `lastSentence(card.lastSentenceSource)` — 단 **현재 listCards 가 placeholder(빈 문자열)라 §3 선행 필요** |
 | "N시간 전 저장" | 파생 표시 | `docUpdatedAt`(문서 저장 시각, 신규) → 상대 시간. `project.updatedAt`은 메타 변경 시각이라 "저장" 표기에 부적합 — 미사용 |
 | "N자" | 파생 표시 | `wordCount`(문서 글자수, 신규 — §3) |
+| "총 N시간 M분" | 파생 표시 | `totalDurationMs`(작품별 누적 작업시간, 신규 — §3. 기존 `GET /api/projects/{id}/work-sessions/total`, 기록 화면과 동일 출처) + 기존 `formatDuration`(`lib/progress.ts`) 재사용 |
 | 최근 곁쪽지 | 저장 입력 + 파생 라벨 | `useInboxMemos()` → `capturedAt` 내림차순 상위 2 + `memoView.ts`의 `formatRelativeDay` 재사용 |
 
 **백엔드 변경 0** — 전부 기존 endpoint + 클라 조립(014 R6 정합).
@@ -42,14 +45,16 @@
 **해소(본 설계에 포함)**: `listCards()`를 `logs.list()`와 동일 패턴으로 채운다 —
 
 ```
-listCards = listProjects(size:100) 후 작품별 getProjectDocument(id) 병렬 fetch
+listCards = listProjects(size:100) 후 작품별 [getProjectDocument(id), work-sessions/total] 병렬 fetch
   → lastSentenceSource = extractPlainText(doc.body)
-  → ProjectCard 에 wordCount: number, docUpdatedAt: string 필드 추가
+  → ProjectCard 에 wordCount: number, docUpdatedAt: string, totalDurationMs: number 필드 추가
 ```
+
+(작품별 2 조회 — `logs.list()`의 작품별 3 조회와 동일 구조. v2: 총 작업시간 인디케이터 추가로 total 조회 포함)
 
 - 효과: 대시보드(②③)와 **작품 벽이 한 번에** 015 설계대로 동작. N+1은 `logs.list()` 전례(베타, 작품 소수 전제) 그대로 수용.
 - 캐시: 대시보드·벽 모두 `projectKeys.cards()` 공유 — 화면 이동 시 재호출 없음.
-- 영향 파일: `electron-api/projects.ts`(+테스트), `types/domain.ts`(ProjectCard 필드 2개 추가 — 기존 소비처는 추가 필드라 비파괴).
+- 영향 파일: `electron-api/projects.ts`(+테스트), `types/domain.ts`(ProjectCard 필드 3개 추가 — 기존 소비처는 추가 필드라 비파괴).
 
 대안 비교(기각): (B) 이어서 쓰기 타일만 문서 1건 fetch — 미니 카드·벽의 빈 문장 방치, 목업 미충족. (C) 대시보드 전용 집계 신설 — 벽과 데이터 경로 이원화 + 벽 격차 방치. → **A 채택**(015 설계 의도 완성 + 완성도 우선).
 
@@ -113,5 +118,6 @@ Titlebar 제목: 대시보드 = **"홈"**(Rail 라벨과 통일), library = "작
 
 ## 8. 범위 밖
 
-- 효율 지표 백엔드(streak/목표/주간) · 영감 보드 · Library 정식 재구성 · 작품별 대시보드(옛 2026-05-31 spec) — 각각 별도 spec.
+- **"이번 주 집필 시간" 등 기간 단위 작업 리듬 지표** — 원칙 4 완화로 제품상 허용되나, 백엔드에 세션 목록·기간 집계가 없어(`work-sessions`는 start/end/end-with-log/total 뿐 — grep 확인) 백엔드 확장 필요. 별도 spec. ※ 목업 ghost 타일의 "(기존 작업세션 데이터)" 표기는 주간 기준으로는 부정확 — 누적 total만 존재.
+- 게이미피케이션 지표 백엔드(streak/목표 게이지/주간 그래프) · 영감 보드 · Library 정식 재구성 · 작품별 대시보드(옛 2026-05-31 spec) — 각각 별도 spec(게이미피케이션은 원칙 4 완화 후에도 배제 유지).
 - 메모 delete/restore 등 015 보류 트랙 — 불변.
