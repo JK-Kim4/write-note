@@ -8,6 +8,16 @@
 import { apiFetch } from "@/lib/api/client";
 
 export const sessions = {
+    /**
+     * 기간 작업시간 합계(018) — 전체 작품 횡단, from ≤ startedAt < to 인 종료 세션 합.
+     * "이번 주" 경계 계산(로컬 월요일 0시 → ISO)은 호출 측(useWeeklyTotal) 책임.
+     */
+    rangeTotal: (fromIso: string, toIso: string): Promise<{ totalDurationMs: number }> =>
+        apiFetch<{ totalDurationMs: number }>(
+            `/api/work-sessions/total?from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(toIso)}`,
+            { method: "GET" },
+        ),
+
     /** 집필 진입 시 작업 세션 시작(014 가 작품당 열린 세션 1개 보장). */
     start: async (projectId: number): Promise<void> => {
         await apiFetch(`/api/projects/${projectId}/work-sessions/start`, { method: "POST" });

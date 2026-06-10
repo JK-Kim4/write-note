@@ -39,7 +39,7 @@ export function BrandBlock({ modeLabel }: BrandBlockProps) {
                 className="font-display font-semibold"
                 style={{ fontSize: "22px", color: "var(--w-ink)" }}
             >
-                write-note
+                나래 노트
             </span>
             {modeLabel ? (
                 <span

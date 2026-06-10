@@ -1,0 +1,330 @@
+<!-- 서재 설정 (Settings) -->
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Narae Note - 서재 설정</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Noto+Serif:wght@400;700&amp;family=Libre+Caslon+Text:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#e9e1d4",
+                        "surface-container-high": "#ede7db",
+                        "on-tertiary-container": "#ffe3d6",
+                        "secondary-fixed-dim": "#c9c6bd",
+                        "secondary-fixed": "#e5e2d9",
+                        "on-primary-fixed-variant": "#00458e",
+                        "primary-fixed": "#d7e3ff",
+                        "error": "#ba1a1a",
+                        "on-secondary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#e0d6c4",
+                        "surface-container-low": "#f7f2e9",
+                        "primary-fixed-dim": "#aac7ff",
+                        "on-tertiary-fixed-variant": "#793000",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#f2ede2",
+                        "on-secondary-fixed": "#1c1c16",
+                        "primary": "#004e9f",
+                        "background": "#faf6ee",
+                        "surface": "#faf6ee",
+                        "secondary": "#5f5f57",
+                        "on-surface": "#2a2620",
+                        "outline": "#8b8374",
+                        "primary-container": "#0066cc",
+                        "on-surface-variant": "#574f43",
+                        "on-primary": "#ffffff",
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "rail-width": "240px",
+                        "panel-width": "320px",
+                        "manuscript-max-width": "720px",
+                        "gutter": "24px",
+                        "margin-mobile": "20px",
+                        "margin-page": "48px"
+                    },
+                    "fontFamily": {
+                        "ui-label": ["Inter"],
+                        "prose-body": ["Noto Serif"],
+                        "display-title": ["Libre Caslon Text"],
+                        "ui-small": ["Inter"],
+                        "headline-lg": ["Libre Caslon Text"],
+                        "meta-data": ["Inter"]
+                    },
+                    "fontSize": {
+                        "ui-label": ["15px", {"lineHeight": "20px", "fontWeight": "500"}],
+                        "prose-body": ["18px", {"lineHeight": "1.85", "letterSpacing": "0.01em", "fontWeight": "400"}],
+                        "display-title": ["42px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "400"}],
+                        "ui-small": ["13px", {"lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "400"}],
+                        "headline-lg": ["30px", {"lineHeight": "40px", "fontWeight": "400"}],
+                        "meta-data": ["12px", {"lineHeight": "16px", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #faf6ee;
+            color: #2a2620;
+        }
+        .settings-card {
+            border-bottom: 1px solid #e0d6c4;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e0d6c4;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+    </style>
+<style>
+  /* === 부드럽고 포근한 보정 (warm & soft pass) === */
+  * { transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+  .writing-sheet-shadow {
+    box-shadow: 0 12px 32px -14px rgba(74, 58, 40, 0.20), 0 2px 8px -4px rgba(74, 58, 40, 0.08) !important;
+    border-color: #ece2d1 !important;
+  }
+  .manuscript-cream { background-color: #fbf7ef !important; }
+  .manuscript-paper {
+    box-shadow: 0 8px 26px -16px rgba(74, 58, 40, 0.18);
+    border-color: #ece2d1 !important;
+  }
+  .manuscript-paper:hover { box-shadow: 0 16px 36px -14px rgba(0, 78, 159, 0.16); }
+  .writing-card-hover { box-shadow: 0 8px 26px -18px rgba(74, 58, 40, 0.16); transition: box-shadow .25s ease, transform .25s ease, background-color .25s ease; }
+  .writing-card-hover:hover { box-shadow: 0 16px 36px -16px rgba(0, 78, 159, 0.14); }
+  /* soft paper-card surfaces (Tailwind border + bg-surface) get a gentle lift */
+  .bg-surface { box-shadow: 0 6px 22px -18px rgba(74, 58, 40, 0.16); }
+</style>
+</head>
+<body class="font-ui-label text-on-surface">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-screen w-rail-width bg-surface-container dark:bg-surface-container-high border-r border-outline-variant dark:border-outline flex flex-col py-margin-page px-6 z-50">
+<div class="mb-12">
+<h1 class="font-display-title text-headline-lg text-primary dark:text-primary-fixed">Narae Note</h1>
+<p class="font-ui-small text-on-surface-variant mt-1">Digital Sanctuary</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-variant dark:hover:bg-on-surface-variant transition-colors duration-200 cursor-pointer" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-ui-label">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-variant dark:hover:bg-on-surface-variant transition-colors duration-200 cursor-pointer" href="#">
+<span class="material-symbols-outlined">edit_note</span>
+<span class="font-ui-label">Studio</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-variant dark:hover:bg-on-surface-variant transition-colors duration-200 cursor-pointer" href="#">
+<span class="material-symbols-outlined">auto_stories</span>
+<span class="font-ui-label">Library</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-variant dark:hover:bg-on-surface-variant transition-colors duration-200 cursor-pointer" href="#">
+<span class="material-symbols-outlined">lightbulb</span>
+<span class="font-ui-label">Inspiration</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-primary dark:text-primary-fixed font-bold bg-surface-variant dark:bg-on-surface-variant transition-colors duration-200 cursor-pointer" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-ui-label">Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 flex items-center gap-3 border-t border-outline-variant">
+<div class="w-10 h-10 rounded-full bg-secondary-fixed flex items-center justify-center overflow-hidden">
+<img alt="Writer's Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwY1ZEiI5B7rsDm2lSeurpwyaXyQOI_Bl6L6v1N7NDEOWTBlp7zUzLCJ6ZW0dCwAgsfaODUHOV6d9r-JCJjAbRxs-OAfwfmXaUce-WZP4oIFFTVKrA2YiAkGVU0nTy2wZPYttABVIpTyUn3oaqfODzIK6C2tCpV-CPXL-rW6FntlFAdV7cYQUSV57sKRtJwuSsCPjloKK7ENJ696GfL2gQLhzeZ7Jn9aF8UzZZx-GRrE0rrAKsto92x2pcEmlAbL575jgvCURJiwZe"/>
+</div>
+<div>
+<p class="text-ui-small font-bold">김나래</p>
+<p class="text-[10px] text-on-surface-variant uppercase tracking-widest">Scholar</p>
+</div>
+</div>
+</aside>
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 h-16 ml-rail-width w-[calc(100%-240px)] bg-surface dark:bg-background border-b border-outline-variant dark:border-outline flex justify-between items-center px-gutter z-40">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary cursor-pointer">menu_open</span>
+<h2 class="font-display-title text-headline-lg text-primary">서재 설정</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative hidden md:block">
+<input class="bg-surface-container border-none rounded-full py-1.5 px-4 text-ui-small w-64 focus:ring-1 focus:ring-primary outline-none" placeholder="검색..." type="text"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-opacity duration-300">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-opacity duration-300">account_circle</button>
+</div>
+</div>
+</header>
+<!-- Main Content (The Sanctuary) -->
+<main class="ml-rail-width mt-16 p-margin-page flex justify-center">
+<div class="w-full max-manuscript-max-width">
+<!-- Section: Appearance -->
+<section class="mb-12">
+<header class="mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">palette</span>
+<h3 class="font-ui-label text-on-surface-variant uppercase tracking-widest text-[11px]">시각 설정 (Appearance)</h3>
+</header>
+<div class="space-y-0">
+<div class="flex items-center justify-between py-5 settings-card">
+<div>
+<h4 class="font-ui-label text-on-surface">테마 모드</h4>
+<p class="text-ui-small text-on-surface-variant">서재의 밝기를 조절하여 집중력을 높입니다.</p>
+</div>
+<div class="flex gap-2 p-1 bg-surface-container rounded-lg">
+<button class="px-4 py-1.5 rounded bg-surface shadow-sm text-ui-small font-medium flex items-center gap-2" onclick="document.documentElement.classList.remove('dark')">
+<span class="material-symbols-outlined text-sm">light_mode</span> 라이트
+                            </button>
+<button class="px-4 py-1.5 rounded hover:bg-surface-variant transition-colors text-ui-small font-medium flex items-center gap-2" onclick="document.documentElement.classList.add('dark')">
+<span class="material-symbols-outlined text-sm">dark_mode</span> 다크
+                            </button>
+</div>
+</div>
+<div class="flex items-center justify-between py-5 settings-card">
+<div>
+<h4 class="font-ui-label text-on-surface">글꼴 크기 (본문)</h4>
+<p class="text-ui-small text-on-surface-variant">가장 편안한 가독성을 위해 크기를 조절하세요.</p>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-ui-small">작게</span>
+<input class="w-32 accent-primary" max="22" min="14" type="range" value="18"/>
+<span class="text-ui-label"> 크게</span>
+</div>
+</div>
+<div class="flex items-center justify-between py-5 settings-card">
+<div>
+<h4 class="font-ui-label text-on-surface">줄 간격</h4>
+<p class="text-ui-small text-on-surface-variant">텍스트 사이의 여백을 조절합니다.</p>
+</div>
+<select class="bg-transparent border border-outline-variant rounded px-3 py-1.5 text-ui-small focus:ring-1 focus:ring-primary outline-none">
+<option>1.5 (보통)</option>
+<option selected="">1.85 (권장)</option>
+<option>2.0 (여유)</option>
+</select>
+</div>
+</div>
+</section>
+<!-- Section: Sync & Cloud -->
+<section class="mb-12">
+<header class="mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">sync</span>
+<h3 class="font-ui-label text-on-surface-variant uppercase tracking-widest text-[11px]">동기화 (Sync &amp; Mobile)</h3>
+</header>
+<div class="bg-surface-container-low rounded-xl p-6 border border-outline-variant flex gap-6 items-start">
+<img alt="Mobile Sync Preview" class="w-24 h-24 rounded-lg object-cover shadow-sm" data-alt="A high-end smartphone lying on a textured parchment paper background, displaying a minimalist writing application with elegant typography. The scene is softly lit from the side, emphasizing the tactile quality of the paper and the sleek design of the mobile interface. The color palette consists of cream, deep blues, and warm grays, creating a serene and professional atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZ0fidjnFW5XQI0XK5hlQEhfv-zPdko0MXdYaThF94N7sGZyNfYTIACvah_E51qPOMfw7-yAOscQC9fP7aDathjLVgm8N-ltiAaj_uXYFhPkPtRJ7JOx4v5lX6MBOmAPX7yqp53hF6K5reIzOVoIPjy7Z4d3PM6Q9Ikr1FYHGBx3GPSqW1fzIvc7J8Ibpb4nO9Oc9cAEumrX0bHa1YnYTfO0hqE0j2RRZB6yO2jFnVhfTxZAW3FXxu_l6ZIZwfcqCTxhIE1U21rKhn"/>
+<div class="flex-1">
+<h4 class="font-ui-label text-on-surface mb-1">모바일 캡처 동기화</h4>
+<p class="text-ui-small text-on-surface-variant mb-4">이동 중에 기록한 짧은 생각들을 Narae Note 서재로 즉시 전송합니다. QR 코드를 스캔하여 앱을 연결하세요.</p>
+<div class="flex gap-3">
+<button class="bg-primary text-white px-4 py-2 text-ui-small rounded hover:bg-primary-container transition-colors">기기 연결하기</button>
+<button class="border border-outline text-on-surface px-4 py-2 text-ui-small rounded hover:bg-surface-variant transition-colors">기록 확인</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Section: Account -->
+<section class="mb-12">
+<header class="mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">verified_user</span>
+<h3 class="font-ui-label text-on-surface-variant uppercase tracking-widest text-[11px]">계정 및 보안 (Account)</h3>
+</header>
+<div class="space-y-0">
+<div class="flex items-center justify-between py-5 settings-card">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-primary-fixed rounded-full flex items-center justify-center text-primary font-bold">KN</div>
+<div>
+<h4 class="font-ui-label text-on-surface">김나래 (narae.writer@sanctuary.com)</h4>
+<p class="text-ui-small text-on-surface-variant">프리미엄 구독 중 (2024년 12월 31일까지)</p>
+</div>
+</div>
+<button class="text-primary text-ui-small font-semibold hover:underline">수정</button>
+</div>
+<div class="flex items-center justify-between py-5 settings-card">
+<div>
+<h4 class="font-ui-label text-on-surface">이중 인증 (2FA)</h4>
+<p class="text-ui-small text-on-surface-variant">서재의 보안을 강화하기 위해 추가 인증을 활성화합니다.</p>
+</div>
+<div class="relative inline-block w-12 h-6 rounded-full bg-surface-variant transition-colors cursor-pointer" onclick="this.classList.toggle('bg-primary')">
+<div class="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform transform translate-x-0 group-hover:translate-x-6" id="toggle-circle"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Footer Meta -->
+<footer class="mt-20 pt-8 border-t border-outline-variant flex justify-between items-center text-meta-data text-on-surface-variant">
+<div class="flex gap-4">
+<a class="hover:text-primary transition-colors" href="#">개인정보 처리방침</a>
+<a class="hover:text-primary transition-colors" href="#">이용 약관</a>
+<a class="hover:text-primary transition-colors" href="#">백업 다운로드</a>
+</div>
+<p>© 2024 Narae Note. Designed for the Intentional Writer.</p>
+</footer>
+</div>
+</main>
+<!-- Contextual Right Panel (Collapsible/Preview) -->
+<aside class="fixed right-0 top-16 h-[calc(100vh-64px)] w-panel-width bg-surface-container-lowest border-l border-outline-variant p-6 hidden xl:block overflow-y-auto">
+<h3 class="font-ui-label text-on-surface-variant uppercase tracking-widest text-[11px] mb-6">최근 서재 활동</h3>
+<div class="space-y-6">
+<div class="flex gap-4 items-start">
+<div class="w-1 h-12 bg-primary-fixed-dim rounded-full"></div>
+<div>
+<span class="text-meta-data text-on-surface-variant">방금 전</span>
+<h5 class="text-ui-small font-bold">환경 설정 업데이트됨</h5>
+<p class="text-ui-small text-on-surface-variant">텍스트 가독성 최적화를 위해 줄 간격이 1.85로 조정되었습니다.</p>
+</div>
+</div>
+<div class="flex gap-4 items-start">
+<div class="w-1 h-12 bg-secondary-fixed rounded-full"></div>
+<div>
+<span class="text-meta-data text-on-surface-variant">2시간 전</span>
+<h5 class="text-ui-small font-bold">모바일 캡처 수신</h5>
+<p class="text-ui-small text-on-surface-variant">'계절의 문장들' 폴더로 새로운 아이디어가 도착했습니다.</p>
+</div>
+</div>
+<div class="mt-12 p-4 bg-on-tertiary-container rounded-lg">
+<span class="material-symbols-outlined text-tertiary mb-2">auto_awesome</span>
+<h5 class="text-ui-small font-bold text-on-tertiary-fixed">Tip: 기록의 가독성</h5>
+<p class="text-ui-small text-on-tertiary-fixed-variant leading-relaxed">디지털 잉크의 색상은 'Ink Blue'로 설정되어 있습니다. 이는 종이 위에 만년필로 쓴 듯한 시각적 안정감을 줍니다.</p>
+</div>
+</div>
+</aside>
+<script>
+        // Micro-interactions
+        document.querySelectorAll('.settings-card select, .settings-card input[type="range"]').forEach(el => {
+            el.addEventListener('change', () => {
+                // Subtle feedback animation could go here
+                console.log('Settings changed');
+            });
+        });
+
+        // Toggle handling logic
+        const toggleBtn = document.querySelector('.relative.inline-block');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                const circle = toggleBtn.querySelector('div');
+                if (toggleBtn.classList.contains('bg-primary')) {
+                    circle.style.transform = 'translateX(24px)';
+                } else {
+                    circle.style.transform = 'translateX(0px)';
+                }
+            });
+        }
+    </script>
+</body></html>

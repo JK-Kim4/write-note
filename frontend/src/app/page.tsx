@@ -1,249 +1,177 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/lib/auth/guard";
 import { Rail } from "@/components/workspace/Rail";
 import { Titlebar } from "@/components/workspace/Titlebar";
-import { ProjectWallCard } from "@/components/workspace/ProjectWallCard";
-import { toProjectCardView } from "@/lib/projectView";
-import { useCreateProject, useDeleteProject, useProjectCards, useUpdateProject } from "@/lib/query/useProjects";
-import type { ProjectCardView } from "@/lib/projectView";
+import { QuickCapture } from "@/components/QuickCapture";
+import { ResumeCard } from "@/components/dashboard/ResumeCard";
+import { RhythmCard } from "@/components/dashboard/RhythmCard";
+import { WorkMiniCard } from "@/components/dashboard/WorkMiniCard";
+import { selectDashboard, weekDayRanges } from "@/lib/dashboardView";
+import { toInboxMemoView } from "@/lib/memoView";
+import { useInboxMemos } from "@/lib/query/useMemos";
+import { useProjectCards } from "@/lib/query/useProjects";
+import { useWeeklyByDay } from "@/lib/query/useSessions";
 
 /**
- * 작품 벽 (015 US1) — desktop ProjectsScreen 1:1 이식. 006 home 폐기.
- * .app(Rail+main) 셸 + Titlebar + work-wall + ProjectWallCard. 데이터는 React Query 훅.
+ * 대시보드(작가 홈) — 018 재진입 허브, v4 2단(B안).
+ * 좌 = 이어서 쓰기 타일 + 작품 미니 카드 2열 / 우 = 집필 리듬 카드(주간·작품별 막대, 좌측 바닥선 정렬)
+ * / 하단 전폭 = 최근 곁쪽지 3장 + 새 곁쪽지(빠른 메모 모달). 전부 읽기 전용 + 진입 동작만.
  */
-export default function ProjectsWallPage() {
+export default function DashboardPage() {
     useAuthGuard("requireAuth");
     const router = useRouter();
     const cardsQuery = useProjectCards();
-    const createProject = useCreateProject();
-    const updateProject = useUpdateProject();
-    const deleteProject = useDeleteProject();
+    const weeklyQuery = useWeeklyByDay();
+    const memosQuery = useInboxMemos();
+    const [captureOpen, setCaptureOpen] = useState(false);
 
-    const [mode, setMode] = useState<"list" | "create">("list");
-    const [title, setTitle] = useState("");
-    const [summary, setSummary] = useState("");
-    const [genre, setGenre] = useState("");
-    const [targetLength, setTargetLength] = useState("");
-    const [tone, setTone] = useState("");
-    const [showMore, setShowMore] = useState(false);
-    const [createError, setCreateError] = useState(false);
-    const [confirmDelete, setConfirmDelete] = useState<ProjectCardView | null>(null);
+    // 날짜 등 new Date() 의존 표시는 클라에서만 렌더 — SSR 프리렌더와의 hydration mismatch 회피(research R5).
+    const mounted = useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false,
+    );
 
-    const projects: ProjectCardView[] | null = cardsQuery.data ? cardsQuery.data.map(toProjectCardView) : null;
+    const { resume, others } = selectDashboard(cardsQuery.data ?? []);
+    const dateLabel = mounted
+        ? new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "long" }).format(new Date())
+        : "";
+    const todayIndex = weekDayRanges(new Date()).findIndex((r) => r.isToday);
 
-    const resetForm = () => {
-        setTitle("");
-        setSummary("");
-        setGenre("");
-        setTargetLength("");
-        setTone("");
-        setShowMore(false);
-    };
+    // 최근 곁쪽지 3장 — 보조 맥락이라 조회 실패는 조용한 빈 상태로 격하(전체 차단 X).
+    const recentMemos = [...(memosQuery.data ?? [])]
+        .sort((a, b) => (a.capturedAt < b.capturedAt ? 1 : -1))
+        .slice(0, 3)
+        .map((memo) => toInboxMemoView(memo, new Date()));
 
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
-        if (!title.trim() || createProject.isPending) return;
-        setCreateError(false);
-        const parsed = Number(targetLength.trim());
-        const target = targetLength.trim() !== "" && Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-        try {
-            const { project } = await createProject.mutateAsync({
-                title: title.trim(),
-                synopsis: summary.trim() || null,
-                toneNotes: tone.trim() || null,
-                genre: genre.trim() || null,
-                targetLength: target,
-            });
-            resetForm();
-            setMode("list");
-            router.push(`/projects/${project.id}/write`);
-        } catch {
-            setCreateError(true);
-        }
-    };
+    const isLoading =
+        (cardsQuery.data === undefined || weeklyQuery.data === undefined) && !cardsQuery.isError && !weeklyQuery.isError;
 
     return (
         <div className="app">
             <Rail />
             <div className="main">
-                <Titlebar title={mode === "create" ? "새 작품" : "작품"} />
+                <Titlebar title="홈" />
                 <div className="screen-body screen-body--solo">
                     <div className="screen-main">
-                        {projects === null && !cardsQuery.isError ? (
-                            <div className="projects-skel" aria-hidden="true">
-                                <div className="skel">
-                                    <div className="skel__bar" />
-                                    <div className="skel__bar" />
-                                    <div className="skel__bar" />
-                                </div>
-                            </div>
-                        ) : mode === "create" ? (
-                            <form className="newproject" onSubmit={handleSubmit} aria-label="새 작품 만들기">
-                                <div className="create-head">
-                                    <h1 className="screen-h1">새 작품을 시작합니다</h1>
-                                    <p className="newproject__sub">제목만으로 시작하고, 나머지는 쓰면서 채워도 됩니다.</p>
-                                </div>
-                                <div className="newproject__form">
-                                    <label className="field">
-                                        <span className="field__label">제목</span>
-                                        <input
-                                            className="input"
-                                            type="text"
-                                            value={title}
-                                            onChange={(e) => setTitle(e.target.value)}
-                                            placeholder="예: 바다가 보이는 방"
-                                            autoFocus
-                                        />
-                                    </label>
-                                    <label className="field">
-                                        <span className="field__label">
-                                            시놉시스 · 큰 그림 <em>선택</em>
-                                        </span>
-                                        <textarea
-                                            className="input textarea"
-                                            value={summary}
-                                            onChange={(e) => setSummary(e.target.value)}
-                                            placeholder="이 작품이 어떤 이야기인지, 어디로 향하는지."
-                                        />
-                                    </label>
-                                    <button
-                                        type="button"
-                                        className="disclosure__toggle"
-                                        aria-expanded={showMore}
-                                        onClick={() => setShowMore((v) => !v)}
-                                    >
-                                        추가 정보 <span className="disclosure__hint">장르 · 목표 분량 · 톤</span>
-                                    </button>
-                                    {showMore && (
-                                        <div className="disclosure__body">
-                                            <label className="field">
-                                                <span className="field__label">장르</span>
-                                                <input
-                                                    className="input"
-                                                    type="text"
-                                                    value={genre}
-                                                    onChange={(e) => setGenre(e.target.value)}
-                                                    placeholder="단편소설 · 시 · 단막극"
-                                                />
-                                            </label>
-                                            <div className="field-row">
-                                                <label className="field">
-                                                    <span className="field__label">목표 분량 (자)</span>
-                                                    <input
-                                                        className="input"
-                                                        type="number"
-                                                        min="0"
-                                                        value={targetLength}
-                                                        onChange={(e) => setTargetLength(e.target.value)}
-                                                        placeholder="예: 8000"
-                                                    />
-                                                </label>
-                                                <label className="field">
-                                                    <span className="field__label">톤</span>
-                                                    <input
-                                                        className="input"
-                                                        type="text"
-                                                        value={tone}
-                                                        onChange={(e) => setTone(e.target.value)}
-                                                        placeholder="담담하게, 1인칭 회상"
-                                                    />
-                                                </label>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {createError && (
-                                        <p role="alert" style={{ color: "var(--danger, #c0392b)", fontSize: 13 }}>
-                                            작품을 만들지 못했습니다. 다시 시도해 주세요.
-                                        </p>
-                                    )}
-                                    <div className="create-foot">
-                                        <button type="submit" className="btn btn--primary" disabled={!title.trim() || createProject.isPending}>
-                                            작품 만들기
-                                        </button>
-                                        <button type="button" className="btn btn--ghost" onClick={() => { setMode("list"); resetForm(); }}>
-                                            취소
-                                        </button>
+                        <div className="dash-wrap">
+                            <h1 className="dash-hello">안녕하세요.</h1>
+                            <p className="dash-date">{mounted ? `${dateLabel} — 오늘도 곁에 있을게요.` : " "}</p>
+
+                            {isLoading ? (
+                                <div className="projects-skel" aria-hidden="true">
+                                    <div className="skel">
+                                        <div className="skel__bar" />
+                                        <div className="skel__bar" />
+                                        <div className="skel__bar" />
                                     </div>
                                 </div>
-                            </form>
-                        ) : cardsQuery.isError ? (
-                            <div className="projects-error" role="alert">
-                                <span>작품 목록을 불러오지 못했습니다.</span>
-                                <button type="button" className="btn btn--ghost" onClick={() => cardsQuery.refetch()}>
-                                    다시 시도
-                                </button>
-                            </div>
-                        ) : projects && projects.length === 0 ? (
-                            <section className="welcome" aria-label="작업실 입구">
-                                <span className="welcome__mark" aria-hidden="true" />
-                                <p className="welcome__brand">나래 노트</p>
-                                <h1 className="welcome__title">작업실이 준비됐습니다</h1>
-                                <p className="welcome__sub">
-                                    메모와 등장인물, 톤과 목표 분량, 지난 세션의 마지막 한 줄까지 한자리에. 며칠 만에 다시 열어도
-                                    작품의 맥락이 그대로 남아, 흐름을 처음부터 되짚지 않아도 됩니다.
-                                </p>
-                                <button type="button" className="btn btn--primary" onClick={() => setMode("create")}>
-                                    첫 작품 시작하기
-                                </button>
-                            </section>
-                        ) : (
-                            <div className="projects-list-wrap">
-                                <div className="projects-head">
-                                    <h1 className="projects-head__title">이어 쓸 작품</h1>
-                                    <button type="button" className="btn btn--secondary" onClick={() => setMode("create")}>
-                                        새 작품
+                            ) : cardsQuery.isError || weeklyQuery.isError ? (
+                                <div className="projects-error" role="alert">
+                                    <span>작업실을 불러오지 못했습니다.</span>
+                                    <button
+                                        type="button"
+                                        className="btn btn--ghost"
+                                        onClick={() => {
+                                            void cardsQuery.refetch();
+                                            void weeklyQuery.refetch();
+                                        }}
+                                    >
+                                        다시 시도
                                     </button>
                                 </div>
-                                <div className="work-wall">
-                                    {(projects ?? []).map((p, i) => (
-                                        <ProjectWallCard
-                                            key={p.id}
-                                            card={p}
-                                            index={i}
-                                            onOpen={() => router.push(`/projects/${p.id}/write`)}
-                                            onSaveNextScene={(next) => updateProject.mutate({ id: p.id, patch: { nextScene: next } })}
-                                            onDelete={() => setConfirmDelete(p)}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                            ) : resume === null ? (
+                                <section className="welcome" aria-label="작업실 입구">
+                                    <span className="welcome__mark" aria-hidden="true" />
+                                    <p className="welcome__brand">나래 노트</p>
+                                    <h1 className="welcome__title">작업실이 준비됐습니다</h1>
+                                    <p className="welcome__sub">
+                                        메모와 등장인물, 톤과 목표 분량, 지난 세션의 마지막 한 줄까지 한자리에. 며칠 만에 다시
+                                        열어도 작품의 맥락이 그대로 남아, 흐름을 처음부터 되짚지 않아도 됩니다.
+                                    </p>
+                                    <button type="button" className="btn btn--primary" onClick={() => router.push("/library?new=1")}>
+                                        첫 작품 시작하기
+                                    </button>
+                                </section>
+                            ) : (
+                                <>
+                                    <div className="dash-cols">
+                                        <div className="dash-col">
+                                            <div className="sec-head">
+                                                <p className="dash-label">이어서 쓰기</p>
+                                                <button type="button" className="sec-link" onClick={() => router.push("/library")}>
+                                                    모든 작품 보기 →
+                                                </button>
+                                            </div>
+                                            <ResumeCard card={resume} onOpen={() => router.push(`/projects/${resume.id}/write`)} />
+                                            {others.length > 0 && (
+                                                <div className="works">
+                                                    {others.map((card) => (
+                                                        <WorkMiniCard
+                                                            key={card.id}
+                                                            card={card}
+                                                            onOpen={() => router.push(`/projects/${card.id}/write`)}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="dash-col">
+                                            <div className="sec-head">
+                                                <p className="dash-label">집필 리듬</p>
+                                            </div>
+                                            <RhythmCard
+                                                dayMs={weeklyQuery.data?.dayMs ?? [0, 0, 0, 0, 0, 0, 0]}
+                                                todayIndex={todayIndex}
+                                                cards={cardsQuery.data ?? []}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="sec-head">
+                                        <p className="dash-label">최근 곁쪽지</p>
+                                        <button type="button" className="sec-link" onClick={() => router.push("/memos")}>
+                                            모든 곁쪽지 보기 →
+                                        </button>
+                                    </div>
+                                    {recentMemos.length === 0 ? (
+                                        <p className="dash-empty">아직 곁쪽지가 없어요</p>
+                                    ) : (
+                                        <div className="dash-memos">
+                                            {recentMemos.map((memo) => (
+                                                <button
+                                                    key={memo.id}
+                                                    type="button"
+                                                    className="dash-memo"
+                                                    onClick={() => router.push("/memos")}
+                                                >
+                                                    <p className="dash-memo__body">{memo.body}</p>
+                                                    <span className="dash-memo__date">{memo.dateLabel}</span>
+                                                </button>
+                                            ))}
+                                            <button
+                                                type="button"
+                                                className="dash-memo dash-memo--new"
+                                                onClick={() => setCaptureOpen(true)}
+                                            >
+                                                <span className="dash-memo--new__plus" aria-hidden="true">
+                                                    +
+                                                </span>
+                                                새 곁쪽지
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {confirmDelete && (
-                <div className="modal-backdrop" onClick={() => !deleteProject.isPending && setConfirmDelete(null)}>
-                    <div
-                        className="modal"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-label="작품 삭제 확인"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="modal__head">
-                            <h2 className="modal__title">작품을 삭제할까요?</h2>
-                        </div>
-                        <p className="modal__text">‘{confirmDelete.title}’과 작성한 본문이 영구 삭제됩니다. 되돌릴 수 없습니다.</p>
-                        <div className="modal__foot">
-                            <button type="button" className="btn btn--ghost" onClick={() => setConfirmDelete(null)} disabled={deleteProject.isPending}>
-                                취소
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn--danger"
-                                disabled={deleteProject.isPending}
-                                onClick={() => deleteProject.mutate(confirmDelete.id, { onSuccess: () => setConfirmDelete(null) })}
-                            >
-                                삭제
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {captureOpen && <QuickCapture activeProjectId={null} onClose={() => setCaptureOpen(false)} />}
         </div>
     );
 }

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>목업 — 집필 리듬 그래프 (018 후속안)</title>
+<!-- 실제 앱 토큰/클래스 계승 -->
+<link rel="stylesheet" href="../../../../frontend/src/styles/desktop-app.css" />
+<style>
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif; }
+
+  /* ── 목업 전용: ③ 집필 리듬 카드 (채택 시 desktop-app.css 이관) ── */
+  .rhythm {
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius);
+    padding: 20px 24px; margin-bottom: 34px;
+    display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px;
+  }
+  .rhythm h3 { font-size: 12px; font-weight: 700; color: var(--muted); margin: 0 0 2px; letter-spacing: .02em; }
+  .rhythm__total { font-size: 15px; color: var(--ink); font-weight: 600; margin: 0 0 14px; }
+
+  /* 주간 — 요일 막대 (오늘 강조, 등급/목표 없음) */
+  .week-bars { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 8px; align-items: end; height: 72px; }
+  .week-bars .bar { background: var(--scrap-edge); border-radius: 4px 4px 2px 2px; min-height: 3px; }
+  .week-bars .bar--today { background: var(--accent); }
+  .week-bars .bar--zero { background: var(--hairline); height: 3px; }
+  .week-days { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 8px; margin-top: 6px; }
+  .week-days span { font-size: 11px; color: var(--muted); text-align: center; }
+  .week-days .today { color: var(--accent); font-weight: 700; }
+
+  /* 누적 — 작품별 가로 막대 (시간이 어느 작품에 쌓였는가) */
+  .proj-rows { display: flex; flex-direction: column; gap: 10px; }
+  .proj-row { display: grid; grid-template-columns: 88px minmax(0,1fr); gap: 10px; align-items: center; }
+  .proj-row__name { font-size: 12px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .proj-row__track { position: relative; height: 10px; border-radius: 5px; background: var(--hairline); min-width: 0; }
+  .proj-row__fill { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--accent-soft); }
+  .proj-row:first-child .proj-row__fill { background: var(--accent); }
+  .proj-row__time { font-size: 11px; color: var(--muted); margin-left: 8px; white-space: nowrap; }
+  .proj-row__bar { display: flex; align-items: center; min-width: 0; }
+
+  @media (max-width: 720px) { .rhythm { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="dash-wrap">
+  <h1 class="dash-hello">안녕하세요.</h1>
+  <p class="dash-date">2026년 6월 10일 수요일 — 오늘도 곁에 있을게요.</p>
+
+  <p class="dash-label">이어서 쓰기</p>
+  <div class="resume">
+    <h2 class="resume__title">여름의 끝, 우리가 머물던 곳</h2>
+    <p class="resume__last">“윤슬이 부서지는 바다를 바라보며 그녀는 생각했다. 계절이 바뀌는 것은 단순히 온도의 변화가 아니라, 누군가의 기억이 옅어지는 과정일지도 모른다고.”</p>
+    <p class="resume__next">다음 장면 · <b>은하가 등대지기를 처음 만나는 장면</b></p>
+    <div class="resume__foot">
+      <span class="resume__meta">2시간 전 저장 · 42,500자</span>
+      <button class="btn btn--primary" type="button">이어서 쓰기 →</button>
+    </div>
+  </div>
+
+  <!-- ③ 집필 리듬 — 기존 "이번 주 한 줄" + resume 메타의 "총 시간" 토막을 이 카드로 통합 -->
+  <p class="dash-label">집필 리듬</p>
+  <div class="rhythm">
+    <div>
+      <h3>이번 주</h3>
+      <p class="rhythm__total">14시간 55분</p>
+      <div class="week-bars">
+        <div class="bar" style="height:46%" title="월 2시간 10분"></div>
+        <div class="bar" style="height:30%" title="화 1시간 25분"></div>
+        <div class="bar bar--today" style="height:100%" title="수(오늘) 4시간 40분"></div>
+        <div class="bar bar--zero" title="목 0분"></div>
+        <div class="bar" style="height:58%" title="금 2시간 45분"></div>
+        <div class="bar" style="height:74%" title="토 3시간 30분"></div>
+        <div class="bar bar--zero" title="일 0분"></div>
+      </div>
+      <div class="week-days">
+        <span>월</span><span>화</span><span class="today">수</span><span>목</span><span>금</span><span>토</span><span>일</span>
+      </div>
+    </div>
+    <div>
+      <h3>작품별 쌓인 시간 · 총 31시간 40분</h3>
+      <p class="rhythm__total" style="visibility:hidden; margin:0 0 2px; font-size:2px;"> </p>
+      <div class="proj-rows" style="margin-top:10px;">
+        <div class="proj-row">
+          <span class="proj-row__name">여름의 끝, 우리가…</span>
+          <div class="proj-row__bar"><div class="proj-row__track" style="width:100%"><div class="proj-row__fill" style="width:78%"></div></div><span class="proj-row__time">24시간 50분</span></div>
+        </div>
+        <div class="proj-row">
+          <span class="proj-row__name">파란색의 온도</span>
+          <div class="proj-row__bar"><div class="proj-row__track" style="width:100%"><div class="proj-row__fill" style="width:18%"></div></div><span class="proj-row__time">5시간 35분</span></div>
+        </div>
+        <div class="proj-row">
+          <span class="proj-row__name">침묵의 건축가</span>
+          <div class="proj-row__bar"><div class="proj-row__track" style="width:100%"><div class="proj-row__fill" style="width:4%"></div></div><span class="proj-row__time">1시간 15분</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="dash-label">작품</p>
+  <div class="works">
+    <button class="work-card" type="button"><p class="work-card__t">파란색의 온도</p><p class="work-card__s">“그는 한 번도 파란색을 차갑다고 느낀 적이 없었다.”</p></button>
+    <button class="work-card" type="button"><p class="work-card__t">침묵의 건축가</p><p class="work-card__s">“설계도에는 방이 일곱 개였지만, 그는 여덟 번째 방을 알고 있었다.”</p></button>
+    <button class="work-card work-card--new" type="button">+ 새 작품</button>
+  </div>
+
+  <p class="dash-label">최근 곁쪽지</p>
+  <div class="dash-memos">
+    <button class="dash-memo" type="button"><p class="dash-memo__body">겨울 바다의 냄새는 소금기보다는 시린 금속향에 가깝다…</p><span class="dash-memo__date">오늘</span></button>
+    <button class="dash-memo" type="button"><p class="dash-memo__body">인물 설정: 은하는 왜 자꾸만 뒤를 돌아보는가? 후회인가 미련인가.</p><span class="dash-memo__date">어제</span></button>
+  </div>
+</div>
+</body>
+</html>

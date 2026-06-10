@@ -2,6 +2,8 @@ package com.writenote.repository
 
 import com.writenote.entity.WorkSession
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 import java.time.Instant
 
 interface WorkSessionRepository : JpaRepository<WorkSession, Long> {
@@ -13,4 +15,21 @@ interface WorkSessionRepository : JpaRepository<WorkSession, Long> {
 
     /** dangling 정리 — 임계 시각 이전 시작된 열린 세션 폐기(FR-021). 삭제 행 수 반환. */
     fun deleteByEndedAtIsNullAndStartedAtBefore(threshold: Instant): Long
+
+    /** 카드 집계용 일괄 조회(018) — 여러 작품의 종료된 세션을 IN 으로 한 번에. */
+    fun findByProjectIdInAndEndedAtIsNotNull(projectIds: Collection<Long>): List<WorkSession>
+
+    /**
+     * 기간 합계용(018) — 사용자 전체 작품 횡단(아카이브 포함), [from, to) 에 시작된 종료 세션.
+     * WorkSession 에 userId 가 없어(작품 경유 격리) projects join 이 필수.
+     */
+    @Query(
+        "SELECT w FROM WorkSession w, Project p WHERE w.projectId = p.id AND p.userId = :userId " +
+            "AND w.endedAt IS NOT NULL AND w.startedAt >= :from AND w.startedAt < :to",
+    )
+    fun findEndedByUserIdAndStartedAtRange(
+        @Param("userId") userId: Long,
+        @Param("from") from: Instant,
+        @Param("to") to: Instant,
+    ): List<WorkSession>
 }

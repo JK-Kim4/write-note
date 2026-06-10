@@ -5,9 +5,10 @@
  * 어댑터로 재사용하고 014 계약(contracts/web-electron-api.md)에 매핑한다. projects 가 Foundational 의
  * worked example — documents/memos/logs/sessions/contact 는 각 US 단계에서 동일 패턴으로 추가.
  */
-import { createProject, deleteProject, getProject, listProjects, updateProject } from "@/lib/api/projects";
+import { createProject, deleteProject, getProject, listProjectCards, listProjects, updateProject } from "@/lib/api/projects";
 import type { CreateProjectInput, UpdateProjectInput } from "@/lib/api/projects";
 import { getProjectDocument } from "@/lib/api/document";
+import { extractPlainText } from "@/components/editor/wordCountUtils";
 import type { DocumentResponse } from "@/types/api";
 import type { Project, ProjectCard, ProjectDocument } from "@/lib/types/domain";
 
@@ -31,12 +32,22 @@ export const projects = {
     list: async (): Promise<Project[]> => (await listProjects({ size: 100 })).content,
 
     /**
-     * 작품 벽 카드 집계. "마지막 문장"(lastSentenceSource)은 014 R6 대로 화면(US1)이 document 본문에서
-     * 파생한다 — Foundational 은 빈 문자열 placeholder 로 두고 US1 에서 채운다.
+     * 작품 벽/홈 카드 집계(018) — 카드 endpoint 1회(글자수·문서 저장 시각·누적 작업시간 동봉)
+     * + 작품별 문서 병렬 조회(마지막 문장 파생 원료만 — 본문 텍스트 파생은 클라 책임).
+     * 한 조회라도 실패하면 전체 reject — 반쪽 데이터로 그리지 않는다(화면은 에러+재시도).
      */
     listCards: async (): Promise<ProjectCard[]> => {
-        const list = (await listProjects({ size: 100 })).content;
-        return list.map((p) => ({ ...p, lastSentenceSource: "" }));
+        const cards = await listProjectCards();
+        return Promise.all(
+            cards.map(async (card) => {
+                const doc = await getProjectDocument(card.id);
+                return {
+                    ...card,
+                    docUpdatedAt: card.documentUpdatedAt,
+                    lastSentenceSource: extractPlainText(doc.body),
+                };
+            }),
+        );
     },
 
     get: (id: number): Promise<Project> => getProject(id),

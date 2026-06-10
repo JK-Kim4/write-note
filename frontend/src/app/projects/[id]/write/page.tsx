@@ -13,10 +13,13 @@ import type { ProjectDocument } from "@/lib/types/domain";
 import { useDocumentSession } from "@/hooks/useDocumentSession";
 import { useWorkSession } from "@/hooks/useWorkSession";
 import { rememberLastProject } from "@/lib/lastProject";
+import type { Editor } from "@tiptap/react";
 import { Rail } from "@/components/workspace/Rail";
 import { Titlebar } from "@/components/workspace/Titlebar";
-import { MemoPanel } from "@/components/workspace/MemoPanel";
+import { StudioRightStack } from "@/components/workspace/StudioRightStack";
 import { PaperEditor } from "@/components/editor/PaperEditor";
+import { StudioOutline } from "@/components/editor/StudioOutline";
+import { useEditorOutline } from "@/components/editor/useEditorOutline";
 import { ConflictDialog } from "@/components/editor/ConflictDialog";
 
 /**
@@ -41,7 +44,11 @@ export default function ProjectWritePage() {
     const [editorKey, setEditorKey] = useState(0);
     const [lined, setLined] = useState(true);
     const [zoom, setZoom] = useState(1);
-    const [panelOpen, setPanelOpen] = useState(false);
+    // 3단 패널 — 진입 기본: 아웃라인만 펼침(좌 open / 우 닫힘). 좌·우 토글로 접고 펼침.
+    const [leftOpen, setLeftOpen] = useState(true);
+    const [rightOpen, setRightOpen] = useState(false);
+    // 아웃라인이 쓰는 에디터 인스턴스 참조(PaperEditor 가 onEditorReady 로 올림).
+    const [editor, setEditor] = useState<Editor | null>(null);
     const [endWorkOpen, setEndWorkOpen] = useState(false);
     const [endWorkBody, setEndWorkBody] = useState("");
     const [endingWork, setEndingWork] = useState(false);
@@ -117,6 +124,9 @@ export default function ProjectWritePage() {
     );
     const handleOverwrite = useCallback((currentVersion: string) => session.overwrite(currentVersion), [session]);
 
+    // 아웃라인 — 라이브 에디터에서 heading 목차 파생·현재 섹션·점프(017 US1).
+    const outline = useEditorOutline(editor);
+
     const projectTitle = projectQuery.data?.title ?? "";
     // syncStatus → 기존 savestate 클래스/라벨 어휘로 매핑.
     const saveStateClass =
@@ -157,11 +167,24 @@ export default function ProjectWritePage() {
             </button>
             <button
                 type="button"
-                className={panelOpen ? "panel-toggle is-open" : "panel-toggle"}
-                aria-pressed={panelOpen}
-                aria-label="곁쪽지 서랍"
-                title="곁쪽지 서랍"
-                onClick={() => setPanelOpen((v) => !v)}
+                className={leftOpen ? "panel-toggle is-open" : "panel-toggle"}
+                aria-pressed={leftOpen}
+                aria-label="아웃라인"
+                title="아웃라인"
+                onClick={() => setLeftOpen((v) => !v)}
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <line x1="9" y1="4" x2="9" y2="20" />
+                </svg>
+            </button>
+            <button
+                type="button"
+                className={rightOpen ? "panel-toggle is-open" : "panel-toggle"}
+                aria-pressed={rightOpen}
+                aria-label="맥락 패널 (인물·곁쪽지)"
+                title="맥락 패널 (인물·곁쪽지)"
+                onClick={() => setRightOpen((v) => !v)}
             >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -176,7 +199,16 @@ export default function ProjectWritePage() {
             <Rail />
             <div className="main" style={{ ["--zoom"]: zoom } as CSSProperties}>
                 <Titlebar title={projectTitle ? `${projectTitle} — 집필` : "집필"} right={right} />
-                <div className={`screen-body ${panelOpen ? "" : "screen-body--solo"}`}>
+                <div
+                    className={`screen-body screen-body--studio${leftOpen ? "" : " no-left"}${rightOpen ? "" : " no-right"}`}
+                >
+                    {leftOpen && (
+                        <StudioOutline
+                            items={outline.items}
+                            activeIndex={outline.activeIndex}
+                            onSelect={outline.selectItem}
+                        />
+                    )}
                     <div className="studio">
                         {Number.isNaN(projectId) ? (
                             <p style={{ padding: "2rem" }}>잘못된 작품입니다.</p>
@@ -185,7 +217,7 @@ export default function ProjectWritePage() {
                         ) : isError || !doc ? (
                             <div style={{ padding: "2rem" }}>
                                 <p style={{ opacity: 0.6 }}>문서를 불러올 수 없습니다.</p>
-                                <button type="button" className="btn btn--ghost" onClick={() => router.push("/")}>
+                                <button type="button" className="btn btn--ghost" onClick={() => router.push("/library")}>
                                     작품 벽으로
                                 </button>
                             </div>
@@ -196,15 +228,17 @@ export default function ProjectWritePage() {
                                 initialBodyJson={initialBody ?? doc.bodyJson}
                                 onChange={handleChange}
                                 onDraftUpdate={session.flushDraft}
+                                onEditorReady={setEditor}
                                 lined={lined}
                                 zoom={zoom}
                             />
                         )}
                     </div>
-                    {panelOpen && (
-                        <MemoPanel
+                    {rightOpen && (
+                        <StudioRightStack
+                            projectId={projectId}
                             memos={drawerMemos}
-                            loading={projectMemosQuery.isLoading}
+                            memosLoading={projectMemosQuery.isLoading}
                             onUnlink={(memoId) => removeLinkMemo.mutate({ memoId, projectId })}
                             onSetPin={(memoId, pinned) => setPinMemo.mutate({ memoId, projectId, pinned })}
                         />

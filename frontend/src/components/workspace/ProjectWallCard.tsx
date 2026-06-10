@@ -29,7 +29,7 @@ export function ProjectWallCard({ card, index, onOpen, onSaveNextScene, onDelete
             <span className="wall-card__pin" aria-hidden="true" />
             <button type="button" className="wall-card__face" aria-label={`${card.title} 펼치기`} onClick={onOpen}>
                 {card.lastSentence ? (
-                    <span className="wall-card__sentence">{card.lastSentence}</span>
+                    <span className="wall-card__sentence">…{card.lastSentence}</span>
                 ) : (
                     <span className="wall-card__sentence wall-card__sentence--empty">아직 첫 문장을 기다리는 중</span>
                 )}

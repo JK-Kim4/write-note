@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { useEditor, EditorContent, type Content } from "@tiptap/react";
+import { useEditor, EditorContent, type Content, type Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { StarterKit } from "@tiptap/starter-kit";
 import { pageCount, globalLineAt, pageNumberTopsPx, LINE_PX, PAGE_STRIDE_PX, SHEET_H_PX } from "./pageLayout";
@@ -36,11 +36,16 @@ type PaperEditorProps = {
      * setState/re-render 없이 localStorage draft 만 갱신하는 용도(조합을 깨지 않음). 작성분 무유실의 핵심.
      */
     onDraftUpdate?: (bodyJson: string) => void;
+    /**
+     * 에디터 인스턴스 참조를 상위로 노출(017 — 아웃라인 패널이 doc heading 파생·점프에 사용).
+     * 준비 시 editor, 파기 시 null. PaperEditor 의 useEditor 소유·IME 가드·자동저장은 무변경.
+     */
+    onEditorReady?: (editor: Editor | null) => void;
     lined: boolean;
     zoom?: number;
 };
 
-export function PaperEditor({ title, initialBodyJson, onChange, onDraftUpdate, lined, zoom = 1 }: PaperEditorProps) {
+export function PaperEditor({ title, initialBodyJson, onChange, onDraftUpdate, onEditorReady, lined, zoom = 1 }: PaperEditorProps) {
     const paperRef = useRef<HTMLElement>(null);
     const [pages, setPages] = useState(1);
 
@@ -79,6 +84,13 @@ export function PaperEditor({ title, initialBodyJson, onChange, onDraftUpdate, l
             onDraftUpdateRef.current?.(JSON.stringify(editor.getJSON()));
         };
     }, [editor]);
+
+    // 에디터 참조를 상위(아웃라인 패널)로 노출 — 준비 시 editor, 언마운트 시 null.
+    useEffect(() => {
+        if (!editor) return;
+        onEditorReady?.(editor);
+        return () => onEditorReady?.(null);
+    }, [editor, onEditorReady]);
 
     useEffect(() => {
         const pm = paperRef.current?.querySelector<HTMLElement>(".ProseMirror");
