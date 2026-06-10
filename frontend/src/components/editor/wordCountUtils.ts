@@ -18,7 +18,12 @@ const collectText = (node: PmNode): string => {
     if (!node.content) {
         return "";
     }
-    return node.content.map(collectText).join("");
+    // 블록 자식(paragraph·heading 등)은 줄바꿈으로 구분해 문단 경계를 보존한다.
+    // 같은 문단 안의 inline(text)만 있으면 그대로 이어붙인다.
+    // 자수 계산(manuscript)은 공백 제거 후 세므로 영향 없고, 마지막 문장 파생(lastSentence)은
+    // 종결부호가 없어도 문단 경계로 마지막 문단을 분리할 수 있게 된다.
+    const hasBlockChild = node.content.some((child) => child.type !== "text");
+    return node.content.map(collectText).join(hasBlockChild ? "\n" : "");
 };
 
 export const extractPlainText = (body: string): string => {

@@ -18,12 +18,25 @@ const makeDoc = (texts: string[]) =>
     });
 
 describe("extractPlainText", () => {
-    it("단락의 text node 내용을 이어붙인다", () => {
-        const body = makeDoc(["안녕하세요", "반갑습니다"]);
-        expect(extractPlainText(body)).toBe("안녕하세요반갑습니다");
+    it("한 단락 안의 text node 는 그대로 이어붙인다", () => {
+        const body = JSON.stringify({
+            type: "doc",
+            content: [{ type: "paragraph", content: [{ type: "text", text: "안녕" }, { type: "text", text: "하세요" }] }],
+        });
+        expect(extractPlainText(body)).toBe("안녕하세요");
     });
 
-    it("빈 단락은 빈 문자열로 처리한다", () => {
+    it("단락 경계는 줄바꿈으로 보존한다 (마지막 문장 파생용 — 문단이 붙지 않음)", () => {
+        const body = makeDoc(["안녕하세요", "반갑습니다"]);
+        expect(extractPlainText(body)).toBe("안녕하세요\n반갑습니다");
+    });
+
+    it("빈 단락은 빈 줄로 보존한다 (종결부호 없어도 마지막 문단을 분리할 수 있게)", () => {
+        const body = makeDoc(["첫 문단", "", "끝 문단"]);
+        expect(extractPlainText(body)).toBe("첫 문단\n\n끝 문단");
+    });
+
+    it("단일 빈 단락은 빈 문자열로 처리한다", () => {
         const body = makeDoc([""]);
         expect(extractPlainText(body)).toBe("");
     });
