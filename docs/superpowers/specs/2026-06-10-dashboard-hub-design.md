@@ -1,123 +1,143 @@
 # 대시보드 허브 (재진입 허브) — 설계
 
-> **작성일**: 2026-06-10 · **브랜치**: `feat/studio-three-panel`
-> **전제**: 내용 방향 **A. 재진입 허브** 사용자 확정(2026-06-10, 재논의 없음). IA = `/`가 새 홈(대시보드), 기존 작품 벽 → `/library`.
-> **목업**: `docs/design/web/mockups/dashboard-reentry-hub.html` (ghost 타일 "이번 주 집필 시간"은 미채택 — 구현 제외)
-> **원칙**: PRODUCT.md — "카드 그득한 SaaS 대시보드" 금지 / 게이미피케이션 배제 / AI·자동 생성 배제 / "조용한 작업실 입구"
-> **갱신 (2026-06-10 v2)**: PRODUCT.md 원칙 4 완화(사용자 결정) — 작업 시간 같은 **작업 리듬 인디케이터를 연속 작업 유도 신호로 허용**. 이에 따라 ② 타일에 총 작업시간 표시 추가(§1·§2). "이번 주" 단위는 백엔드 부재로 후속(§8).
+> **작성일**: 2026-06-10 · **브랜치**: `feat/studio-three-panel` · **버전: v3 (v1·v2 전면 대체 — 이전 판 폐기)**
+> **전제**: 내용 방향 **A. 재진입 허브** 사용자 확정. IA = `/`가 새 홈(대시보드), 기존 작품 벽 → `/library`.
+> **목업**: `docs/design/web/mockups/dashboard-reentry-hub.html` (절충안 ghost 타일 "이번 주 집필 시간"은 **v3에서 채택** — §1)
+> **원칙**: PRODUCT.md — "카드 그득한 SaaS 대시보드" 금지 / 게이미피케이션 배제 / AI·자동 생성 배제 / 원칙 4 v2(작업 리듬 인디케이터는 연속 작업 유도 신호로 허용)
+> **v3 갱신 (2026-06-10, 사용자 결정)**: **백엔드 확장 포함** — (a) 기간 단위 작업시간 집계(주간 지표용) (b) 카드 집계 endpoint(N+1 축소). 표시 = "이번 주 집필 시간" 한 줄 + 이어서 쓰기 메타의 누적 총시간 **둘 다**. v2의 "백엔드 변경 0" 제약은 폐기.
 
 ---
 
-## 1. 화면 구성 (A안 그대로)
+## 1. 화면 구성
 
-`/` 진입 시 위에서 아래로 4 블록. 모두 읽기 전용 + 진입 동작만(이 화면에서 편집하지 않는다 — 유일한 예외 없음, 벽의 "다음 장면" 인라인 편집도 대시보드에는 두지 않는다).
+`/` 진입 시 위에서 아래로 5 블록. 모두 읽기 전용 + 진입 동작만(이 화면에서 편집하지 않는다 — 벽의 "다음 장면" 인라인 편집도 대시보드에는 두지 않는다).
 
 | # | 블록 | 내용 | 동작 |
 |---|---|---|---|
-| ① | 인사 + 날짜 | 인사 한 줄 + "YYYY년 M월 D일 X요일" | 없음(정적) |
+| ① | 인사 + 날짜 | 인사 한 줄(이름 없음) + "YYYY년 M월 D일 X요일" | 없음(정적) |
 | ② | 이어서 쓰기 | **최근작 1편** 최대 타일: 제목 + 마지막 문장(세리프 인용) + 다음 장면 한 줄 + "N시간 전 저장 · N자 · 총 N시간 M분" + [이어서 쓰기 →] | 타일/버튼 → `/projects/{id}/write` |
-| ③ | 작품 | 최근작 **제외** 나머지 작품 미니 카드(제목 + 마지막 문장 2줄 클램프) + "+ 새 작품" 카드 | 카드 → 집필실, 새 작품 → `/library?new=1` |
-| ④ | 최근 곁쪽지 | 최신 곁쪽지 **2장**(쪽지 톤 `--scrap` 카드: 본문 + 상대 날짜) | 카드 → `/memos` |
+| ③ | 이번 주 집필 시간 | 조용한 한 줄 "이번 주 집필 시간 · N시간 M분" (**전체 작품 합**, 목업 ghost 타일 자리·형태) | 없음(정적) |
+| ④ | 작품 | 최근작 **제외** 나머지 작품 미니 카드(제목 + 마지막 문장 2줄 클램프) + "+ 새 작품" 카드 | 카드 → 집필실, 새 작품 → `/library?new=1` |
+| ⑤ | 최근 곁쪽지 | 최신 곁쪽지 **2장**(쪽지 톤 `--scrap` 카드: 본문 + 상대 날짜) | 카드 → `/memos` |
 
-- 인사말에 **이름을 쓰지 않는다** — 검증 결과 사용자 이름 데이터가 없다(`AuthMeResponse` = userId/email/kakaoLinked뿐, nickname 부재. 목업의 "나래님"은 더미). 이메일 앞부분 표시는 정서에 어긋나 배제. 카피 예: "안녕하세요." / 날짜 밑 한 줄("오늘도 곁에 있을게요")은 목업 유지.
-- **총 작업시간(작업 리듬 인디케이터)은 포함** — 원칙 4 완화(v2)에 따라 ② 메타 줄에 조용한 한 토막으로. 성과 압박 장치(게이지·그래프·streak 보상)가 아닌 누적 시간 표시만.
-- streak · 목표 게이지 · 주간 그래프 · 자동 인용구 · ghost 타일("이번 주 집필 시간") — **여전히 제외**. 게이미피케이션 배제는 유지되고, "이번 주" 단위 시간은 백엔드 부재로 후속(§8).
+- 인사말에 **이름을 쓰지 않는다** — 사용자 이름 데이터 부재(`AuthMeResponse` = userId/email/kakaoLinked뿐. 목업 "나래님"은 더미).
+- **시간 표시 2종의 역할 분담**(사용자 결정): ② 메타의 누적 총시간 = 그 작품과 함께한 무게(작품별), ③ 이번 주 = 연속 작업 유도 신호(전체). 게이지·그래프·streak 보상 등 압박 장치는 여전히 배제.
+- 자동 인용구·streak·목표 게이지·주간 그래프 — **제외 유지**.
 
 ## 2. 데이터 매핑 — 타일별 출처 (표시값 출처 명시, agent-discipline §9)
 
 | 표시값 | 분류 | 출처 |
 |---|---|---|
-| 인사·날짜 | 클라 정적 | `new Date()` 한국어 포맷(외부 데이터 0) |
-| 최근작 선정 | 파생 | `useProjectCards()` 결과를 **문서 저장 시각(`docUpdatedAt`, 신규 — §3) 내림차순** 정렬, 첫 번째 = 이어서 쓰기, 나머지 = 작품 미니 카드 |
-| 제목·다음 장면 | 저장 입력 | `ProjectCard.title` / `ProjectCard.nextScene` (기존) |
-| 마지막 문장 | 파생 표시 | `lastSentence(card.lastSentenceSource)` — 단 **현재 listCards 가 placeholder(빈 문자열)라 §3 선행 필요** |
-| "N시간 전 저장" | 파생 표시 | `docUpdatedAt`(문서 저장 시각, 신규) → 상대 시간. `project.updatedAt`은 메타 변경 시각이라 "저장" 표기에 부적합 — 미사용 |
-| "N자" | 파생 표시 | `wordCount`(문서 글자수, 신규 — §3) |
-| "총 N시간 M분" | 파생 표시 | `totalDurationMs`(작품별 누적 작업시간, 신규 — §3. 기존 `GET /api/projects/{id}/work-sessions/total`, 기록 화면과 동일 출처) + 기존 `formatDuration`(`lib/progress.ts`) 재사용 |
-| 최근 곁쪽지 | 저장 입력 + 파생 라벨 | `useInboxMemos()` → `capturedAt` 내림차순 상위 2 + `memoView.ts`의 `formatRelativeDay` 재사용 |
+| 인사·날짜 | 클라 정적 | `new Date()` 한국어 포맷(마운트 후 렌더 — hydration 정합) |
+| 최근작 선정 | 파생 | 카드 목록을 **문서 저장 시각(`documentUpdatedAt`) 내림차순**(동률 시 id 내림차순) 정렬, 첫 번째 = ②, 나머지 = ④ |
+| 제목·다음 장면 | 저장 입력 | 카드 응답 `title` / `nextScene` (기존) |
+| 마지막 문장 | 파생 표시 | 작품별 문서 본문 → `extractPlainText` → `lastSentence()` — **클라 파생 유지**(백엔드는 본문 텍스트 파생 없음, §3) |
+| "N시간 전 저장" | 파생 표시 | `documentUpdatedAt` → 시간 단위 상대 포맷(신규 순수함수) |
+| "N자" | 파생 표시 | `wordCount` — **신규 카드 집계 endpoint**(§4 BE-2)가 동봉 |
+| "총 N시간 M분" | 파생 표시 | `totalDurationMs`(작품별 누적) — **신규 카드 집계 endpoint** 동봉 + 기존 `formatDuration` 재사용. 0이면 토막 숨김 |
+| "이번 주 집필 시간" | 파생 표시 | **신규 기간 합계 endpoint**(§4 BE-1) — 프론트가 로컬 기준 주 시작(월요일 00:00)을 계산해 `from/to` 전달. 0이면 줄 숨김 |
+| 최근 곁쪽지 | 저장 입력 + 파생 라벨 | 기존 `useInboxMemos()` → `capturedAt` 내림차순 상위 2 + 기존 `formatRelativeDay` 재사용 |
 
-**백엔드 변경 0** — 전부 기존 endpoint + 클라 조립(014 R6 정합).
+## 3. 데이터 경로 — 카드 집계 + 마지막 문장 클라 파생 (v3 확정)
 
-## 3. 선행 격차 해소 — `listCards()` 마지막 문장 placeholder (핵심 발견)
+**현황(코드 사실)**: `frontend/src/lib/electron-api/projects.ts:39`의 `listCards()`가 `lastSentenceSource: ""` placeholder 반환 → **작품 벽 마지막 문장이 현재 전부 빈 상태**(015 설계와 어긋난 구현 격차). 또한 글자수·저장시각·누적시간을 화면이 쓰려면 작품별 N+1 추가 조회가 필요한 구조였다.
 
-**현황(코드 사실)**: `frontend/src/lib/electron-api/projects.ts:39`의 `listCards()`가 `lastSentenceSource: ""` placeholder를 반환한다("US1 에서 채운다" 주석만 남음). 그 결과 **작품 벽의 마지막 문장도 현재 전부 "아직 첫 문장을 기다리는 중"으로 표시**된다. 015 data-model §1은 `ProjectCard = GET /api/projects + document fetch + 클라 파생`으로 명시했으므로 이는 의도된 보류가 아니라 **구현 격차**다(핸드오프 §3 "데이터 있음"은 타입 기준 서술 — 값은 빈 상태).
-
-**해소(본 설계에 포함)**: `listCards()`를 `logs.list()`와 동일 패턴으로 채운다 —
+**v3 해소**: 백엔드 카드 집계 + 프론트 본문 파생의 혼합 —
 
 ```
-listCards = listProjects(size:100) 후 작품별 [getProjectDocument(id), work-sessions/total] 병렬 fetch
-  → lastSentenceSource = extractPlainText(doc.body)
-  → ProjectCard 에 wordCount: number, docUpdatedAt: string, totalDurationMs: number 필드 추가
+listCards =
+  GET /api/projects/cards (1회)                  ← 신규 BE-2: 제목·다음 장면 + wordCount·documentUpdatedAt·totalDurationMs 동봉
+  + 작품별 getProjectDocument(id) 병렬 (N회)      ← 마지막 문장 파생 원료(본문)만 — 클라 파생 유지
+  → ProjectCard { ...card, lastSentenceSource: extractPlainText(doc.body) }
 ```
 
-(작품별 2 조회 — `logs.list()`의 작품별 3 조회와 동일 구조. v2: 총 작업시간 인디케이터 추가로 total 조회 포함)
+- **마지막 문장을 클라 파생으로 유지하는 이유**(사용자 결정 — "주간+카드 집계" 범위): 백엔드가 본문(ProseMirror JSON)을 파싱하거나 비정규화 컬럼을 추가하는 것은 베타 작품 수 대비 과투자. 문서 N조회는 남지만 v2의 2N(문서+total)에서 N으로 줄고, 집계 숫자(글자수·시각·시간)는 조인 1회로 정리된다.
+- 효과: 대시보드(②④)와 **작품 벽이 한 번에** 015 설계대로 동작(마지막 문장 회복). 캐시 키(`projectKeys.cards()`) 공유로 화면 이동 시 재호출 없음.
+- 기각 대안: (v2안) 전부 클라 N+1 조립 — 백엔드를 여는 결정으로 대체. (전부 BE 집계) 마지막 문장까지 백엔드 파생 — 파싱/비정규화 과투자, 기각(사용자 결정).
 
-- 효과: 대시보드(②③)와 **작품 벽이 한 번에** 015 설계대로 동작. N+1은 `logs.list()` 전례(베타, 작품 소수 전제) 그대로 수용.
-- 캐시: 대시보드·벽 모두 `projectKeys.cards()` 공유 — 화면 이동 시 재호출 없음.
-- 영향 파일: `electron-api/projects.ts`(+테스트), `types/domain.ts`(ProjectCard 필드 3개 추가 — 기존 소비처는 추가 필드라 비파괴).
+## 4. 백엔드 확장 명세 (신규 — Kotlin/Spring, TDD)
 
-대안 비교(기각): (B) 이어서 쓰기 타일만 문서 1건 fetch — 미니 카드·벽의 빈 문장 방치, 목업 미충족. (C) 대시보드 전용 집계 신설 — 벽과 데이터 경로 이원화 + 벽 격차 방치. → **A 채택**(015 설계 의도 완성 + 완성도 우선).
+### BE-1. 기간 작업시간 합계 — `GET /api/work-sessions/total?from={ISO}&to={ISO}`
 
-## 4. 라우팅 · Rail 재편 (`/` → `/library` 영향 전수)
+- **의미**: 인증 사용자의 **전체 작품 횡단**, `from ≤ startedAt < to`인 **종료된 세션**(진행 중·폐기 제외 — 기존 `/total` 규약 동일)의 duration 합. 응답 = 기존 `TotalDurationResponse { totalDurationMs }` 재사용.
+- **시간대 규약**: 서버는 시간대 무지 — 프론트가 사용자 로컬 기준 "이번 주 월요일 00:00"을 ISO instant로 환산해 전달. 주 경계에 걸친 세션은 `startedAt` 기준 귀속(단순·결정적).
+- **검증**: `from < to` 필수(위반 시 400 VALIDATION_FAILED), 401은 기존 공통.
+- **작업**: 컨트롤러 메서드(작품 경로 밖 신규 매핑) + 서비스 + 리포지토리 SUM 쿼리 + IT/단위 테스트.
 
-### 4-1. 라우트
-- `src/app/page.tsx` → **신규 대시보드**(`'use client'` + `useAuthGuard("requireAuth")` + `.app` 셸(Rail+Titlebar) 유지).
-- 기존 ProjectsWallPage → `src/app/library/page.tsx` 이동(내용 불변). `?new=1` searchParam이면 create 모드로 진입(③ "+ 새 작품" 진입로. Next 16 App Router에서 `useSearchParams`는 Suspense 경계 필요 — plan 단계에서 처리).
+### BE-2. 작품 카드 집계 — `GET /api/projects/cards`
 
-### 4-2. Rail (`components/workspace/Rail.tsx`)
+- **의미**: 인증 사용자의 **활성 작품 전량**(베타 소수 전제, 페이지네이션 없음 — 단순 배열)을 카드용 집계와 함께 반환.
+- **응답** `ProjectCardResponse[]`: 기존 `ProjectResponse` 필드 전부 + `wordCount`(문서 글자수) + `documentUpdatedAt`(문서 저장 시각) + `totalDurationMs`(누적 작업시간 — 종료 세션 합).
+- **구현 방향**: 작품(1:1 문서)·세션 합계 조인/그룹 쿼리 — N+1 SQL 금지(글로벌 JPA 룰). 기존 `GET /api/projects`(페이지네이션 목록)는 **불변**(기존 소비처 보호).
+- **작업**: 컨트롤러 + 서비스 + 리포지토리(집계 쿼리) + DTO + IT/단위 테스트.
+
+### 공통
+
+- 읽기 전용 2종 — 에러는 표준(401 AUTH_TOKEN_* / 400 VALIDATION_FAILED). `docs/plan/03-backend-requirements.md` 에러 매트릭스에 신규 코드 추가 없음.
+- 게이트: `./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` (포어그라운드).
+- 계약 문서: spec/plan 단계의 contracts에 요청/응답 JSON 예시 박음. 프론트 shim(`electron-api`)이 이 계약의 소비자.
+
+## 5. 라우팅 · Rail 재편 (`/` → `/library` 영향 전수 — v2와 동일, 변경 없음)
+
+### 5-1. 라우트
+- `src/app/page.tsx` → **신규 대시보드**(`'use client'` + `useAuthGuard("requireAuth")` + `.app` 셸 유지).
+- 기존 ProjectsWallPage → `src/app/library/page.tsx` 이동(내용 불변). `?new=1`이면 create 모드 진입(`useSearchParams`는 Suspense 경계 — `auth/verify` 전례 패턴).
+
+### 5-2. Rail
 | 항목 | 변경 |
 |---|---|
-| **홈** (신규, 최상단) | `href:"/"`, `match: p === "/"` — 대시보드 진입점 |
-| 작품 | `href:"/" → "/library"`, `match: p === "/" → p.startsWith("/library")` |
-| 집필 | fallback `push("/")` 유지 — 마지막 작품 없으면 대시보드(재진입 허브가 그 역할) |
+| **홈** (신규, 최상단) | `href:"/"`, `match: p === "/"` |
+| 작품 | `href:"/" → "/library"`, `match → p.startsWith("/library")` |
+| 집필 | fallback `push("/")` 유지(마지막 작품 없으면 대시보드) |
 | 메모·기록·문의·잉크 한 방울 | 불변 |
 
-Titlebar 제목: 대시보드 = **"홈"**(Rail 라벨과 통일), library = "작품"(기존 유지).
+Titlebar: 대시보드 = "홈", library = "작품"(기존).
 
-### 4-3. 기존 `"/"` 참조 전수 (grep 검증 완료)
+### 5-3. 기존 `"/"` 참조 전수 (grep 검증 완료)
 | 위치 | 처리 |
 |---|---|
-| `projects/[id]/write/page.tsx:81` 작업 종료 후 `push("/")` | **유지** — 세션 종료 후 귀환점 = 대시보드(허브 취지 부합) |
-| `projects/[id]/write/page.tsx:220` "작품 벽으로" 버튼 | `push("/library")`로 변경(라벨-목적지 정합) |
-| `projects/[id]/page.tsx:45,63` (006 레거시 상세) | 유지 — `/` = 홈으로 자연 동작 |
-| `LoginForm.tsx:37` 로그인 후 `push("/")` | 유지 — 로그인 직후 대시보드 |
-| `auth/guard.ts:40` requireAnon → `replace("/")` | 유지 |
-| `not-found.tsx` / `auth/verify-done` `href="/"` | 유지 |
-| `lastProject.ts` (`rememberLastProject`) | **불변** — 집필실 진입 시 기록하는 기존 동작 그대로. 대시보드는 이 값을 쓰지 않고 `docUpdatedAt` 정렬로 최근작을 정한다(localStorage 의존 없이 기기 간 일관) |
+| 집필 page 작업 종료 후 `push("/")` | 유지(귀환점 = 대시보드) |
+| 집필 page 에러 "작품 벽으로" 버튼 | `push("/library")`로 변경 |
+| 레거시 상세(`projects/[id]`)·로그인 후·가드·not-found·verify-done | 유지(`/` = 홈) |
+| `rememberLastProject` | 불변 — 대시보드는 미사용(`documentUpdatedAt` 정렬, 기기 간 일관) |
 
-## 5. 빈 상태
+## 6. 빈 상태
 
 | 상황 | 표시 |
 |---|---|
-| 작품 0 | ②③ 대신 환영 블록(벽의 `welcome` 톤 재사용) + "첫 작품 시작하기" → `/library?new=1` |
-| 작품 있으나 본문 0 | 마지막 문장 자리 = "아직 첫 문장을 기다리는 중"(벽과 동일 카피) |
-| 다음 장면 빈 문자열 | 그 줄 숨김 |
-| 작품 1편뿐 | ③에 "+ 새 작품" 카드만 |
-| 곁쪽지 0 | ④ 라벨 유지 + "아직 곁쪽지가 없어요" 한 줄(조용한 빈 상태) |
-| 로딩/에러 | 벽과 동일 패턴(skel / 재시도 버튼) |
+| 작품 0 | ②~④ 대신 환영 블록(벽 `welcome` 톤 재사용) + "첫 작품 시작하기" → `/library?new=1` |
+| 본문 0 | 마지막 문장 자리 = "아직 첫 문장을 기다리는 중"(벽과 동일 카피) |
+| 다음 장면 빈 문자열 | 줄 숨김 |
+| 작품 1편뿐 | ④에 "+ 새 작품" 카드만 |
+| 이번 주 0분 / 누적 0분 | 해당 줄·토막 숨김(압박 없는 처리) |
+| 곁쪽지 0 | 라벨 유지 + "아직 곁쪽지가 없어요" 한 줄 |
+| 로딩/에러 | 벽과 동일 패턴(skel / 재시도). 카드·주간 조회 부분 실패 시 반쪽 렌더 금지 |
 
-## 6. 스타일 — 웜 토큰 재사용 (확정)
+## 7. 스타일 — 웜 토큰 재사용 (확정, v2와 동일)
 
-- 목업의 대시보드 클래스(`.dash-*`, `.resume*`, `.work-card*`, `.memo-card*`)를 **`desktop-app.css`로 이관**, 값은 전부 기존 토큰(`--bg/--paper/--surface/--scrap/--scrap-edge/--scrap-ink/--hairline/--accent/--radius/--radius-sm/--shadow-paper`) 계승 — 전 토큰 존재 grep 확인 완료. 다크는 `.dark` variant 토큰이 자동 적용.
-- 시안(`01-dashboard.html`)의 Tailwind/Material/blue 는 시각 참고만 — 이식하지 않는다.
-- 접근성: 대비 AA(특히 `--muted` 텍스트), 모든 진입 동작은 button/link 시맨틱 + 포커스 가시화, `prefers-reduced-motion` 시 등장 애니메이션 제거.
+- 목업의 대시보드 클래스(`.dash-*`, `.resume*`, `.work-card*`, `.memo-card*`, ghost 한 줄)를 `desktop-app.css`로 이관, 값은 전부 기존 토큰 계승(전 토큰 존재 grep 확인). 다크는 `.dark` variant 자동.
+- ③ "이번 주" 한 줄은 목업 ghost 타일의 점선 박스를 **실선 없는 조용한 텍스트 줄**로 낮춘다(점선·태그는 목업 장치).
+- 접근성: 대비 AA, button/link 시맨틱 + 포커스 가시, `prefers-reduced-motion` 대응.
 
-## 7. 컴포넌트 분해 · 테스트 (TDD)
+## 8. 컴포넌트 분해 · 테스트 (TDD)
 
 | 단위 | 책임 | 테스트 |
 |---|---|---|
-| `lib/dashboardView.ts` (신규, 순수) | `ProjectCard[]` → `{ resume, others }` 정렬·선정 + 상대시간 포맷 | vitest 단위(빈 배열/1편/동시각/본문 0) — **선작성** |
-| `electron-api/projects.ts` `listCards` | 문서 병렬 fetch + 파생 채움(§3) | 기존 electron-api 테스트 패턴으로 집계 검증 — **선작성** |
-| `components/dashboard/ResumeCard.tsx` | ② 표시 전용(props만) | RTL 행위(제목/문장/빈 상태) |
-| `components/dashboard/WorkMiniCard.tsx` | ③ 카드 표시 전용 | RTL |
-| `app/page.tsx` (대시보드) | 훅 호출 + 조립 + 빈 상태 분기 | RTL 통합(쿼리 mock) |
-| `app/library/page.tsx` | 기존 벽 + `?new=1` create 진입 | 기존 테스트 이동 + searchParam 1건 |
-| `Rail.tsx` | §4-2 재편 | 기존 테스트 보강(있으면) |
+| **BE** `WorkSession*`(기간 합계) | §4 BE-1 | 단위(서비스·경계값 from/to) + IT — **선작성** |
+| **BE** `Project*`(카드 집계) | §4 BE-2 | 단위 + IT(조인 집계 정확성) — **선작성** |
+| `lib/dashboardView.ts` (신규 순수) | 정렬·선정 + 시간 단위 상대 포맷 + 주 시작(월요일) 계산 | vitest 단위 — **선작성** |
+| `electron-api/projects.ts` `listCards` | 카드 endpoint + 문서 N병렬 + 파생 채움(§3) | 기존 테스트 패턴 확장 — **선작성** |
+| `lib/query/useWeeklyTotal`(신규 훅) | 주간 합계 조회(주 시작 키) | 훅/통합 |
+| `components/dashboard/ResumeCard·WorkMiniCard` | ②④ 표시 전용(props만) | RTL 행위 |
+| `app/page.tsx` (대시보드) | 훅 조립 + 빈 상태 분기 | RTL 통합(쿼리 mock) |
+| `app/library/page.tsx` | 기존 벽 + `?new=1` | 렌더 스모크 + searchParam 1건 |
+| `Rail.tsx` | §5-2 재편 | page RTL 네비 단언 |
 
-게이트(017 동일): vitest → `tsc --noEmit`(기존 `documents.test.ts` 1건 무시) → `eslint src` → `pnpm build`(RSC, **작성 직후**). 빌드·테스트 포어그라운드. 기존 무관 부채(`documents.test.ts`·`page.tsx:107` lint)는 불변.
+게이트: **FE** vitest → `tsc --noEmit`(기존 1건 무시) → `eslint src` → `pnpm build`(RSC, 작성 직후). **BE** ktlint(main+test)+checkstyle+test+build. 전부 포어그라운드. 기존 무관 부채(`documents.test.ts`·집필 page lint) 불변.
 
-## 8. 범위 밖
+## 9. 범위 밖
 
-- **"이번 주 집필 시간" 등 기간 단위 작업 리듬 지표** — 원칙 4 완화로 제품상 허용되나, 백엔드에 세션 목록·기간 집계가 없어(`work-sessions`는 start/end/end-with-log/total 뿐 — grep 확인) 백엔드 확장 필요. 별도 spec. ※ 목업 ghost 타일의 "(기존 작업세션 데이터)" 표기는 주간 기준으로는 부정확 — 누적 total만 존재.
-- 게이미피케이션 지표 백엔드(streak/목표 게이지/주간 그래프) · 영감 보드 · Library 정식 재구성 · 작품별 대시보드(옛 2026-05-31 spec) — 각각 별도 spec(게이미피케이션은 원칙 4 완화 후에도 배제 유지).
+- 게이미피케이션 지표(streak/목표 게이지/주간 그래프 시각화) — 원칙 4 완화 후에도 배제. 자동 인용구 — "마찰 설계 > 자동화" 위배.
+- 영감 보드 · Library 정식 재구성 · 작품별 대시보드(옛 2026-05-31 spec) — 별도 spec.
 - 메모 delete/restore 등 015 보류 트랙 — 불변.
+- 마지막 문장의 백엔드 파생(본문 파싱/비정규화) — 과투자로 기각(사용자 결정). 작품 수 증가 시 재검토.

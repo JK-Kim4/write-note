@@ -1,7 +1,7 @@
-# Specification Quality Checklist: 대시보드 허브 (재진입 허브)
+# Specification Quality Checklist: 대시보드 허브 (재진입 허브) — v3
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-06-10
+**Created**: 2026-06-10 (v3 재생성 — 백엔드 확장 포함. 이전 spec·checklist 폐기)
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -31,6 +31,6 @@
 
 ## Notes
 
-- 설계 v2(`docs/superpowers/specs/2026-06-10-dashboard-hub-design.md`)가 사용자 승인 완료 상태라 [NEEDS CLARIFICATION] 0건 — 미확정 지점(인사말 무명, 작업시간 인디케이터 포함, 최근작 기준)이 모두 설계 단계에서 사용자 결정으로 닫혔다.
-- Input 인용문과 설계 SoT 링크에 기술 용어가 포함되나, 본문 FR/SC는 사용자 관찰 가능 동작으로만 서술(라우트 경로 `/`·`/library`는 사용자 가시 URL로 간주).
-- 구현 세부(데이터 경로·컴포넌트 분해·토큰)는 설계 문서와 plan 단계 산출물이 담당.
+- v3 범위 결정(백엔드 확장: 카드 집계+기간 합계 / 시간 표시: 이번 주+누적 둘 다 / 마지막 문장: 화면 파생 유지)이 전부 사용자 인터뷰로 닫혀 [NEEDS CLARIFICATION] 0건.
+- 백엔드 요구는 FR-010~013에 "무엇을 제공하는가"(집계 의미·소유권·검증·기존 계약 보존)로만 서술 — endpoint 경로·쿼리 형태는 설계 v3 §4와 plan 단계 contracts 소관.
+- "이번 주" 경계 규약(월요일 0시·시작 시각 귀속·시간대 책임 분리)은 Assumptions와 US3 시나리오에 명시되어 모호성 없음.
