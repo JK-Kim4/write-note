@@ -1,0 +1,101 @@
+/*
+ * B타입 디자인 에디터 본문 스타일 — fable-test 프로토타입 디자인 + 줄노트 라인.
+ * .b-editor 하위(ProseMirror)에만 적용 — 기존 A 디자인(.paper/.prose)과 완전 격리.
+ *
+ * 줄 격자: 본문 행 높이를 2rem(32px) 고정으로 통일하고, .ProseMirror 배경의
+ * repeating-linear-gradient 가 행마다 밑줄을 그린다(배경이 요소에 붙어 스크롤과 함께 이동).
+ * 블록별 마진을 0 으로 잡아 텍스트가 줄 격자에서 어긋나지 않게 한다.
+ */
+
+/* 스크롤 컨테이너 — 세로 flex(stretch)로 본문이 패널 폭·높이를 채운다.
+ * 기존 .editor-scroll(가운데 정렬 flex)을 재사용하지 않는 전용 클래스 — 폭 0 수축 회귀 방지. */
+.b-editor-scroll {
+    display: flex;
+    flex-direction: column;
+}
+
+.b-editor-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    width: 100%;
+}
+
+.b-editor .ProseMirror {
+    flex: 1;
+    width: 100%;
+    max-width: 48rem;
+    margin: 0 auto;
+    font-size: 1rem;
+    line-height: 2rem; /* 줄 격자 기준 행 높이 */
+    color: #374151; /* gray-700 */
+    outline: none;
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent calc(2rem - 1px),
+        #e5e7eb calc(2rem - 1px),
+        #e5e7eb 2rem
+    );
+}
+
+.b-editor .ProseMirror p {
+    margin: 0;
+}
+
+.b-editor .ProseMirror h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 4rem; /* 2행 폭 — 줄 격자 유지 */
+    color: #111827; /* gray-900 */
+}
+
+.b-editor .ProseMirror h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 2rem;
+    color: #111827;
+}
+
+.b-editor .ProseMirror h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 2rem;
+    color: #111827;
+}
+
+.b-editor .ProseMirror blockquote {
+    margin: 0;
+    border-left: 3px solid #c7d2fe; /* indigo-200 */
+    padding-left: 1rem;
+    color: #4b5563; /* gray-600 */
+}
+
+.b-editor .ProseMirror ul,
+.b-editor .ProseMirror ol {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.b-editor .ProseMirror ul {
+    list-style: disc;
+}
+
+.b-editor .ProseMirror ol {
+    list-style: decimal;
+}
+
+/* 구분선 — 1행(2rem)을 정확히 차지해 줄 격자를 깨지 않는다. */
+.b-editor .ProseMirror hr {
+    height: calc(2rem - 1px);
+    margin: 0;
+    border: none;
+    border-bottom: 1px solid #9ca3af; /* gray-400 */
+}
+
+.b-editor .ProseMirror s {
+    color: #9ca3af; /* gray-400 */
+}

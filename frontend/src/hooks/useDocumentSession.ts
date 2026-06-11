@@ -53,6 +53,12 @@ export interface UseDocumentSessionResult {
     /** 충돌 해제 — conflict 상태만 해제(호출자가 본문을 서버 최신으로 교체). */
     dismissConflict: () => void;
     /**
+     * "서버 최신본 불러오기" — 서버 토큰·본문을 세션 baseline 으로 채택하고 stale draft 를 정리한다.
+     * dismissConflict 와 달리 versionRef 까지 전진시킨다 — 미채택 시 다음 저장이 옛 토큰으로 나가
+     * 409 가 즉시 재발(불러오기→충돌 무한 루프). 호출자는 에디터 본문을 currentBody 로 교체할 것.
+     */
+    reloadFromServer: (currentVersion: string, currentBody: string) => void;
+    /**
      * 본문을 localStorage draft 에 **즉시 동기 기록**(re-render·setState 없음).
      * IME 조합 중(onChange 차단 구간)에도, 언마운트 직전에도 작성분을 보존하기 위한 통로.
      */
@@ -249,6 +255,19 @@ export function useDocumentSession(
         setSyncStatus("idle");
     };
 
+    // 서버 최신본 채택 — 토큰·baseline 을 서버 값으로 전진시키고 내 작성분 draft 를 버린다(US3 불러오기).
+    const reloadFromServer = (currentVersion: string, currentBody: string) => {
+        versionRef.current = currentVersion;
+        baselineBodyRef.current = currentBody;
+        latestBodyRef.current = currentBody;
+        conflictRef.current = false;
+        // 옛 토큰 기반 dirty draft 정리 — 방치 시 재진입 복원·재동기화가 버린 본문을 되살릴 위험.
+        clearDraft(documentId);
+        setConflict(null);
+        setVersion(currentVersion);
+        setSyncStatus("idle");
+    };
+
     // localStorage draft 즉시 기록(동기, re-render 없음) — IME 조합 중·언마운트 직전 작성분 보존.
     // setState 를 하지 않으므로 조합(composition)을 깨지 않는다. latestBodyRef 도 갱신해 다음 동기화에 반영.
     const flushDraft = (nextBody: string) => {
@@ -265,5 +284,5 @@ export function useDocumentSession(
         });
     };
 
-    return { version, syncStatus, wordCount, restoredBody, conflict, overwrite, dismissConflict, flushDraft };
+    return { version, syncStatus, wordCount, restoredBody, conflict, overwrite, dismissConflict, reloadFromServer, flushDraft };
 }

@@ -10,7 +10,11 @@ import { outlineFromDoc, type OutlineItem } from "@/lib/editor/outline";
  * 파생 로직은 순수함수 outlineFromDoc(단위 테스트 보유)에 위임. 본 훅은 에디터 결선(구독/스크롤/점프)만.
  * 점프 pos 는 라이브 doc 에서 index 번째 heading 위치를 해결(JSON 위치 산술 재현 회피).
  */
-export function useEditorOutline(editor: Editor | null): {
+export function useEditorOutline(
+    editor: Editor | null,
+    /** 현재 섹션 추적용 스크롤 컨테이너 선택자 — 기본은 집필실(.editor-scroll), B 디자인은 자체 클래스 전달. */
+    scrollSelector: string = ".editor-scroll",
+): {
     items: OutlineItem[];
     activeIndex: number | null;
     selectItem: (item: OutlineItem) => void;
@@ -36,11 +40,11 @@ export function useEditorOutline(editor: Editor | null): {
         };
     }, [editor]);
 
-    // 현재 섹션 추적 — 스크롤 컨테이너(.editor-scroll) 상단 위 마지막 heading.
+    // 현재 섹션 추적 — 스크롤 컨테이너(scrollSelector) 상단 위 마지막 heading.
     useEffect(() => {
         if (!editor) return;
         const pmDom = editor.view.dom as HTMLElement;
-        const scrollEl = pmDom.closest<HTMLElement>(".editor-scroll");
+        const scrollEl = pmDom.closest<HTMLElement>(scrollSelector);
         if (!scrollEl) return;
         let raf = 0;
         const measure = () => {
@@ -67,7 +71,7 @@ export function useEditorOutline(editor: Editor | null): {
             if (raf) cancelAnimationFrame(raf);
             scrollEl.removeEventListener("scroll", onScroll);
         };
-    }, [editor, items.length]);
+    }, [editor, items.length, scrollSelector]);
 
     // 점프 — index 번째 level1·2 heading 위치 해결 → 커서 이동 + 스크롤(reduced-motion 시 즉시).
     const selectItem = useCallback(

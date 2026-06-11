@@ -296,6 +296,60 @@ describe("useDocumentSession — 진짜 충돌(US3)", () => {
         expect(result.current.conflict).toBeNull();
     });
 
+    it("reloadFromServer → 서버 토큰·본문 채택 후 다음 편집이 새 토큰으로 저장된다(재충돌 루프 회귀)", async () => {
+        let serverToken = "srv-ahead";
+        let conflictCount = 0;
+        let n = 0;
+        server.use(
+            http.put(`${ORIGIN}/api/documents/${DOC_ID}`, async ({ request }) => {
+                const { body, version } = (await request.json()) as { body: string; version: string };
+                if (version !== serverToken) {
+                    conflictCount += 1;
+                    return HttpResponse.json(
+                        {
+                            success: false,
+                            data: { code: "DOCUMENT_VERSION_CONFLICT", currentVersion: serverToken, currentBody: "SRV" },
+                            error: { code: "DOCUMENT_VERSION_CONFLICT", message: "충돌" },
+                        },
+                        { status: 409 },
+                    );
+                }
+                n += 1;
+                serverToken = `rl${n}`;
+                return HttpResponse.json({
+                    success: true,
+                    data: { id: DOC_ID, body, wordCount: 0, version: serverToken, updatedAt: serverToken },
+                    error: null,
+                });
+            }),
+        );
+        const { result, rerender } = renderHook((props) => useDocumentSession(props, FAST), {
+            initialProps: baseParams,
+        });
+        // 세션 토큰(SERVER_VERSION)이 서버(srv-ahead)와 불일치 → 409
+        rerender({ ...baseParams, body: "MY-EDIT" });
+        await waitFor(() => expect(result.current.syncStatus).toBe("conflict"));
+        expect(conflictCount).toBe(1);
+
+        // "서버 최신본 불러오기" — 호출자는 본문을 서버 최신으로 교체한다.
+        act(() => result.current.reloadFromServer("srv-ahead", "SRV"));
+        expect(result.current.conflict).toBeNull();
+        expect(result.current.version).toBe("srv-ahead");
+        // 내 작성분을 버리고 서버본을 채택했으므로 stale draft 는 정리(재진입 시 옛 본문 복원 방지).
+        expect(readDraft(DOC_ID)).toBeNull();
+
+        // 본문이 서버본과 같으므로(채택 직후) 추가 저장 없음 → 재충돌 없음
+        rerender({ ...baseParams, body: "SRV" });
+        await new Promise((r) => setTimeout(r, 30));
+        expect(conflictCount).toBe(1);
+
+        // 다음 편집은 채택한 토큰(srv-ahead)으로 저장 → 409 루프 없이 성공
+        rerender({ ...baseParams, body: "AFTER-RELOAD" });
+        await waitFor(() => expect(result.current.version).toBe("rl1"));
+        expect(result.current.syncStatus).toBe("synced");
+        expect(conflictCount).toBe(1);
+    });
+
     it("dismissConflict → conflict 해제", async () => {
         server.use(
             http.put(`${ORIGIN}/api/documents/${DOC_ID}`, () =>

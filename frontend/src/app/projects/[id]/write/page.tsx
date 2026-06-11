@@ -120,7 +120,8 @@ export default function ProjectWritePage() {
             );
             setBody(currentBody);
             setEditorKey((k) => k + 1);
-            session.dismissConflict();
+            // dismissConflict 만 하면 세션 토큰이 옛 값에 머물러 다음 저장이 또 409(불러오기→충돌 루프).
+            session.reloadFromServer(currentVersion, currentBody);
         },
         [session, queryClient, projectId, doc?.version],
     );
