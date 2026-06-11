@@ -40,17 +40,18 @@ export default function MemoDeskPage() {
     const [draft, setDraft] = useState("");
     // 붙이기 팝오버가 열린 메모 id (한 번에 하나).
     const [linkMenuFor, setLinkMenuFor] = useState<number | null>(null);
-    // 되돌리기 토스트 대상 — seq 로 새 삭제마다 Toast remount(타이머 재시작). desktop 1:1.
-    const [pendingDelete, setPendingDelete] = useState<{ id: number; seq: number } | null>(null);
+    // 되돌리기 토스트 대상 — 연속 삭제는 건수로 묶는다(웹은 휴지통 화면이 없어 토스트가 유일한 복구 경로).
+    // seq 로 새 삭제마다 Toast remount(타이머 재시작). 019 묶음 토스트 — desktop(단일 슬롯)과 의도적 차이.
+    const [pendingDelete, setPendingDelete] = useState<{ ids: number[]; seq: number } | null>(null);
 
     const handleDelete = (memoId: number) => {
-        setPendingDelete((prev) => ({ id: memoId, seq: (prev?.seq ?? 0) + 1 }));
+        setPendingDelete((prev) => ({ ids: [...(prev?.ids ?? []), memoId], seq: (prev?.seq ?? 0) + 1 }));
         deleteMemo.mutate(memoId);
     };
 
     const handleRestore = useCallback(() => {
         if (!pendingDelete) return;
-        restoreMemo.mutate(pendingDelete.id);
+        for (const id of pendingDelete.ids) restoreMemo.mutate(id);
         setPendingDelete(null);
     }, [pendingDelete, restoreMemo]);
 
@@ -224,8 +225,12 @@ export default function MemoDeskPage() {
             {pendingDelete && (
                 <Toast
                     key={pendingDelete.seq}
-                    message="쪽지를 버렸어요."
-                    actionLabel="되돌리기"
+                    message={
+                        pendingDelete.ids.length === 1
+                            ? "쪽지를 버렸어요."
+                            : `쪽지 ${pendingDelete.ids.length}개를 버렸어요.`
+                    }
+                    actionLabel={pendingDelete.ids.length === 1 ? "되돌리기" : "모두 되돌리기"}
                     onAction={handleRestore}
                     onDismiss={dismissToast}
                 />

@@ -26,12 +26,17 @@ interface PreferencesState {
     setManuscriptSize: (size: ManuscriptSize) => void;
 }
 
+/** 초기 기본값 — 계정 전환 시 이전 계정 값 누수 방지 리셋(PreferencesSync 버그픽스 F)에도 쓴다. */
+export const PREFERENCE_DEFAULTS = {
+    theme: "system",
+    writingMode: "editor",
+    manuscriptSize: 400,
+} as const satisfies Pick<PreferencesState, "theme" | "writingMode" | "manuscriptSize">;
+
 export const usePreferences = create<PreferencesState>()(
     persist(
         (set) => ({
-            theme: "system",
-            writingMode: "editor",
-            manuscriptSize: 400,
+            ...PREFERENCE_DEFAULTS,
             setTheme: (theme) => set({ theme }),
             setWritingMode: (writingMode) => set({ writingMode }),
             setManuscriptSize: (manuscriptSize) => set({ manuscriptSize }),

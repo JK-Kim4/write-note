@@ -3,6 +3,7 @@ package com.writenote.controller
 import com.writenote.auth.JwtTokenProvider
 import com.writenote.entity.User
 import com.writenote.repository.UserRepository
+import org.hamcrest.Matchers.nullValue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -83,12 +84,13 @@ class CharacterControllerIT {
             .andExpect(jsonPath("$.data.id").value(characterId))
             .andExpect(jsonPath("$.data.name").value("민지"))
 
+        // patch = 폼 전체 상태 전송(019 버그픽스 D — 콘텐츠 필드 null=비움이라 클라이언트는 전 필드를 보냄)
         mockMvc
             .perform(
                 patch("/api/projects/{projectId}/characters/{id}", projectId, characterId)
                     .header("Authorization", bearer)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"shortDescription":"주인공, 24세 갱신"}"""),
+                    .content("""{"name":"민지","shortDescription":"주인공, 24세 갱신","notes":"회상 능숙"}"""),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.data.shortDescription").value("주인공, 24세 갱신"))
             .andExpect(jsonPath("$.data.name").value("민지"))
@@ -311,15 +313,28 @@ class CharacterControllerIT {
                 .response.contentAsString
                 .let(::extractCharacterId)
 
-        // patch — gender 를 OTHER 로 변경
+        // patch — 전체 상태 전송으로 gender 를 OTHER 로 변경(다른 콘텐츠 필드는 유지값 재전송)
         mockMvc
             .perform(
                 patch("/api/projects/{projectId}/characters/{characterId}", projectId, characterId)
                     .header("Authorization", bearer)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"gender":"OTHER"}"""),
+                    .content("""{"name":"민지","age":"17세 가량","gender":"OTHER","traits":"말수가 적다"}"""),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.data.gender").value("OTHER"))
+            .andExpect(jsonPath("$.data.age").value("17세 가량"))
+
+        // patch — 비움: gender·age·traits 를 null(미포함)로 보내면 비워짐 (019 버그픽스 D)
+        mockMvc
+            .perform(
+                patch("/api/projects/{projectId}/characters/{characterId}", projectId, characterId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"name":"민지"}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.gender").value(nullValue()))
+            .andExpect(jsonPath("$.data.age").value(nullValue()))
+            .andExpect(jsonPath("$.data.traits").value(nullValue()))
 
         // 허용 외 gender — 400
         mockMvc

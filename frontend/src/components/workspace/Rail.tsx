@@ -8,9 +8,12 @@ import { getLastProject } from "@/lib/lastProject";
 /** 화면 전환 rail — desktop Rail 이식(web 라우팅). 하단 잉크 버튼 = 빠른 메모 캡처(QuickCapture). */
 type Item = { key: string; label: string; href: string; match: (p: string) => boolean; icon: ReactNode };
 
-/** 집필실 경로(`/projects/{id}/write`)면 그 작품 id 를 캡처 기본 연결 대상으로 쓴다. 아니면 미연결(null). */
+/**
+ * 현재 경로의 작품 컨텍스트(`/projects/{id}` 이하 전부) — 집필·인물 네비 목적지와 캡처 기본 연결 대상.
+ * 019 버그픽스 A: write 한정이던 것을 작품 경로 전체로 일반화(작품 상세·edit·characters 포함).
+ */
 function activeProjectIdFrom(pathname: string): number | null {
-    const m = pathname.match(/^\/projects\/(\d+)\/write/);
+    const m = pathname.match(/^\/projects\/(\d+)(?:\/|$)/);
     return m ? Number(m[1]) : null;
 }
 
@@ -31,7 +34,8 @@ const ITEMS: Item[] = [
         key: "projects",
         label: "작품",
         href: "/library",
-        match: (p) => p.startsWith("/library"),
+        // 작품 벽 + 작품 상세·메타 편집까지 "작품" 영역 (집필실/인물은 각자 항목이 매칭).
+        match: (p) => p.startsWith("/library") || /^\/projects\/\d+(\/edit)?$/.test(p),
         icon: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />,
     },
     {
@@ -92,17 +96,13 @@ export function Rail() {
     const router = useRouter();
     const [captureOpen, setCaptureOpen] = useState(false);
 
-    // "집필"은 전역 활성작품이 없어 마지막으로 연 작품의 집필실로 보낸다(없으면 홈 — 재진입 허브가 그 역할).
+    // 집필·인물은 작품 종속 — ① 현재 경로의 작품 → ② 마지막으로 연 작품 → ③ fallback(집필=홈, 인물=작품 벽).
     const handleNav = (item: Item) => {
-        if (item.key === "write") {
-            const last = getLastProject();
-            router.push(last !== null ? `/projects/${last}/write` : "/");
-            return;
-        }
-        // 인물은 작품 종속 — 마지막 연 작품의 인물 화면으로, 없으면 작품 벽에서 작품을 고르게 한다.
-        if (item.key === "characters") {
-            const last = getLastProject();
-            router.push(last !== null ? `/projects/${last}/characters` : "/library");
+        if (item.key === "write" || item.key === "characters") {
+            const projectId = activeProjectIdFrom(pathname) ?? getLastProject();
+            const section = item.key === "write" ? "write" : "characters";
+            const fallback = item.key === "write" ? "/" : "/library";
+            router.push(projectId !== null ? `/projects/${projectId}/${section}` : fallback);
             return;
         }
         router.push(item.href);

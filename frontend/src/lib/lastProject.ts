@@ -19,3 +19,10 @@ export function getLastProject(): number | null {
     const n = Number(raw);
     return Number.isFinite(n) ? n : null;
 }
+
+/** 기억 해제 — 작품 삭제 시 stale id 로 Rail 집필/인물이 진입하는 것을 막는다 (019 버그픽스 C). */
+export function clearLastProject(): void {
+    if (typeof localStorage !== "undefined") {
+        localStorage.removeItem(KEY);
+    }
+}

@@ -75,6 +75,11 @@ class CharacterService(
         return characterMapper.toResponse(character)
     }
 
+    /**
+     * 인물 수정 — 콘텐츠 필드(shortDescription·notes·age·gender·traits)는 **전체 상태 교체** 시맨틱:
+     * 요청의 null = 그 필드를 비움. 편집 폼이 항상 전 필드를 전송하는 전제(호출자 = 폼 단일).
+     * [request.name](필수 — 비움 불가)·[request.displayOrder](정렬은 reorder API 소관)만 null = 미변경.
+     */
     @Transactional(rollbackFor = [Exception::class])
     fun updateCharacter(
         userId: Long,
@@ -87,11 +92,11 @@ class CharacterService(
         validateGender(request.gender)
 
         request.name?.let { character.name = it.trim() }
-        request.shortDescription?.let { character.shortDescription = it }
-        request.notes?.let { character.notes = it }
-        request.age?.let { character.age = it }
-        request.gender?.let { character.gender = it }
-        request.traits?.let { character.traits = it }
+        character.shortDescription = request.shortDescription
+        character.notes = request.notes
+        character.age = request.age
+        character.gender = request.gender
+        character.traits = request.traits
         request.displayOrder?.let { character.displayOrder = it }
 
         return characterMapper.toResponse(character)

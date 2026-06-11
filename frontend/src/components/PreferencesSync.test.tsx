@@ -23,6 +23,7 @@ const ME = http.get(`${ORIGIN}/api/auth/me`, () =>
 );
 
 beforeEach(() => {
+    localStorage.removeItem("wn:prefsOwner");
     usePreferences.setState({ theme: "system", writingMode: "editor", manuscriptSize: 400 });
 });
 
@@ -94,5 +95,85 @@ describe("PreferencesSync", () => {
 
         await waitFor(() => expect(lastPut).not.toBeNull(), { timeout: 2000 });
         expect(lastPut).toMatchObject({ theme: "dark" });
+    });
+});
+
+/**
+ * 계정 전환 격리 (019 버그픽스 F) — 로그아웃→다른 계정 로그인이 SPA 내 전환(풀 리로드 없음)이라
+ * 컴포넌트가 살아있는 채 me 가 바뀐다. 사용자 단위로 재하이드레이트하고, 이전 계정 로컬값이
+ * 새 계정 서버로 시딩되지 않아야 한다.
+ */
+describe("PreferencesSync 계정 전환 (버그 F)", () => {
+    function setupSwitchableServer(opts: {
+        settingsFor: (userId: number) => Record<string, string>;
+        onPut?: (settings: Record<string, string>) => void;
+    }) {
+        const state = { currentUser: 1 };
+        server.use(
+            http.get(`${ORIGIN}/api/auth/me`, () =>
+                HttpResponse.json({
+                    success: true,
+                    data: { userId: state.currentUser, email: "u@b.com" },
+                    error: null,
+                }),
+            ),
+            http.get(`${ORIGIN}/api/settings`, () =>
+                HttpResponse.json({
+                    success: true,
+                    data: { settings: opts.settingsFor(state.currentUser) },
+                    error: null,
+                }),
+            ),
+            http.put(`${ORIGIN}/api/settings`, async ({ request }) => {
+                const body = (await request.json()) as { settings: Record<string, string> };
+                opts.onPut?.(body.settings);
+                return HttpResponse.json({ success: true, data: { settings: body.settings }, error: null });
+            }),
+        );
+        return state;
+    }
+
+    it("계정이 바뀌면 새 계정의 서버 설정으로 재하이드레이트한다", async () => {
+        const state = setupSwitchableServer({
+            settingsFor: (userId) => (userId === 1 ? { theme: "dark" } : { theme: "light" }),
+        });
+        const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+        render(
+            <QueryClientProvider client={client}>
+                <PreferencesSync />
+            </QueryClientProvider>,
+        );
+        await waitFor(() => expect(usePreferences.getState().theme).toBe("dark"));
+
+        state.currentUser = 2;
+        await client.invalidateQueries({ queryKey: ["auth", "me"] });
+
+        await waitFor(() => expect(usePreferences.getState().theme).toBe("light"));
+    });
+
+    it("계정 전환 후 서버 설정이 없으면 이전 계정 로컬값 대신 기본값으로 리셋·시딩한다", async () => {
+        const puts: Array<Record<string, string>> = [];
+        const state = setupSwitchableServer({
+            settingsFor: (userId): Record<string, string> =>
+                userId === 1 ? { theme: "dark", manuscriptSize: "200" } : {},
+            onPut: (settings) => puts.push(settings),
+        });
+        const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+        render(
+            <QueryClientProvider client={client}>
+                <PreferencesSync />
+            </QueryClientProvider>,
+        );
+        // 계정 1 — 서버값(dark/200) 주입 완료
+        await waitFor(() => expect(usePreferences.getState().theme).toBe("dark"));
+        expect(usePreferences.getState().manuscriptSize).toBe(200);
+
+        state.currentUser = 2;
+        await client.invalidateQueries({ queryKey: ["auth", "me"] });
+
+        // 계정 2 시딩은 계정 1 의 dark/200 이 아닌 기본값이어야 한다
+        await waitFor(() => expect(puts.length).toBeGreaterThan(0));
+        expect(puts.at(-1)).toMatchObject({ theme: "system", manuscriptSize: "400" });
+        expect(usePreferences.getState().theme).toBe("system");
     });
 });

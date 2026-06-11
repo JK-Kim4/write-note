@@ -155,4 +155,25 @@ describe("CharactersPage", () => {
 
         await waitFor(() => expect(reorderedIds).toEqual([2, 1]));
     });
+
+    it("삭제된 작품으로 진입하면 빈 목록 대신 찾을 수 없음 안내를 보여준다 (019 버그픽스 후속)", async () => {
+        server.use(
+            ME,
+            http.get(`${ORIGIN}/api/projects/42/characters`, () =>
+                HttpResponse.json(
+                    {
+                        success: false,
+                        data: null,
+                        error: { code: "RESOURCE_NOT_FOUND", message: "Project not found" },
+                    },
+                    { status: 404 },
+                ),
+            ),
+        );
+        renderWithClient(<CharactersPage />);
+
+        expect(await screen.findByText("프로젝트를 찾을 수 없습니다")).toBeInTheDocument();
+        // 인물 추가 폼(빈 상태 UI)은 노출되지 않는다
+        expect(screen.queryByText("새 등장인물")).not.toBeInTheDocument();
+    });
 });
