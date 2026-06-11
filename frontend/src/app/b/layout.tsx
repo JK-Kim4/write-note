@@ -1,12 +1,12 @@
 "use client";
 
-import "./b.css";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
 import { logout } from "@/lib/api/auth";
+import { getLastProject } from "@/lib/lastProject";
 
 /**
  * B타입 디자인 앱 셸 — fable-test 프로토타입 Layout 이식 (디자인 비교용).
@@ -21,6 +21,9 @@ const NAV_ITEMS = [
     { href: "/b/logs", label: "기록", exact: false },
     { href: "/b/settings", label: "설정", exact: false },
 ] as const;
+
+const NAV_ACTIVE_CLASS = "rounded-md bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700";
+const NAV_IDLE_CLASS = "rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900";
 
 export default function BLayout({ children }: { children: React.ReactNode }) {
     useAuthGuard("requireAuth");
@@ -52,22 +55,31 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                         </span>
                     </Link>
                     <nav className="flex flex-1 items-center gap-1">
-                        {NAV_ITEMS.map((item) => {
+                        {NAV_ITEMS.map((item, i) => {
                             const isActive = item.exact
                                 ? pathname === item.href
                                 : pathname.startsWith(item.href);
                             return (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    className={
-                                        isActive
-                                            ? "rounded-md bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700"
-                                            : "rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                                    }
-                                >
-                                    {item.label}
-                                </Link>
+                                <span key={item.href} className="contents">
+                                    <Link href={item.href} className={isActive ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS}>
+                                        {item.label}
+                                    </Link>
+                                    {/* 집필 — 마지막으로 연 작품의 집필 화면으로(없으면 작품 목록). A Rail 과 동일 동작. */}
+                                    {i === 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const last = getLastProject();
+                                                router.push(last != null ? `/b/works/${last}` : "/b");
+                                            }}
+                                            className={
+                                                pathname.startsWith("/b/works") ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS
+                                            }
+                                        >
+                                            집필
+                                        </button>
+                                    )}
+                                </span>
                             );
                         })}
                     </nav>

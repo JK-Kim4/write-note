@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -10,15 +10,18 @@ import { useProject } from "@/lib/query/useProjects";
 import { logKeys } from "@/lib/query/useLogs";
 import { useDocumentSession } from "@/hooks/useDocumentSession";
 import { useWorkSession } from "@/hooks/useWorkSession";
+import { rememberLastProject } from "@/lib/lastProject";
 import { useEditorOutline } from "@/components/editor/useEditorOutline";
-import { BEditor } from "@/components/b/BEditor";
+import { PaperEditor, type DocumentChange } from "@/components/editor/PaperEditor";
+import { extractPlainText } from "@/components/editor/wordCountUtils";
 import { BWorkSidePanel } from "@/components/b/BWorkSidePanel";
 import type { ProjectDocument } from "@/lib/types/domain";
 
 /**
- * B타입 집필 화면 — fable-test WorkDetailPage 3패널 이식: [목차 w-64 | 에디터 | 메모·인물 w-80].
- * 자동저장 결선(useDocumentSession — localStorage draft·버전 토큰·충돌)과 작업 세션(useWorkSession)은
- * A 디자인 집필실과 동일 규약. 화면 전체 높이를 기능 패널로 채운다(공백 최소화).
+ * B타입 집필 화면 — fable-test WorkDetailPage 3패널 골격: [목차 w-64 | 원고 | 메모·인물 w-80].
+ * 원고 영역은 기존(A) PaperEditor 그대로 — 줄노트·페이지 분할·말풍선 서식 메뉴 동일(사용자 요구).
+ * 자동저장 결선(useDocumentSession — localStorage draft·버전 토큰·충돌)과 작업 세션(useWorkSession)도
+ * A 집필실과 동일 규약. 화면 전체 높이를 기능 패널로 채운다(공백 최소화).
  */
 const EMPTY_DOC = JSON.stringify({ type: "doc", content: [] });
 
@@ -32,14 +35,23 @@ export default function BWorkDetailPage() {
     const { data: doc, isLoading, isError } = useProjectDocument(projectId);
 
     const [body, setBody] = useState<string | null>(null);
-    // editorKey: 복구/충돌 시 BEditor 강제 리마운트용(본문 교체 반영).
+    // editorKey: 복구/충돌 시 PaperEditor 강제 리마운트용(본문 교체 반영).
     const [editorKey, setEditorKey] = useState(0);
+    const [lined, setLined] = useState(true);
+    const [zoom, setZoom] = useState(1);
     const [editor, setEditor] = useState<Editor | null>(null);
+    // 타이핑으로 갱신된 글자수(공백 제외). 입력 전엔 서버 본문에서 파생한 초기값 표시.
+    const [typedCount, setTypedCount] = useState<number | null>(null);
     const [endWorkOpen, setEndWorkOpen] = useState(false);
     const [endWorkBody, setEndWorkBody] = useState("");
     const [isEndingWork, setIsEndingWork] = useState(false);
 
     const { endWithLog } = useWorkSession(projectId);
+
+    // 집필 네비("집필" 메뉴)가 돌아올 작품으로 기억 — A Rail 과 동일한 lastProject 공유.
+    useEffect(() => {
+        if (Number.isFinite(projectId)) rememberLastProject(projectId);
+    }, [projectId]);
 
     const session = useDocumentSession({
         documentId: doc?.id ?? 0,
@@ -62,7 +74,17 @@ export default function BWorkDetailPage() {
         if (session.restoredBody != null) setBody((b) => b ?? session.restoredBody);
     }, [session.restoredBody]);
 
-    const handleChange = useCallback((change: { bodyJson: string }) => setBody(change.bodyJson), []);
+    const handleChange = useCallback((change: DocumentChange) => {
+        setBody(change.bodyJson);
+        setTypedCount(change.wordCount);
+    }, []);
+
+    // 진입 직후(타이핑 전) 글자수 — 초기 본문에서 파생.
+    const initialCount = useMemo(
+        () => extractPlainText(initialBody ?? doc?.bodyJson ?? "").replace(/\s/g, "").length,
+        [initialBody, doc?.bodyJson],
+    );
+    const charCount = typedCount ?? initialCount;
 
     // 진짜 충돌(409) — 다시 불러오기: 서버 최신본 채택 / 덮어쓰기: 내 본문 강제 저장.
     const handleReload = useCallback(() => {
@@ -104,7 +126,7 @@ export default function BWorkDetailPage() {
               : session.syncStatus === "conflict"
                 ? "충돌 — 다른 기기에서 수정됨"
                 : "저장됨";
-    const statusTone = session.syncStatus === "error" || session.syncStatus === "conflict" ? "error" : "ok";
+    const isStatusError = session.syncStatus === "error" || session.syncStatus === "conflict";
 
     return (
         <div className="flex h-[calc(100vh-6.5rem)] gap-4">
@@ -159,35 +181,71 @@ export default function BWorkDetailPage() {
                 </div>
             </div>
 
-            {Number.isNaN(projectId) ? (
-                <div className="flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white">
-                    <p className="text-sm text-gray-500">잘못된 작품입니다.</p>
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white">
+                <div className="flex items-center justify-end gap-3 border-b border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-500">
+                    <label className="flex items-center gap-1.5">
+                        <input type="checkbox" checked={lined} onChange={(e) => setLined(e.target.checked)} />
+                        줄노트
+                    </label>
+                    <div className="flex items-center gap-1">
+                        <button
+                            type="button"
+                            aria-label="축소"
+                            onClick={() => setZoom((z) => Math.max(0.5, Math.round((z - 0.1) * 10) / 10))}
+                            className="rounded-md px-2 py-0.5 text-sm text-gray-600 hover:bg-gray-100"
+                        >
+                            −
+                        </button>
+                        <span className="min-w-9 text-center">{Math.round(zoom * 100)}%</span>
+                        <button
+                            type="button"
+                            aria-label="확대"
+                            onClick={() => setZoom((z) => Math.min(2, Math.round((z + 0.1) * 10) / 10))}
+                            className="rounded-md px-2 py-0.5 text-sm text-gray-600 hover:bg-gray-100"
+                        >
+                            +
+                        </button>
+                    </div>
                 </div>
-            ) : isLoading ? (
-                <div className="flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white">
-                    <p className="text-sm text-gray-400">문서 불러오는 중…</p>
+                {/* .studio — desktop-app.css 가 .editor-scroll 에 flex:1 을 줘 원고가 카드 높이를 채운다. */}
+                <div
+                    className="studio min-h-0 flex-1"
+                    style={{ ["--zoom"]: zoom, backgroundColor: "var(--w-canvas)" } as CSSProperties}
+                >
+                    {Number.isNaN(projectId) ? (
+                        <p className="w-full self-center text-center text-sm text-gray-500">잘못된 작품입니다.</p>
+                    ) : isLoading ? (
+                        <p className="w-full self-center text-center text-sm text-gray-400">문서 불러오는 중…</p>
+                    ) : isError || !doc ? (
+                        <div className="flex w-full flex-col items-center gap-3 self-center">
+                            <p className="text-sm text-gray-500">문서를 불러올 수 없습니다.</p>
+                            <Link
+                                href="/b"
+                                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                            >
+                                작품 목록으로
+                            </Link>
+                        </div>
+                    ) : (
+                        <PaperEditor
+                            key={editorKey}
+                            title={projectTitle}
+                            initialBodyJson={initialBody ?? doc.bodyJson}
+                            onChange={handleChange}
+                            onDraftUpdate={session.flushDraft}
+                            onEditorReady={setEditor}
+                            lined={lined}
+                            zoom={zoom}
+                        />
+                    )}
                 </div>
-            ) : isError || !doc ? (
-                <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white">
-                    <p className="text-sm text-gray-500">문서를 불러올 수 없습니다.</p>
-                    <Link
-                        href="/b"
-                        className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
-                    >
-                        작품 목록으로
-                    </Link>
+                <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-1.5 text-xs text-gray-500">
+                    <span role="status" aria-live="polite" className={isStatusError ? "text-red-600" : undefined}>
+                        {statusLabel}
+                    </span>
+                    <span>{charCount.toLocaleString()}자 (공백 제외)</span>
                 </div>
-            ) : (
-                <BEditor
-                    key={editorKey}
-                    initialBodyJson={initialBody ?? doc.bodyJson}
-                    onChange={handleChange}
-                    onDraftUpdate={session.flushDraft}
-                    onEditorReady={setEditor}
-                    statusLabel={statusLabel}
-                    statusTone={statusTone}
-                />
-            )}
+            </div>
 
             <BWorkSidePanel projectId={projectId} />
 
