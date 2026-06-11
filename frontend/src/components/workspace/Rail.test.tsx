@@ -55,14 +55,27 @@ describe("Rail 집필·인물 네비 (버그 A)", () => {
         expect(push).toHaveBeenCalledWith("/projects/7/write");
     });
 
-    it("작품 컨텍스트도 lastProject 도 없으면 집필=홈, 인물=작품 벽으로 fallback", async () => {
+    it("작품 컨텍스트도 lastProject 도 없으면 이동하지 않고 안내 토스트를 띄운다", async () => {
         pathname = "/memos";
         const user = userEvent.setup();
         render(<Rail />);
 
         await user.click(screen.getByRole("button", { name: "집필" }));
-        expect(push).toHaveBeenCalledWith("/");
+        expect(push).not.toHaveBeenCalled();
+        expect(screen.getByText("집필할 작품이 아직 없어요.")).toBeInTheDocument();
+
         await user.click(screen.getByRole("button", { name: "인물" }));
+        expect(push).not.toHaveBeenCalled();
+        expect(screen.getByText("인물을 둘 작품이 아직 없어요.")).toBeInTheDocument();
+    });
+
+    it("빈 컨텍스트 안내 토스트의 '작품 벽으로' 액션은 작품 벽으로 보낸다", async () => {
+        pathname = "/memos";
+        const user = userEvent.setup();
+        render(<Rail />);
+
+        await user.click(screen.getByRole("button", { name: "집필" }));
+        await user.click(screen.getByRole("button", { name: "작품 벽으로" }));
         expect(push).toHaveBeenCalledWith("/library");
     });
 
@@ -102,5 +115,24 @@ describe("Rail 하이라이트 (버그 B)", () => {
         render(<Rail />);
         expect(screen.getByRole("button", { name: "인물" })).toHaveAttribute("aria-current", "page");
         expect(screen.getByRole("button", { name: "작품" })).not.toHaveAttribute("aria-current");
+    });
+});
+
+describe("Rail 설정 진입점", () => {
+    beforeEach(() => push.mockClear());
+
+    it("설정 항목 클릭 시 설정 페이지로 간다", async () => {
+        pathname = "/";
+        const user = userEvent.setup();
+        render(<Rail />);
+
+        await user.click(screen.getByRole("button", { name: "설정" }));
+        expect(push).toHaveBeenCalledWith("/settings");
+    });
+
+    it("설정 페이지에서 설정 항목이 켜진다", () => {
+        pathname = "/settings";
+        render(<Rail />);
+        expect(screen.getByRole("button", { name: "설정" })).toHaveAttribute("aria-current", "page");
     });
 });

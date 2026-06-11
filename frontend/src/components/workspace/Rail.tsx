@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { QuickCapture } from "@/components/QuickCapture";
+import { Toast } from "@/components/ui/Toast";
 import { getLastProject } from "@/lib/lastProject";
 
 /** 화면 전환 rail — desktop Rail 이식(web 라우팅). 하단 잉크 버튼 = 빠른 메모 캡처(QuickCapture). */
@@ -89,20 +90,39 @@ const ITEMS: Item[] = [
             </>
         ),
     },
+    {
+        key: "settings",
+        label: "설정",
+        href: "/settings",
+        match: (p) => p.startsWith("/settings"),
+        icon: (
+            <>
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51.88Z" />
+            </>
+        ),
+    },
 ];
 
 export function Rail() {
     const pathname = usePathname();
     const router = useRouter();
     const [captureOpen, setCaptureOpen] = useState(false);
+    // 빈 컨텍스트 안내 — seq 로 재클릭마다 Toast remount(타이머 재시작).
+    const [noProjectHint, setNoProjectHint] = useState<{ message: string; seq: number } | null>(null);
 
-    // 집필·인물은 작품 종속 — ① 현재 경로의 작품 → ② 마지막으로 연 작품 → ③ fallback(집필=홈, 인물=작품 벽).
+    // 집필·인물은 작품 종속 — ① 현재 경로의 작품 → ② 마지막으로 연 작품 → ③ 컨텍스트 없으면 이동하지 않고
+    // 안내 토스트("작품 벽으로" 액션 포함). 묵음 이동(홈/작품벽)이 "이상한 메뉴로 간다"는 혼란을 줬던 회귀의 픽스.
     const handleNav = (item: Item) => {
         if (item.key === "write" || item.key === "characters") {
             const projectId = activeProjectIdFrom(pathname) ?? getLastProject();
+            if (projectId === null) {
+                const message = item.key === "write" ? "집필할 작품이 아직 없어요." : "인물을 둘 작품이 아직 없어요.";
+                setNoProjectHint((prev) => ({ message, seq: (prev?.seq ?? 0) + 1 }));
+                return;
+            }
             const section = item.key === "write" ? "write" : "characters";
-            const fallback = item.key === "write" ? "/" : "/library";
-            router.push(projectId !== null ? `/projects/${projectId}/${section}` : fallback);
+            router.push(`/projects/${projectId}/${section}`);
             return;
         }
         router.push(item.href);
@@ -138,6 +158,19 @@ export function Rail() {
 
             {captureOpen && (
                 <QuickCapture activeProjectId={activeProjectIdFrom(pathname)} onClose={() => setCaptureOpen(false)} />
+            )}
+
+            {noProjectHint && (
+                <Toast
+                    key={noProjectHint.seq}
+                    message={noProjectHint.message}
+                    actionLabel="작품 벽으로"
+                    onAction={() => {
+                        setNoProjectHint(null);
+                        router.push("/library");
+                    }}
+                    onDismiss={() => setNoProjectHint(null)}
+                />
             )}
         </nav>
     );
