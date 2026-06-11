@@ -286,6 +286,61 @@ class CharacterControllerIT {
             .andExpect(status().isUnauthorized)
     }
 
+    @Test
+    @DisplayName("확장 필드(나이·성별·특징) create/patch 반영 + gender 허용 외 값 400 (019 US3)")
+    fun `character expansion fields and gender validation`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+        val projectId = createProject(bearer, "확장 작품")
+
+        // create — age(자유 텍스트)·gender(MALE)·traits 반영
+        val characterId =
+            mockMvc
+                .perform(
+                    post("/api/projects/{projectId}/characters", projectId)
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """{"name":"민지","age":"17세 가량","gender":"FEMALE","traits":"말수가 적다"}""",
+                        ),
+                ).andExpect(status().isCreated)
+                .andExpect(jsonPath("$.data.age").value("17세 가량"))
+                .andExpect(jsonPath("$.data.gender").value("FEMALE"))
+                .andExpect(jsonPath("$.data.traits").value("말수가 적다"))
+                .andReturn()
+                .response.contentAsString
+                .let(::extractCharacterId)
+
+        // patch — gender 를 OTHER 로 변경
+        mockMvc
+            .perform(
+                patch("/api/projects/{projectId}/characters/{characterId}", projectId, characterId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"gender":"OTHER"}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.gender").value("OTHER"))
+
+        // 허용 외 gender — 400
+        mockMvc
+            .perform(
+                post("/api/projects/{projectId}/characters", projectId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"name":"불명인","gender":"UNICORN"}"""),
+            ).andExpect(status().isBadRequest)
+
+        // gender 비움(null) 허용 — 생성 성공
+        mockMvc
+            .perform(
+                post("/api/projects/{projectId}/characters", projectId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"name":"구상중","age":"불명"}"""),
+            ).andExpect(status().isCreated)
+            .andExpect(jsonPath("$.data.age").value("불명"))
+    }
+
     private fun createUser(): User =
         userRepository.saveAndFlush(
             User(email = "character-${UUID.randomUUID()}@example.com", passwordHash = "test-fixture-password-hash"),

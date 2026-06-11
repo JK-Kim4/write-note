@@ -104,6 +104,12 @@ export function patchMemo(id: number, input: PatchMemoInput): Promise<MemoRespon
     });
 }
 
+/** DELETE /api/memos/{id} — 버리기(soft-delete, 연결 보존). 멱등. */
 export function deleteMemo(id: number): Promise<void> {
     return apiFetch<void>(`/api/memos/${id}`, { method: "DELETE" });
+}
+
+/** POST /api/memos/{id}/restore — 버린 곁쪽지 되돌리기(연결·고정 복귀). 멱등. */
+export function restoreMemo(id: number): Promise<MemoResponse> {
+    return apiFetch<MemoResponse>(`/api/memos/${id}/restore`, { method: "POST" });
 }

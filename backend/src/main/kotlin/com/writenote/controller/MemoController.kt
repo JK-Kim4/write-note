@@ -133,15 +133,15 @@ class MemoController(
         return ResponseEntity.ok(Result.success(response))
     }
 
-    /** M5 — 삭제 (cascade: MemoProject/MemoProjectCharacter 정리). */
+    /** M5 — 버리기 (soft-delete). 연결행 보존 → 복원 가능. 이미 버려진 메모면 멱등(204). */
     @DeleteMapping("/{id}")
     @Operation(
-        summary = "메모 삭제",
-        description = "본인 메모 영구 삭제 — MemoProject / MemoProjectCharacter cascade 정리.",
+        summary = "메모 버리기",
+        description = "본인 메모 버리기(soft-delete) — 연결 보존, POST /{id}/restore 로 복원 가능. 이미 버려졌으면 멱등.",
     )
     @ApiResponses(
         value = [
-            ApiResponse(responseCode = "204", description = "삭제 성공 — body 없음"),
+            ApiResponse(responseCode = "204", description = "버리기 성공 — body 없음"),
             ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
             ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND — 본인 소유 아님 / 미존재"),
         ],
@@ -152,6 +152,27 @@ class MemoController(
     ): ResponseEntity<Void> {
         memoEditService.deleteMemo(userId = principal.userId, memoId = id)
         return ResponseEntity.noContent().build()
+    }
+
+    /** 버린 메모 되돌리기 — deletedAt 을 NULL 로. 연결·고정 복귀. 버려지지 않았으면 멱등(200). */
+    @PostMapping("/{id}/restore")
+    @Operation(
+        summary = "메모 되돌리기",
+        description = "버린 본인 메모를 되돌린다(soft-delete 해제) — 작품 연결·고정 복귀. 버려지지 않았으면 멱등.",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "복원 성공 — MemoResponse"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND — 본인 소유 아님 / 미존재"),
+        ],
+    )
+    fun restoreMemo(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @PathVariable id: Long,
+    ): ResponseEntity<Result<MemoResponse>> {
+        val response = memoEditService.restoreMemo(userId = principal.userId, memoId = id)
+        return ResponseEntity.ok(Result.success(response))
     }
 
     /** M7 — 큐레이션 (선언적 전체 상태, 차이 계산 + 단일 트랜잭션). */

@@ -8,11 +8,18 @@
  * - 캡처(POST /api/memos)는 작품을 "연결"하지 않고 activeProjectAtCapture(맥락)만 기록한다. 따라서
  *   linkProjectId 가 주어지면 캡처 후 curation 으로 그 작품에 연결해야 서랍(listByProject)에 나타난다.
  * - addLink/removeLink 는 선언적 큐레이션(PUT /api/memos/{id}/curation)으로 매핑 — 현재 상태를 읽고 차이 반영.
- *
- * 보류(별도 트랙): delete/restore — 백엔드가 영구 삭제만 지원(soft-delete·restore 부재). desktop 1:1
- * "되돌리기"는 014 에 deletedAt + restore endpoint 추가 필요(015 범위 밖). HANDOFF/회고에 surfacing.
+ * - delete/restore 는 soft-delete(deletedAt) + 복원 endpoint 로 매핑(019 US1) — 연결 보존, 되돌리기 시 복귀.
  */
-import { captureMemo, curateMemo, getMemo, listMemos, listProjectMemos, setProjectMemoPin } from "@/lib/api/memo";
+import {
+    captureMemo,
+    curateMemo,
+    deleteMemo,
+    getMemo,
+    listMemos,
+    listProjectMemos,
+    restoreMemo,
+    setProjectMemoPin,
+} from "@/lib/api/memo";
 import type { CurationInput } from "@/lib/api/memo";
 import type { MemoResponse, ProjectMemoResponse } from "@/types/api";
 import type { LinkedProject, Memo, ProjectMemo } from "@/lib/types/domain";
@@ -104,6 +111,16 @@ export const memos = {
             ...input,
             projectConnections: input.projectConnections.filter((c) => c.projectId !== projectId),
         });
+    },
+
+    /** 곁쪽지 버리기(soft-delete) — 연결 보존, restore 로 복귀 가능. */
+    delete: async (memoId: number): Promise<void> => {
+        await deleteMemo(memoId);
+    },
+
+    /** 버린 곁쪽지 되돌리기 — 작품 연결·고정 복귀. */
+    restore: async (memoId: number): Promise<void> => {
+        await restoreMemo(memoId);
     },
 
     /**

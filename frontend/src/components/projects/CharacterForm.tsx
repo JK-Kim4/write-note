@@ -3,8 +3,16 @@
 import { useState } from "react";
 import { FormInput } from "@/components/ui/FormInput";
 import { FormTextarea } from "@/components/ui/FormTextarea";
-import type { CreateCharacterInput } from "@/lib/api/characters";
+import type { CreateCharacterInput, Gender } from "@/lib/api/characters";
 import type { CharacterResponse } from "@/types/api";
+
+/** 성별 드롭다운 옵션 — 빈 값(비움) + 3 코드. value 는 서버 코드, label 은 한글. */
+const GENDER_OPTIONS: ReadonlyArray<{ value: "" | Gender; label: string }> = [
+    { value: "", label: "선택 안 함" },
+    { value: "MALE", label: "남" },
+    { value: "FEMALE", label: "여" },
+    { value: "OTHER", label: "기타" },
+];
 
 /**
  * CharacterForm — 등장인물 생성·편집 공용 폼 (US4).
@@ -25,6 +33,9 @@ export function CharacterForm({ initial, onSubmit, onCancel, pending, error }: C
     const [name, setName] = useState(initial?.name ?? "");
     const [shortDescription, setShortDescription] = useState(initial?.shortDescription ?? "");
     const [notes, setNotes] = useState(initial?.notes ?? "");
+    const [age, setAge] = useState(initial?.age ?? "");
+    const [gender, setGender] = useState<"" | Gender>(initial?.gender ?? "");
+    const [traits, setTraits] = useState(initial?.traits ?? "");
     const [nameError, setNameError] = useState<string | null>(null);
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -38,6 +49,9 @@ export function CharacterForm({ initial, onSubmit, onCancel, pending, error }: C
             name: name.trim(),
             shortDescription: shortDescription.trim() || null,
             notes: notes.trim() || null,
+            age: age.trim() || null,
+            gender: gender || null,
+            traits: traits.trim() || null,
         });
     };
 
@@ -73,6 +87,31 @@ export function CharacterForm({ initial, onSubmit, onCancel, pending, error }: C
                 value={shortDescription}
                 onChange={(e) => setShortDescription(e.target.value)}
             />
+            <FormInput name="age" label="나이" value={age} onChange={(e) => setAge(e.target.value)} />
+            <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium" style={{ color: "var(--w-ink)" }}>
+                    성별
+                </span>
+                <select
+                    name="gender"
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value as "" | Gender)}
+                    className="px-3 py-2 rounded-input"
+                    style={{
+                        backgroundColor: "var(--w-canvas)",
+                        border: "1px solid var(--w-hairline)",
+                        color: "var(--w-ink)",
+                        fontSize: "15px",
+                    }}
+                >
+                    {GENDER_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                        </option>
+                    ))}
+                </select>
+            </label>
+            <FormTextarea name="traits" label="특징" value={traits} onChange={setTraits} />
             <FormTextarea name="notes" label="노트" value={notes} onChange={setNotes} />
             {error ? (
                 <p role="alert" style={{ color: "var(--w-error)", fontSize: "14px" }}>

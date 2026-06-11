@@ -71,6 +71,9 @@ export interface CharacterResponse {
     name: string;
     shortDescription: string | null;
     notes: string | null;
+    age: string | null;
+    gender: "MALE" | "FEMALE" | "OTHER" | null;
+    traits: string | null;
     displayOrder: number;
     createdAt: string;
     updatedAt: string;

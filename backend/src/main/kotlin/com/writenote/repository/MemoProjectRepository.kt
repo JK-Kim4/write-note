@@ -14,12 +14,13 @@ interface MemoProjectRepository : JpaRepository<MemoProject, Long> {
 
     fun findAllByProjectIdAndPinnedIsTrue(projectId: Long): List<MemoProject>
 
-    /** 작품 맥락 곁쪽지 목록 — memo JOIN FETCH, 고정 우선·최신순. */
+    /** 작품 맥락 곁쪽지 목록 — memo JOIN FETCH, 고정 우선·최신순. 버려진 곁쪽지 제외(서랍·재진입 카드 공용). */
     @Query(
         """
         SELECT mp FROM MemoProject mp
         JOIN FETCH mp.memo m
         WHERE mp.projectId = :projectId
+          AND m.deletedAt IS NULL
         ORDER BY mp.pinned DESC, m.capturedAt DESC
         """,
     )

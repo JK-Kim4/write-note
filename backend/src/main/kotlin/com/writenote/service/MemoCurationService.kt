@@ -44,7 +44,7 @@ class MemoCurationService(
         request: CurateMemoRequest,
     ): MemoResponse {
         val memo =
-            memoRepository.findByIdAndUserId(memoId, userId)
+            memoRepository.findByIdAndUserIdAndDeletedAtIsNull(memoId, userId)
                 ?: throw ResourceNotFoundException("Memo not found")
 
         // 요청 내 모든 characterId 수집
@@ -127,7 +127,7 @@ class MemoCurationService(
         userId: Long,
     ): MemoResponse {
         val memo =
-            memoRepository.findByIdAndUserId(memoId, userId)
+            memoRepository.findByIdAndUserIdAndDeletedAtIsNull(memoId, userId)
                 ?: throw ResourceNotFoundException("Memo not found")
 
         val memoProjects = memoProjectRepository.findAllByMemoId(memoId)

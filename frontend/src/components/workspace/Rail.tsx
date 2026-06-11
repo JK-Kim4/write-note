@@ -46,6 +46,19 @@ const ITEMS: Item[] = [
             </>
         ),
     },
+    {
+        key: "characters",
+        label: "인물",
+        href: "/library",
+        match: (p) => p.includes("/characters"),
+        icon: (
+            <>
+                <path d="M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1" />
+                <circle cx="9.5" cy="7" r="3.5" />
+                <path d="M21 19v-1a4 4 0 0 0-3-3.85" />
+            </>
+        ),
+    },
     { key: "memo", label: "메모", href: "/memos", match: (p) => p.startsWith("/memos"), icon: <path d="M4 5h16M4 12h16M4 19h10" /> },
     {
         key: "log",
@@ -84,6 +97,12 @@ export function Rail() {
         if (item.key === "write") {
             const last = getLastProject();
             router.push(last !== null ? `/projects/${last}/write` : "/");
+            return;
+        }
+        // 인물은 작품 종속 — 마지막 연 작품의 인물 화면으로, 없으면 작품 벽에서 작품을 고르게 한다.
+        if (item.key === "characters") {
+            const last = getLastProject();
+            router.push(last !== null ? `/projects/${last}/characters` : "/library");
             return;
         }
         router.push(item.href);

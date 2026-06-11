@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { genderLabel } from "@/lib/api/characters";
 import { useCreateCharacter, useProjectCharacters } from "@/lib/query/useCharacters";
 
 type CharacterPanelProps = {
@@ -63,6 +64,12 @@ export function CharacterPanel({ projectId }: CharacterPanelProps) {
                                         <span className="character-card__desc">{c.shortDescription}</span>
                                     ) : null}
                                 </button>
+                                {open && (c.age || genderLabel(c.gender)) ? (
+                                    <p className="character-card__meta">
+                                        {[genderLabel(c.gender), c.age].filter(Boolean).join(" · ")}
+                                    </p>
+                                ) : null}
+                                {open && c.traits ? <p className="character-card__notes">{c.traits}</p> : null}
                                 {open && c.notes ? <p className="character-card__notes">{c.notes}</p> : null}
                             </li>
                         );

@@ -101,7 +101,7 @@ class MemoQueryService(
         memoId: Long,
     ): MemoResponse {
         val memo =
-            memoRepository.findByIdAndUserId(memoId, userId)
+            memoRepository.findByIdAndUserIdAndDeletedAtIsNull(memoId, userId)
                 ?: throw ResourceNotFoundException("Memo not found")
         return toResponseWithConnections(memo.id!!, userId)
     }
@@ -126,7 +126,7 @@ class MemoQueryService(
         userId: Long,
     ): MemoResponse {
         val memo =
-            memoRepository.findByIdAndUserId(memoId, userId)
+            memoRepository.findByIdAndUserIdAndDeletedAtIsNull(memoId, userId)
                 ?: throw ResourceNotFoundException("Memo not found")
         val memoProjects = memoProjectRepository.findAllByMemoId(memoId)
         val projectIds = memoProjects.map { it.projectId }.toSet()
