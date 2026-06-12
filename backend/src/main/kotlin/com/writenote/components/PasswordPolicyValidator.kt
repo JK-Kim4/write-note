@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component
 /**
  * 비밀번호 정책 검증 컴포넌트.
  *
- * 최소 12자 + 영문 + 숫자 + 특수문자 조합 강제 (research.md R-4, SoT §4-3).
+ * 최소 8자 + 영문 + 숫자 강제 (특수문자 불요, SoT §4-3 — 2026-06-13 완화).
  * 회원가입 / 비밀번호 재설정 / 비밀번호 추가 등록 3 영역에서 재사용.
  */
 @Component
@@ -19,10 +19,9 @@ class PasswordPolicyValidator {
      */
     fun validate(password: String) {
         val violations = mutableListOf<String>()
-        if (password.length < MIN_LENGTH) violations += "12자 이상"
+        if (password.length < MIN_LENGTH) violations += "8자 이상"
         if (!password.any { it.isLetter() }) violations += "영문 포함"
         if (!password.any { it.isDigit() }) violations += "숫자 포함"
-        if (!password.any { it in SPECIAL_CHARS }) violations += "특수문자 포함"
         if (violations.isNotEmpty()) {
             throw AuthException(
                 errorCode = AuthErrorCode.PASSWORD_TOO_WEAK,
@@ -32,7 +31,6 @@ class PasswordPolicyValidator {
     }
 
     companion object {
-        private const val MIN_LENGTH = 12
-        private const val SPECIAL_CHARS = "!@#\$%^&*()_+-=[]{}|;:'\",.<>/?`~"
+        private const val MIN_LENGTH = 8
     }
 }

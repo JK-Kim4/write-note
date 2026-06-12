@@ -10,40 +10,45 @@ class PasswordPolicyValidatorTest {
     private val validator = PasswordPolicyValidator()
 
     @Test
-    fun `강한 비밀번호 통과`() {
-        // 12자 + 영문 + 숫자 + 특수문자 모두 충족
+    fun `8자 영문숫자 통과`() {
+        // 8자 + 영문 + 숫자 (특수문자 없어도 충족)
+        assertThatCode { validator.validate("abcd1234") }
+            .doesNotThrowAnyException()
+    }
+
+    @Test
+    fun `특수문자 없어도 통과`() {
+        // 특수문자 요건 폐지 — 영문+숫자 8자 이상이면 통과
+        assertThatCode { validator.validate("passcode99") }
+            .doesNotThrowAnyException()
+    }
+
+    @Test
+    fun `특수문자 포함 강한 비밀번호도 통과`() {
         assertThatCode { validator.validate("MyP@ssw0rd12!") }
             .doesNotThrowAnyException()
     }
 
     @Test
-    fun `12자 미만 거부`() {
-        // 11자 (영문+숫자+특수문자 포함이지만 길이 부족)
-        assertThatThrownBy { validator.validate("Short1!Pass") }
+    fun `8자 미만 거부`() {
+        // 7자 (영문+숫자 포함이지만 길이 부족)
+        assertThatThrownBy { validator.validate("abc1234") }
             .isInstanceOf(AuthException::class.java)
             .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.PASSWORD_TOO_WEAK)
     }
 
     @Test
     fun `영문 누락 거부`() {
-        // 12자 + 숫자 + 특수문자, 영문 없음
-        assertThatThrownBy { validator.validate("12345678901!") }
+        // 8자 + 숫자만, 영문 없음
+        assertThatThrownBy { validator.validate("12345678") }
             .isInstanceOf(AuthException::class.java)
             .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.PASSWORD_TOO_WEAK)
     }
 
     @Test
     fun `숫자 누락 거부`() {
-        // 12자 + 영문 + 특수문자, 숫자 없음
-        assertThatThrownBy { validator.validate("abcdefghijk!") }
-            .isInstanceOf(AuthException::class.java)
-            .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.PASSWORD_TOO_WEAK)
-    }
-
-    @Test
-    fun `특수문자 누락 거부`() {
-        // 12자 + 영문 + 숫자, 특수문자 없음
-        assertThatThrownBy { validator.validate("abcdefghij12") }
+        // 8자 + 영문만, 숫자 없음
+        assertThatThrownBy { validator.validate("abcdefgh") }
             .isInstanceOf(AuthException::class.java)
             .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.PASSWORD_TOO_WEAK)
     }
