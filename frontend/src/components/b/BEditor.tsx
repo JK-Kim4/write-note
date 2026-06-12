@@ -5,7 +5,7 @@ import { useEditor, EditorContent, type Content, type Editor } from "@tiptap/rea
 import { StarterKit } from "@tiptap/starter-kit";
 import type { DocumentChange } from "@/components/editor/PaperEditor";
 import { extractPlainText } from "@/components/editor/wordCountUtils";
-import { pageCount, globalLineAt, pageNumberTopsPx, LINE_PX, PAGE_STRIDE_PX, SHEET_H_PX } from "@/components/editor/pageLayout";
+import { pageCount, globalLineAt, pageNumberTopsPx, paperGeometry, LINE_PX, type PaperGeometry } from "@/components/editor/pageLayout";
 
 /**
  * B타입 본문 에디터 — fable-test ChapterEditor 디자인(툴바 / 본문 / 상태바 세로 3단) + 줄노트 라인.
@@ -74,23 +74,26 @@ function ToolbarDivider() {
 /**
  * Paged 모드 내부 서브컴포넌트 — 시트 절대배치 + ResizeObserver 장수 계산.
  * BEditor 의 useEditor 소유·IME 가드·자동저장은 불변(이 컴포넌트는 렌더+click-fill 전담).
+ * Phase 2: geometry prop 수용 — 용지 선택 배선은 Phase 3. 현재는 A4 고정.
  */
 function BPagedBody({
     editor,
     pagedRef,
     pages,
+    geometry,
     onMouseDown,
 }: {
     editor: Editor | null;
     pagedRef: React.RefObject<HTMLElement | null>;
     pages: number;
+    geometry: PaperGeometry;
     onMouseDown: (e: ReactMouseEvent<HTMLElement>) => void;
 }) {
     return (
         <article
             ref={pagedRef}
             className="b-paged-paper"
-            style={{ minHeight: `${(pages - 1) * PAGE_STRIDE_PX + SHEET_H_PX}px` }}
+            style={{ minHeight: `${(pages - 1) * geometry.stridePx + geometry.sheetHpx}px` }}
             onMouseDown={onMouseDown}
         >
             <div className="b-paged-sheets" aria-hidden="true">
@@ -98,12 +101,12 @@ function BPagedBody({
                     <div
                         key={i}
                         className="b-sheet b-sheet--lined"
-                        style={{ top: `${i * PAGE_STRIDE_PX}px`, height: `${SHEET_H_PX}px` }}
+                        style={{ top: `${i * geometry.stridePx}px`, height: `${geometry.sheetHpx}px` }}
                     />
                 ))}
             </div>
             <EditorContent editor={editor} className="b-paged-prose" />
-            {pageNumberTopsPx(pages).map((top, i) => (
+            {pageNumberTopsPx(pages, geometry.stridePx, geometry.sheetHpx).map((top, i) => (
                 <div key={i} className="b-page-num" style={{ top: `${top}px` }} aria-label={`${i + 1}쪽`}>
                     {i + 1}
                 </div>
@@ -111,6 +114,9 @@ function BPagedBody({
         </article>
     );
 }
+
+// Phase 2: A4 geometry 고정. 용지 선택 배선은 Phase 3 에서 진행.
+const B_GEOMETRY = paperGeometry("A4");
 
 export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorReady, statusLabel, statusTone }: BEditorProps) {
     // 초기 글자수는 본문 JSON 에서 직접 파생 — 이후엔 onUpdate 가 갱신.
@@ -186,7 +192,7 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
         if (!isPaged) return;
         const pm = pagedRef.current?.querySelector<HTMLElement>(".ProseMirror");
         if (!pm) return;
-        const measure = () => setPages(pageCount(pm.getBoundingClientRect().height, 1));
+        const measure = () => setPages(pageCount(pm.getBoundingClientRect().height, 1, B_GEOMETRY.stridePx));
         measure();
         const ro = new ResizeObserver(measure);
         ro.observe(pm);
@@ -208,9 +214,9 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
         const pm = pagedRef.current?.querySelector<HTMLElement>(".ProseMirror");
         if (!pm) return;
         const pmTop = pm.getBoundingClientRect().top;
-        const targetLine = globalLineAt((e.clientY - pmTop) / LINE_PX);
+        const targetLine = globalLineAt((e.clientY - pmTop) / LINE_PX, B_GEOMETRY.bodyLines, B_GEOMETRY.strideLines);
         const endTop = editor.view.coordsAtPos(editor.state.doc.content.size).top;
-        const lastLine = globalLineAt((endTop - pmTop) / LINE_PX);
+        const lastLine = globalLineAt((endTop - pmTop) / LINE_PX, B_GEOMETRY.bodyLines, B_GEOMETRY.strideLines);
         if (targetLine <= lastLine) return;
         e.preventDefault();
         const fill = Math.min(1000, targetLine - lastLine);
@@ -301,6 +307,7 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
                         editor={editor}
                         pagedRef={pagedRef}
                         pages={pages}
+                        geometry={B_GEOMETRY}
                         onMouseDown={handlePagedMouseDown}
                     />
                 </div>
