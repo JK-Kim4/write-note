@@ -77,6 +77,9 @@ class CharacterServiceTest {
                 name = character.name,
                 shortDescription = character.shortDescription,
                 notes = character.notes,
+                age = character.age,
+                gender = character.gender,
+                traits = character.traits,
                 displayOrder = character.displayOrder,
                 createdAt = character.createdAt ?: Instant.now(),
                 updatedAt = character.updatedAt ?: Instant.now(),
@@ -178,10 +181,14 @@ class CharacterServiceTest {
     }
 
     @Test
-    @DisplayName("updateCharacter — null 필드는 미변경, 명시값은 갱신 (FR-014)")
-    fun `updateCharacter only mutates specified fields`() {
+    @DisplayName("updateCharacter — 콘텐츠 필드는 전체 상태 교체: 보낸 값은 갱신, null 은 비움 (019 버그픽스 D)")
+    fun `updateCharacter replaces content fields and clears nulls`() {
         val project = newProject()
         val existing = newCharacter()
+        existing.notes = "회상 능숙"
+        existing.age = "17세 가량"
+        existing.gender = "FEMALE"
+        existing.traits = "말수가 적다"
         every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
         every { characterRepository.findByIdAndProjectId(eq(100L), eq(10L)) } returns Optional.of(existing)
         every { characterMapper.toResponse(eq(existing)) } answers { stubMapper(existing) }
@@ -192,15 +199,42 @@ class CharacterServiceTest {
             characterId = 100L,
             request =
                 UpdateCharacterRequest(
+                    name = "민지",
                     shortDescription = "주인공, 24세 갱신",
                     notes = null,
+                    age = null,
+                    gender = null,
+                    traits = null,
                 ),
         )
 
         assertThat(existing.name).isEqualTo("민지")
         assertThat(existing.shortDescription).isEqualTo("주인공, 24세 갱신")
         assertThat(existing.notes).isNull()
+        assertThat(existing.age).isNull()
+        assertThat(existing.gender).isNull()
+        assertThat(existing.traits).isNull()
         assertThat(existing.displayOrder).isEqualTo(0)
+    }
+
+    @Test
+    @DisplayName("updateCharacter — name·displayOrder 는 null 시 미변경 (name 필수 — 비움 불가, 정렬은 reorder API 소관)")
+    fun `updateCharacter keeps name and displayOrder when null`() {
+        val project = newProject()
+        val existing = newCharacter(displayOrder = 3)
+        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
+        every { characterRepository.findByIdAndProjectId(eq(100L), eq(10L)) } returns Optional.of(existing)
+        every { characterMapper.toResponse(eq(existing)) } answers { stubMapper(existing) }
+
+        service.updateCharacter(
+            userId = 1L,
+            projectId = 10L,
+            characterId = 100L,
+            request = UpdateCharacterRequest(name = null, shortDescription = "갱신", displayOrder = null),
+        )
+
+        assertThat(existing.name).isEqualTo("민지")
+        assertThat(existing.displayOrder).isEqualTo(3)
     }
 
     @Test

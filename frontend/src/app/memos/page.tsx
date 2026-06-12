@@ -1,12 +1,20 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useCallback, useMemo, useState, type FormEvent } from "react";
 import { useAuthGuard } from "@/lib/auth/guard";
 import { Rail } from "@/components/workspace/Rail";
 import { Titlebar } from "@/components/workspace/Titlebar";
 import { LinkPopover } from "@/components/memos/LinkPopover";
+import { Toast } from "@/components/ui/Toast";
 import { toInboxMemoView } from "@/lib/memoView";
-import { useAddLinkMemo, useCaptureMemo, useInboxMemos, useRemoveLinkMemo } from "@/lib/query/useMemos";
+import {
+    useAddLinkMemo,
+    useCaptureMemo,
+    useDeleteMemo,
+    useInboxMemos,
+    useRemoveLinkMemo,
+    useRestoreMemo,
+} from "@/lib/query/useMemos";
 import { useProjectCards } from "@/lib/query/useProjects";
 import type { LinkedProject } from "@/lib/types/domain";
 
@@ -14,8 +22,7 @@ import type { LinkedProject } from "@/lib/types/domain";
  * 곁쪽지 책상 (015 US2) — desktop MemoInboxScreen 1:1 이식. 006 `/memos` 폐기·교체.
  * 흩어진 쪽지를 본문 중심으로 모아 보고, 어느 작품에 다시 붙일지 정한다(작품 단위 추림).
  *
- * 보류(별도 트랙): 쪽지 버리기 + 되돌리기 — 백엔드가 영구 삭제만 지원(soft-delete·restore 부재).
- * desktop 의 삭제/Toast 는 014 에 deletedAt + restore endpoint 추가 후 복원(015 범위 밖).
+ * 버리기/되돌리기 (019 US1): soft-delete + restore. 버리면 낙관적으로 사라지고 되돌리기 토스트가 뜬다.
  */
 export default function MemoDeskPage() {
     useAuthGuard("requireAuth");
@@ -25,12 +32,30 @@ export default function MemoDeskPage() {
     const captureMemo = useCaptureMemo();
     const addLink = useAddLinkMemo();
     const removeLink = useRemoveLinkMemo();
+    const deleteMemo = useDeleteMemo();
+    const restoreMemo = useRestoreMemo();
 
     // 추림 — null 이면 전부, projectId 면 그 작품에 붙은 쪽지만.
     const [siftProjectId, setSiftProjectId] = useState<number | null>(null);
     const [draft, setDraft] = useState("");
     // 붙이기 팝오버가 열린 메모 id (한 번에 하나).
     const [linkMenuFor, setLinkMenuFor] = useState<number | null>(null);
+    // 되돌리기 토스트 대상 — 연속 삭제는 건수로 묶는다(웹은 휴지통 화면이 없어 토스트가 유일한 복구 경로).
+    // seq 로 새 삭제마다 Toast remount(타이머 재시작). 019 묶음 토스트 — desktop(단일 슬롯)과 의도적 차이.
+    const [pendingDelete, setPendingDelete] = useState<{ ids: number[]; seq: number } | null>(null);
+
+    const handleDelete = (memoId: number) => {
+        setPendingDelete((prev) => ({ ids: [...(prev?.ids ?? []), memoId], seq: (prev?.seq ?? 0) + 1 }));
+        deleteMemo.mutate(memoId);
+    };
+
+    const handleRestore = useCallback(() => {
+        if (!pendingDelete) return;
+        for (const id of pendingDelete.ids) restoreMemo.mutate(id);
+        setPendingDelete(null);
+    }, [pendingDelete, restoreMemo]);
+
+    const dismissToast = useCallback(() => setPendingDelete(null), []);
 
     const memos = memosQuery.data ? memosQuery.data.map((m) => toInboxMemoView(m, now)) : null;
     const projects: LinkedProject[] = (cardsQuery.data ?? []).map((p) => ({ id: p.id, title: p.title }));
@@ -161,6 +186,27 @@ export default function MemoDeskPage() {
                                                     />
                                                 )}
                                             </div>
+                                            <button
+                                                type="button"
+                                                className="scrap__discard"
+                                                aria-label="쪽지 버리기"
+                                                onClick={() => handleDelete(m.id)}
+                                            >
+                                                <svg
+                                                    width="15"
+                                                    height="15"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.8"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    aria-hidden="true"
+                                                >
+                                                    <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" />
+                                                    <path d="M10 11v6M14 11v6" />
+                                                </svg>
+                                            </button>
                                         </div>
                                     </article>
                                 ))}
@@ -176,6 +222,19 @@ export default function MemoDeskPage() {
                     </div>
                 </div>
             </div>
+            {pendingDelete && (
+                <Toast
+                    key={pendingDelete.seq}
+                    message={
+                        pendingDelete.ids.length === 1
+                            ? "쪽지를 버렸어요."
+                            : `쪽지 ${pendingDelete.ids.length}개를 버렸어요.`
+                    }
+                    actionLabel={pendingDelete.ids.length === 1 ? "되돌리기" : "모두 되돌리기"}
+                    onAction={handleRestore}
+                    onDismiss={dismissToast}
+                />
+            )}
         </div>
     );
 }

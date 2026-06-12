@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { QueryProvider } from "@/lib/query/QueryProvider";
 import { useThemeEffect } from "@/components/theme/ThemeToggle";
 import { QuickCaptureModal } from "@/components/memos/QuickCaptureModal";
+import { PreferencesSync } from "@/components/PreferencesSync";
 
 /**
  * Providers — RootLayout 의 client component 경계.
@@ -21,6 +22,7 @@ export function Providers({ children }: { children: ReactNode }) {
     useThemeEffect();
     return (
         <QueryProvider>
+            <PreferencesSync />
             {children}
             <QuickCaptureModal />
         </QueryProvider>

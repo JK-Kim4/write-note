@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
-import { archiveProject, deleteProject, getProject, unarchiveProject } from "@/lib/api/projects";
+import { archiveProject, getProject, unarchiveProject } from "@/lib/api/projects";
+import { useDeleteProject } from "@/lib/query/useProjects";
 import { ApiError } from "@/lib/api/client";
 import { MetaCard } from "@/components/projects/MetaCard";
 import { TopBar } from "@/components/shell/TopBar";
@@ -38,13 +39,9 @@ export default function ProjectDetailPage() {
 
     const archiveMutation = useMutation({ mutationFn: () => archiveProject(id), onSuccess: invalidate });
     const unarchiveMutation = useMutation({ mutationFn: () => unarchiveProject(id), onSuccess: invalidate });
-    const deleteMutation = useMutation({
-        mutationFn: () => deleteProject(id),
-        onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ["projects"] });
-            router.push("/");
-        },
-    });
+    // 공용 훅 재사용 — 삭제 성공 시 lastProject 정리(019 버그픽스 C)가 이 경로에서도 적용된다.
+    const deleteMutation = useDeleteProject();
+    const handleDelete = () => deleteMutation.mutate(id, { onSuccess: () => router.push("/") });
 
     const notFound =
         projectQuery.isError &&
@@ -175,7 +172,7 @@ export default function ProjectDetailPage() {
                             </button>
                             <button
                                 type="button"
-                                onClick={() => deleteMutation.mutate()}
+                                onClick={handleDelete}
                                 className="px-4 py-2 rounded-button-pill font-semibold"
                                 style={{ backgroundColor: "var(--w-error)", color: "var(--w-canvas)" }}
                             >

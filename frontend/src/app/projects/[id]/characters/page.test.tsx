@@ -86,6 +86,51 @@ describe("CharactersPage", () => {
         expect(await screen.findByRole("alert")).toHaveTextContent("이미 같은 이름의 인물이 있습니다");
     });
 
+    it("나이·성별·특징을 입력해 추가하면 요청 본문에 담긴다", async () => {
+        let body: Record<string, unknown> | null = null;
+        server.use(
+            ME,
+            http.get(`${ORIGIN}/api/projects/42/characters`, () =>
+                HttpResponse.json({ success: true, data: page([]), error: null }),
+            ),
+            http.post(`${ORIGIN}/api/projects/42/characters`, async ({ request }) => {
+                body = (await request.json()) as Record<string, unknown>;
+                return HttpResponse.json({ success: true, data: character(1, "민지", 0), error: null }, { status: 201 });
+            }),
+        );
+        renderWithClient(<CharactersPage />);
+
+        await userEvent.type(screen.getByLabelText("이름 *"), "민지");
+        await userEvent.type(screen.getByLabelText("나이"), "17세 가량");
+        await userEvent.selectOptions(screen.getByLabelText("성별"), "FEMALE");
+        await userEvent.type(screen.getByLabelText("특징"), "말수가 적다");
+        await userEvent.click(screen.getByRole("button", { name: "추가" }));
+
+        await waitFor(() => expect(body).not.toBeNull());
+        expect(body).toMatchObject({ name: "민지", age: "17세 가량", gender: "FEMALE", traits: "말수가 적다" });
+    });
+
+    it("성별을 선택하지 않으면 gender 가 null 로 전송된다(비움 허용)", async () => {
+        let body: Record<string, unknown> | null = null;
+        server.use(
+            ME,
+            http.get(`${ORIGIN}/api/projects/42/characters`, () =>
+                HttpResponse.json({ success: true, data: page([]), error: null }),
+            ),
+            http.post(`${ORIGIN}/api/projects/42/characters`, async ({ request }) => {
+                body = (await request.json()) as Record<string, unknown>;
+                return HttpResponse.json({ success: true, data: character(1, "구상중", 0), error: null }, { status: 201 });
+            }),
+        );
+        renderWithClient(<CharactersPage />);
+
+        await userEvent.type(screen.getByLabelText("이름 *"), "구상중");
+        await userEvent.click(screen.getByRole("button", { name: "추가" }));
+
+        await waitFor(() => expect(body).not.toBeNull());
+        expect(body).toMatchObject({ name: "구상중", gender: null });
+    });
+
     it("아래로 이동 시 reorder 요청을 보내고 응답 순서로 갱신한다", async () => {
         let reorderedIds: number[] | undefined;
         server.use(
@@ -109,5 +154,26 @@ describe("CharactersPage", () => {
         await userEvent.click(downButtons[0]);
 
         await waitFor(() => expect(reorderedIds).toEqual([2, 1]));
+    });
+
+    it("삭제된 작품으로 진입하면 빈 목록 대신 찾을 수 없음 안내를 보여준다 (019 버그픽스 후속)", async () => {
+        server.use(
+            ME,
+            http.get(`${ORIGIN}/api/projects/42/characters`, () =>
+                HttpResponse.json(
+                    {
+                        success: false,
+                        data: null,
+                        error: { code: "RESOURCE_NOT_FOUND", message: "Project not found" },
+                    },
+                    { status: 404 },
+                ),
+            ),
+        );
+        renderWithClient(<CharactersPage />);
+
+        expect(await screen.findByText("프로젝트를 찾을 수 없습니다")).toBeInTheDocument();
+        // 인물 추가 폼(빈 상태 UI)은 노출되지 않는다
+        expect(screen.queryByText("새 등장인물")).not.toBeInTheDocument();
     });
 });

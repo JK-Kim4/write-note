@@ -6,6 +6,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { webElectronApi } from "@/lib/electron-api";
+import { clearLastProject, getLastProject } from "@/lib/lastProject";
 import type { CreateProjectInput, UpdateProjectInput } from "@/lib/api/projects";
 
 export const projectKeys = {
@@ -50,6 +51,10 @@ export function useDeleteProject() {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (id: number) => webElectronApi.projects.delete(id),
-        onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.all }),
+        onSuccess: (_data, id) => {
+            // 삭제된 작품이 "마지막으로 연 작품"이면 기억 해제 — Rail 이 stale id 로 진입 방지 (019 버그픽스 C).
+            if (getLastProject() === id) clearLastProject();
+            qc.invalidateQueries({ queryKey: projectKeys.all });
+        },
     });
 }

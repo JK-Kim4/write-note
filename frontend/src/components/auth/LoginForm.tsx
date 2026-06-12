@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { login } from "@/lib/api/auth";
+import { usePreferences, DESIGN_HOME } from "@/stores/preferences";
 import { ApiError } from "@/lib/api/client";
 import { resolveErrorMessage } from "@/lib/api/errors";
 import { FormInput } from "@/components/ui/FormInput";
@@ -14,7 +15,7 @@ import { SubmitLoading } from "@/components/ui/SubmitLoading";
 /**
  * LoginForm — 이메일 로그인 폼 (US1, contracts/screen-data-flow.md §5).
  *
- * 성공: 쿠키 발급 → `['auth','me']` 무효화 → 홈(`/`) 이동.
+ * 성공: 쿠키 발급 → `['auth','me']` 무효화 → 선택한 디자인의 홈(기본 `/`, B타입 `/b`) 이동.
  * 실패: 401 code(EMAIL_NOT_VERIFIED / LOGIN_FAILED / LOGIN_LOCKED) → 한국어 메시지.
  *
  * `state` prop 은 데모 라우트(login-loading)용 외관 제어. 실제 진행 상태는 mutation.isPending.
@@ -34,7 +35,7 @@ export function LoginForm({ state = "default" }: LoginFormProps) {
         mutationFn: () => login({ email, password }),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-            router.push("/");
+            router.push(DESIGN_HOME[usePreferences.getState().design]);
         },
     });
 

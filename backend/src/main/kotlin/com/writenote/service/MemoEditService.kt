@@ -12,6 +12,7 @@ import com.writenote.repository.MemoRepository
 import com.writenote.repository.ProjectRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 /**
  * M4 PATCH (수정) / M5 DELETE (삭제) — MemoService(캡처) 와 분리.
@@ -34,7 +35,7 @@ class MemoEditService(
         request: UpdateMemoRequest,
     ): MemoResponse {
         val memo =
-            memoRepository.findByIdAndUserId(memoId, userId)
+            memoRepository.findByIdAndUserIdAndDeletedAtIsNull(memoId, userId)
                 ?: throw ResourceNotFoundException("Memo not found")
 
         request.body?.let {
@@ -50,7 +51,8 @@ class MemoEditService(
     }
 
     /**
-     * M5 — 삭제 (cascade: MemoProjectCharacter → MemoProject → Memo).
+     * M5 — 버리기 (soft-delete). [deletedAt] 에 현재 시각 기록. 연결행(MemoProject/MemoProjectCharacter)은
+     * 보존하여 복원 시 작품 연결·고정이 그대로 복귀한다. 이미 버려진 메모면 멱등(no-op).
      */
     @Transactional(rollbackFor = [Exception::class])
     fun deleteMemo(
@@ -61,12 +63,30 @@ class MemoEditService(
             memoRepository.findByIdAndUserId(memoId, userId)
                 ?: throw ResourceNotFoundException("Memo not found")
 
-        val memoProjects = memoProjectRepository.findAllByMemoId(memoId)
-        for (mp in memoProjects) {
-            memoProjectCharacterRepository.deleteAllByMemoProjectId(requireNotNull(mp.id))
+        if (memo.deletedAt == null) {
+            memo.deletedAt = Instant.now()
+            memoRepository.save(memo)
         }
-        memoProjectRepository.deleteAll(memoProjects)
-        memoRepository.delete(memo)
+    }
+
+    /**
+     * 버린 곁쪽지 되돌리기 — [deletedAt] 을 NULL 로 되돌린다. 연결행이 보존돼 있어 작품 연결·고정이 복귀한다.
+     * 버려지지 않은 메모면 멱등(no-op). 본인 메모만(소유권 검증).
+     */
+    @Transactional(rollbackFor = [Exception::class])
+    fun restoreMemo(
+        userId: Long,
+        memoId: Long,
+    ): MemoResponse {
+        val memo =
+            memoRepository.findByIdAndUserId(memoId, userId)
+                ?: throw ResourceNotFoundException("Memo not found")
+
+        if (memo.deletedAt != null) {
+            memo.deletedAt = null
+            memoRepository.save(memo)
+        }
+        return buildResponse(memo, userId)
     }
 
     private fun buildResponse(

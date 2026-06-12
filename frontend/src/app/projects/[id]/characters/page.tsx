@@ -18,6 +18,7 @@ import type { CharacterResponse, Page } from "@/types/api";
 import { CharacterForm } from "@/components/projects/CharacterForm";
 import { CharacterList } from "@/components/projects/CharacterList";
 import { TopBar } from "@/components/shell/TopBar";
+import { EmptyHero } from "@/components/ui/EmptyHero";
 
 /**
  * 등장인물 관리 (US4, contracts/screen-data-flow.md §4).
@@ -96,6 +97,33 @@ export default function CharactersPage() {
             ? activeMutation.error.message
             : "저장하지 못했습니다."
         : null;
+
+    // 삭제된 작품으로 stale 진입(북마크 등) 시 빈 목록 대신 안내 — 작품 상세 페이지와 동일 패턴.
+    const notFound =
+        charactersQuery.isError &&
+        charactersQuery.error instanceof ApiError &&
+        charactersQuery.error.code === "RESOURCE_NOT_FOUND";
+
+    if (notFound) {
+        return (
+            <div className="flex flex-col min-h-screen" style={{ backgroundColor: "var(--w-parchment)" }}>
+                <TopBar title="등장인물" />
+                <EmptyHero
+                    title="프로젝트를 찾을 수 없습니다"
+                    lede="이미 삭제되었거나 접근 권한이 없습니다."
+                    cta={
+                        <Link
+                            href="/library"
+                            className="px-6 py-3 rounded-button-pill font-semibold"
+                            style={{ backgroundColor: "var(--w-accent)", color: "var(--w-canvas)" }}
+                        >
+                            작품 벽으로
+                        </Link>
+                    }
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col min-h-screen" style={{ backgroundColor: "var(--w-parchment)" }}>

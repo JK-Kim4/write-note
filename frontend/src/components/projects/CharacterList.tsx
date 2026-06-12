@@ -1,3 +1,4 @@
+import { genderLabel } from "@/lib/api/characters";
 import type { CharacterResponse } from "@/types/api";
 
 /**
@@ -54,6 +55,16 @@ export function CharacterList({ characters, onMoveUp, onMoveDown, onEdit, onDele
                         {character.shortDescription ? (
                             <span style={{ color: "var(--w-ink)", opacity: 0.7, fontSize: "14px" }}>
                                 {character.shortDescription}
+                            </span>
+                        ) : null}
+                        {character.age || genderLabel(character.gender) ? (
+                            <span style={{ color: "var(--w-ink)", opacity: 0.6, fontSize: "13px" }}>
+                                {[genderLabel(character.gender), character.age].filter(Boolean).join(" · ")}
+                            </span>
+                        ) : null}
+                        {character.traits ? (
+                            <span style={{ color: "var(--w-ink)", opacity: 0.7, fontSize: "13px" }}>
+                                {character.traits}
                             </span>
                         ) : null}
                     </div>

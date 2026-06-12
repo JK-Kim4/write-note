@@ -12,10 +12,30 @@ export interface ListCharactersParams {
     size?: number;
 }
 
+/** 성별 코드 — 비움(null) 허용. FE 표시는 남/여/기타. */
+export type Gender = "MALE" | "FEMALE" | "OTHER";
+
+/** 성별 코드 → 한글 표시. 비움(null)이면 null(미표시). */
+export function genderLabel(gender: Gender | null): string | null {
+    switch (gender) {
+        case "MALE":
+            return "남";
+        case "FEMALE":
+            return "여";
+        case "OTHER":
+            return "기타";
+        default:
+            return null;
+    }
+}
+
 export interface CreateCharacterInput {
     name: string;
     shortDescription?: string | null;
     notes?: string | null;
+    age?: string | null;
+    gender?: Gender | null;
+    traits?: string | null;
     displayOrder?: number | null;
 }
 

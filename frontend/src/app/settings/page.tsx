@@ -7,7 +7,13 @@ import { useAuthGuard } from "@/lib/auth/guard";
 import { fetchMe, logout } from "@/lib/api/auth";
 import { TopBar } from "@/components/shell/TopBar";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { usePreferences, type ManuscriptSize, type WritingMode } from "@/stores/preferences";
+import {
+    usePreferences,
+    DESIGN_HOME,
+    type DesignVariant,
+    type ManuscriptSize,
+    type WritingMode,
+} from "@/stores/preferences";
 import {
     useApiTokens,
     useIssueToken,
@@ -29,8 +35,15 @@ export default function SettingsPage() {
     useAuthGuard("requireAuth");
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { writingMode, setWritingMode, manuscriptSize, setManuscriptSize } = usePreferences();
+    const { writingMode, setWritingMode, manuscriptSize, setManuscriptSize, design, setDesign } =
+        usePreferences();
     const meQuery = useQuery({ queryKey: ["auth", "me"], queryFn: fetchMe, retry: false });
+
+    // 디자인 선택 = 화면 한 벌 전환. 선택 즉시 해당 트리 홈으로 이동(완전 전환) + localStorage 기억.
+    const handleSelectDesign = (next: DesignVariant) => {
+        setDesign(next);
+        router.push(DESIGN_HOME[next]);
+    };
     const logoutMutation = useMutation({
         mutationFn: logout,
         onSuccess: async () => {
@@ -56,6 +69,25 @@ export default function SettingsPage() {
         <div className="flex flex-col min-h-screen" style={{ backgroundColor: "var(--w-parchment)" }}>
             <TopBar title="설정" actions={<ThemeToggle />} />
             <main className="flex-1 max-w-3xl w-full mx-auto px-6 py-8 flex flex-col gap-10">
+                <SettingsGroup title="디자인">
+                    <Field label="화면 디자인">
+                        <div className="flex gap-3">
+                            <ModeCard
+                                active={design === "default"}
+                                label="기본 디자인"
+                                desc="기존 나래 노트 화면"
+                                onClick={() => handleSelectDesign("default")}
+                            />
+                            <ModeCard
+                                active={design === "b"}
+                                label="B타입 디자인"
+                                desc="실험적 B 레이아웃"
+                                onClick={() => handleSelectDesign("b")}
+                            />
+                        </div>
+                    </Field>
+                </SettingsGroup>
+
                 <SettingsGroup title="작성">
                     <Field label="작성 모드">
                         <div className="flex gap-3">

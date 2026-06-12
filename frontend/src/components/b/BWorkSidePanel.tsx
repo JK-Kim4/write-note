@@ -1,0 +1,220 @@
+"use client";
+
+import { useState, type FormEvent } from "react";
+import { genderLabel } from "@/lib/api/characters";
+import { useCreateCharacter, useProjectCharacters } from "@/lib/query/useCharacters";
+import { useCaptureMemo, useProjectMemos, useRemoveLinkMemo, useSetPinMemo } from "@/lib/query/useMemos";
+
+/**
+ * B타입 집필 보조 패널 — fable-test WorkSidePanel 이식 (w-80, 메모/인물 탭, ◀▶ 접이식).
+ * 메모 탭 = 이 작품에 연결된 곁쪽지(고정 우선) + 인라인 캡처. 인물 탭 = 목록 + 빠른 추가.
+ * 공백 최소화: 목록·입력을 패널 전체 높이에 채우고 빈 상태에도 바로 쓸 수 있는 입력을 둔다.
+ */
+
+type Tab = "memos" | "characters";
+
+function MemosTab({ projectId }: { projectId: number }) {
+    const memosQuery = useProjectMemos(projectId);
+    const captureMemo = useCaptureMemo();
+    const setPinMemo = useSetPinMemo();
+    const removeLinkMemo = useRemoveLinkMemo();
+    const [body, setBody] = useState("");
+
+    const handleCapture = async (e: FormEvent) => {
+        e.preventDefault();
+        const trimmed = body.trim();
+        if (!trimmed || captureMemo.isPending) return;
+        await captureMemo.mutateAsync({ body: trimmed, linkProjectId: projectId });
+        setBody("");
+    };
+
+    const memos = memosQuery.data ?? [];
+
+    return (
+        <div className="flex h-full flex-col">
+            <form onSubmit={handleCapture} className="border-b border-gray-200 p-3">
+                <textarea
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    placeholder="이 작품에 곁쪽지 남기기…"
+                    rows={2}
+                    className="w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                />
+                <button
+                    type="submit"
+                    disabled={body.trim().length === 0 || captureMemo.isPending}
+                    className="mt-1.5 w-full rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                >
+                    붙이기
+                </button>
+            </form>
+            <div className="flex-1 space-y-2 overflow-y-auto p-3">
+                {memosQuery.isLoading ? (
+                    <p className="text-xs text-gray-400">불러오는 중…</p>
+                ) : memos.length === 0 ? (
+                    <p className="text-xs text-gray-400">아직 연결된 곁쪽지가 없습니다.</p>
+                ) : (
+                    memos.map((memo) => (
+                        <div key={memo.id} className="rounded-md border border-gray-200 bg-white p-2.5">
+                            <p className="text-sm whitespace-pre-wrap text-gray-700">{memo.body}</p>
+                            <div className="mt-1.5 flex items-center gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setPinMemo.mutate({ memoId: memo.id, projectId, pinned: !memo.pinned })
+                                    }
+                                    className={
+                                        memo.pinned
+                                            ? "rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700"
+                                            : "rounded-full px-2 py-0.5 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                    }
+                                >
+                                    {memo.pinned ? "고정됨" : "고정"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => removeLinkMemo.mutate({ memoId: memo.id, projectId })}
+                                    className="rounded-full px-2 py-0.5 text-xs text-gray-400 hover:bg-red-50 hover:text-red-600"
+                                >
+                                    연결 해제
+                                </button>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+}
+
+function CharactersTab({ projectId }: { projectId: number }) {
+    const charactersQuery = useProjectCharacters(projectId);
+    const createCharacter = useCreateCharacter();
+    const [name, setName] = useState("");
+    const [shortDescription, setShortDescription] = useState("");
+
+    const handleAdd = async (e: FormEvent) => {
+        e.preventDefault();
+        const trimmed = name.trim();
+        if (!trimmed || createCharacter.isPending) return;
+        await createCharacter.mutateAsync({
+            projectId,
+            input: { name: trimmed, shortDescription: shortDescription.trim() || null },
+        });
+        setName("");
+        setShortDescription("");
+    };
+
+    const characters = charactersQuery.data ?? [];
+
+    return (
+        <div className="flex h-full flex-col">
+            <form onSubmit={handleAdd} className="space-y-1.5 border-b border-gray-200 p-3">
+                <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="인물 이름"
+                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+                />
+                <input
+                    value={shortDescription}
+                    onChange={(e) => setShortDescription(e.target.value)}
+                    placeholder="한 줄 소개 (선택)"
+                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+                />
+                <button
+                    type="submit"
+                    disabled={name.trim().length === 0 || createCharacter.isPending}
+                    className="w-full rounded-md border border-dashed border-gray-300 px-3 py-1.5 text-sm text-gray-500 hover:border-indigo-400 hover:text-indigo-600 disabled:opacity-50"
+                >
+                    + 인물 추가
+                </button>
+            </form>
+            <div className="flex-1 space-y-2 overflow-y-auto p-3">
+                {charactersQuery.isLoading ? (
+                    <p className="text-xs text-gray-400">불러오는 중…</p>
+                ) : characters.length === 0 ? (
+                    <p className="text-xs text-gray-400">아직 등록된 인물이 없습니다.</p>
+                ) : (
+                    characters.map((character) => {
+                        const meta = [character.age, genderLabel(character.gender)].filter(Boolean).join(" · ");
+                        return (
+                            <div key={character.id} className="rounded-md border border-gray-200 bg-white p-2.5">
+                                <div className="flex items-baseline justify-between gap-2">
+                                    <p className="text-sm font-semibold text-gray-900">{character.name}</p>
+                                    {meta && <span className="text-xs text-gray-400">{meta}</span>}
+                                </div>
+                                {character.shortDescription && (
+                                    <p className="mt-0.5 text-xs text-gray-600">{character.shortDescription}</p>
+                                )}
+                                {character.traits && (
+                                    <p className="mt-1 text-xs text-gray-400">{character.traits}</p>
+                                )}
+                            </div>
+                        );
+                    })
+                )}
+            </div>
+        </div>
+    );
+}
+
+export function BWorkSidePanel({ projectId }: { projectId: number }) {
+    const [isOpen, setIsOpen] = useState(true);
+    const [tab, setTab] = useState<Tab>("memos");
+
+    if (!isOpen) {
+        return (
+            <div className="flex w-8 shrink-0 flex-col items-center rounded-xl border border-gray-200 bg-gray-50 py-2">
+                <button
+                    type="button"
+                    aria-label="보조 패널 펼치기"
+                    onClick={() => setIsOpen(true)}
+                    className="rounded-md px-1 py-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                >
+                    ◀
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex w-80 shrink-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+            <div className="flex items-center border-b border-gray-200">
+                <button
+                    type="button"
+                    onClick={() => setTab("memos")}
+                    className={
+                        tab === "memos"
+                            ? "flex-1 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700"
+                            : "flex-1 px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
+                    }
+                >
+                    메모
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setTab("characters")}
+                    className={
+                        tab === "characters"
+                            ? "flex-1 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700"
+                            : "flex-1 px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
+                    }
+                >
+                    인물
+                </button>
+                <button
+                    type="button"
+                    aria-label="보조 패널 접기"
+                    onClick={() => setIsOpen(false)}
+                    className="px-2 py-2 text-sm text-gray-400 hover:text-gray-600"
+                >
+                    ▶
+                </button>
+            </div>
+            <div className="min-h-0 flex-1">
+                {tab === "memos" ? <MemosTab projectId={projectId} /> : <CharactersTab projectId={projectId} />}
+            </div>
+        </div>
+    );
+}

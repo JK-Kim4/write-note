@@ -141,15 +141,23 @@
 
 ## #23 PATCH /api/projects/{projectId}/characters/{id}
 
-부분 수정 (name / shortDescription / notes / displayOrder 모두 nullable — null = 미변경).
+전체 상태 교체 (019 버그픽스 D 에서 시맨틱 변경): 콘텐츠 필드 (shortDescription / notes / age / gender / traits) 는
+**요청의 null = 그 필드를 비움**. 클라이언트(편집 폼)는 항상 전 필드를 전송한다.
+name (필수 — 비움 불가) / displayOrder (정렬은 #24 reorder 소관) 만 null = 미변경.
+
+> 변경 이력: 당초 "null = 미변경" 부분 수정 규약이었으나, 폼이 비운 값(null)으로 필드를 클리어할 수 없는
+> 버그(019 HANDOFF-bugfix §3-D)로 2026-06-12 사용자 컨펌 하에 전체 상태 교체로 변경.
 
 ### Request
 
 ```json
 {
-  "name": null,
+  "name": "민지",
   "shortDescription": "주인공, 24세로 갱신",
   "notes": null,
+  "age": null,
+  "gender": null,
+  "traits": null,
   "displayOrder": null
 }
 ```

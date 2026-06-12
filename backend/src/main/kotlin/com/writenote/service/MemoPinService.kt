@@ -33,7 +33,7 @@ class MemoPinService(
             .findByIdAndUserId(projectId, userId)
             .orElseThrow { ResourceNotFoundException("Project not found") }
         val memo =
-            memoRepository.findByIdAndUserId(memoId, userId)
+            memoRepository.findByIdAndUserIdAndDeletedAtIsNull(memoId, userId)
                 ?: throw ResourceNotFoundException("Memo not found")
         val link =
             memoProjectRepository.findByMemoIdAndProjectId(memoId, projectId)

@@ -77,3 +77,40 @@ export function useRemoveLinkMemo() {
         onSuccess: () => qc.invalidateQueries({ queryKey: memoKeys.all }),
     });
 }
+
+/**
+ * 곁쪽지 버리기(soft-delete). 낙관적으로 책상 캐시에서 즉시 제거(desktop 1:1) → 되돌리기 토스트.
+ * 실패 시 onSettled 무효화가 서버 상태로 복원. 작품 서랍·재진입에도 영향 → 메모/작품 전체 무효화.
+ */
+export function useDeleteMemo() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (memoId: number) => webElectronApi.memos.delete(memoId),
+        onMutate: (memoId) => {
+            const prev = qc.getQueryData(memoKeys.inbox());
+            qc.setQueryData(memoKeys.inbox(), (cur: Awaited<ReturnType<typeof webElectronApi.memos.list>> | undefined) =>
+                cur ? cur.filter((m) => m.id !== memoId) : cur,
+            );
+            return { prev };
+        },
+        onError: (_e, _memoId, ctx) => {
+            if (ctx?.prev !== undefined) qc.setQueryData(memoKeys.inbox(), ctx.prev);
+        },
+        onSettled: () => {
+            void qc.invalidateQueries({ queryKey: memoKeys.all });
+            void qc.invalidateQueries({ queryKey: projectKeys.all });
+        },
+    });
+}
+
+/** 버린 곁쪽지 되돌리기. 책상·서랍·재진입 복귀 → 메모/작품 전체 무효화. */
+export function useRestoreMemo() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (memoId: number) => webElectronApi.memos.restore(memoId),
+        onSettled: () => {
+            void qc.invalidateQueries({ queryKey: memoKeys.all });
+            void qc.invalidateQueries({ queryKey: projectKeys.all });
+        },
+    });
+}

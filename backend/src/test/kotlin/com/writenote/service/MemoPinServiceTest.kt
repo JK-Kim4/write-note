@@ -43,7 +43,7 @@ class MemoPinServiceTest {
         val target = link(id = 20L, projectId = 100L, pinned = false)
         val existing = link(id = 10L, projectId = 100L, pinned = true)
         every { projectRepository.findByIdAndUserId(100L, 1L) } returns Optional.of(Project(id = 100L, userId = 1L))
-        every { memoRepository.findByIdAndUserId(20L, 1L) } returns memo(20L)
+        every { memoRepository.findByIdAndUserIdAndDeletedAtIsNull(20L, 1L) } returns memo(20L)
         every { memoProjectRepository.findByMemoIdAndProjectId(20L, 100L) } returns target
         every { memoProjectRepository.findAllByProjectIdAndPinnedIsTrue(100L) } returns listOf(existing)
 
@@ -59,7 +59,7 @@ class MemoPinServiceTest {
     fun `pin false clears the pin`() {
         val target = link(id = 20L, projectId = 100L, pinned = true)
         every { projectRepository.findByIdAndUserId(100L, 1L) } returns Optional.of(Project(id = 100L, userId = 1L))
-        every { memoRepository.findByIdAndUserId(20L, 1L) } returns memo(20L)
+        every { memoRepository.findByIdAndUserIdAndDeletedAtIsNull(20L, 1L) } returns memo(20L)
         every { memoProjectRepository.findByMemoIdAndProjectId(20L, 100L) } returns target
 
         val result = service.setPin(userId = 1L, projectId = 100L, memoId = 20L, pinned = false)

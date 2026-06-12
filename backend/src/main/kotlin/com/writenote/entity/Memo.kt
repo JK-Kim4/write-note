@@ -45,6 +45,9 @@ class Memo(
     var createdAt: Instant? = null,
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant? = null,
+    /** 버려진 시각. NULL = 정상 노출, 값 있음 = 모든 목록 표면에서 숨김(soft-delete). 되돌리기 시 NULL. */
+    @Column(name = "deleted_at")
+    var deletedAt: Instant? = null,
 ) {
     /** active_project_at_capture 의 Project entity (LAZY, nullable) */
     @ManyToOne(fetch = FetchType.LAZY)

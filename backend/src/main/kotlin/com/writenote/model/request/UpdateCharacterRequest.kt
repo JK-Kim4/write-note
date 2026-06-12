@@ -9,5 +9,10 @@ data class UpdateCharacterRequest(
     val shortDescription: String? = null,
     @field:Size(max = 10_000)
     val notes: String? = null,
+    @field:Size(max = 80)
+    val age: String? = null,
+    val gender: String? = null,
+    @field:Size(max = 10_000)
+    val traits: String? = null,
     val displayOrder: Int? = null,
 )
