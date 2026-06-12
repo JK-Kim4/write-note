@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -42,6 +42,11 @@ export default function BWorkDetailPage() {
     const [endWorkOpen, setEndWorkOpen] = useState(false);
     const [endWorkBody, setEndWorkBody] = useState("");
     const [isEndingWork, setIsEndingWork] = useState(false);
+    // 좁은 폭 drawer 열림 상태 — 기본 닫힘. 880px 이상에서는 상태값 무관(항상 inline 3패널).
+    const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
+    const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
+    const leftDrawerRef = useRef<HTMLDivElement>(null);
+    const rightDrawerRef = useRef<HTMLDivElement>(null);
 
     const { endWithLog } = useWorkSession(projectId);
     const paperSize = usePreferences((s) => s.paperSize);
@@ -104,6 +109,17 @@ export default function BWorkDetailPage() {
         }
     };
 
+    // ESC 키로 열린 drawer 닫기.
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key !== "Escape") return;
+            if (leftDrawerOpen) setLeftDrawerOpen(false);
+            if (rightDrawerOpen) setRightDrawerOpen(false);
+        };
+        document.addEventListener("keydown", handleKeyDown);
+        return () => document.removeEventListener("keydown", handleKeyDown);
+    }, [leftDrawerOpen, rightDrawerOpen]);
+
     const outline = useEditorOutline(editor, ".b-editor-scroll");
     const projectTitle = projectQuery.data?.title ?? "";
 
@@ -117,56 +133,155 @@ export default function BWorkDetailPage() {
                 : "저장됨";
     const statusTone = session.syncStatus === "error" || session.syncStatus === "conflict" ? "error" : "ok";
 
+    /** 목차 패널 내용 — 좁은 폭 drawer 와 넓은 폭 inline 모두 동일 마크업 공유. */
+    const outlinePanel = (
+        <>
+            <div className="border-b border-gray-200 p-3">
+                <Link href="/b" className="text-xs text-gray-400 hover:text-indigo-600">
+                    ← 작품 목록
+                </Link>
+                <h1 className="mt-1 truncate text-base font-bold text-gray-900" title={projectTitle}>
+                    {projectTitle || "집필"}
+                </h1>
+                {projectQuery.data?.nextScene && (
+                    <p className="mt-2 rounded-md bg-emerald-50 px-2 py-1.5 text-xs text-emerald-700">
+                        다음 장면 — {projectQuery.data.nextScene}
+                    </p>
+                )}
+            </div>
+            <div className="flex-1 overflow-y-auto p-2">
+                <p className="px-2 py-1 text-xs font-medium text-gray-400">목차</p>
+                {outline.items.length === 0 ? (
+                    <p className="px-2 py-1 text-xs text-gray-400">
+                        본문에 제목(H1·H2)을 넣으면 목차가 생깁니다.
+                    </p>
+                ) : (
+                    outline.items.map((item, i) => (
+                        <button
+                            key={`${item.index}-${item.text}`}
+                            type="button"
+                            onClick={() => {
+                                outline.selectItem(item);
+                                setLeftDrawerOpen(false);
+                            }}
+                            className={`block w-full truncate rounded-md px-2 py-1.5 text-left text-sm ${
+                                outline.activeIndex === i
+                                    ? "bg-indigo-50 font-medium text-indigo-700"
+                                    : "text-gray-600 hover:bg-gray-50"
+                            } ${item.level === 2 ? "pl-5" : ""}`}
+                        >
+                            {item.text || "(제목 없음)"}
+                        </button>
+                    ))
+                )}
+            </div>
+            <div className="border-t border-gray-200 p-3">
+                <button
+                    type="button"
+                    onClick={() => {
+                        setEndWorkBody("");
+                        setEndWorkOpen(true);
+                        setLeftDrawerOpen(false);
+                    }}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                >
+                    작업 종료
+                </button>
+            </div>
+        </>
+    );
+
     return (
-        <div className="flex h-[calc(100vh-6.5rem)] gap-4">
-            <div className="flex w-64 shrink-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white">
-                <div className="border-b border-gray-200 p-3">
-                    <Link href="/b" className="text-xs text-gray-400 hover:text-indigo-600">
-                        ← 작품 목록
-                    </Link>
-                    <h1 className="mt-1 truncate text-base font-bold text-gray-900" title={projectTitle}>
-                        {projectTitle || "집필"}
-                    </h1>
-                    {projectQuery.data?.nextScene && (
-                        <p className="mt-2 rounded-md bg-emerald-50 px-2 py-1.5 text-xs text-emerald-700">
-                            다음 장면 — {projectQuery.data.nextScene}
-                        </p>
-                    )}
-                </div>
-                <div className="flex-1 overflow-y-auto p-2">
-                    <p className="px-2 py-1 text-xs font-medium text-gray-400">목차</p>
-                    {outline.items.length === 0 ? (
-                        <p className="px-2 py-1 text-xs text-gray-400">
-                            본문에 제목(H1·H2)을 넣으면 목차가 생깁니다.
-                        </p>
-                    ) : (
-                        outline.items.map((item, i) => (
-                            <button
-                                key={`${item.index}-${item.text}`}
-                                type="button"
-                                onClick={() => outline.selectItem(item)}
-                                className={`block w-full truncate rounded-md px-2 py-1.5 text-left text-sm ${
-                                    outline.activeIndex === i
-                                        ? "bg-indigo-50 font-medium text-indigo-700"
-                                        : "text-gray-600 hover:bg-gray-50"
-                                } ${item.level === 2 ? "pl-5" : ""}`}
-                            >
-                                {item.text || "(제목 없음)"}
-                            </button>
-                        ))
-                    )}
-                </div>
-                <div className="border-t border-gray-200 p-3">
+        <div className="relative flex h-[calc(100vh-6.5rem)] gap-4">
+            {/* ── 넓은 폭(≥880px): inline 목차 패널 ── */}
+            <div className="hidden min-[880px]:flex w-64 shrink-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white">
+                {outlinePanel}
+            </div>
+
+            {/* ── 좁은 폭(<880px): 토글 버튼 row (에디터 위) + 백드롭 + drawer ── */}
+            {/* 토글 버튼 row — 좁은 폭에서만 표시, floating bar */}
+            <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 flex items-center gap-2 px-2 pt-1.5 min-[880px]:hidden">
+                <button
+                    type="button"
+                    aria-label="목차 패널 열기"
+                    onClick={() => setLeftDrawerOpen(true)}
+                    className="pointer-events-auto rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 shadow-sm hover:bg-gray-50"
+                >
+                    목차
+                </button>
+                <button
+                    type="button"
+                    aria-label="쪽지·인물 패널 열기"
+                    onClick={() => setRightDrawerOpen(true)}
+                    className="pointer-events-auto rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 shadow-sm hover:bg-gray-50"
+                >
+                    쪽지·인물
+                </button>
+            </div>
+
+            {/* 좁은 폭 좌측 drawer 백드롭 */}
+            {leftDrawerOpen && (
+                <div
+                    aria-hidden="true"
+                    className="fixed inset-0 z-20 bg-gray-900/40 min-[880px]:hidden"
+                    onClick={() => setLeftDrawerOpen(false)}
+                />
+            )}
+            {/* 좁은 폭 좌측 drawer */}
+            <div
+                ref={leftDrawerRef}
+                role="dialog"
+                aria-modal="true"
+                aria-label="목차"
+                className={`fixed inset-y-0 left-0 z-30 flex w-72 flex-col overflow-hidden bg-white shadow-xl transition-transform duration-200 min-[880px]:hidden ${
+                    leftDrawerOpen ? "translate-x-0" : "-translate-x-full"
+                }`}
+            >
+                <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2">
+                    <span className="text-sm font-medium text-gray-700">목차</span>
                     <button
                         type="button"
-                        onClick={() => {
-                            setEndWorkBody("");
-                            setEndWorkOpen(true);
-                        }}
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                        aria-label="목차 패널 닫기"
+                        onClick={() => setLeftDrawerOpen(false)}
+                        className="rounded-md px-2 py-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                     >
-                        작업 종료
+                        ✕
                     </button>
+                </div>
+                <div className="flex flex-1 flex-col overflow-hidden">{outlinePanel}</div>
+            </div>
+
+            {/* 좁은 폭 우측 drawer 백드롭 */}
+            {rightDrawerOpen && (
+                <div
+                    aria-hidden="true"
+                    className="fixed inset-0 z-20 bg-gray-900/40 min-[880px]:hidden"
+                    onClick={() => setRightDrawerOpen(false)}
+                />
+            )}
+            {/* 좁은 폭 우측 drawer */}
+            <div
+                ref={rightDrawerRef}
+                role="dialog"
+                aria-modal="true"
+                aria-label="쪽지·인물"
+                className={`fixed inset-y-0 right-0 z-30 flex w-80 flex-col overflow-hidden bg-gray-50 shadow-xl transition-transform duration-200 min-[880px]:hidden ${
+                    rightDrawerOpen ? "translate-x-0" : "translate-x-full"
+                }`}
+            >
+                <div className="flex items-center justify-between border-b border-gray-200 bg-white px-3 py-2">
+                    <span className="text-sm font-medium text-gray-700">쪽지·인물</span>
+                    <button
+                        type="button"
+                        aria-label="쪽지·인물 패널 닫기"
+                        onClick={() => setRightDrawerOpen(false)}
+                        className="rounded-md px-2 py-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                    >
+                        ✕
+                    </button>
+                </div>
+                <div className="flex flex-1 flex-col overflow-hidden">
+                    <BWorkSidePanel projectId={projectId} />
                 </div>
             </div>
 
@@ -201,7 +316,11 @@ export default function BWorkDetailPage() {
                 />
             )}
 
-            <BWorkSidePanel projectId={projectId} />
+            {/* ── 넓은 폭(≥880px): inline 우측 패널 ── */}
+            {/* display:contents 로 래퍼가 flex-item 취급 없이 BWorkSidePanel 의 자체 w-80/w-8 이 부모 flex 에 직접 참여. */}
+            <div className="hidden min-[880px]:contents">
+                <BWorkSidePanel projectId={projectId} />
+            </div>
 
             {session.conflict != null && (
                 <div className="fixed inset-0 z-30 flex items-center justify-center bg-gray-900/40 p-4">
