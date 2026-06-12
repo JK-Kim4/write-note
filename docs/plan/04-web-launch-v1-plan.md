@@ -12,6 +12,7 @@
 - 데드라인 = **품질 우선, 날짜 무관**. dogfooding·검증을 범위에 포함.
 - 인프라 = Claude가 코드·설정·SQL 작성 → 사용자가 적용 명령 실행(외부 인프라 쓰기는 사용자 컨펌 영역).
 - **챕터 기능 추가(2026-06-11):** 작품 1:N 챕터(순서 조절 + export 시 골라 묶기, 작품 횡단 없음) — **Round 2.5 신규 삽입**(export 가 챕터 합본에 의존하므로 Round 3 선행 필수). 설계 = `docs/superpowers/specs/2026-06-11-chapters-design.ko.md`.
+- **Round 2 B 기준 재구성(2026-06-12):** B타입 디자인 기본값화에 따라 Round 2 를 B 디자인 기준으로 재정의. **A 디자인 동결**(신규 기능 미적용, 선택 옵션으로 잔존). 용지 크기 = B 에디터에 페이지 분할 이식 후 도입. Round 2.5 챕터 FE(집필실 좌패널)도 B `app/b/works/[id]` 좌패널(목차) 기준으로 적용.
 
 ## 검증으로 드러난 정정 사항
 
@@ -48,14 +49,15 @@
 
 **추정 5~7.5d**
 
-### Round 2 — 집필실 기능
+### Round 2 — 집필실 기능 **(2026-06-12 B 디자인 기준 재구성)**
 
-- [ ] **F3** (#39) 제목/부제목 — BubbleMenu에 H1 버튼 추가(H2는 기존) + 아웃라인 H1 반영
-- [ ] **F2** (#40) 용지 크기 설정(A4/A3/A2/B4) — `desktop-app.css` 용지 CSS 변수화 + `pageLayout.ts` 페이지분할 기하 용지별 재계산 + 설정 UI + 영속(A3 위에)
-- [ ] **B1** (#41) 좁은 폭 곁쪽지 패널 — `@media(max-width:880px){.side-panel{display:none}}`(`desktop-app.css:506`) 정책 일관화(drawer/오버레이)
-- [ ] **B2** (#50) Rail 네비 동선 — `/settings`·`/projects/[id]`·`/edit`·`/characters`에서 Rail 사라지는 문제 정책 확정·복구(+등장인물 메뉴)
+> **재구성 사유**: 원정의(2026-06-11)는 A 디자인(Rail 셸+PaperEditor) 기준인데, B타입 디자인 기본값화(`52edefe`) 이후 실측 결과 — F3(H1 버튼)·B2(네비 영속+인물 메뉴)는 B 에서 **이미 충족**(BEditor 툴바 H1~H3 / `app/b/layout.tsx` 헤더 네비), F2(용지)는 분할 없는 B 흐름형 에디터에 **적용 불가 정의**. 사용자 결정(2026-06-12): **Round 2 = B 기준 재구성 + A 동결(신규 기능 미적용)** / **F2 = B 에 페이지 분할+용지 도입**.
 
-**추정 3.5~6d**
+- [ ] **R2-1** (#40 재정의) B 에디터 페이지 분할 이식 + 용지 크기 4종(A4/A3/A2/B4) — PaperEditor 의 검증된 CSS `column-height`/`column-wrap` 분할을 BEditor 본문에 이식(종이 시트·쪽번호·ResizeObserver 장수), `pageLayout.ts` 하드코딩 상수(26줄·210mm)를 용지 프리셋으로 파라미터화(용지별 폭 mm + 본문 줄수 정수, B4=JIS 257×364mm default), 설정 영속(preferences store `paperSize` + `PreferencesSync` + BE `SettingsService.ALLOWED` 1줄 + `/b/settings` UI). **비-Chromium 폴백**: `column-height` 는 Chrome 145+ 전용(리서치 검증 3-0) — `CSS.supports()` 감지 후 미지원 브라우저는 현행 흐름형 유지. **한국어 IME 4케이스 재검증 의무**(TipTap 렌더 구조 변경)
+- [ ] **R2-2** (#41 재정의) B 집필실 좁은 폭 대응 — 좌 목차 패널(w-64)+우 `BWorkSidePanel`(곁쪽지·인물 탭)을 breakpoint 미만에서 토글 drawer/오버레이로(숨김 일변도 금지, 접근 수단 보장)
+- [ ] **R2-3** (#39·#50 잔여) 검증·소규모 격차 — B 의 H1 버튼·헤더 네비 영속 동작 확인(신규 개발 0), 목차(`useEditorOutline`) H3 미반영 격차 처리(default=H3 도 목차 포함), A 디자인 동결 기록
+
+**추정 5.5~7.5d** (분할 이식이 추가되어 원추정 3.5~6d 대비 증가)
 
 ### Round 2.5 — 챕터 (작품 1:N 본문 구조) **(2026-06-11 추가)**
 
@@ -109,12 +111,12 @@
 |------|---------|
 | Round 0 게이트 | 1~1.5 |
 | Round 1 스키마 기능 | 5~7.5 |
-| Round 2 집필실 | 3.5~6 |
+| Round 2 집필실 (B 재구성) | 5.5~7.5 |
 | Round 2.5 챕터 | 5~7.5 |
 | Round 3 export | 6~10 |
 | Round 4 인프라 | 2~4 |
 | Round 5 검증 | 2~3 |
-| **합계** | **약 25~39.5d** |
+| **합계** | **약 27~41d** |
 
 > hwpx 스파이크 결과에 따라 Round 3 상단/하단이 갈린다.
 
