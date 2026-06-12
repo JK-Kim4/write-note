@@ -12,7 +12,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
     LOGIN_LOCKED: "로그인 시도가 너무 많아 계정이 잠겼습니다. 30분 후 다시 시도해주세요.",
     // 회원가입
     EMAIL_ALREADY_REGISTERED: "이미 가입된 이메일입니다.",
-    PASSWORD_TOO_WEAK: "비밀번호가 너무 약합니다. 8자 이상, 숫자·문자 조합을 사용하세요.",
+    PASSWORD_TOO_WEAK: "비밀번호가 너무 약합니다. 12자 이상, 영문·숫자·특수문자를 모두 포함해주세요.",
     EMAIL_INVALID_FORMAT: "이메일 형식이 올바르지 않습니다.",
     VALIDATION_FAILED: "입력값을 확인해주세요.",
     // 토큰(인증/재설정)
