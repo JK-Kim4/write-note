@@ -1,12 +1,13 @@
 "use client";
 
 import "./b.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
 import { logout } from "@/lib/api/auth";
+import { usePreferences, useIsPreferencesHydrated } from "@/stores/preferences";
 import { getLastProject } from "@/lib/lastProject";
 
 /**
@@ -32,6 +33,14 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const queryClient = useQueryClient();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    // 완전 전환: 기본 디자인을 고른 사용자가 `/b`로 들어오면 기본 트리(`/`)로 보낸다.
+    // hydration 완료 후에만 — 그 전엔 design 이 기본값("default")이라 B 사용자도 오판 리다이렉트된다.
+    const design = usePreferences((state) => state.design);
+    const hydrated = useIsPreferencesHydrated();
+    useEffect(() => {
+        if (hydrated && design === "default") router.replace("/");
+    }, [hydrated, design, router]);
 
     const handleLogout = async () => {
         if (isLoggingOut) return;

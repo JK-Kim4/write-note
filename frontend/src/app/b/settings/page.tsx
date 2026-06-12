@@ -1,8 +1,14 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMe } from "@/lib/api/auth";
-import { usePreferences, type ThemeMode } from "@/stores/preferences";
+import {
+    usePreferences,
+    DESIGN_HOME,
+    type DesignVariant,
+    type ThemeMode,
+} from "@/stores/preferences";
 
 /**
  * B타입 설정 — fable-test 카드 문법으로 구성한 설정 화면.
@@ -16,13 +22,55 @@ const THEME_OPTIONS: { value: ThemeMode; label: string; description: string }[] 
     { value: "system", label: "시스템", description: "기기 설정을 따름" },
 ];
 
+const DESIGN_OPTIONS: { value: DesignVariant; label: string; description: string }[] = [
+    { value: "default", label: "기본 디자인", description: "기존 나래 노트 화면" },
+    { value: "b", label: "B타입 디자인", description: "지금 보고 있는 B 레이아웃" },
+];
+
 export default function BSettingsPage() {
-    const { theme, setTheme } = usePreferences();
+    const router = useRouter();
+    const { theme, setTheme, design, setDesign } = usePreferences();
     const meQuery = useQuery({ queryKey: ["auth", "me"], queryFn: fetchMe, retry: false });
+
+    // 디자인 선택 = 화면 한 벌 전환. 선택 즉시 해당 트리 홈으로 이동(완전 전환) + localStorage 기억.
+    const handleSelectDesign = (next: DesignVariant) => {
+        setDesign(next);
+        router.push(DESIGN_HOME[next]);
+    };
 
     return (
         <div className="mx-auto max-w-2xl">
             <h1 className="mb-6 text-xl font-bold">설정</h1>
+
+            <section className="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+                <h2 className="text-base font-semibold text-gray-900">디자인</h2>
+                <p className="mt-0.5 text-xs text-gray-400">화면 디자인 한 벌을 고릅니다. 선택 즉시 전환됩니다.</p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                    {DESIGN_OPTIONS.map((option) => (
+                        <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => handleSelectDesign(option.value)}
+                            className={
+                                design === option.value
+                                    ? "rounded-md border border-indigo-500 bg-indigo-50 px-3 py-2.5 text-left"
+                                    : "rounded-md border border-gray-300 px-3 py-2.5 text-left hover:bg-gray-50"
+                            }
+                        >
+                            <span
+                                className={
+                                    design === option.value
+                                        ? "block text-sm font-medium text-indigo-700"
+                                        : "block text-sm font-medium text-gray-700"
+                                }
+                            >
+                                {option.label}
+                            </span>
+                            <span className="mt-0.5 block text-xs text-gray-400">{option.description}</span>
+                        </button>
+                    ))}
+                </div>
+            </section>
 
             <section className="rounded-xl border border-gray-200 bg-white p-5">
                 <h2 className="text-base font-semibold text-gray-900">테마</h2>

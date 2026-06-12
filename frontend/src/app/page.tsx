@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/lib/auth/guard";
+import { usePreferences, useIsPreferencesHydrated } from "@/stores/preferences";
 import { Rail } from "@/components/workspace/Rail";
 import { Titlebar } from "@/components/workspace/Titlebar";
 import { QuickCapture } from "@/components/QuickCapture";
@@ -23,6 +24,15 @@ import { useWeeklyByDay } from "@/lib/query/useSessions";
 export default function DashboardPage() {
     useAuthGuard("requireAuth");
     const router = useRouter();
+
+    // 완전 전환: B타입을 고른 사용자는 루트로 들어와도 B 트리(`/b`)로 보낸다.
+    // hydration 완료 후에만 — localStorage 기반 design 값은 그 전엔 기본값이라 확정 불가.
+    const design = usePreferences((state) => state.design);
+    const hydrated = useIsPreferencesHydrated();
+    useEffect(() => {
+        if (hydrated && design === "b") router.replace("/b");
+    }, [hydrated, design, router]);
+
     const cardsQuery = useProjectCards();
     const weeklyQuery = useWeeklyByDay();
     const memosQuery = useInboxMemos();
