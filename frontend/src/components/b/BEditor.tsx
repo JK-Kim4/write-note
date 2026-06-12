@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useEditor, EditorContent, type Content, type Editor } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import type { DocumentChange } from "@/components/editor/PaperEditor";
 import { extractPlainText } from "@/components/editor/wordCountUtils";
+import { pageCount, globalLineAt, pageNumberTopsPx, LINE_PX, PAGE_STRIDE_PX, SHEET_H_PX } from "@/components/editor/pageLayout";
 
 /**
  * B타입 본문 에디터 — fable-test ChapterEditor 디자인(툴바 / 본문 / 상태바 세로 3단) + 줄노트 라인.
@@ -70,11 +71,57 @@ function ToolbarDivider() {
     return <span aria-hidden="true" className="mx-1 h-5 w-px bg-gray-200" />;
 }
 
+/**
+ * Paged 모드 내부 서브컴포넌트 — 시트 절대배치 + ResizeObserver 장수 계산.
+ * BEditor 의 useEditor 소유·IME 가드·자동저장은 불변(이 컴포넌트는 렌더+click-fill 전담).
+ */
+function BPagedBody({
+    editor,
+    pagedRef,
+    pages,
+    onMouseDown,
+}: {
+    editor: Editor | null;
+    pagedRef: React.RefObject<HTMLElement | null>;
+    pages: number;
+    onMouseDown: (e: ReactMouseEvent<HTMLElement>) => void;
+}) {
+    return (
+        <article
+            ref={pagedRef}
+            className="b-paged-paper"
+            style={{ minHeight: `${(pages - 1) * PAGE_STRIDE_PX + SHEET_H_PX}px` }}
+            onMouseDown={onMouseDown}
+        >
+            <div className="b-paged-sheets" aria-hidden="true">
+                {Array.from({ length: pages }, (_, i) => (
+                    <div
+                        key={i}
+                        className="b-sheet b-sheet--lined"
+                        style={{ top: `${i * PAGE_STRIDE_PX}px`, height: `${SHEET_H_PX}px` }}
+                    />
+                ))}
+            </div>
+            <EditorContent editor={editor} className="b-paged-prose" />
+            {pageNumberTopsPx(pages).map((top, i) => (
+                <div key={i} className="b-page-num" style={{ top: `${top}px` }} aria-label={`${i + 1}쪽`}>
+                    {i + 1}
+                </div>
+            ))}
+        </article>
+    );
+}
+
 export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorReady, statusLabel, statusTone }: BEditorProps) {
     // 초기 글자수는 본문 JSON 에서 직접 파생 — 이후엔 onUpdate 가 갱신.
     const [charCount, setCharCount] = useState(() => extractPlainText(initialBodyJson).replace(/\s/g, "").length);
     // 툴바 active 상태 갱신용 tick — 조합 중 re-render 는 IME 를 깨므로 비조합 트랜잭션에서만 올린다.
     const [, setTick] = useState(0);
+    // CSS column-height 지원 여부 — SSR 후 클라이언트 마운트 시 확인.
+    const [isPaged, setIsPaged] = useState(false);
+    // paged 모드 장수 — ResizeObserver 가 .ProseMirror 높이 측정.
+    const [pages, setPages] = useState(1);
+    const pagedRef = useRef<HTMLElement>(null);
 
     const onChangeRef = useRef(onChange);
     const onDraftUpdateRef = useRef(onDraftUpdate);
@@ -128,12 +175,50 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
         return () => onEditorReady?.(null);
     }, [editor, onEditorReady]);
 
+    // CSS column-height 지원 여부 — SSR 안전: 마운트 후 한 번만 판정.
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setIsPaged(CSS.supports("column-height", "1px"));
+    }, []);
+
+    // paged 모드: ResizeObserver 로 .ProseMirror 높이 측정 → 장수 갱신.
+    useEffect(() => {
+        if (!isPaged) return;
+        const pm = pagedRef.current?.querySelector<HTMLElement>(".ProseMirror");
+        if (!pm) return;
+        const measure = () => setPages(pageCount(pm.getBoundingClientRect().height, 1));
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(pm);
+        return () => ro.disconnect();
+    }, [isPaged, editor]);
+
     // 본문 빈 영역 클릭 시 에디터 포커스(문서 끝으로) — 줄노트 빈 줄을 클릭해도 바로 쓸 수 있게.
     const handleBodyMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
         if (!editor) return;
         if ((e.target as HTMLElement).closest(".ProseMirror")) return;
         e.preventDefault();
         editor.chain().focus("end").run();
+    };
+
+    // paged 모드 click-fill — PaperEditor.handlePaperMouseDown 이식.
+    // 본문 영역 아래 빈 시트를 클릭하면 globalLineAt 까지 빈 문단을 채우고 포커스.
+    const handlePagedMouseDown = (e: ReactMouseEvent<HTMLElement>) => {
+        if (!editor) return;
+        const pm = pagedRef.current?.querySelector<HTMLElement>(".ProseMirror");
+        if (!pm) return;
+        const pmTop = pm.getBoundingClientRect().top;
+        const targetLine = globalLineAt((e.clientY - pmTop) / LINE_PX);
+        const endTop = editor.view.coordsAtPos(editor.state.doc.content.size).top;
+        const lastLine = globalLineAt((endTop - pmTop) / LINE_PX);
+        if (targetLine <= lastLine) return;
+        e.preventDefault();
+        const fill = Math.min(1000, targetLine - lastLine);
+        editor
+            .chain()
+            .focus("end")
+            .insertContent(Array.from({ length: fill }, () => ({ type: "paragraph" })))
+            .run();
     };
 
     return (
@@ -210,12 +295,23 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
                 )}
             </div>
             {/* b-editor-scroll — 아웃라인 현재 섹션 추적의 스크롤 컨테이너(useEditorOutline 에 선택자 전달). */}
-            <div
-                className="b-editor-scroll b-editor flex-1 overflow-y-auto px-8 py-6"
-                onMouseDown={handleBodyMouseDown}
-            >
-                <EditorContent editor={editor} className="b-editor-content" />
-            </div>
+            {isPaged ? (
+                <div className="b-editor-scroll b-paged-stage flex-1 overflow-y-auto">
+                    <BPagedBody
+                        editor={editor}
+                        pagedRef={pagedRef}
+                        pages={pages}
+                        onMouseDown={handlePagedMouseDown}
+                    />
+                </div>
+            ) : (
+                <div
+                    className="b-editor-scroll b-editor flex-1 overflow-y-auto px-8 py-6"
+                    onMouseDown={handleBodyMouseDown}
+                >
+                    <EditorContent editor={editor} className="b-editor-content" />
+                </div>
+            )}
             <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-1.5 text-xs text-gray-500">
                 <span role="status" aria-live="polite" className={statusTone === "error" ? "text-red-600" : undefined}>
                     {statusLabel}
