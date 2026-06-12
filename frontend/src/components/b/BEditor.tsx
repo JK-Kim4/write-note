@@ -5,7 +5,7 @@ import { useEditor, EditorContent, type Content, type Editor } from "@tiptap/rea
 import { StarterKit } from "@tiptap/starter-kit";
 import type { DocumentChange } from "@/components/editor/PaperEditor";
 import { extractPlainText } from "@/components/editor/wordCountUtils";
-import { pageCount, globalLineAt, pageNumberTopsPx, paperGeometry, LINE_PX, type PaperGeometry } from "@/components/editor/pageLayout";
+import { pageCount, globalLineAt, pageNumberTopsPx, paperGeometry, LINE_PX, type PaperGeometry, type PaperSize } from "@/components/editor/pageLayout";
 
 /**
  * B타입 본문 에디터 — fable-test ChapterEditor 디자인(툴바 / 본문 / 상태바 세로 3단) + 줄노트 라인.
@@ -35,6 +35,8 @@ type BEditorProps = {
     statusLabel: string;
     /** 상태 라벨 색조 — error 만 빨강, 나머지 회색. */
     statusTone: "ok" | "error";
+    /** 용지 크기 — 분할·CSS변수 계산에 사용. Phase 3에서 store 연결. 미전달 시 A4. */
+    paperSize?: PaperSize;
 };
 
 function ToolbarButton({
@@ -115,10 +117,9 @@ function BPagedBody({
     );
 }
 
-// Phase 2: A4 geometry 고정. 용지 선택 배선은 Phase 3 에서 진행.
-const B_GEOMETRY = paperGeometry("A4");
-
-export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorReady, statusLabel, statusTone }: BEditorProps) {
+export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorReady, statusLabel, statusTone, paperSize = "A4" }: BEditorProps) {
+    // 용지 크기 기하 — paperSize prop 변경 시 재계산(순수함수, 메모이제이션 불필요).
+    const geometry = paperGeometry(paperSize);
     // 초기 글자수는 본문 JSON 에서 직접 파생 — 이후엔 onUpdate 가 갱신.
     const [charCount, setCharCount] = useState(() => extractPlainText(initialBodyJson).replace(/\s/g, "").length);
     // 툴바 active 상태 갱신용 tick — 조합 중 re-render 는 IME 를 깨므로 비조합 트랜잭션에서만 올린다.
@@ -192,12 +193,12 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
         if (!isPaged) return;
         const pm = pagedRef.current?.querySelector<HTMLElement>(".ProseMirror");
         if (!pm) return;
-        const measure = () => setPages(pageCount(pm.getBoundingClientRect().height, 1, B_GEOMETRY.stridePx));
+        const measure = () => setPages(pageCount(pm.getBoundingClientRect().height, 1, geometry.stridePx));
         measure();
         const ro = new ResizeObserver(measure);
         ro.observe(pm);
         return () => ro.disconnect();
-    }, [isPaged, editor]);
+    }, [isPaged, editor, geometry.stridePx]);
 
     // 본문 빈 영역 클릭 시 에디터 포커스(문서 끝으로) — 줄노트 빈 줄을 클릭해도 바로 쓸 수 있게.
     const handleBodyMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -214,9 +215,9 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
         const pm = pagedRef.current?.querySelector<HTMLElement>(".ProseMirror");
         if (!pm) return;
         const pmTop = pm.getBoundingClientRect().top;
-        const targetLine = globalLineAt((e.clientY - pmTop) / LINE_PX, B_GEOMETRY.bodyLines, B_GEOMETRY.strideLines);
+        const targetLine = globalLineAt((e.clientY - pmTop) / LINE_PX, geometry.bodyLines, geometry.strideLines);
         const endTop = editor.view.coordsAtPos(editor.state.doc.content.size).top;
-        const lastLine = globalLineAt((endTop - pmTop) / LINE_PX, B_GEOMETRY.bodyLines, B_GEOMETRY.strideLines);
+        const lastLine = globalLineAt((endTop - pmTop) / LINE_PX, geometry.bodyLines, geometry.strideLines);
         if (targetLine <= lastLine) return;
         e.preventDefault();
         const fill = Math.min(1000, targetLine - lastLine);
@@ -307,7 +308,7 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
                         editor={editor}
                         pagedRef={pagedRef}
                         pages={pages}
-                        geometry={B_GEOMETRY}
+                        geometry={geometry}
                         onMouseDown={handlePagedMouseDown}
                     />
                 </div>

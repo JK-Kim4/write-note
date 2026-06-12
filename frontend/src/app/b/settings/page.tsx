@@ -7,6 +7,7 @@ import {
     usePreferences,
     DESIGN_HOME,
     type DesignVariant,
+    type PaperSize,
     type ThemeMode,
 } from "@/stores/preferences";
 
@@ -27,9 +28,16 @@ const DESIGN_OPTIONS: { value: DesignVariant; label: string; description: string
     { value: "b", label: "B타입 디자인", description: "지금 보고 있는 B 레이아웃" },
 ];
 
+const PAPER_SIZE_OPTIONS: { value: PaperSize; label: string; description: string }[] = [
+    { value: "A4", label: "A4", description: "210×297mm — 일반 원고지 (기본)" },
+    { value: "A3", label: "A3", description: "297×420mm — 넓은 원고지" },
+    { value: "A2", label: "A2", description: "420×594mm — 대형 원고지" },
+    { value: "B4", label: "B4", description: "257×364mm — JIS B4 규격" },
+];
+
 export default function BSettingsPage() {
     const router = useRouter();
-    const { theme, setTheme, design, setDesign } = usePreferences();
+    const { theme, setTheme, design, setDesign, paperSize, setPaperSize } = usePreferences();
     const meQuery = useQuery({ queryKey: ["auth", "me"], queryFn: fetchMe, retry: false });
 
     // 디자인 선택 = 화면 한 벌 전환. 선택 즉시 해당 트리 홈으로 이동(완전 전환) + localStorage 기억.
@@ -60,6 +68,36 @@ export default function BSettingsPage() {
                             <span
                                 className={
                                     design === option.value
+                                        ? "block text-sm font-medium text-indigo-700"
+                                        : "block text-sm font-medium text-gray-700"
+                                }
+                            >
+                                {option.label}
+                            </span>
+                            <span className="mt-0.5 block text-xs text-gray-400">{option.description}</span>
+                        </button>
+                    ))}
+                </div>
+            </section>
+
+            <section className="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+                <h2 className="text-base font-semibold text-gray-900">용지 크기</h2>
+                <p className="mt-0.5 text-xs text-gray-400">B 집필실 본문의 용지 크기를 고릅니다. 선택 즉시 반영됩니다.</p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                    {PAPER_SIZE_OPTIONS.map((option) => (
+                        <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setPaperSize(option.value)}
+                            className={
+                                paperSize === option.value
+                                    ? "rounded-md border border-indigo-500 bg-indigo-50 px-3 py-2.5 text-left"
+                                    : "rounded-md border border-gray-300 px-3 py-2.5 text-left hover:bg-gray-50"
+                            }
+                        >
+                            <span
+                                className={
+                                    paperSize === option.value
                                         ? "block text-sm font-medium text-indigo-700"
                                         : "block text-sm font-medium text-gray-700"
                                 }

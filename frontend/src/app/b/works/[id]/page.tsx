@@ -14,6 +14,7 @@ import { rememberLastProject } from "@/lib/lastProject";
 import { useEditorOutline } from "@/components/editor/useEditorOutline";
 import type { DocumentChange } from "@/components/editor/PaperEditor";
 import { BEditor } from "@/components/b/BEditor";
+import { usePreferences } from "@/stores/preferences";
 import { BWorkSidePanel } from "@/components/b/BWorkSidePanel";
 import type { ProjectDocument } from "@/lib/types/domain";
 
@@ -43,6 +44,7 @@ export default function BWorkDetailPage() {
     const [isEndingWork, setIsEndingWork] = useState(false);
 
     const { endWithLog } = useWorkSession(projectId);
+    const paperSize = usePreferences((s) => s.paperSize);
 
     // 집필 네비("집필" 메뉴)가 돌아올 작품으로 기억 — A Rail 과 동일한 lastProject 공유.
     useEffect(() => {
@@ -195,6 +197,7 @@ export default function BWorkDetailPage() {
                     onEditorReady={setEditor}
                     statusLabel={statusLabel}
                     statusTone={statusTone}
+                    paperSize={paperSize}
                 />
             )}
 

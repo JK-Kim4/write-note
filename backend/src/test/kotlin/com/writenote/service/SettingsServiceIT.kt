@@ -79,4 +79,24 @@ class SettingsServiceIT
                 settingsService.updateSettings(user.id!!, mapOf("theme" to "neon"))
             }
         }
+
+        @Test
+        @DisplayName("paperSize 허용값(A4·A3·A2·B4) 저장 통과")
+        fun `valid paperSize values accepted`() {
+            val user = savedUser()
+            for (size in listOf("A4", "A3", "A2", "B4")) {
+                settingsService.updateSettings(user.id!!, mapOf("paperSize" to size))
+                val stored = settingsService.getSettings(user.id!!).settings
+                assertThat(stored).containsEntry("paperSize", size)
+            }
+        }
+
+        @Test
+        @DisplayName("paperSize 비허용값 거부")
+        fun `invalid paperSize rejected`() {
+            val user = savedUser()
+            assertThrows<ValidationException> {
+                settingsService.updateSettings(user.id!!, mapOf("paperSize" to "Letter"))
+            }
+        }
     }
