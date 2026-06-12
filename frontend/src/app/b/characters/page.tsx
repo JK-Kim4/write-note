@@ -197,6 +197,7 @@ export default function BCharactersPage() {
 
     const [isCreating, setIsCreating] = useState(false);
     const [editTarget, setEditTarget] = useState<CharacterResponse | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<CharacterResponse | null>(null);
 
     const characters = charactersQuery.data ?? [];
 
@@ -263,9 +264,8 @@ export default function BCharactersPage() {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => deleteMutation.mutate(character.id)}
-                                        disabled={deleteMutation.isPending}
-                                        className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
+                                        onClick={() => setDeleteTarget(character)}
+                                        className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
                                     >
                                         삭제
                                     </button>
@@ -308,6 +308,46 @@ export default function BCharactersPage() {
                         )
                     }
                 />
+            )}
+
+            {deleteTarget && (
+                <div
+                    className="fixed inset-0 z-30 flex items-center justify-center bg-gray-900/40 p-4"
+                    onClick={() => !deleteMutation.isPending && setDeleteTarget(null)}
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="인물 삭제"
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
+                    >
+                        <h2 className="text-lg font-bold text-gray-900">인물 삭제</h2>
+                        <p className="mt-2 text-sm text-gray-600">
+                            「{deleteTarget.name}」 을(를) 삭제할까요? 되돌릴 수 없습니다.
+                        </p>
+                        <div className="mt-5 flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setDeleteTarget(null)}
+                                disabled={deleteMutation.isPending}
+                                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                취소
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    deleteMutation.mutate(deleteTarget.id, { onSuccess: () => setDeleteTarget(null) })
+                                }
+                                disabled={deleteMutation.isPending}
+                                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                            >
+                                삭제
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
