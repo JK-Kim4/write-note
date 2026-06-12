@@ -53,11 +53,13 @@
 
 > **재구성 사유**: 원정의(2026-06-11)는 A 디자인(Rail 셸+PaperEditor) 기준인데, B타입 디자인 기본값화(`52edefe`) 이후 실측 결과 — F3(H1 버튼)·B2(네비 영속+인물 메뉴)는 B 에서 **이미 충족**(BEditor 툴바 H1~H3 / `app/b/layout.tsx` 헤더 네비), F2(용지)는 분할 없는 B 흐름형 에디터에 **적용 불가 정의**. 사용자 결정(2026-06-12): **Round 2 = B 기준 재구성 + A 동결(신규 기능 미적용)** / **F2 = B 에 페이지 분할+용지 도입**.
 
-- [ ] **R2-1** (#40 재정의) B 에디터 페이지 분할 이식 + 용지 크기 4종(A4/A3/A2/B4) — PaperEditor 의 검증된 CSS `column-height`/`column-wrap` 분할을 BEditor 본문에 이식(종이 시트·쪽번호·ResizeObserver 장수), `pageLayout.ts` 하드코딩 상수(26줄·210mm)를 용지 프리셋으로 파라미터화(용지별 폭 mm + 본문 줄수 정수, B4=JIS 257×364mm default), 설정 영속(preferences store `paperSize` + `PreferencesSync` + BE `SettingsService.ALLOWED` 1줄 + `/b/settings` UI). **비-Chromium 폴백**: `column-height` 는 Chrome 145+ 전용(리서치 검증 3-0) — `CSS.supports()` 감지 후 미지원 브라우저는 현행 흐름형 유지. **한국어 IME 4케이스 재검증 의무**(TipTap 렌더 구조 변경)
-- [ ] **R2-2** (#41 재정의) B 집필실 좁은 폭 대응 — 좌 목차 패널(w-64)+우 `BWorkSidePanel`(곁쪽지·인물 탭)을 breakpoint 미만에서 토글 drawer/오버레이로(숨김 일변도 금지, 접근 수단 보장)
-- [ ] **R2-3** (#39·#50 잔여) 검증·소규모 격차 — B 의 H1 버튼·헤더 네비 영속 동작 확인(신규 개발 0), 목차(`useEditorOutline`) H3 미반영 격차 처리(default=H3 도 목차 포함), A 디자인 동결 기록
+- [x] **R2-1** (#40 재정의) B 에디터 페이지 분할 이식 + 용지 크기 4종(A4/A3/A2/B4) — ✅ 구현완료(Phase 1~3, `8386c8b`·`72bd755`·`175b3bd`). PaperEditor CSS `column-height`/`column-wrap` 분할을 B 스킨으로 BEditor 이식, `pageLayout.ts` PaperGeometry 파라미터화(B4=JIS 257×364mm, A4 회귀 0), 설정 영속(store `paperSize`+PreferencesSync+BE ALLOWED 1줄+`/b/settings`), `CSS.supports` 폴백. **잔여=GATE-1 브라우저 dogfooding(IME 4케이스·장 분할)**
+- [x] **R2-2** (#41 재정의) B 집필실 좁은 폭 대응 — ✅ 구현완료(Phase 4, `5b3b7ce`). 좌 목차·우 BWorkSidePanel 880px 미만 토글 drawer(백드롭·ESC), 넓은 폭 3패널 불변. **잔여=GATE-2 시각 dogfooding**
+- [x] **R2-3** (#39·#50 잔여) 검증·소규모 격차 — ✅ 완료(Phase 5, `bd591f3`). 목차 H3 포함(TDD), H1~H3 툴바·헤더 네비 영속은 B 기충족(검증). A 디자인 동결 기록(아래)
 
-**추정 5.5~7.5d** (분할 이식이 추가되어 원추정 3.5~6d 대비 증가)
+**구현완료(자동 게이트 GREEN, 2026-06-12)** — Opus advisor + Sonnet implementer. spec=`specs/020-round2-b-studio/`. 잔여=human dogfooding GATE-1·GATE-2뿐. 원추정 5.5~7.5d 대비 자동 구현 1세션.
+
+**A 디자인 동결(2026-06-12 확정):** Round 2 신규 기능(페이지 분할·용지·반응형 패널)은 **B 디자인에만** 적용. A 디자인(`/`·`/projects`·PaperEditor)은 선택 옵션으로 잔존하되 신규 미적용 — A/B 비대칭(A 사용자는 Round 2 기능 미수령)은 런칭 후 정리 후보. **동결 예외 1건**: 공용 outline 파생(`outlineFromDoc`)의 H3 포함이 A 집필실 목차에도 자연 반영(무해, 신규 기능 아님).
 
 ### Round 2.5 — 챕터 (작품 1:N 본문 구조) **(2026-06-11 추가)**
 

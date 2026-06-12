@@ -4,6 +4,20 @@
 
 오케스트레이션: Opus advisor(설계·리뷰) + Sonnet implementer(구현). Phase 경계마다 Opus 리뷰 게이트.
 
+## 상태 (2026-06-12)
+
+**자동 구현 Phase 1~5 전부 완료 + 게이트 GREEN.** 잔여 = human dogfooding(GATE-1·GATE-2)뿐.
+
+| Phase | 커밋 | 게이트 |
+|---|---|---|
+| 1 분할 PoC | `8386c8b` | typecheck·lint·test(180)·build ✅ |
+| 2 PaperGeometry 파라미터화 | `72bd755` | test(209, pageLayout 29 신규)·A4 회귀가드 ✅ |
+| 3 용지 설정 영속 | `175b3bd` | BE ktlint main+test·checkstyle·test·build / FE 4게이트 ✅ |
+| 4 좁은 폭 패널 drawer | `5b3b7ce` | 4게이트 ✅ |
+| 5 목차 H3 | `bd591f3` | 4게이트(test 210)·최종 전수 ✅ |
+
+Opus 직접 검증: 금지영역 변경 0 / IME 가드·세션·아웃라인 결선 불변 / PreferencesSync 3지점 정합 / A4 회귀 0 / 호출부 누락 0. 모두 Opus 재실행으로 확인(§7).
+
 ## Phase 1 — 분할 PoC (핵심 증명, §10 최우선)
 
 - [ ] T001 `pageLayout.ts` 읽고 A4 분할 메커니즘·상수 파악(구현자 grep)
