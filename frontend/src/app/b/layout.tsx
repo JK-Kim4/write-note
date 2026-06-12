@@ -33,6 +33,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const queryClient = useQueryClient();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [noProjectModalOpen, setNoProjectModalOpen] = useState(false);
 
     // 완전 전환: 기본 디자인을 고른 사용자가 `/b`로 들어오면 기본 트리(`/`)로 보낸다.
     // hydration 완료 후에만 — 그 전엔 design 이 기본값("default")이라 B 사용자도 오판 리다이렉트된다.
@@ -80,7 +81,11 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                                             type="button"
                                             onClick={() => {
                                                 const last = getLastProject();
-                                                router.push(last != null ? `/b/works/${last}` : "/b");
+                                                if (last != null) {
+                                                    router.push(`/b/works/${last}`);
+                                                } else {
+                                                    setNoProjectModalOpen(true);
+                                                }
                                             }}
                                             className={
                                                 pathname.startsWith("/b/works") ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS
@@ -107,6 +112,48 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                 </div>
             </header>
             <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+
+            {noProjectModalOpen && (
+                <div
+                    className="fixed inset-0 z-30 flex items-center justify-center bg-gray-900/40 p-4"
+                    onClick={() => setNoProjectModalOpen(false)}
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="아직 펼친 작품이 없어요"
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
+                    >
+                        <div className="flex items-start justify-between">
+                            <h2 className="text-lg font-bold text-gray-900">아직 펼친 작품이 없어요</h2>
+                            <button
+                                type="button"
+                                aria-label="닫기"
+                                onClick={() => setNoProjectModalOpen(false)}
+                                className="ml-4 rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <p className="mt-2 text-sm text-gray-600">
+                            작품을 먼저 선택하거나 새로 만들어 주세요.
+                        </p>
+                        <div className="mt-5 flex justify-end">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    router.push("/b");
+                                    setNoProjectModalOpen(false);
+                                }}
+                                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                            >
+                                작품 목록으로 가기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

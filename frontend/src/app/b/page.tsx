@@ -43,7 +43,7 @@ function WorkCard({ card, onDelete }: { card: ProjectCard; onDelete: (id: number
                 type="button"
                 aria-label={`${card.title} 삭제`}
                 onClick={() => onDelete(card.id)}
-                className="absolute right-3 bottom-3 hidden rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 group-hover:block"
+                className="absolute right-3 bottom-3 rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
             >
                 삭제
             </button>

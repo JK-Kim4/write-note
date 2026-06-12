@@ -253,7 +253,7 @@ export default function BCharactersPage() {
                                         {character.notes}
                                     </p>
                                 )}
-                                <div className="mt-3 hidden items-center justify-end gap-1.5 group-hover:flex">
+                                <div className="mt-3 flex items-center justify-end gap-1.5">
                                     <button
                                         type="button"
                                         onClick={() => setEditTarget(character)}

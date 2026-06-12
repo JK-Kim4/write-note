@@ -198,7 +198,7 @@ export default function BMemosPage() {
                                 <button
                                     type="button"
                                     onClick={() => handleDelete(memo.id)}
-                                    className="hidden rounded-md border border-red-200 px-2 py-0.5 text-red-600 group-hover:block hover:bg-red-50"
+                                    className="rounded-md border border-red-200 px-2 py-0.5 text-red-600 hover:bg-red-50"
                                 >
                                     버리기
                                 </button>
