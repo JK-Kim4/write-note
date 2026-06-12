@@ -59,15 +59,32 @@ export default function BWorksPage() {
     const [isCreating, setIsCreating] = useState(false);
     const [title, setTitle] = useState("");
     const [genre, setGenre] = useState("");
+    const [targetLengthRaw, setTargetLengthRaw] = useState("");
+    const [synopsis, setSynopsis] = useState("");
+    const [toneNotes, setToneNotes] = useState("");
+    const [worldNotes, setWorldNotes] = useState("");
     const [deleteTarget, setDeleteTarget] = useState<ProjectCard | null>(null);
 
     const handleCreate = async (e: FormEvent) => {
         e.preventDefault();
         const trimmed = title.trim();
         if (!trimmed || createProject.isPending) return;
-        await createProject.mutateAsync({ title: trimmed, genre: genre.trim() || null });
+        const parsedLength = Number(targetLengthRaw);
+        const targetLength = Number.isFinite(parsedLength) && parsedLength >= 1 ? parsedLength : null;
+        await createProject.mutateAsync({
+            title: trimmed,
+            genre: genre.trim() || null,
+            targetLength,
+            synopsis: synopsis.trim() || null,
+            toneNotes: toneNotes.trim() || null,
+            worldNotes: worldNotes.trim() || null,
+        });
         setTitle("");
         setGenre("");
+        setTargetLengthRaw("");
+        setSynopsis("");
+        setToneNotes("");
+        setWorldNotes("");
         setIsCreating(false);
     };
 
@@ -121,12 +138,21 @@ export default function BWorksPage() {
             {isCreating && (
                 <div
                     className="fixed inset-0 z-30 flex items-center justify-center bg-gray-900/40 p-4"
-                    onClick={() => !createProject.isPending && setIsCreating(false)}
+                    onClick={() => {
+                        if (createProject.isPending) return;
+                        setTitle("");
+                        setGenre("");
+                        setTargetLengthRaw("");
+                        setSynopsis("");
+                        setToneNotes("");
+                        setWorldNotes("");
+                        setIsCreating(false);
+                    }}
                 >
                     <form
                         onSubmit={handleCreate}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
+                        className="w-full max-w-sm max-h-[85vh] overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
                     >
                         <h2 className="text-lg font-bold text-gray-900">새 작품</h2>
                         <label className="mt-4 block text-sm text-gray-600">
@@ -145,13 +171,64 @@ export default function BWorksPage() {
                                 value={genre}
                                 onChange={(e) => setGenre(e.target.value)}
                                 placeholder="예: 장편소설, 에세이"
+                                maxLength={100}
+                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                            />
+                        </label>
+                        <label className="mt-3 block text-sm text-gray-600">
+                            목표 분량 (선택)
+                            <input
+                                type="number"
+                                value={targetLengthRaw}
+                                onChange={(e) => setTargetLengthRaw(e.target.value)}
+                                placeholder="예: 80000 (자)"
+                                min={1}
+                                max={100000000}
+                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                            />
+                        </label>
+                        <label className="mt-3 block text-sm text-gray-600">
+                            줄거리 (선택)
+                            <textarea
+                                value={synopsis}
+                                onChange={(e) => setSynopsis(e.target.value)}
+                                maxLength={5000}
+                                rows={3}
+                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                            />
+                        </label>
+                        <label className="mt-3 block text-sm text-gray-600">
+                            톤·문체 (선택)
+                            <textarea
+                                value={toneNotes}
+                                onChange={(e) => setToneNotes(e.target.value)}
+                                maxLength={2000}
+                                rows={3}
+                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                            />
+                        </label>
+                        <label className="mt-3 block text-sm text-gray-600">
+                            세계관 (선택)
+                            <textarea
+                                value={worldNotes}
+                                onChange={(e) => setWorldNotes(e.target.value)}
+                                maxLength={10000}
+                                rows={3}
                                 className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
                             />
                         </label>
                         <div className="mt-5 flex justify-end gap-2">
                             <button
                                 type="button"
-                                onClick={() => setIsCreating(false)}
+                                onClick={() => {
+                                    setTitle("");
+                                    setGenre("");
+                                    setTargetLengthRaw("");
+                                    setSynopsis("");
+                                    setToneNotes("");
+                                    setWorldNotes("");
+                                    setIsCreating(false);
+                                }}
                                 disabled={createProject.isPending}
                                 className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
                             >
