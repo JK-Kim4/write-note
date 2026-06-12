@@ -49,7 +49,7 @@ export function useEditorOutline(
         let raf = 0;
         const measure = () => {
             raf = 0;
-            const headings = Array.from(pmDom.querySelectorAll<HTMLElement>("h1, h2"));
+            const headings = Array.from(pmDom.querySelectorAll<HTMLElement>("h1, h2, h3"));
             if (headings.length === 0) {
                 setActiveIndex(null);
                 return;
@@ -73,13 +73,16 @@ export function useEditorOutline(
         };
     }, [editor, items.length, scrollSelector]);
 
-    // 점프 — index 번째 level1·2 heading 위치 해결 → 커서 이동 + 스크롤(reduced-motion 시 즉시).
+    // 점프 — index 번째 level1·2·3 heading 위치 해결 → 커서 이동 + 스크롤(reduced-motion 시 즉시).
     const selectItem = useCallback(
         (item: OutlineItem) => {
             if (!editor) return;
             const positions: number[] = [];
             editor.state.doc.descendants((node, pos) => {
-                if (node.type.name === "heading" && (node.attrs.level === 1 || node.attrs.level === 2)) {
+                if (
+                    node.type.name === "heading" &&
+                    (node.attrs.level === 1 || node.attrs.level === 2 || node.attrs.level === 3)
+                ) {
                     positions.push(pos);
                 }
                 return true;

@@ -168,7 +168,7 @@ export default function BWorkDetailPage() {
                                 outline.activeIndex === i
                                     ? "bg-indigo-50 font-medium text-indigo-700"
                                     : "text-gray-600 hover:bg-gray-50"
-                            } ${item.level === 2 ? "pl-5" : ""}`}
+                            } ${item.level === 2 ? "pl-5" : item.level === 3 ? "pl-9" : ""}`}
                         >
                             {item.text || "(제목 없음)"}
                         </button>
