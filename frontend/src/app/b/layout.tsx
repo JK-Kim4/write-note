@@ -9,6 +9,7 @@ import { useAuthGuard } from "@/lib/auth/guard";
 import { logout } from "@/lib/api/auth";
 import { usePreferences, useIsPreferencesHydrated } from "@/stores/preferences";
 import { getLastProject } from "@/lib/lastProject";
+import { useProjectCards } from "@/lib/query/useProjects";
 
 /**
  * B타입 디자인 앱 셸 — fable-test 프로토타입 Layout 이식 (디자인 비교용).
@@ -34,6 +35,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
     const queryClient = useQueryClient();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [noProjectModalOpen, setNoProjectModalOpen] = useState(false);
+    const { data: projectCards } = useProjectCards();
 
     // 완전 전환: 기본 디자인을 고른 사용자가 `/b`로 들어오면 기본 트리(`/`)로 보낸다.
     // hydration 완료 후에만 — 그 전엔 design 이 기본값("default")이라 B 사용자도 오판 리다이렉트된다.
@@ -75,17 +77,28 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                                     <Link href={item.href} className={isActive ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS}>
                                         {item.label}
                                     </Link>
-                                    {/* 집필 — 마지막으로 연 작품의 집필 화면으로(없으면 작품 목록). A Rail 과 동일 동작. */}
+                                    {/* 집필 — 마지막으로 연 작품(존재 시)→최근 작품→작품 0개면 안내 모달. "연 적 없음"이 아니라 "작품 없음"일 때만 모달. */}
                                     {i === 0 && (
                                         <button
                                             type="button"
                                             onClick={() => {
                                                 const last = getLastProject();
-                                                if (last != null) {
+                                                // 마지막으로 연 작품이 아직 존재하면 그 작품으로 재진입.
+                                                if (last != null && projectCards?.some((c) => c.id === last)) {
                                                     router.push(`/b/works/${last}`);
-                                                } else {
-                                                    setNoProjectModalOpen(true);
+                                                    return;
                                                 }
+                                                // 연 적 없거나 그 작품이 삭제됐어도, 작품이 있으면 가장 최근 작품으로.
+                                                if (projectCards && projectCards.length > 0) {
+                                                    router.push(`/b/works/${projectCards[0].id}`);
+                                                    return;
+                                                }
+                                                // 목록 로딩 중이면 거짓 모달 방지 위해 작품 목록으로, 로딩 끝났고 0개면 안내 모달.
+                                                if (projectCards === undefined) {
+                                                    router.push("/b");
+                                                    return;
+                                                }
+                                                setNoProjectModalOpen(true);
                                             }}
                                             className={
                                                 pathname.startsWith("/b/works") ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS
