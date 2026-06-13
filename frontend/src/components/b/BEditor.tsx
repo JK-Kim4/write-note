@@ -5,7 +5,7 @@ import { useEditor, EditorContent, type Content, type Editor } from "@tiptap/rea
 import { StarterKit } from "@tiptap/starter-kit";
 import type { DocumentChange } from "@/components/editor/PaperEditor";
 import { extractPlainText } from "@/components/editor/wordCountUtils";
-import { pageCount, globalLineAt, pageNumberTopsPx, paperGeometry, LINE_PX, type PaperGeometry, type PaperSize } from "@/components/editor/pageLayout";
+import { pageCount, globalLineAt, pageNumberTopsPx, paperGeometry, PAPER_PRESETS, LINE_PX, type PaperGeometry, type PaperSize } from "@/components/editor/pageLayout";
 
 /**
  * B타입 본문 에디터 — fable-test ChapterEditor 디자인(툴바 / 본문 / 상태바 세로 3단) + 줄노트 라인.
@@ -95,7 +95,16 @@ function BPagedBody({
         <article
             ref={pagedRef}
             className="b-paged-paper"
-            style={{ minHeight: `${(pages - 1) * geometry.stridePx + geometry.sheetHpx}px` }}
+            style={
+                {
+                    minHeight: `${(pages - 1) * geometry.stridePx + geometry.sheetHpx}px`,
+                    // 용지 기하를 CSS 로 주입 — b.css 의 A4 하드코딩(폭·열폭·줄수·보폭)을 용지별 값으로 치환.
+                    "--b-page-h": `${geometry.pageHpx}px`,
+                    "--b-page-stride": `${geometry.stridePx}px`,
+                    "--b-page-max-width": `${geometry.maxWidthMm}mm`,
+                    "--b-page-col-width": `${geometry.colWidthMm}mm`,
+                } as React.CSSProperties
+            }
             onMouseDown={onMouseDown}
         >
             <div className="b-paged-sheets" aria-hidden="true">
@@ -303,7 +312,11 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
             </div>
             {/* b-editor-scroll — 아웃라인 현재 섹션 추적의 스크롤 컨테이너(useEditorOutline 에 선택자 전달). */}
             {isPaged ? (
-                <div className="b-editor-scroll b-paged-stage flex-1 overflow-y-auto">
+                <div className="b-editor-scroll b-paged-stage flex-1 overflow-x-auto overflow-y-auto">
+                    {/* 용지 배지 — 현재 용지·치수를 항상 노출(규격 변경 인지). 폭 변화와 함께 이중 신호. */}
+                    <div className="b-paper-badge" aria-label={`용지 ${paperSize}`}>
+                        {paperSize} · {PAPER_PRESETS[paperSize].widthMm}×{PAPER_PRESETS[paperSize].heightMm}mm
+                    </div>
                     <BPagedBody
                         editor={editor}
                         pagedRef={pagedRef}
