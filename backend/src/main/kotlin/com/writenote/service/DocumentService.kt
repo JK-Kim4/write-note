@@ -3,6 +3,7 @@ package com.writenote.service
 import com.writenote.components.documents.ChapterReorderValidator
 import com.writenote.entity.Document
 import com.writenote.error.DocumentConflictException
+import com.writenote.error.LastChapterException
 import com.writenote.error.ResourceNotFoundException
 import com.writenote.error.ValidationException
 import com.writenote.model.request.CreateChapterRequest
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.kotlinModule
+import java.time.Instant
 
 @Service
 class DocumentService(
@@ -208,6 +210,52 @@ class DocumentService(
             title = document.title,
             updatedAt = requireNotNull(document.updatedAt),
         )
+    }
+
+    /**
+     * C4: 챕터 soft-delete. [deletedAt] = now(). 활성 챕터가 1개뿐이면 [LastChapterException] (409).
+     * 이미 삭제된 챕터면 멱등(no-op).
+     */
+    @Transactional(rollbackFor = [Exception::class])
+    fun deleteChapter(
+        userId: Long,
+        documentId: Long,
+    ) {
+        val document =
+            documentRepository
+                .findByIdAndDeletedAtIsNull(documentId)
+                .orElseThrow { ResourceNotFoundException("Document not found: $documentId") }
+        projectService.requireOwnedProject(userId, document.projectId)
+        val activeChapters =
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(document.projectId)
+        if (activeChapters.size <= 1) {
+            throw LastChapterException()
+        }
+        document.deletedAt = Instant.now()
+        documentRepository.save(document)
+    }
+
+    /**
+     * C5: 삭제된 챕터 복구. [deletedAt] = null. [sortOrder] = 활성 최대+1 (맨 뒤 배치).
+     * 삭제 여부와 무관하게 findById 로 조회 후 소유권 확인.
+     */
+    @Transactional(rollbackFor = [Exception::class])
+    fun restoreChapter(
+        userId: Long,
+        documentId: Long,
+    ): ChapterResponse {
+        val document =
+            documentRepository
+                .findById(documentId)
+                .orElseThrow { ResourceNotFoundException("Document not found: $documentId") }
+        projectService.requireOwnedProject(userId, document.projectId)
+        val activeChapters =
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(document.projectId)
+        val nextSortOrder = if (activeChapters.isEmpty()) 0 else activeChapters.last().sortOrder + 1
+        document.deletedAt = null
+        document.sortOrder = nextSortOrder
+        documentRepository.save(document)
+        return document.toChapterResponse()
     }
 
     /**

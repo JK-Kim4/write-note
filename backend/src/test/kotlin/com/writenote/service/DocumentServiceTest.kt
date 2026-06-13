@@ -4,6 +4,7 @@ import com.writenote.components.documents.ChapterReorderValidator
 import com.writenote.entity.Document
 import com.writenote.entity.Project
 import com.writenote.error.DocumentConflictException
+import com.writenote.error.LastChapterException
 import com.writenote.error.ResourceNotFoundException
 import com.writenote.error.ValidationException
 import com.writenote.model.request.CreateChapterRequest
@@ -428,5 +429,65 @@ class DocumentServiceTest {
         val result = service.createChapter(userId = 1L, projectId = 10L, request = CreateChapterRequest(title = null))
 
         assertThat(result.title).isEqualTo("새 챕터")
+    }
+
+    // ── T023: deleteChapter / restoreChapter 단위 테스트 ─────────────────────────
+
+    @Test
+    @DisplayName("챕터 삭제 — 활성 챕터 여럿이면 deletedAt 설정됨 (C4)")
+    fun `deleteChapter sets deletedAt when multiple active chapters exist`() {
+        val project = newProject()
+        val ch1 = newDocument(id = 1L, projectId = 10L).apply { sortOrder = 0 }
+        val ch2 = newDocument(id = 2L, projectId = 10L).apply { sortOrder = 1 }
+        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
+        every { documentRepository.findByIdAndDeletedAtIsNull(eq(1L)) } returns Optional.of(ch1)
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns listOf(ch1, ch2)
+        every { documentRepository.save(any<Document>()) } answers { firstArg() }
+
+        service.deleteChapter(userId = 1L, documentId = 1L)
+
+        assertThat(ch1.deletedAt).isNotNull
+    }
+
+    @Test
+    @DisplayName("챕터 삭제 — 활성 챕터 1개이면 LAST_CHAPTER_UNDELETABLE 예외 (C4)")
+    fun `deleteChapter throws LastChapterException when only one active chapter remains`() {
+        val project = newProject()
+        val ch1 = newDocument(id = 1L, projectId = 10L).apply { sortOrder = 0 }
+        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
+        every { documentRepository.findByIdAndDeletedAtIsNull(eq(1L)) } returns Optional.of(ch1)
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns listOf(ch1)
+
+        assertThatThrownBy {
+            service.deleteChapter(userId = 1L, documentId = 1L)
+        }.isInstanceOf(LastChapterException::class.java)
+    }
+
+    @Test
+    @DisplayName("챕터 복구 — deletedAt 이 null 로 복원되고 sortOrder 는 활성 맨 뒤 (C5)")
+    fun `restoreChapter clears deletedAt and places chapter at end of active list`() {
+        val project = newProject()
+        val deletedChapter =
+            newDocument(id = 3L, projectId = 10L).apply {
+                sortOrder = 0
+                deletedAt = Instant.parse("2026-06-01T00:00:00Z")
+            }
+        val activeChapter = newDocument(id = 1L, projectId = 10L).apply { sortOrder = 0 }
+        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
+        every { documentRepository.findById(eq(3L)) } returns Optional.of(deletedChapter)
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns listOf(activeChapter)
+        every { documentRepository.save(any<Document>()) } answers { firstArg() }
+
+        service.restoreChapter(userId = 1L, documentId = 3L)
+
+        assertThat(deletedChapter.deletedAt).isNull()
+        // 활성 최대 sortOrder(0) + 1 = 1
+        assertThat(deletedChapter.sortOrder).isEqualTo(1)
     }
 }

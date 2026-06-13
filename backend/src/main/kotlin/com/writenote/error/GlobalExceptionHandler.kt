@@ -91,6 +91,22 @@ class GlobalExceptionHandler {
             )
     }
 
+    @ExceptionHandler(LastChapterException::class)
+    fun handleLastChapter(exception: LastChapterException): ResponseEntity<Result<Nothing>> =
+        ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(
+                Result(
+                    success = false,
+                    data = null,
+                    error =
+                        com.writenote.model.response.ErrorInfo(
+                            code = "LAST_CHAPTER_UNDELETABLE",
+                            message = exception.message ?: "마지막 챕터는 삭제할 수 없습니다",
+                        ),
+                ),
+            )
+
     @ExceptionHandler(AuthException::class)
     fun handleAuth(exception: AuthException): ResponseEntity<Result<Nothing>> =
         ResponseEntity

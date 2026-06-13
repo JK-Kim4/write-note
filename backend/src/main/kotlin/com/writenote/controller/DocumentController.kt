@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -151,4 +152,38 @@ class DocumentController(
         @PathVariable id: Long,
         @Valid @RequestBody request: UpdateDocumentTitleRequest,
     ): Result<DocumentTitleResponse> = Result.success(documentService.updateDocumentTitle(principal.userId, id, request))
+
+    // C4: 챕터 soft-delete
+    @DeleteMapping("/api/documents/{id}")
+    @Operation(summary = "챕터 삭제(soft)", description = "deleted_at = now(). 마지막 활성 챕터면 409 LAST_CHAPTER_UNDELETABLE.")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND"),
+            ApiResponse(responseCode = "409", description = "LAST_CHAPTER_UNDELETABLE — 마지막 활성 챕터"),
+        ],
+    )
+    fun deleteChapter(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @PathVariable id: Long,
+    ): Result<Unit> {
+        documentService.deleteChapter(principal.userId, id)
+        return Result.success(Unit)
+    }
+
+    // C5: 챕터 복구
+    @PostMapping("/api/documents/{id}/restore")
+    @Operation(summary = "챕터 복구", description = "deleted_at = null. sortOrder = 활성 맨 뒤 재배치.")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공 — ChapterResponse"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND"),
+        ],
+    )
+    fun restoreChapter(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @PathVariable id: Long,
+    ): Result<ChapterResponse> = Result.success(documentService.restoreChapter(principal.userId, id))
 }

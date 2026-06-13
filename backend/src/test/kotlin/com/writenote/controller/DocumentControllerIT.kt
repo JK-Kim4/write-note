@@ -14,6 +14,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
@@ -380,6 +381,107 @@ class DocumentControllerIT {
                     .header("Authorization", bearerB)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"documentIds":[$ch1Id]}"""),
+            ).andExpect(status().isNotFound)
+    }
+
+    // ── T024: C4 챕터 삭제 / C5 챕터 복구 / C8 삭제 챕터 저장 가드 ────────────────
+
+    @Test
+    @DisplayName("C4 — 마지막 챕터 삭제 시 409 LAST_CHAPTER_UNDELETABLE")
+    fun `C4 delete last chapter returns 409 LAST_CHAPTER_UNDELETABLE`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+        val projectId = createProject(bearer)
+        val docId = firstActiveDocument(projectId).id!!
+
+        // 작품 생성 후 챕터 1개만 존재 → 마지막 챕터 삭제 시도
+        mockMvc
+            .perform(
+                delete("/api/documents/{id}", docId)
+                    .header("Authorization", bearer),
+            ).andExpect(status().isConflict)
+            .andExpect(jsonPath("$.error.code").value("LAST_CHAPTER_UNDELETABLE"))
+    }
+
+    @Test
+    @DisplayName("C4 — 정상 챕터 삭제 200 (활성 챕터 2개 이상)")
+    fun `C4 delete chapter returns 200 when multiple active chapters exist`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+        val projectId = createProject(bearer)
+
+        // 챕터 추가 → 총 2개
+        val ch2Id = createChapter(bearer, projectId, "2장")
+        val ch1Id = firstActiveDocument(projectId).id!!
+
+        mockMvc
+            .perform(
+                delete("/api/documents/{id}", ch1Id)
+                    .header("Authorization", bearer),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.success").value(true))
+
+        // ch2Id 사용 — 방어적 assertion
+        assertThat(ch2Id).isPositive()
+    }
+
+    @Test
+    @DisplayName("C5 — 챕터 복구 200")
+    fun `C5 restore chapter returns 200`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+        val projectId = createProject(bearer)
+
+        // 챕터 2개 만들고 1개 삭제
+        val ch2Id = createChapter(bearer, projectId, "2장")
+        val ch1Id = firstActiveDocument(projectId).id!!
+
+        mockMvc
+            .perform(
+                delete("/api/documents/{id}", ch1Id)
+                    .header("Authorization", bearer),
+            ).andExpect(status().isOk)
+
+        // 삭제된 챕터 복구
+        mockMvc
+            .perform(
+                post("/api/documents/{id}/restore", ch1Id)
+                    .header("Authorization", bearer),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.id").value(ch1Id))
+
+        // ch2Id 사용 — 방어적 assertion
+        assertThat(ch2Id).isPositive()
+    }
+
+    @Test
+    @DisplayName("C8 — 삭제된 챕터에 자동저장 PUT 404")
+    fun `C8 autosave to deleted chapter returns 404`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+        val projectId = createProject(bearer)
+
+        // 챕터 2개 → 1번 삭제
+        createChapter(bearer, projectId, "2장")
+        val ch1 = firstActiveDocument(projectId)
+
+        mockMvc
+            .perform(
+                delete("/api/documents/{id}", ch1.id!!)
+                    .header("Authorization", bearer),
+            ).andExpect(status().isOk)
+
+        // 삭제된 챕터에 자동저장 시도 → 404
+        // body 필드는 JSON 문자열(이스케이프 필요)
+        val escapedDocJson = Document.EMPTY_DOC_JSON.replace("\"", "\\\"")
+        val saveBody = """{"body":"$escapedDocJson","version":"2026-01-01T00:00:00Z"}"""
+        mockMvc
+            .perform(
+                put("/api/documents/{id}", ch1.id!!)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(saveBody),
             ).andExpect(status().isNotFound)
     }
 }
