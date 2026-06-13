@@ -1,8 +1,11 @@
 package com.writenote.controller
 
 import com.writenote.auth.AuthenticatedPrincipal
+import com.writenote.model.request.CreateChapterRequest
 import com.writenote.model.request.SaveDocumentRequest
 import com.writenote.model.request.UpdateDocumentTitleRequest
+import com.writenote.model.response.ChapterMetaResponse
+import com.writenote.model.response.ChapterResponse
 import com.writenote.model.response.DocumentResponse
 import com.writenote.model.response.DocumentSaveResponse
 import com.writenote.model.response.DocumentTitleResponse
@@ -14,12 +17,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import org.springframework.http.HttpStatus
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 
 @Tag(name = "Document", description = "프로젝트 본문 자동저장 / 조회 — owner 식별은 JWT principal 에서만 도출")
@@ -28,6 +34,39 @@ import org.springframework.web.bind.annotation.RestController
 class DocumentController(
     private val documentService: DocumentService,
 ) {
+    // C1: 챕터 목록 — 활성 챕터 메타, body 제외
+    @GetMapping("/api/projects/{projectId}/documents")
+    @Operation(summary = "챕터 목록 조회", description = "활성 챕터를 sortOrder ASC 로. 본문(body) 제외 메타만.")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND — 본인 소유 projectId 아님"),
+        ],
+    )
+    fun listChapters(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @PathVariable projectId: Long,
+    ): Result<List<ChapterMetaResponse>> = Result.success(documentService.listChapters(principal.userId, projectId))
+
+    // C2: 챕터 생성
+    @PostMapping("/api/projects/{projectId}/documents")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "챕터 생성", description = "맨 뒤(sortOrder 최대+1) 추가. title 미지정 시 '새 챕터'. 본문 포함 응답.")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "201", description = "생성 성공"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND — 본인 소유 projectId 아님"),
+        ],
+    )
+    fun createChapter(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @PathVariable projectId: Long,
+        @RequestBody(required = false) request: CreateChapterRequest?,
+    ): Result<ChapterResponse> =
+        Result.success(documentService.createChapter(principal.userId, projectId, request ?: CreateChapterRequest()))
+
     // D1: 프로젝트 ID 로 본문 조회
     @GetMapping("/api/projects/{projectId}/document")
     @Operation(summary = "프로젝트 본문 조회 (nested)", description = "projectId 로 본문 1:1 조회")

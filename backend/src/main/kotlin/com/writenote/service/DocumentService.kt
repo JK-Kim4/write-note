@@ -4,8 +4,11 @@ import com.writenote.entity.Document
 import com.writenote.error.DocumentConflictException
 import com.writenote.error.ResourceNotFoundException
 import com.writenote.error.ValidationException
+import com.writenote.model.request.CreateChapterRequest
 import com.writenote.model.request.SaveDocumentRequest
 import com.writenote.model.request.UpdateDocumentTitleRequest
+import com.writenote.model.response.ChapterMetaResponse
+import com.writenote.model.response.ChapterResponse
 import com.writenote.model.response.DocumentResponse
 import com.writenote.model.response.DocumentSaveResponse
 import com.writenote.model.response.DocumentTitleResponse
@@ -38,15 +41,16 @@ class DocumentService(
         return document.toResponse()
     }
 
-    /** D2: document id 로 조회 (소유권 검증: document.projectId 로 project ownership 확인) */
+    /** D2 / C7: document id 로 조회 (소유권 검증 + soft-delete 챕터 404 가드). */
     @Transactional(readOnly = true)
     fun getDocumentById(
         userId: Long,
         documentId: Long,
     ): DocumentResponse {
+        // T012: findByIdAndDeletedAtIsNull — 삭제 챕터는 404
         val document =
             documentRepository
-                .findById(documentId)
+                .findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow { ResourceNotFoundException("Document not found: $documentId") }
         projectService.requireOwnedProject(userId, document.projectId)
         return document.toResponse()
@@ -75,9 +79,10 @@ class DocumentService(
     }
 
     /**
-     * D3: 본문 자동저장 (documentId 기반 — Controller D3 endpoint 용).
+     * D3 / C8: 본문 자동저장 (documentId 기반 — Controller D3 endpoint 용).
      *
      * document 조회 → projectId 로 소유권 확인 → version 검증 → 저장.
+     * T012: 삭제(soft-delete)된 챕터 저장 시도는 404.
      */
     @Transactional(rollbackFor = [Exception::class])
     fun saveDocumentById(
@@ -85,9 +90,10 @@ class DocumentService(
         documentId: Long,
         request: SaveDocumentRequest,
     ): DocumentSaveResponse {
+        // T012: findByIdAndDeletedAtIsNull — 삭제 챕터에 저장 불가
         val document =
             documentRepository
-                .findById(documentId)
+                .findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow { ResourceNotFoundException("Document not found: $documentId") }
         projectService.requireOwnedProject(userId, document.projectId)
         return performSave(document, request)
@@ -117,6 +123,47 @@ class DocumentService(
             version = requireNotNull(saved.updatedAt),
             updatedAt = requireNotNull(saved.updatedAt),
         )
+    }
+
+    // ── T010: 챕터 목록·생성 ────────────────────────────────────────────────
+
+    /** C1: 활성 챕터 목록 (deletedAt IS NULL), sortOrder ASC. 본문 제외 메타만 반환. */
+    @Transactional(readOnly = true)
+    fun listChapters(
+        userId: Long,
+        projectId: Long,
+    ): List<ChapterMetaResponse> {
+        projectService.requireOwnedProject(userId, projectId)
+        return documentRepository
+            .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectId)
+            .map { it.toMetaResponse() }
+    }
+
+    /**
+     * C2: 챕터 생성. sortOrder = 활성 챕터 최대값+1 (없으면 0).
+     * title 이 null 또는 빈 값이면 "새 챕터" 기본값 사용.
+     */
+    @Transactional(rollbackFor = [Exception::class])
+    fun createChapter(
+        userId: Long,
+        projectId: Long,
+        request: CreateChapterRequest,
+    ): ChapterResponse {
+        projectService.requireOwnedProject(userId, projectId)
+        val activeChapters = documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectId)
+        val nextSortOrder = if (activeChapters.isEmpty()) 0 else activeChapters.last().sortOrder + 1
+        val title = if (request.title.isNullOrBlank()) "새 챕터" else request.title
+
+        val chapter =
+            Document(
+                projectId = projectId,
+                title = title,
+                body = Document.EMPTY_DOC_JSON,
+                wordCount = 0,
+                sortOrder = nextSortOrder,
+            )
+        val saved = documentRepository.saveAndFlush(chapter)
+        return saved.toChapterResponse()
     }
 
     /** D4: 제목 갱신 (≤120자) */
@@ -186,6 +233,25 @@ class DocumentService(
             body = body,
             wordCount = wordCount,
             version = requireNotNull(updatedAt),
+            updatedAt = requireNotNull(updatedAt),
+        )
+
+    private fun Document.toMetaResponse() =
+        ChapterMetaResponse(
+            id = requireNotNull(id),
+            title = title,
+            sortOrder = sortOrder,
+            wordCount = wordCount,
+            updatedAt = requireNotNull(updatedAt),
+        )
+
+    private fun Document.toChapterResponse() =
+        ChapterResponse(
+            id = requireNotNull(id),
+            title = title,
+            sortOrder = sortOrder,
+            body = body,
+            wordCount = wordCount,
             updatedAt = requireNotNull(updatedAt),
         )
 }

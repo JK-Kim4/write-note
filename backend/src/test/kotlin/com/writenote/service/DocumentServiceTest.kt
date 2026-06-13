@@ -5,11 +5,13 @@ import com.writenote.entity.Project
 import com.writenote.error.DocumentConflictException
 import com.writenote.error.ResourceNotFoundException
 import com.writenote.error.ValidationException
+import com.writenote.model.request.CreateChapterRequest
 import com.writenote.model.request.SaveDocumentRequest
 import com.writenote.model.request.UpdateDocumentTitleRequest
 import com.writenote.repository.DocumentRepository
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
@@ -253,9 +255,10 @@ class DocumentServiceTest {
     }
 
     @Test
-    @DisplayName("getDocumentById — 존재하지 않는 id 시 ResourceNotFoundException (D2)")
+    @DisplayName("getDocumentById — 존재하지 않는 id 시 ResourceNotFoundException (D2 / T012)")
     fun `getDocumentById throws ResourceNotFoundException when not found`() {
-        every { documentRepository.findById(eq(999L)) } returns Optional.empty()
+        // T012: findByIdAndDeletedAtIsNull 기반 — 없거나 soft-delete 된 경우 모두 404
+        every { documentRepository.findByIdAndDeletedAtIsNull(eq(999L)) } returns Optional.empty()
 
         assertThatThrownBy {
             service.getDocumentById(userId = 1L, documentId = 999L)
@@ -294,5 +297,121 @@ class DocumentServiceTest {
         assertThatThrownBy {
             service.saveDocument(userId = 1L, projectId = 10L, documentId = null, request = request)
         }.isInstanceOf(ValidationException::class.java)
+    }
+
+    // ── T006: listChapters / createChapter 단위 테스트 ──────────────────────────
+
+    @Test
+    @DisplayName("listChapters — 활성 챕터를 sortOrder ASC 순으로 반환 (C1)")
+    fun `listChapters returns active chapters ordered by sortOrder`() {
+        val project = newProject()
+        val ch1 =
+            newDocument(id = 1L, projectId = 10L).apply {
+                sortOrder = 0
+                title = "1장"
+            }
+        val ch2 =
+            newDocument(id = 2L, projectId = 10L).apply {
+                sortOrder = 1
+                title = "2장"
+            }
+        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns listOf(ch1, ch2)
+
+        val result = service.listChapters(userId = 1L, projectId = 10L)
+
+        assertThat(result).hasSize(2)
+        assertThat(result[0].id).isEqualTo(1L)
+        assertThat(result[0].sortOrder).isEqualTo(0)
+        assertThat(result[1].id).isEqualTo(2L)
+        assertThat(result[1].sortOrder).isEqualTo(1)
+        // 본문(body) 은 목록 응답에 포함되지 않음 — ChapterMetaResponse 에 body 필드 없음
+    }
+
+    @Test
+    @DisplayName("listChapters — 활성 챕터 없을 때 빈 목록 반환 (C1 엣지)")
+    fun `listChapters returns empty list when no active chapters`() {
+        val project = newProject()
+        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns emptyList()
+
+        val result = service.listChapters(userId = 1L, projectId = 10L)
+
+        assertThat(result).isEmpty()
+    }
+
+    @Test
+    @DisplayName("createChapter — title 지정 시 지정 title + sortOrder = 활성 최대+1 (C2)")
+    fun `createChapter uses given title and appends at end`() {
+        val project = newProject()
+        val existing =
+            newDocument(id = 5L, projectId = 10L).apply {
+                sortOrder = 2
+                title = "2장"
+            }
+        val savedSlot = slot<Document>()
+        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns listOf(existing)
+        every { documentRepository.saveAndFlush(capture(savedSlot)) } answers {
+            val doc = savedSlot.captured
+            doc.id = 99L
+            doc.updatedAt = BASE_VERSION
+            doc
+        }
+
+        val result = service.createChapter(userId = 1L, projectId = 10L, request = CreateChapterRequest(title = "3장"))
+
+        assertThat(result.title).isEqualTo("3장")
+        assertThat(result.sortOrder).isEqualTo(3) // 기존 최대(2) + 1
+        assertThat(savedSlot.captured.projectId).isEqualTo(10L)
+    }
+
+    @Test
+    @DisplayName("createChapter — title 미지정/빈 값이면 '새 챕터' 기본값 사용 (C2)")
+    fun `createChapter uses default title when title is blank`() {
+        val project = newProject()
+        val savedSlot = slot<Document>()
+        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns emptyList()
+        every { documentRepository.saveAndFlush(capture(savedSlot)) } answers {
+            val doc = savedSlot.captured
+            doc.id = 10L
+            doc.updatedAt = BASE_VERSION
+            doc
+        }
+
+        val result = service.createChapter(userId = 1L, projectId = 10L, request = CreateChapterRequest(title = ""))
+
+        assertThat(result.title).isEqualTo("새 챕터")
+        assertThat(result.sortOrder).isEqualTo(0) // 활성 챕터 없으므로 0
+    }
+
+    @Test
+    @DisplayName("createChapter — title null 이면 '새 챕터' 기본값 사용 (C2)")
+    fun `createChapter uses default title when title is null`() {
+        val project = newProject()
+        val savedSlot = slot<Document>()
+        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns emptyList()
+        every { documentRepository.saveAndFlush(capture(savedSlot)) } answers {
+            val doc = savedSlot.captured
+            doc.id = 10L
+            doc.updatedAt = BASE_VERSION
+            doc
+        }
+
+        val result = service.createChapter(userId = 1L, projectId = 10L, request = CreateChapterRequest(title = null))
+
+        assertThat(result.title).isEqualTo("새 챕터")
     }
 }
