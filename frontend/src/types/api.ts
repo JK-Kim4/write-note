@@ -95,6 +95,21 @@ export interface DocumentResponse {
     updatedAt: string;
 }
 
+/** 챕터 목록 항목 (022 US1) — GET /api/projects/{projectId}/documents 응답 원소. 본문 미포함 메타만. */
+export interface ChapterMetaResponse {
+    id: number;
+    projectId: number;
+    title: string;
+    sortOrder: number;
+    wordCount: number;
+    updatedAt: string;
+}
+
+/** 챕터 생성 요청 (022 US1) — POST /api/projects/{projectId}/documents */
+export interface CreateChapterInput {
+    title?: string;
+}
+
 /** 메모에 연결된 등장인물 (006 US4) — MemoProjectResponse.characters 원소 */
 export interface MemoCharacterResponse {
     characterId: number;

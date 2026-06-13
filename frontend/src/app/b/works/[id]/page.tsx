@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Editor } from "@tiptap/react";
-import { documentKeys, useProjectDocument } from "@/lib/query/useDocument";
+import { documentKeys, useChapterDocument, useCreateChapter, useProjectChapters } from "@/lib/query/useDocument";
 import { useProject, useUpdateProject } from "@/lib/query/useProjects";
 import { PAPER_PRESETS, type PaperSize } from "@/components/editor/pageLayout";
 import { logKeys } from "@/lib/query/useLogs";
@@ -16,6 +16,7 @@ import { useEditorOutline } from "@/components/editor/useEditorOutline";
 import type { DocumentChange } from "@/components/editor/PaperEditor";
 import { BEditor } from "@/components/b/BEditor";
 import { BWorkSidePanel } from "@/components/b/BWorkSidePanel";
+import { ChapterList } from "@/components/editor/ChapterList";
 import type { ProjectDocument } from "@/lib/types/domain";
 
 /**
@@ -29,14 +30,31 @@ const EMPTY_DOC = JSON.stringify({ type: "doc", content: [] });
 export default function BWorkDetailPage() {
     const params = useParams<{ id: string }>();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const projectId = Number(params.id);
     const queryClient = useQueryClient();
 
     const projectQuery = useProject(projectId);
-    const { data: doc, isLoading, isError } = useProjectDocument(projectId);
+
+    // 챕터 목록 로드
+    const chaptersQuery = useProjectChapters(projectId);
+    const chapters = useMemo(() => chaptersQuery.data ?? [], [chaptersQuery.data]);
+
+    // URL ?chapter 쿼리에서 현재 챕터 ID 결정. 없으면 가장 최근 수정 챕터.
+    const chapterIdFromUrl = Number(searchParams.get("chapter") ?? "") || null;
+    const currentChapterId = useMemo<number | null>(() => {
+        if (chapterIdFromUrl != null && chapters.some((c) => c.id === chapterIdFromUrl)) {
+            return chapterIdFromUrl;
+        }
+        if (chapters.length === 0) return null;
+        return chapters.reduce((latest, c) => (c.updatedAt > latest.updatedAt ? c : latest)).id;
+    }, [chapterIdFromUrl, chapters]);
+
+    // 현재 챕터 본문 로드
+    const { data: doc, isLoading, isError } = useChapterDocument(currentChapterId ?? 0);
 
     const [body, setBody] = useState<string | null>(null);
-    // editorKey: 복구/충돌 시 BEditor 강제 리마운트용(본문 교체 반영).
+    // editorKey: 챕터 전환 / 복구 / 충돌 시 BEditor 강제 리마운트용(본문 교체 반영).
     const [editorKey, setEditorKey] = useState(0);
     const [editor, setEditor] = useState<Editor | null>(null);
     const [endWorkOpen, setEndWorkOpen] = useState(false);
@@ -56,6 +74,7 @@ export default function BWorkDetailPage() {
 
     const { endWithLog } = useWorkSession(projectId);
     const updateProject = useUpdateProject();
+    const createChapter = useCreateChapter(projectId);
     // 용지 크기는 작품 속성(트랙3) — 전역 설정이 아니라 이 작품의 paperSize. 변경 시 PATCH → 비율 즉시 반영.
     const paperSize: PaperSize = projectQuery.data?.paperSize ?? "A4";
     const handlePaperSizeChange = (next: PaperSize) => {
@@ -75,10 +94,52 @@ export default function BWorkDetailPage() {
         serverVersion: doc?.version ?? "",
         body: body ?? doc?.bodyJson ?? EMPTY_DOC,
         onSaved: (res) =>
-            queryClient.setQueryData<ProjectDocument | undefined>(documentKeys.byProject(projectId), (old) =>
+            queryClient.setQueryData<ProjectDocument | undefined>(documentKeys.chapter(doc?.id ?? 0), (old) =>
                 old ? { ...old, version: res.version, wordCount: res.wordCount, bodyJson: res.body } : old,
             ),
     });
+
+    // 챕터 전환 직전 flush 를 위한 ref
+    const flushDraftRef = useRef<((body: string) => void) | null>(null);
+    const latestBodyRef = useRef<string>(EMPTY_DOC);
+    useEffect(() => {
+        flushDraftRef.current = session.flushDraft;
+    }, [session.flushDraft]);
+    useEffect(() => {
+        latestBodyRef.current = body ?? doc?.bodyJson ?? EMPTY_DOC;
+    }, [body, doc?.bodyJson]);
+
+    // 챕터 전환 핸들러
+    const handleChapterSelect = useCallback(
+        (nextId: number) => {
+            if (nextId === currentChapterId) return;
+            flushDraftRef.current?.(latestBodyRef.current);
+            setBody(null);
+            setEditorKey((k) => k + 1);
+            const url = `/b/works/${projectId}?chapter=${nextId}`;
+            router.replace(url, { scroll: false });
+        },
+        [currentChapterId, projectId, router],
+    );
+
+    // 챕터 생성 핸들러
+    const handleCreateChapter = useCallback(async () => {
+        try {
+            const newDoc = await createChapter.mutateAsync(undefined);
+            handleChapterSelect(newDoc.id);
+        } catch {
+            // 생성 실패 — 조용히 처리
+        }
+    }, [createChapter, handleChapterSelect]);
+
+    // 챕터 전환 시 body 초기화
+    const prevChapterIdRef = useRef<number | null>(null);
+    useEffect(() => {
+        if (prevChapterIdRef.current !== null && prevChapterIdRef.current !== currentChapterId) {
+            setBody(null);
+        }
+        prevChapterIdRef.current = currentChapterId;
+    }, [currentChapterId]);
 
     // localStorage-first 자동 복원 — 미동기화 draft 가 있으면 에디터 초기 본문으로 즉시 복원.
     const initialBody = body ?? session.restoredBody ?? doc?.bodyJson ?? null;
@@ -95,14 +156,14 @@ export default function BWorkDetailPage() {
     const handleReload = useCallback(() => {
         const conflict = session.conflict;
         if (!conflict) return;
-        queryClient.setQueryData<ProjectDocument | undefined>(documentKeys.byProject(projectId), (old) =>
+        queryClient.setQueryData<ProjectDocument | undefined>(documentKeys.chapter(doc?.id ?? 0), (old) =>
             old ? { ...old, bodyJson: conflict.currentBody, version: conflict.currentVersion } : old,
         );
         setBody(conflict.currentBody);
         setEditorKey((k) => k + 1);
         // dismissConflict 만 하면 세션 토큰이 옛 값에 머물러 다음 저장이 또 409(불러오기→충돌 루프).
         session.reloadFromServer(conflict.currentVersion, conflict.currentBody);
-    }, [session, queryClient, projectId]);
+    }, [session, queryClient, doc?.id]);
 
     const handleEndWork = async () => {
         const trimmed = endWorkBody.trim();
@@ -216,6 +277,18 @@ export default function BWorkDetailPage() {
                         ))}
                     </select>
                 </div>
+            </div>
+            {/* 챕터 목록 — inline/drawer 양쪽에 동일하게 표시 (outlinePanel 공유 구조 활용) */}
+            <div className="border-b border-gray-200 px-2 py-2">
+                <ChapterList
+                    chapters={chapters}
+                    currentChapterId={currentChapterId}
+                    onSelect={(id) => {
+                        handleChapterSelect(id);
+                        setLeftDrawerOpen(false);
+                    }}
+                    onCreate={handleCreateChapter}
+                />
             </div>
             <div className="flex-1 overflow-y-auto p-2">
                 <p className="px-2 py-1 text-xs font-medium text-gray-400">목차</p>
@@ -366,7 +439,7 @@ export default function BWorkDetailPage() {
                 <div className="flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white">
                     <p className="text-sm text-gray-500">잘못된 작품입니다.</p>
                 </div>
-            ) : isLoading ? (
+            ) : isLoading || chaptersQuery.isLoading ? (
                 <div className="flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white">
                     <p className="text-sm text-gray-400">문서 불러오는 중…</p>
                 </div>
