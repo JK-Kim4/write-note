@@ -3,6 +3,7 @@
 import type { ProjectCard } from "@/lib/types/domain";
 import { formatRelativeTime } from "@/lib/dashboardView";
 import { lastSentence } from "@/lib/lastSentence";
+import { GoalGauge } from "./GoalGauge";
 
 type Props = { card: ProjectCard; onOpen: () => void };
 
@@ -28,6 +29,7 @@ export function BResumeCard({ card, onOpen }: Props) {
                 </p>
             )}
             <p className="mt-1 text-xs text-gray-400">{meta}</p>
+            <GoalGauge wordCount={card.wordCount} targetLength={card.targetLength} />
             <button
                 type="button"
                 onClick={onOpen}

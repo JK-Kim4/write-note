@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useProjectCards } from "@/lib/query/useProjects";
 import { selectDashboard } from "@/lib/dashboardView";
 import { BResumeCard } from "@/components/b/dashboard/BResumeCard";
+import { BWorkMiniCard } from "@/components/b/dashboard/BWorkMiniCard";
 
 export default function BDashboardPage() {
     const router = useRouter();
@@ -14,7 +15,7 @@ export default function BDashboardPage() {
         () => true,
         () => false,
     );
-    const { resume } = selectDashboard(cardsQuery.data ?? []);
+    const { resume, others } = selectDashboard(cardsQuery.data ?? []);
 
     const dateLabel = mounted
         ? new Intl.DateTimeFormat("ko-KR", {
@@ -63,6 +64,13 @@ export default function BDashboardPage() {
             ) : (
                 <div className="mt-6">
                     <BResumeCard card={resume} onOpen={() => router.push(`/b/works/${resume.id}`)} />
+                    {others.length > 0 && (
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+                            {others.map((c) => (
+                                <BWorkMiniCard key={c.id} card={c} onOpen={() => router.push(`/b/works/${c.id}`)} />
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
         </div>
