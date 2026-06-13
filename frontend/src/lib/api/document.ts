@@ -64,3 +64,20 @@ export function reorderChapters(projectId: number, documentIds: number[]): Promi
         body: JSON.stringify({ documentIds }),
     });
 }
+
+/**
+ * 챕터 삭제(soft-delete) — DELETE /api/documents/{id}.
+ * 마지막 활성 챕터면 409 LAST_CHAPTER_UNDELETABLE → client.ts 가 LastChapterError throw.
+ * 022 US3 C4.
+ */
+export function deleteChapter(id: number): Promise<void> {
+    return apiFetch<void>(`/api/documents/${id}`, { method: "DELETE" });
+}
+
+/**
+ * 챕터 복구(restore) — POST /api/documents/{id}/restore.
+ * deleted_at = NULL, sort_order = 활성 맨 뒤 재배치. 022 US3 C5.
+ */
+export function restoreChapter(id: number): Promise<void> {
+    return apiFetch<void>(`/api/documents/${id}/restore`, { method: "POST" });
+}

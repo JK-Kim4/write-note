@@ -9,6 +9,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { webElectronApi } from "@/lib/electron-api";
 import type { ChapterMeta } from "@/lib/types/domain";
+import { LastChapterError } from "@/lib/api/client";
 
 export const documentKeys = {
     byProject: (projectId: number) => ["document", "byProject", projectId] as const,
@@ -87,6 +88,54 @@ export function useCreateChapter(projectId: number) {
         },
     });
 }
+
+/**
+ * 챕터 삭제(soft-delete) mutation — 022 US3 T030.
+ *
+ * memos 패턴과 동일한 낙관적 제거:
+ * 1. onMutate: 챕터 목록 캐시에서 즉시 제거 → {previous} 반환
+ * 2. 성공: onSettled 에서 캐시 무효화(서버 상태 동기)
+ * 3. 실패: onError 에서 캐시 복원(롤백)
+ *
+ * LastChapterError(409 LAST_CHAPTER_UNDELETABLE) — 버튼 disabled(INV-1 1차 방어)로 대개 안 닿지만,
+ * 닿으면 롤백만 하고 에러를 호출부로 전파(호출부가 토스트/알림 처리).
+ */
+export function useDeleteChapter(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (documentId: number) => webElectronApi.documents.remove(documentId),
+        onMutate: async (documentId: number) => {
+            await queryClient.cancelQueries({ queryKey: documentKeys.chapters(projectId) });
+            const previous = queryClient.getQueryData<ChapterMeta[]>(documentKeys.chapters(projectId));
+            queryClient.setQueryData<ChapterMeta[]>(documentKeys.chapters(projectId), (cur) =>
+                cur ? cur.filter((c) => c.id !== documentId) : cur,
+            );
+            return { previous };
+        },
+        onError: (_err, _id, ctx) => {
+            if (ctx?.previous != null) {
+                queryClient.setQueryData<ChapterMeta[]>(documentKeys.chapters(projectId), ctx.previous);
+            }
+        },
+        onSettled: () => {
+            void queryClient.invalidateQueries({ queryKey: documentKeys.chapters(projectId) });
+        },
+    });
+}
+
+/** 삭제된 챕터 복구 mutation — 022 US3 T030 (C5 POST /api/documents/{id}/restore). */
+export function useRestoreChapter(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (documentId: number) => webElectronApi.documents.restore(documentId),
+        onSettled: () => {
+            void queryClient.invalidateQueries({ queryKey: documentKeys.chapters(projectId) });
+        },
+    });
+}
+
+// LastChapterError export 재전달 — 호출부에서 별도 import 없이 사용 가능.
+export { LastChapterError };
 
 /**
  * 챕터 순서 이동 mutation — 022 US2 T022.

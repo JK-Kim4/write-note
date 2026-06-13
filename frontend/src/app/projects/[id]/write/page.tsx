@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
-import { documentKeys, useChapterDocument, useCreateChapter, useProjectChapters } from "@/lib/query/useDocument";
+import { documentKeys, useChapterDocument, useCreateChapter, useDeleteChapter, useProjectChapters, useRestoreChapter } from "@/lib/query/useDocument";
 import { useProject } from "@/lib/query/useProjects";
 import { useProjectMemos, useRemoveLinkMemo, useSetPinMemo } from "@/lib/query/useMemos";
 import { logKeys } from "@/lib/query/useLogs";
@@ -14,6 +14,7 @@ import { useDocumentSession } from "@/hooks/useDocumentSession";
 import { useWorkSession } from "@/hooks/useWorkSession";
 import { rememberLastProject } from "@/lib/lastProject";
 import type { Editor } from "@tiptap/react";
+import { Toast } from "@/components/ui/Toast";
 import { Rail } from "@/components/workspace/Rail";
 import { Titlebar } from "@/components/workspace/Titlebar";
 import { StudioRightStack } from "@/components/workspace/StudioRightStack";
@@ -83,6 +84,13 @@ export default function ProjectWritePage() {
     // 챕터 생성 mutation
     const createChapter = useCreateChapter(projectId);
 
+    // 챕터 삭제·복구 mutation (022 US3 T030)
+    const deleteChapter = useDeleteChapter(projectId);
+    const restoreChapter = useRestoreChapter(projectId);
+
+    // 되돌리기 토스트 상태 — memos 패턴 (key=seq 로 Toast remount → 타이머 재시작)
+    const [pendingDelete, setPendingDelete] = useState<{ ids: number[]; seq: number } | null>(null);
+
     useEffect(() => {
         if (Number.isFinite(projectId)) rememberLastProject(projectId);
     }, [projectId]);
@@ -125,6 +133,34 @@ export default function ProjectWritePage() {
         },
         [currentChapterId, projectId, router],
     );
+
+    // 챕터 삭제 핸들러 (022 US3 T030)
+    // - 낙관적으로 목록에서 제거 (useDeleteChapter.onMutate)
+    // - 현재 챕터 삭제 시 바로 앞 챕터(맨 앞이면 다음)로 자동 전환
+    // - 되돌리기 토스트 표시
+    const handleDeleteChapter = useCallback(
+        (deletedId: number) => {
+            // 현재 챕터 삭제 시 전환 대상 결정 (낙관적 제거 전 현재 chapters 기준)
+            if (deletedId === currentChapterId && chapters.length > 1) {
+                const idx = chapters.findIndex((c) => c.id === deletedId);
+                const nextChapter = idx > 0 ? chapters[idx - 1] : chapters[idx + 1];
+                if (nextChapter != null) {
+                    handleChapterSelect(nextChapter.id);
+                }
+            }
+            setPendingDelete((prev) => ({ ids: [...(prev?.ids ?? []), deletedId], seq: (prev?.seq ?? 0) + 1 }));
+            deleteChapter.mutate(deletedId);
+        },
+        [chapters, currentChapterId, deleteChapter, handleChapterSelect],
+    );
+
+    const handleRestoreChapter = useCallback(() => {
+        if (!pendingDelete) return;
+        for (const id of pendingDelete.ids) restoreChapter.mutate(id);
+        setPendingDelete(null);
+    }, [pendingDelete, restoreChapter]);
+
+    const dismissDeleteToast = useCallback(() => setPendingDelete(null), []);
 
     // 새 챕터 생성 핸들러
     const handleCreateChapter = useCallback(async () => {
@@ -272,6 +308,7 @@ export default function ProjectWritePage() {
                                 currentChapterId={currentChapterId}
                                 onSelect={handleChapterSelect}
                                 onCreate={handleCreateChapter}
+                                onDelete={handleDeleteChapter}
                             />
                             <StudioOutline
                                 items={outline.items}
@@ -320,6 +357,15 @@ export default function ProjectWritePage() {
                 )}
             </div>
 
+            {pendingDelete && (
+                <Toast
+                    key={pendingDelete.seq}
+                    message="챕터를 삭제했어요."
+                    actionLabel="되돌리기"
+                    onAction={handleRestoreChapter}
+                    onDismiss={dismissDeleteToast}
+                />
+            )}
             {endWorkOpen && (
                 <div className="modal-backdrop" onClick={() => !endingWork && setEndWorkOpen(false)}>
                     <div className="modal capture" role="dialog" aria-modal="true" aria-label="작업 종료" onClick={(e) => e.stopPropagation()}>

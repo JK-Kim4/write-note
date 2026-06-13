@@ -3,7 +3,7 @@
  * 기존 lib/api/document(006)를 어댑터로 재사용. 자동저장 충돌(409)은 client.ts ConflictError 로 전파.
  * 022 US1: 챕터 목록(list) / 챕터 생성(create) / 단건 조회(get) 추가.
  */
-import { createChapter, getDocument, getProjectDocument, listChapters, reorderChapters, saveDocument } from "@/lib/api/document";
+import { createChapter, deleteChapter, getDocument, getProjectDocument, listChapters, reorderChapters, restoreChapter, saveDocument } from "@/lib/api/document";
 import type { ChapterMetaResponse, DocumentResponse, DocumentSaveResponse } from "@/types/api";
 import type { ChapterMeta, ProjectDocument } from "@/lib/types/domain";
 
@@ -69,4 +69,17 @@ export const documents = {
      */
     reorder: (projectId: number, documentIds: number[]): Promise<void> =>
         reorderChapters(projectId, documentIds),
+
+    /**
+     * 챕터 삭제(soft-delete) — DELETE /api/documents/{id}.
+     * 마지막 활성 챕터면 LastChapterError(409 LAST_CHAPTER_UNDELETABLE) throw.
+     * 022 US3 C4.
+     */
+    remove: (documentId: number): Promise<void> => deleteChapter(documentId),
+
+    /**
+     * 챕터 복구 — POST /api/documents/{id}/restore.
+     * deleted_at = NULL, sort_order = 활성 맨 뒤. 022 US3 C5.
+     */
+    restore: (documentId: number): Promise<void> => restoreChapter(documentId),
 };

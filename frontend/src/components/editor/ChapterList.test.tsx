@@ -124,4 +124,75 @@ describe("ChapterList", () => {
         expect(screen.queryByRole("button", { name: /위로/ })).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: /아래로/ })).not.toBeInTheDocument();
     });
+
+    // ── T025: 삭제 버튼 · disabled (INV-1 1차 방어) ────────────────────────
+
+    it("onDelete 전달 시 각 챕터에 삭제 버튼이 표시된다", () => {
+        render(
+            <ChapterList
+                chapters={CHAPTERS}
+                currentChapterId={null}
+                onSelect={vi.fn()}
+                onCreate={vi.fn()}
+                onDelete={vi.fn()}
+            />,
+        );
+        // 삭제 버튼이 챕터 수만큼 존재해야 함
+        const deleteBtns = screen.getAllByRole("button", { name: /챕터 삭제/ });
+        expect(deleteBtns).toHaveLength(3);
+    });
+
+    it("onDelete 없으면 삭제 버튼이 표시되지 않는다", () => {
+        render(<ChapterList chapters={CHAPTERS} currentChapterId={null} onSelect={vi.fn()} onCreate={vi.fn()} />);
+        expect(screen.queryByRole("button", { name: /챕터 삭제/ })).not.toBeInTheDocument();
+    });
+
+    it("챕터가 1개일 때 삭제 버튼이 disabled 된다 (INV-1 1차 방어)", () => {
+        const singleChapter = [CHAPTERS[0]];
+        render(
+            <ChapterList
+                chapters={singleChapter}
+                currentChapterId={1}
+                onSelect={vi.fn()}
+                onCreate={vi.fn()}
+                onDelete={vi.fn()}
+            />,
+        );
+        const deleteBtn = screen.getByRole("button", { name: /챕터 삭제/ });
+        expect(deleteBtn).toBeDisabled();
+    });
+
+    it("챕터가 2개 이상이면 삭제 버튼이 활성화된다", () => {
+        render(
+            <ChapterList
+                chapters={CHAPTERS}
+                currentChapterId={null}
+                onSelect={vi.fn()}
+                onCreate={vi.fn()}
+                onDelete={vi.fn()}
+            />,
+        );
+        const deleteBtns = screen.getAllByRole("button", { name: /챕터 삭제/ });
+        for (const btn of deleteBtns) {
+            expect(btn).not.toBeDisabled();
+        }
+    });
+
+    it("삭제 버튼 클릭 시 onDelete(id) 가 호출된다", async () => {
+        const onDelete = vi.fn();
+        render(
+            <ChapterList
+                chapters={CHAPTERS}
+                currentChapterId={null}
+                onSelect={vi.fn()}
+                onCreate={vi.fn()}
+                onDelete={onDelete}
+            />,
+        );
+        const deleteBtns = screen.getAllByRole("button", { name: /챕터 삭제/ });
+        await userEvent.click(deleteBtns[1]); // 2번째(id=2)
+
+        expect(onDelete).toHaveBeenCalledWith(2);
+        expect(onDelete).toHaveBeenCalledTimes(1);
+    });
 });

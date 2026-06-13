@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Editor } from "@tiptap/react";
-import { documentKeys, useChapterDocument, useCreateChapter, useProjectChapters } from "@/lib/query/useDocument";
+import { documentKeys, useChapterDocument, useCreateChapter, useDeleteChapter, useProjectChapters, useRestoreChapter } from "@/lib/query/useDocument";
 import { useProject, useUpdateProject } from "@/lib/query/useProjects";
 import { PAPER_PRESETS, type PaperSize } from "@/components/editor/pageLayout";
 import { logKeys } from "@/lib/query/useLogs";
@@ -14,6 +14,7 @@ import { useWorkSession } from "@/hooks/useWorkSession";
 import { rememberLastProject } from "@/lib/lastProject";
 import { useEditorOutline } from "@/components/editor/useEditorOutline";
 import type { DocumentChange } from "@/components/editor/PaperEditor";
+import { Toast } from "@/components/ui/Toast";
 import { BEditor } from "@/components/b/BEditor";
 import { BWorkSidePanel } from "@/components/b/BWorkSidePanel";
 import { ChapterList } from "@/components/editor/ChapterList";
@@ -75,6 +76,11 @@ export default function BWorkDetailPage() {
     const { endWithLog } = useWorkSession(projectId);
     const updateProject = useUpdateProject();
     const createChapter = useCreateChapter(projectId);
+
+    // 챕터 삭제·복구 mutation (022 US3 T030)
+    const deleteChapter = useDeleteChapter(projectId);
+    const restoreChapter = useRestoreChapter(projectId);
+    const [pendingDelete, setPendingDelete] = useState<{ ids: number[]; seq: number } | null>(null);
     // 용지 크기는 작품 속성(트랙3) — 전역 설정이 아니라 이 작품의 paperSize. 변경 시 PATCH → 비율 즉시 반영.
     const paperSize: PaperSize = projectQuery.data?.paperSize ?? "A4";
     const handlePaperSizeChange = (next: PaperSize) => {
@@ -121,6 +127,30 @@ export default function BWorkDetailPage() {
         },
         [currentChapterId, projectId, router],
     );
+
+    // 챕터 삭제 핸들러 (022 US3 T030)
+    const handleDeleteChapter = useCallback(
+        (deletedId: number) => {
+            if (deletedId === currentChapterId && chapters.length > 1) {
+                const idx = chapters.findIndex((c) => c.id === deletedId);
+                const nextChapter = idx > 0 ? chapters[idx - 1] : chapters[idx + 1];
+                if (nextChapter != null) {
+                    handleChapterSelect(nextChapter.id);
+                }
+            }
+            setPendingDelete((prev) => ({ ids: [...(prev?.ids ?? []), deletedId], seq: (prev?.seq ?? 0) + 1 }));
+            deleteChapter.mutate(deletedId);
+        },
+        [chapters, currentChapterId, deleteChapter, handleChapterSelect],
+    );
+
+    const handleRestoreChapter = useCallback(() => {
+        if (!pendingDelete) return;
+        for (const id of pendingDelete.ids) restoreChapter.mutate(id);
+        setPendingDelete(null);
+    }, [pendingDelete, restoreChapter]);
+
+    const dismissDeleteToast = useCallback(() => setPendingDelete(null), []);
 
     // 챕터 생성 핸들러
     const handleCreateChapter = useCallback(async () => {
@@ -291,6 +321,7 @@ export default function BWorkDetailPage() {
                         setLeftDrawerOpen(false);
                     }}
                     onCreate={handleCreateChapter}
+                    onDelete={handleDeleteChapter}
                 />
             </div>
             <div className="flex-1 overflow-y-auto p-2">
@@ -485,6 +516,15 @@ export default function BWorkDetailPage() {
                 />
             </div>
 
+            {pendingDelete && (
+                <Toast
+                    key={pendingDelete.seq}
+                    message="챕터를 삭제했어요."
+                    actionLabel="되돌리기"
+                    onAction={handleRestoreChapter}
+                    onDismiss={dismissDeleteToast}
+                />
+            )}
             {session.conflict != null && (
                 <div className="fixed inset-0 z-40 flex items-center justify-center bg-gray-900/40 p-4">
                     <div

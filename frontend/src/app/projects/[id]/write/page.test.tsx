@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { server } from "@/test/msw/server";
 import ProjectWritePage from "./page";
 
@@ -129,6 +129,188 @@ function renderPage() {
     );
 }
 
+// ── T025: 챕터 삭제 · 되돌리기 · disabled · 전환 ────────────────────────────
+
+/** stubCommon 에서 프로젝트/문서 mock 을 고정 후 챕터 목록을 커스텀할 때 쓰는 헬퍼. */
+function stubWith(chaptersMeta: typeof CHAPTER_A_META[]) {
+    server.use(
+        http.get(`${ORIGIN}/api/auth/me`, () =>
+            HttpResponse.json({ success: true, data: { userId: 1, email: "a@b.com" }, error: null }),
+        ),
+        http.get(`${ORIGIN}/api/projects/1`, () =>
+            HttpResponse.json({
+                success: true,
+                data: {
+                    id: 1, title: "테스트 작품", genre: null, targetLength: null,
+                    toneNotes: null, synopsis: null, worldNotes: null, nextScene: "",
+                    paperSize: "A4", archivedAt: null, createdAt: "2026-06-01T00:00:00Z", updatedAt: "2026-06-01T00:00:00Z",
+                },
+                error: null,
+            }),
+        ),
+        http.get(`${ORIGIN}/api/projects/1/documents`, () =>
+            HttpResponse.json({ success: true, data: chaptersMeta, error: null }),
+        ),
+        http.get(`${ORIGIN}/api/documents/10`, () =>
+            HttpResponse.json({ success: true, data: CHAPTER_A, error: null }),
+        ),
+        http.get(`${ORIGIN}/api/documents/20`, () =>
+            HttpResponse.json({ success: true, data: CHAPTER_B, error: null }),
+        ),
+        http.get(`${ORIGIN}/api/projects/1/memos`, () =>
+            HttpResponse.json({ success: true, data: [], error: null }),
+        ),
+        http.get(`${ORIGIN}/api/projects/1/characters`, () =>
+            HttpResponse.json({ success: true, data: [], error: null }),
+        ),
+        http.post(`${ORIGIN}/api/projects/1/work-sessions/start`, () =>
+            HttpResponse.json({ success: true, data: { id: 1, projectId: 1, startedAt: "2026-06-01T00:00:00Z", endedAt: null }, error: null }),
+        ),
+        http.post(`${ORIGIN}/api/projects/1/work-sessions/end`, () =>
+            HttpResponse.json({ success: true, data: null, error: null }),
+        ),
+    );
+}
+
+describe("ProjectWritePage — 챕터 삭제 · 되돌리기 (T025)", () => {
+    beforeEach(() => {
+        localStorage.clear();
+        searchParamsStore = new URLSearchParams("chapter=10");
+    });
+    afterEach(() => {
+        localStorage.clear();
+    });
+
+    it("챕터 2개일 때 삭제 버튼이 활성화된다", async () => {
+        stubWith([CHAPTER_A_META, CHAPTER_B_META]);
+        renderPage();
+
+        await screen.findByText("1챕터");
+        // 삭제 버튼이 표시되어야 함
+        const deleteButtons = await screen.findAllByRole("button", { name: /챕터 삭제/ });
+        expect(deleteButtons.length).toBeGreaterThan(0);
+        // 챕터가 2개이므로 disabled 가 아님
+        for (const btn of deleteButtons) {
+            expect(btn).not.toBeDisabled();
+        }
+    });
+
+    it("챕터 1개일 때 삭제 버튼이 disabled 된다 (마지막 챕터 불변식 INV-1)", async () => {
+        stubWith([CHAPTER_A_META]);
+        renderPage();
+
+        await screen.findByText("1챕터");
+        const deleteButton = await screen.findByRole("button", { name: /챕터 삭제/ });
+        expect(deleteButton).toBeDisabled();
+    });
+
+    it("챕터 삭제 시 낙관적으로 목록에서 제거되고 되돌리기 토스트가 표시된다", async () => {
+        let deleteCalled = false;
+        server.use(
+            http.delete(`${ORIGIN}/api/documents/20`, () => {
+                deleteCalled = true;
+                return HttpResponse.json({ success: true, data: null, error: null });
+            }),
+        );
+        stubWith([CHAPTER_A_META, CHAPTER_B_META]);
+        renderPage();
+
+        await screen.findByText("2챕터");
+
+        // 2챕터 삭제 버튼 클릭
+        const deleteButtons = await screen.findAllByRole("button", { name: /챕터 삭제/ });
+        // 2번째 항목(2챕터)의 삭제 버튼
+        await userEvent.click(deleteButtons[1]);
+
+        // 되돌리기 토스트가 표시되어야 함 (toast class 로 특정 — savestate 도 role=status 공유)
+        await waitFor(() => {
+            expect(document.querySelector(".toast")).toBeInTheDocument();
+        });
+        expect(screen.getByRole("button", { name: "되돌리기" })).toBeInTheDocument();
+        expect(deleteCalled).toBe(true);
+    });
+
+    it("되돌리기 버튼 클릭 시 restore API 를 호출한다", async () => {
+        let restoreCalled = false;
+        server.use(
+            http.delete(`${ORIGIN}/api/documents/20`, () =>
+                HttpResponse.json({ success: true, data: null, error: null }),
+            ),
+            http.post(`${ORIGIN}/api/documents/20/restore`, () => {
+                restoreCalled = true;
+                return HttpResponse.json({ success: true, data: null, error: null });
+            }),
+        );
+        stubWith([CHAPTER_A_META, CHAPTER_B_META]);
+        renderPage();
+
+        await screen.findByText("2챕터");
+
+        const deleteButtons = await screen.findAllByRole("button", { name: /챕터 삭제/ });
+        await userEvent.click(deleteButtons[1]);
+
+        // 토스트 표시 대기
+        const restoreBtn = await screen.findByRole("button", { name: "되돌리기" });
+        await userEvent.click(restoreBtn);
+
+        await waitFor(() => {
+            expect(restoreCalled).toBe(true);
+        });
+    });
+
+    it("현재 보고 있는 챕터(맨 앞 아님)를 삭제하면 바로 앞 챕터로 전환한다", async () => {
+        // searchParams = chapter=20(2챕터), 챕터목록 [A(10), B(20)]
+        searchParamsStore = new URLSearchParams("chapter=20");
+        server.use(
+            http.delete(`${ORIGIN}/api/documents/20`, () =>
+                HttpResponse.json({ success: true, data: null, error: null }),
+            ),
+        );
+        stubWith([CHAPTER_A_META, CHAPTER_B_META]);
+        renderPage();
+
+        await screen.findByText("2챕터");
+
+        // 현재 챕터(2챕터) 삭제
+        const deleteButtons = await screen.findAllByRole("button", { name: /챕터 삭제/ });
+        await userEvent.click(deleteButtons[1]);
+
+        // 바로 앞 챕터(1챕터=id 10)로 전환 → chapter=10 으로 URL replace
+        await waitFor(() => {
+            expect(replaceMock).toHaveBeenCalledWith(
+                expect.stringContaining("chapter=10"),
+                expect.anything(),
+            );
+        });
+    });
+
+    it("현재 보고 있는 챕터가 맨 앞이면 다음 챕터로 전환한다", async () => {
+        // searchParams = chapter=10(1챕터), 챕터목록 [A(10), B(20)]
+        searchParamsStore = new URLSearchParams("chapter=10");
+        server.use(
+            http.delete(`${ORIGIN}/api/documents/10`, () =>
+                HttpResponse.json({ success: true, data: null, error: null }),
+            ),
+        );
+        stubWith([CHAPTER_A_META, CHAPTER_B_META]);
+        renderPage();
+
+        await screen.findByText("1챕터");
+
+        // 현재 챕터(1챕터=맨 앞) 삭제
+        const deleteButtons = await screen.findAllByRole("button", { name: /챕터 삭제/ });
+        await userEvent.click(deleteButtons[0]);
+
+        // 다음 챕터(2챕터=id 20)로 전환
+        await waitFor(() => {
+            expect(replaceMock).toHaveBeenCalledWith(
+                expect.stringContaining("chapter=20"),
+                expect.anything(),
+            );
+        });
+    });
+});
+
 describe("ProjectWritePage — 챕터 전환 draft 격리", () => {
     it("챕터 A 와 챕터 B 의 draft 키가 wn:draft:doc:{id} 로 서로 다르다", () => {
         // draft 키 격리는 draftStore.keyFor 규약 검증 — localStorage 키 명세 테스트.
@@ -160,8 +342,8 @@ describe("ProjectWritePage — 챕터 전환 draft 격리", () => {
         // 챕터 목록이 로드될 때까지 대기
         await screen.findByText("2챕터");
 
-        // 챕터 B 버튼 클릭 → URL 이 chapter=20 으로 변경되어야 함
-        await userEvent.click(screen.getByRole("button", { name: /2챕터/ }));
+        // 챕터 B 선택 버튼 클릭(aria-current 가 있는 챕터 선택 버튼 — "2챕터 챕터 삭제" 버튼과 구분)
+        await userEvent.click(screen.getByRole("button", { name: "2챕터" }));
 
         await waitFor(() => {
             expect(replaceMock).toHaveBeenCalledWith(
