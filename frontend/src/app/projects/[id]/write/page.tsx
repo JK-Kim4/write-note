@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
-import { documentKeys, useChapterDocument, useCreateChapter, useDeleteChapter, useProjectChapters, useRestoreChapter } from "@/lib/query/useDocument";
+import { documentKeys, useChapterDocument, useCreateChapter, useDeleteChapter, useProjectChapters, useReorderChapters, useRestoreChapter } from "@/lib/query/useDocument";
 import { useProject } from "@/lib/query/useProjects";
 import { useProjectMemos, useRemoveLinkMemo, useSetPinMemo } from "@/lib/query/useMemos";
 import { logKeys } from "@/lib/query/useLogs";
@@ -83,6 +83,9 @@ export default function ProjectWritePage() {
 
     // 챕터 생성 mutation
     const createChapter = useCreateChapter(projectId);
+
+    // 챕터 순서 이동 mutation (022 US2)
+    const reorderChapters = useReorderChapters(projectId);
 
     // 챕터 삭제·복구 mutation (022 US3 T030)
     const deleteChapter = useDeleteChapter(projectId);
@@ -171,6 +174,23 @@ export default function ProjectWritePage() {
             // 생성 실패 — 사용자에게 별도 알림 없이 조용히 처리(목록은 그대로).
         }
     }, [createChapter, handleChapterSelect]);
+
+    // 챕터 순서 이동 핸들러 (022 US2)
+    // direction: "up" → 현재 항목을 앞 항목과 교체, "down" → 뒤 항목과 교체
+    const handleMoveChapter = useCallback(
+        (id: number, direction: "up" | "down") => {
+            const idx = chapters.findIndex((c) => c.id === id);
+            if (idx < 0) return;
+            if (direction === "up" && idx === 0) return;
+            if (direction === "down" && idx === chapters.length - 1) return;
+            const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+            const newIds = chapters.map((c) => c.id);
+            // 인접 항목과 교체
+            [newIds[idx], newIds[swapIdx]] = [newIds[swapIdx], newIds[idx]];
+            reorderChapters.mutate(newIds);
+        },
+        [chapters, reorderChapters],
+    );
 
     // localStorage-first 자동 복원
     const initialBody = body ?? session.restoredBody ?? doc?.bodyJson ?? null;
@@ -308,6 +328,7 @@ export default function ProjectWritePage() {
                                 currentChapterId={currentChapterId}
                                 onSelect={handleChapterSelect}
                                 onCreate={handleCreateChapter}
+                                onMove={handleMoveChapter}
                                 onDelete={handleDeleteChapter}
                             />
                             <StudioOutline

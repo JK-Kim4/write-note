@@ -311,6 +311,49 @@ describe("ProjectWritePage — 챕터 삭제 · 되돌리기 (T025)", () => {
     });
 });
 
+describe("ProjectWritePage — 챕터 순서 이동 (US2)", () => {
+    beforeEach(() => {
+        localStorage.clear();
+        searchParamsStore = new URLSearchParams("chapter=10");
+    });
+    afterEach(() => {
+        localStorage.clear();
+    });
+
+    it("챕터 2개일 때 위/아래 순서 버튼이 표시된다", async () => {
+        stubWith([CHAPTER_A_META, CHAPTER_B_META]);
+        renderPage();
+
+        await screen.findByText("1챕터");
+
+        // 1챕터는 맨 위라 아래로만, 2챕터는 맨 아래라 위로만 버튼 표시됨
+        expect(await screen.findByRole("button", { name: "1챕터 아래로" })).toBeInTheDocument();
+        expect(await screen.findByRole("button", { name: "2챕터 위로" })).toBeInTheDocument();
+    });
+
+    it("아래로 버튼 클릭 시 PUT .../documents/order 를 호출한다", async () => {
+        let capturedIds: number[] | undefined;
+        server.use(
+            http.put(`${ORIGIN}/api/projects/1/documents/order`, async ({ request }) => {
+                const body = await request.json() as { documentIds: number[] };
+                capturedIds = body.documentIds;
+                return HttpResponse.json({ success: true, data: null, error: null });
+            }),
+        );
+        stubWith([CHAPTER_A_META, CHAPTER_B_META]);
+        renderPage();
+
+        await screen.findByText("1챕터");
+
+        // 1챕터 아래로 이동 (A→B 스왑 → 순서: [20, 10])
+        await userEvent.click(await screen.findByRole("button", { name: "1챕터 아래로" }));
+
+        await waitFor(() => {
+            expect(capturedIds).toEqual([20, 10]);
+        });
+    });
+});
+
 describe("ProjectWritePage — 챕터 전환 draft 격리", () => {
     it("챕터 A 와 챕터 B 의 draft 키가 wn:draft:doc:{id} 로 서로 다르다", () => {
         // draft 키 격리는 draftStore.keyFor 규약 검증 — localStorage 키 명세 테스트.

@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { server } from "@/test/msw/server";
 import BWorkDetailPage from "./page";
 
@@ -165,6 +165,49 @@ describe("BWorkDetailPage — 복귀 링크", () => {
 
         const link = await screen.findByRole("link", { name: "작품 목록으로" });
         expect(link).toHaveAttribute("href", "/b/library");
+    });
+});
+
+describe("BWorkDetailPage — 챕터 순서 이동 (US2)", () => {
+    beforeEach(() => {
+        searchParamsStore = new URLSearchParams("chapter=10");
+    });
+
+    it("챕터 2개일 때 위/아래 순서 버튼이 표시된다", async () => {
+        stubCommon();
+        renderPage();
+
+        // B형은 outlinePanel 을 inline + drawer 양쪽에서 공유 → 버튼이 두 벌 렌더됨
+        // getAllByRole 로 최소 1개 이상 존재 확인
+        await waitFor(() => {
+            expect(screen.getAllByRole("button", { name: "1챕터 아래로" }).length).toBeGreaterThan(0);
+        });
+        expect(screen.getAllByRole("button", { name: "2챕터 위로" }).length).toBeGreaterThan(0);
+    });
+
+    it("아래로 버튼 클릭 시 PUT .../documents/order 를 호출한다", async () => {
+        let capturedIds: number[] | undefined;
+        server.use(
+            http.put(`${ORIGIN}/api/projects/1/documents/order`, async ({ request }) => {
+                const body = await request.json() as { documentIds: number[] };
+                capturedIds = body.documentIds;
+                return HttpResponse.json({ success: true, data: null, error: null });
+            }),
+        );
+        stubCommon();
+        renderPage();
+
+        // 1챕터 아래로 버튼이 렌더될 때까지 대기 (inline panel 첫 번째 인스턴스)
+        await waitFor(() => {
+            expect(screen.getAllByRole("button", { name: "1챕터 아래로" }).length).toBeGreaterThan(0);
+        });
+
+        // 첫 번째 인스턴스(inline panel)의 아래로 버튼 클릭 → 순서: [20, 10]
+        await userEvent.click(screen.getAllByRole("button", { name: "1챕터 아래로" })[0]);
+
+        await waitFor(() => {
+            expect(capturedIds).toEqual([20, 10]);
+        });
     });
 });
 

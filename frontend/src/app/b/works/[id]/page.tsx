@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Editor } from "@tiptap/react";
-import { documentKeys, useChapterDocument, useCreateChapter, useDeleteChapter, useProjectChapters, useRestoreChapter } from "@/lib/query/useDocument";
+import { documentKeys, useChapterDocument, useCreateChapter, useDeleteChapter, useProjectChapters, useReorderChapters, useRestoreChapter } from "@/lib/query/useDocument";
 import { useProject, useUpdateProject } from "@/lib/query/useProjects";
 import { PAPER_PRESETS, type PaperSize } from "@/components/editor/pageLayout";
 import { logKeys } from "@/lib/query/useLogs";
@@ -76,6 +76,9 @@ export default function BWorkDetailPage() {
     const { endWithLog } = useWorkSession(projectId);
     const updateProject = useUpdateProject();
     const createChapter = useCreateChapter(projectId);
+
+    // 챕터 순서 이동 mutation (022 US2)
+    const reorderChapters = useReorderChapters(projectId);
 
     // 챕터 삭제·복구 mutation (022 US3 T030)
     const deleteChapter = useDeleteChapter(projectId);
@@ -161,6 +164,21 @@ export default function BWorkDetailPage() {
             // 생성 실패 — 조용히 처리
         }
     }, [createChapter, handleChapterSelect]);
+
+    // 챕터 순서 이동 핸들러 (022 US2)
+    const handleMoveChapter = useCallback(
+        (id: number, direction: "up" | "down") => {
+            const idx = chapters.findIndex((c) => c.id === id);
+            if (idx < 0) return;
+            if (direction === "up" && idx === 0) return;
+            if (direction === "down" && idx === chapters.length - 1) return;
+            const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+            const newIds = chapters.map((c) => c.id);
+            [newIds[idx], newIds[swapIdx]] = [newIds[swapIdx], newIds[idx]];
+            reorderChapters.mutate(newIds);
+        },
+        [chapters, reorderChapters],
+    );
 
     // 챕터 전환 시 body 초기화.
     // handleChapterSelect 도 setBody(null) 하지만, 브라우저 뒤로가기·앞으로가기 등
@@ -321,6 +339,7 @@ export default function BWorkDetailPage() {
                         setLeftDrawerOpen(false);
                     }}
                     onCreate={handleCreateChapter}
+                    onMove={handleMoveChapter}
                     onDelete={handleDeleteChapter}
                 />
             </div>

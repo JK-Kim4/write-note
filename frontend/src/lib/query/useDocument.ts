@@ -68,6 +68,10 @@ export function useCreateChapter(projectId: number) {
                 return [...old, meta];
             });
         },
+        onSettled: () => {
+            // 삭제·복구 후 sortOrder 가 비연속일 수 있어 서버 실제값으로 보정.
+            void queryClient.invalidateQueries({ queryKey: documentKeys.chapters(projectId) });
+        },
     });
 }
 
