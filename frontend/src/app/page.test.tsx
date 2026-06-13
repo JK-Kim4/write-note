@@ -3,9 +3,10 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { server } from "@/test/msw/server";
 import { weekDayRanges } from "@/lib/dashboardView";
+import { usePreferences } from "@/stores/preferences";
 import DashboardPage from "./page";
 
 /**
@@ -19,6 +20,16 @@ vi.mock("next/navigation", () => ({
     usePathname: () => "/",
     useSearchParams: () => new URLSearchParams(),
 }));
+
+// 디자인 가드(B 사용자/미수화 시 A 홈 미렌더) 회피 — A 홈 행위 테스트는 수화 완료 + 기본(A) 디자인 전제.
+vi.mock("@/stores/preferences", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("@/stores/preferences")>();
+    return { ...actual, useIsPreferencesHydrated: () => true };
+});
+
+beforeEach(() => {
+    usePreferences.setState({ design: "default" });
+});
 
 const ORIGIN = "http://localhost:3000";
 
