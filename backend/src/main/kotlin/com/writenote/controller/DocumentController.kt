@@ -2,6 +2,7 @@ package com.writenote.controller
 
 import com.writenote.auth.AuthenticatedPrincipal
 import com.writenote.model.request.CreateChapterRequest
+import com.writenote.model.request.ReorderDocumentsRequest
 import com.writenote.model.request.SaveDocumentRequest
 import com.writenote.model.request.UpdateDocumentTitleRequest
 import com.writenote.model.response.ChapterMetaResponse
@@ -66,6 +67,26 @@ class DocumentController(
         @RequestBody(required = false) request: CreateChapterRequest?,
     ): Result<ChapterResponse> =
         Result.success(documentService.createChapter(principal.userId, projectId, request ?: CreateChapterRequest()))
+
+    // C3: 챕터 순서 일괄 변경
+    @PutMapping("/api/projects/{projectId}/documents/order")
+    @Operation(summary = "챕터 순서 일괄 변경", description = "활성 챕터 id 전량 배열. 배열 index 가 sortOrder 로 대입. 누락/중복/외부 소속 id → 400.")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공"),
+            ApiResponse(responseCode = "400", description = "VALIDATION_FAILED — 누락/중복/외부 소속 id"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND — 본인 소유 projectId 아님"),
+        ],
+    )
+    fun reorderChapters(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @PathVariable projectId: Long,
+        @Valid @RequestBody request: ReorderDocumentsRequest,
+    ): Result<Unit> {
+        documentService.reorderChapters(principal.userId, projectId, request)
+        return Result.success(Unit)
+    }
 
     // D1: 프로젝트 ID 로 본문 조회
     @GetMapping("/api/projects/{projectId}/document")

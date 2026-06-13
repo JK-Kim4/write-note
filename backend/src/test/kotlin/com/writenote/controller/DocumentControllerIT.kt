@@ -16,6 +16,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.UUID
@@ -289,5 +290,96 @@ class DocumentControllerIT {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.id").value(document.id))
             .andExpect(jsonPath("$.data.body").exists())
+    }
+
+    // ── C3: PUT /api/projects/{projectId}/documents/order ─────────────────────
+
+    private fun createChapter(
+        bearer: String,
+        projectId: Long,
+        title: String,
+    ): Long =
+        mockMvc
+            .perform(
+                post("/api/projects/{projectId}/documents", projectId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"title":"$title"}"""),
+            ).andExpect(status().isCreated)
+            .andReturn()
+            .response
+            .contentAsString
+            .let { body -> Regex(""""id":(\d+)""").find(body)!!.groupValues[1].toLong() }
+
+    @Test
+    @DisplayName("C3 — 순서 일괄 변경: sortOrder 갱신 반영 확인")
+    fun `C3 reorder chapters updates sortOrder`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+        val projectId = createProject(bearer)
+
+        // 작품 생성 시 auto 챕터 1개 (sortOrder=0) 존재. 추가로 2개 생성.
+        val ch1Id = firstActiveDocument(projectId).id!!
+        val ch2Id = createChapter(bearer, projectId, "2장")
+        val ch3Id = createChapter(bearer, projectId, "3장")
+
+        // 역순으로 재정렬 [ch3, ch1, ch2]
+        mockMvc
+            .perform(
+                put("/api/projects/{projectId}/documents/order", projectId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"documentIds":[$ch3Id,$ch1Id,$ch2Id]}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.success").value(true))
+
+        // DB에서 sortOrder 직접 확인
+        val sorted = documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectId)
+        assertThat(sorted.map { it.id }).containsExactly(ch3Id, ch1Id, ch2Id)
+        assertThat(sorted.map { it.sortOrder }).containsExactly(0, 1, 2)
+    }
+
+    @Test
+    @DisplayName("C3 — 누락 id 전송 시 400 VALIDATION_FAILED")
+    fun `C3 reorder with missing id returns 400`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+        val projectId = createProject(bearer)
+
+        val ch1Id = firstActiveDocument(projectId).id!!
+        val ch2Id = createChapter(bearer, projectId, "2장")
+
+        // ch2Id 누락 — ch1 만 전송
+        mockMvc
+            .perform(
+                put("/api/projects/{projectId}/documents/order", projectId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"documentIds":[$ch1Id]}"""),
+            ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"))
+
+        // ch2Id 사용(사용하지 않으면 unused 경고) — 방어적 assertion
+        assertThat(ch2Id).isPositive()
+    }
+
+    @Test
+    @DisplayName("C3 — 타인 projectId 시 404")
+    fun `C3 reorder cross user returns 404`() {
+        val ownerA = createUser()
+        val ownerB = createUser()
+        val bearerA = bearerFor(ownerA)
+        val bearerB = bearerFor(ownerB)
+        val projectId = createProject(bearerA)
+
+        val ch1Id = firstActiveDocument(projectId).id!!
+
+        mockMvc
+            .perform(
+                put("/api/projects/{projectId}/documents/order", projectId)
+                    .header("Authorization", bearerB)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"documentIds":[$ch1Id]}"""),
+            ).andExpect(status().isNotFound)
     }
 }

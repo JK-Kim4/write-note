@@ -6,6 +6,7 @@ import { ChapterList } from "./ChapterList";
 /**
  * T008 — ChapterList 컴포넌트 행위 테스트.
  * 챕터 목록 표시 / 현재 챕터 하이라이트 / 새 챕터 버튼 / 챕터 선택 콜백.
+ * T019 — US2 순서 위/아래 버튼 · onMove 콜백 · 끝단 비활성.
  */
 
 const CHAPTERS = [
@@ -56,5 +57,71 @@ describe("ChapterList", () => {
         render(<ChapterList chapters={[]} currentChapterId={null} onSelect={vi.fn()} onCreate={vi.fn()} />);
 
         expect(screen.getByRole("button", { name: /새 챕터/ })).toBeInTheDocument();
+    });
+
+    // ── T019: US2 순서 버튼 테스트 ───────────────────────────────────────────
+
+    it("각 챕터 항목에 위/아래 버튼이 표시된다", () => {
+        const onMove = vi.fn();
+        render(<ChapterList chapters={CHAPTERS} currentChapterId={null} onSelect={vi.fn()} onCreate={vi.fn()} onMove={onMove} />);
+
+        // 위 버튼: 첫 번째 제외 2개 (2장·3장)
+        const upButtons = screen.getAllByRole("button", { name: /위로/ });
+        expect(upButtons).toHaveLength(2);
+
+        // 아래 버튼: 마지막 제외 2개 (1장·2장)
+        const downButtons = screen.getAllByRole("button", { name: /아래로/ });
+        expect(downButtons).toHaveLength(2);
+    });
+
+    it("첫 번째 챕터의 위로 버튼은 비활성(disabled)", () => {
+        const onMove = vi.fn();
+        render(<ChapterList chapters={CHAPTERS} currentChapterId={null} onSelect={vi.fn()} onCreate={vi.fn()} onMove={onMove} />);
+
+        // 첫 번째 챕터(1장)에는 위로 버튼이 없음(렌더 안 함)
+        const upButtons = screen.getAllByRole("button", { name: /위로/ });
+        // 2장·3장만 위로 버튼이 있어야 함 (총 2개)
+        expect(upButtons).toHaveLength(2);
+    });
+
+    it("마지막 챕터의 아래로 버튼은 비활성(disabled)", () => {
+        const onMove = vi.fn();
+        render(<ChapterList chapters={CHAPTERS} currentChapterId={null} onSelect={vi.fn()} onCreate={vi.fn()} onMove={onMove} />);
+
+        // 마지막 챕터(3장)에는 아래로 버튼이 없음(렌더 안 함)
+        const downButtons = screen.getAllByRole("button", { name: /아래로/ });
+        // 1장·2장만 아래로 버튼이 있어야 함 (총 2개)
+        expect(downButtons).toHaveLength(2);
+    });
+
+    it("중간 챕터의 위로 버튼 클릭 시 onMove(id, 'up') 호출", async () => {
+        const onMove = vi.fn();
+        render(<ChapterList chapters={CHAPTERS} currentChapterId={null} onSelect={vi.fn()} onCreate={vi.fn()} onMove={onMove} />);
+
+        // 2장의 위로 버튼 클릭 (첫 번째 위로 버튼)
+        const upButtons = screen.getAllByRole("button", { name: /위로/ });
+        await userEvent.click(upButtons[0]);
+
+        expect(onMove).toHaveBeenCalledWith(2, "up");
+        expect(onMove).toHaveBeenCalledTimes(1);
+    });
+
+    it("중간 챕터의 아래로 버튼 클릭 시 onMove(id, 'down') 호출", async () => {
+        const onMove = vi.fn();
+        render(<ChapterList chapters={CHAPTERS} currentChapterId={null} onSelect={vi.fn()} onCreate={vi.fn()} onMove={onMove} />);
+
+        // 2장의 아래로 버튼 클릭 (두 번째 아래로 버튼)
+        const downButtons = screen.getAllByRole("button", { name: /아래로/ });
+        await userEvent.click(downButtons[1]);
+
+        expect(onMove).toHaveBeenCalledWith(2, "down");
+        expect(onMove).toHaveBeenCalledTimes(1);
+    });
+
+    it("onMove 없이 렌더링 시 순서 버튼이 표시되지 않는다", () => {
+        render(<ChapterList chapters={CHAPTERS} currentChapterId={null} onSelect={vi.fn()} onCreate={vi.fn()} />);
+
+        expect(screen.queryByRole("button", { name: /위로/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /아래로/ })).not.toBeInTheDocument();
     });
 });

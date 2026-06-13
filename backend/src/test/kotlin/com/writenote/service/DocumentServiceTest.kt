@@ -1,5 +1,6 @@
 package com.writenote.service
 
+import com.writenote.components.documents.ChapterReorderValidator
 import com.writenote.entity.Document
 import com.writenote.entity.Project
 import com.writenote.error.DocumentConflictException
@@ -23,6 +24,7 @@ import java.util.Optional
 class DocumentServiceTest {
     private lateinit var documentRepository: DocumentRepository
     private lateinit var projectService: ProjectService
+    private lateinit var chapterReorderValidator: ChapterReorderValidator
     private lateinit var service: DocumentService
 
     companion object {
@@ -37,7 +39,8 @@ class DocumentServiceTest {
     fun setUp() {
         documentRepository = mockk()
         projectService = mockk()
-        service = DocumentService(documentRepository, projectService)
+        chapterReorderValidator = ChapterReorderValidator()
+        service = DocumentService(documentRepository, projectService, chapterReorderValidator)
     }
 
     private fun newProject(

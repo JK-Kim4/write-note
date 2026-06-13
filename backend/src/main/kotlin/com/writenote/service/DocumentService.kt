@@ -1,10 +1,12 @@
 package com.writenote.service
 
+import com.writenote.components.documents.ChapterReorderValidator
 import com.writenote.entity.Document
 import com.writenote.error.DocumentConflictException
 import com.writenote.error.ResourceNotFoundException
 import com.writenote.error.ValidationException
 import com.writenote.model.request.CreateChapterRequest
+import com.writenote.model.request.ReorderDocumentsRequest
 import com.writenote.model.request.SaveDocumentRequest
 import com.writenote.model.request.UpdateDocumentTitleRequest
 import com.writenote.model.response.ChapterMetaResponse
@@ -23,6 +25,7 @@ import tools.jackson.module.kotlin.kotlinModule
 class DocumentService(
     private val documentRepository: DocumentRepository,
     private val projectService: ProjectService,
+    private val chapterReorderValidator: ChapterReorderValidator,
 ) {
     private val jsonMapper: JsonMapper = JsonMapper.builder().addModule(kotlinModule()).build()
 
@@ -164,6 +167,27 @@ class DocumentService(
             )
         val saved = documentRepository.saveAndFlush(chapter)
         return saved.toChapterResponse()
+    }
+
+    /**
+     * C3: 챕터 순서 일괄 변경. 활성 챕터 id 전량 배열을 받아 배열 index 를 sortOrder 로 대입.
+     * [ChapterReorderValidator] 로 누락/중복/외부 id 검증 후 dirty-check 저장.
+     */
+    @Transactional(rollbackFor = [Exception::class])
+    fun reorderChapters(
+        userId: Long,
+        projectId: Long,
+        request: ReorderDocumentsRequest,
+    ) {
+        projectService.requireOwnedProject(userId, projectId)
+        val existing = documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectId)
+        chapterReorderValidator.validate(request, existing)
+
+        val byId = existing.associateBy { requireNotNull(it.id) }
+        request.documentIds.forEachIndexed { index, id ->
+            val chapter = requireNotNull(byId[id]) { "chapter $id not found in project $projectId" }
+            chapter.sortOrder = index
+        }
     }
 
     /** D4: 제목 갱신 (≤120자) */

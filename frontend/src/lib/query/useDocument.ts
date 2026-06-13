@@ -87,3 +87,47 @@ export function useCreateChapter(projectId: number) {
         },
     });
 }
+
+/**
+ * 챕터 순서 이동 mutation — 022 US2 T022.
+ *
+ * ChapterList 의 onMove(id, direction) 콜백을 받아:
+ * 1. 현재 캐시 목록에서 낙관적으로 순서 재계산
+ * 2. 서버에 전체 id 배열 전송 (C3 PUT /api/projects/{projectId}/documents/order)
+ * 3. 실패 시 캐시를 이전 상태로 롤백
+ *
+ * @param projectId 대상 작품 id
+ */
+export function useReorderChapters(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (documentIds: number[]) => webElectronApi.documents.reorder(projectId, documentIds),
+        onMutate: async (documentIds: number[]) => {
+            // 진행 중인 refetch 취소 (낙관적 갱신 덮어쓰기 방지)
+            await queryClient.cancelQueries({ queryKey: documentKeys.chapters(projectId) });
+            const previous = queryClient.getQueryData<ChapterMeta[]>(documentKeys.chapters(projectId));
+
+            // 낙관적 갱신: 전달된 id 순서로 캐시 재정렬
+            if (previous != null) {
+                const byId = new Map(previous.map((c) => [c.id, c]));
+                const reordered = documentIds.flatMap((id) => {
+                    const chapter = byId.get(id);
+                    return chapter != null ? [{ ...chapter, sortOrder: documentIds.indexOf(id) }] : [];
+                });
+                queryClient.setQueryData<ChapterMeta[]>(documentKeys.chapters(projectId), reordered);
+            }
+
+            return { previous };
+        },
+        onError: (_err, _ids, context) => {
+            // 실패 시 이전 캐시 복원
+            if (context?.previous != null) {
+                queryClient.setQueryData<ChapterMeta[]>(documentKeys.chapters(projectId), context.previous);
+            }
+        },
+        onSettled: () => {
+            // 완료 후 서버 상태와 동기화
+            void queryClient.invalidateQueries({ queryKey: documentKeys.chapters(projectId) });
+        },
+    });
+}

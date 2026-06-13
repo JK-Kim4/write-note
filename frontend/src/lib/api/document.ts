@@ -56,3 +56,11 @@ export function updateDocumentTitle(id: number, input: UpdateTitleInput): Promis
         body: JSON.stringify(input),
     });
 }
+
+/** 챕터 순서 일괄 변경 — PUT /api/projects/{projectId}/documents/order. 활성 챕터 id 전량 배열 전송. */
+export function reorderChapters(projectId: number, documentIds: number[]): Promise<void> {
+    return apiFetch<void>(`/api/projects/${projectId}/documents/order`, {
+        method: "PUT",
+        body: JSON.stringify({ documentIds }),
+    });
+}
