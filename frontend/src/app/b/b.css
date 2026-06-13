@@ -137,9 +137,11 @@
     white-space: nowrap;
 }
 
-/* 투명 종이 무대 — 실제 종이는 .b-sheet 가 그린다. 폭 = 용지 실제 mm(geometry) → 큰 용지는 화면보다 넓어 가로 스크롤(인지). */
+/* 투명 종이 무대 — 실제 종이는 .b-sheet 가 그린다. 폭 = 용지 실제 mm(geometry).
+ * zoom = fit-zoom: A4 는 가용 폭에 맞게 다운스케일(한 화면), 큰 용지는 같은 줌에서 비례 확대 → 가로 스크롤(인지). */
 .b-paged-paper {
     width: var(--b-page-max-width, 210mm);
+    zoom: var(--b-page-zoom, 1);
     flex-shrink: 0;
     position: relative;
 }

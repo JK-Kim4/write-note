@@ -73,6 +73,11 @@ function ToolbarDivider() {
     return <span aria-hidden="true" className="mx-1 h-5 w-px bg-gray-200" />;
 }
 
+/** A4 폭(210mm)을 px 로 — CSS mm = 96/25.4 px. 가용 폭에 A4 가 들어오는 fit-zoom 계산 기준. */
+const A4_WIDTH_PX = 210 * (96 / 25.4);
+/** .b-paged-stage 좌우 패딩 합(32+32) — 가용 폭 계산 시 차감. */
+const STAGE_X_PADDING_PX = 64;
+
 /**
  * Paged 모드 내부 서브컴포넌트 — 시트 절대배치 + ResizeObserver 장수 계산.
  * BEditor 의 useEditor 소유·IME 가드·자동저장은 불변(이 컴포넌트는 렌더+click-fill 전담).
@@ -83,12 +88,14 @@ function BPagedBody({
     pagedRef,
     pages,
     geometry,
+    zoom,
     onMouseDown,
 }: {
     editor: Editor | null;
     pagedRef: React.RefObject<HTMLElement | null>;
     pages: number;
     geometry: PaperGeometry;
+    zoom: number;
     onMouseDown: (e: ReactMouseEvent<HTMLElement>) => void;
 }) {
     return (
@@ -103,6 +110,8 @@ function BPagedBody({
                     "--b-page-stride": `${geometry.stridePx}px`,
                     "--b-page-max-width": `${geometry.maxWidthMm}mm`,
                     "--b-page-col-width": `${geometry.colWidthMm}mm`,
+                    // fit-zoom — A4 가 가용 폭에 들어오도록 다운스케일(≤1). 큰 용지는 같은 줌에서 비례 확대 → 가로 스크롤.
+                    "--b-page-zoom": zoom,
                 } as React.CSSProperties
             }
             onMouseDown={onMouseDown}
@@ -138,6 +147,9 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
     // paged 모드 장수 — ResizeObserver 가 .ProseMirror 높이 측정.
     const [pages, setPages] = useState(1);
     const pagedRef = useRef<HTMLElement>(null);
+    // fit-zoom — A4 가 가용 폭에 들어오도록 다운스케일(≤1). A4 항상 한 화면, 큰 용지는 같은 줌에서 비례 확대→가로 스크롤.
+    const [fitZoom, setFitZoom] = useState(1);
+    const stageRef = useRef<HTMLDivElement>(null);
 
     const onChangeRef = useRef(onChange);
     const onDraftUpdateRef = useRef(onDraftUpdate);
@@ -197,17 +209,32 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
         setIsPaged(CSS.supports("column-height", "1px"));
     }, []);
 
-    // paged 모드: ResizeObserver 로 .ProseMirror 높이 측정 → 장수 갱신.
+    // 가용 폭 → fit-zoom: A4(210mm)가 들어오도록 다운스케일(최대 1). 큰 용지는 같은 줌에서 비례 확대 → 가로 스크롤.
+    useEffect(() => {
+        if (!isPaged) return;
+        const stage = stageRef.current;
+        if (!stage) return;
+        const measure = () => {
+            const avail = stage.clientWidth - STAGE_X_PADDING_PX;
+            setFitZoom(avail > 0 ? Math.min(1, avail / A4_WIDTH_PX) : 1);
+        };
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(stage);
+        return () => ro.disconnect();
+    }, [isPaged]);
+
+    // paged 모드: ResizeObserver 로 .ProseMirror 높이 측정 → 장수 갱신. fit-zoom 반영(높이가 줌 스케일됨).
     useEffect(() => {
         if (!isPaged) return;
         const pm = pagedRef.current?.querySelector<HTMLElement>(".ProseMirror");
         if (!pm) return;
-        const measure = () => setPages(pageCount(pm.getBoundingClientRect().height, 1, geometry.stridePx));
+        const measure = () => setPages(pageCount(pm.getBoundingClientRect().height, fitZoom, geometry.stridePx));
         measure();
         const ro = new ResizeObserver(measure);
         ro.observe(pm);
         return () => ro.disconnect();
-    }, [isPaged, editor, geometry.stridePx]);
+    }, [isPaged, editor, geometry.stridePx, fitZoom]);
 
     // 본문 빈 영역 클릭 시 에디터 포커스(문서 끝으로) — 줄노트 빈 줄을 클릭해도 바로 쓸 수 있게.
     const handleBodyMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -224,9 +251,11 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
         const pm = pagedRef.current?.querySelector<HTMLElement>(".ProseMirror");
         if (!pm) return;
         const pmTop = pm.getBoundingClientRect().top;
-        const targetLine = globalLineAt((e.clientY - pmTop) / LINE_PX, geometry.bodyLines, geometry.strideLines);
+        // fit-zoom 적용 시 화면 px 가 줌 스케일되므로 줄 단위(LINE_PX)도 동일 배율로 환산.
+        const lineUnit = LINE_PX * fitZoom;
+        const targetLine = globalLineAt((e.clientY - pmTop) / lineUnit, geometry.bodyLines, geometry.strideLines);
         const endTop = editor.view.coordsAtPos(editor.state.doc.content.size).top;
-        const lastLine = globalLineAt((endTop - pmTop) / LINE_PX, geometry.bodyLines, geometry.strideLines);
+        const lastLine = globalLineAt((endTop - pmTop) / lineUnit, geometry.bodyLines, geometry.strideLines);
         if (targetLine <= lastLine) return;
         e.preventDefault();
         const fill = Math.min(1000, targetLine - lastLine);
@@ -312,7 +341,7 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
             </div>
             {/* b-editor-scroll — 아웃라인 현재 섹션 추적의 스크롤 컨테이너(useEditorOutline 에 선택자 전달). */}
             {isPaged ? (
-                <div className="b-editor-scroll b-paged-stage flex-1 overflow-x-auto overflow-y-auto">
+                <div ref={stageRef} className="b-editor-scroll b-paged-stage flex-1 overflow-x-auto overflow-y-auto">
                     {/* 용지 배지 — 현재 용지·치수를 항상 노출(규격 변경 인지). 폭 변화와 함께 이중 신호. */}
                     <div className="b-paper-badge" aria-label={`용지 ${paperSize}`}>
                         {paperSize} · {PAPER_PRESETS[paperSize].widthMm}×{PAPER_PRESETS[paperSize].heightMm}mm
@@ -322,6 +351,7 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
                         pagedRef={pagedRef}
                         pages={pages}
                         geometry={geometry}
+                        zoom={fitZoom}
                         onMouseDown={handlePagedMouseDown}
                     />
                 </div>
