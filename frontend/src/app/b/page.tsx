@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useCreateProject, useDeleteProject, useProjectCards, useUpdateProject } from "@/lib/query/useProjects";
 import { useModalDismiss } from "@/lib/useModalDismiss";
@@ -59,6 +59,13 @@ export default function BWorksPage() {
     const deleteProject = useDeleteProject();
 
     const [isCreating, setIsCreating] = useState(false);
+    // 빈작품 안내 "새 작품 만들기" 동선 — /b?new=1 진입 시 생성 모달 1회 자동 오픈 후 URL 정리(재오픈 방지).
+    useEffect(() => {
+        if (new URLSearchParams(window.location.search).get("new") !== "1") return;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setIsCreating(true);
+        window.history.replaceState(null, "", "/b");
+    }, []);
     const [title, setTitle] = useState("");
     const [genre, setGenre] = useState("");
     const [targetLengthRaw, setTargetLengthRaw] = useState("");

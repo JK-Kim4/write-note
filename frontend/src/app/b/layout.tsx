@@ -177,18 +177,29 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                             </button>
                         </div>
                         <p className="mt-2 text-sm text-gray-600">
-                            작품을 먼저 선택하거나 새로 만들어 주세요.
+                            새 작품을 만들어 집필을 시작해 보세요.
                         </p>
-                        <div className="mt-5 flex justify-end">
+                        <div className="mt-5 flex justify-end gap-2">
                             <button
                                 type="button"
                                 onClick={() => {
                                     router.push("/b");
                                     setNoProjectModalOpen(false);
                                 }}
+                                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                            >
+                                작품 목록
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    // 작품 목록으로 이동하며 생성 모달 자동 오픈(?new=1) — b/page 가 파라미터를 읽어 연다.
+                                    router.push("/b?new=1");
+                                    setNoProjectModalOpen(false);
+                                }}
                                 className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
                             >
-                                작품 목록으로 가기
+                                새 작품 만들기
                             </button>
                         </div>
                     </div>
