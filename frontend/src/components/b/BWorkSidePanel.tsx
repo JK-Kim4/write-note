@@ -29,6 +29,7 @@ function MemosTab({ projectId }: { projectId: number }) {
     };
 
     const memos = memosQuery.data ?? [];
+    const actionFailed = setPinMemo.isError || removeLinkMemo.isError;
 
     return (
         <div className="flex h-full flex-col">
@@ -49,8 +50,24 @@ function MemosTab({ projectId }: { projectId: number }) {
                 </button>
             </form>
             <div className="flex-1 space-y-2 overflow-y-auto p-3">
+                {actionFailed && (
+                    <p className="rounded-md bg-red-50 px-2 py-1.5 text-xs text-red-600">
+                        곁쪽지 작업에 실패했습니다. 다시 시도해 주세요.
+                    </p>
+                )}
                 {memosQuery.isLoading ? (
                     <p className="text-xs text-gray-400">불러오는 중…</p>
+                ) : memosQuery.isError ? (
+                    <div>
+                        <p className="text-xs text-gray-500">곁쪽지를 불러오지 못했습니다.</p>
+                        <button
+                            type="button"
+                            onClick={() => memosQuery.refetch()}
+                            className="mt-1.5 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                        >
+                            다시 시도
+                        </button>
+                    </div>
                 ) : memos.length === 0 ? (
                     <p className="text-xs text-gray-400">아직 연결된 곁쪽지가 없습니다.</p>
                 ) : (
@@ -60,21 +77,23 @@ function MemosTab({ projectId }: { projectId: number }) {
                             <div className="mt-1.5 flex items-center gap-1.5">
                                 <button
                                     type="button"
+                                    disabled={setPinMemo.isPending}
                                     onClick={() =>
                                         setPinMemo.mutate({ memoId: memo.id, projectId, pinned: !memo.pinned })
                                     }
                                     className={
                                         memo.pinned
-                                            ? "rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700"
-                                            : "rounded-full px-2 py-0.5 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                            ? "rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 disabled:opacity-50"
+                                            : "rounded-full px-2 py-0.5 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
                                     }
                                 >
                                     {memo.pinned ? "고정됨" : "고정"}
                                 </button>
                                 <button
                                     type="button"
+                                    disabled={removeLinkMemo.isPending}
                                     onClick={() => removeLinkMemo.mutate({ memoId: memo.id, projectId })}
-                                    className="rounded-full px-2 py-0.5 text-xs text-gray-400 hover:bg-red-50 hover:text-red-600"
+                                    className="rounded-full px-2 py-0.5 text-xs text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                                 >
                                     연결 해제
                                 </button>
@@ -97,12 +116,16 @@ function CharactersTab({ projectId }: { projectId: number }) {
         e.preventDefault();
         const trimmed = name.trim();
         if (!trimmed || createCharacter.isPending) return;
-        await createCharacter.mutateAsync({
-            projectId,
-            input: { name: trimmed, shortDescription: shortDescription.trim() || null },
-        });
-        setName("");
-        setShortDescription("");
+        try {
+            await createCharacter.mutateAsync({
+                projectId,
+                input: { name: trimmed, shortDescription: shortDescription.trim() || null },
+            });
+            setName("");
+            setShortDescription("");
+        } catch {
+            // 실패 — 입력 유지. createCharacter.isError 로 폼 하단에 에러를 표시한다.
+        }
     };
 
     const characters = charactersQuery.data ?? [];
@@ -129,10 +152,24 @@ function CharactersTab({ projectId }: { projectId: number }) {
                 >
                     + 인물 추가
                 </button>
+                {createCharacter.isError && (
+                    <p className="text-xs text-red-600">인물 추가에 실패했습니다. 다시 시도해 주세요.</p>
+                )}
             </form>
             <div className="flex-1 space-y-2 overflow-y-auto p-3">
                 {charactersQuery.isLoading ? (
                     <p className="text-xs text-gray-400">불러오는 중…</p>
+                ) : charactersQuery.isError ? (
+                    <div>
+                        <p className="text-xs text-gray-500">인물을 불러오지 못했습니다.</p>
+                        <button
+                            type="button"
+                            onClick={() => charactersQuery.refetch()}
+                            className="mt-1.5 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                        >
+                            다시 시도
+                        </button>
+                    </div>
                 ) : characters.length === 0 ? (
                     <p className="text-xs text-gray-400">아직 등록된 인물이 없습니다.</p>
                 ) : (
@@ -159,9 +196,32 @@ function CharactersTab({ projectId }: { projectId: number }) {
     );
 }
 
-export function BWorkSidePanel({ projectId }: { projectId: number }) {
-    const [isOpen, setIsOpen] = useState(true);
-    const [tab, setTab] = useState<Tab>("memos");
+type SidePanelProps = {
+    projectId: number;
+    /** controlled 접기·탭 상태 — 두 인스턴스(inline·drawer)가 부모 state 를 공유해 일관 유지. 미전달 시 비제어(로컬 state). */
+    isOpen?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    tab?: Tab;
+    onTabChange?: (tab: Tab) => void;
+    /** 접기 토글(▶) 노출 여부. drawer 인스턴스(false)는 항상 펼친 상태 — 좁은 폭에서 8px strip 잔존 방지. */
+    collapsible?: boolean;
+};
+
+export function BWorkSidePanel({
+    projectId,
+    isOpen: isOpenProp,
+    onOpenChange,
+    tab: tabProp,
+    onTabChange,
+    collapsible = true,
+}: SidePanelProps) {
+    const [isOpenLocal, setIsOpenLocal] = useState(true);
+    const [tabLocal, setTabLocal] = useState<Tab>("memos");
+    // collapsible=false 면 공유 panelOpen 무시하고 항상 펼침(drawer 는 자체 ✕ 로만 닫는다).
+    const isOpen = collapsible ? (isOpenProp ?? isOpenLocal) : true;
+    const setIsOpen = (open: boolean) => (onOpenChange ? onOpenChange(open) : setIsOpenLocal(open));
+    const tab = tabProp ?? tabLocal;
+    const setTab = (next: Tab) => (onTabChange ? onTabChange(next) : setTabLocal(next));
 
     if (!isOpen) {
         return (
@@ -203,14 +263,16 @@ export function BWorkSidePanel({ projectId }: { projectId: number }) {
                 >
                     인물
                 </button>
-                <button
-                    type="button"
-                    aria-label="보조 패널 접기"
-                    onClick={() => setIsOpen(false)}
-                    className="px-2 py-2 text-sm text-gray-400 hover:text-gray-600"
-                >
-                    ▶
-                </button>
+                {collapsible && (
+                    <button
+                        type="button"
+                        aria-label="보조 패널 접기"
+                        onClick={() => setIsOpen(false)}
+                        className="px-2 py-2 text-sm text-gray-400 hover:text-gray-600"
+                    >
+                        ▶
+                    </button>
+                )}
             </div>
             <div className="min-h-0 flex-1">
                 {tab === "memos" ? <MemosTab projectId={projectId} /> : <CharactersTab projectId={projectId} />}

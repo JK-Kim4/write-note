@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
     useAddLinkMemo,
     useCaptureMemo,
@@ -10,6 +10,7 @@ import {
     useRestoreMemo,
 } from "@/lib/query/useMemos";
 import { useProjectCards } from "@/lib/query/useProjects";
+import { MemoLinkFailedError } from "@/lib/electron-api/memos";
 import type { Memo } from "@/lib/types/domain";
 
 /**
@@ -28,6 +29,46 @@ function relativeLabel(iso: string): string {
     return `${Math.floor(days / 7)}주 전`;
 }
 
+/** soft-delete 토스트 한 줄 — 마운트 시점 기준 독립 5초 타이머로 자동 닫힘(연속 버리기 시 reset 방지). */
+function DeletedMemoToast({
+    memoId,
+    onRestore,
+    onDismiss,
+}: {
+    memoId: number;
+    onRestore: (memoId: number) => void;
+    onDismiss: (memoId: number) => void;
+}) {
+    useEffect(() => {
+        const timer = setTimeout(() => onDismiss(memoId), 5000);
+        return () => clearTimeout(timer);
+    }, [memoId, onDismiss]);
+
+    return (
+        <div
+            role="status"
+            className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-lg"
+        >
+            <span className="text-sm text-gray-600">곁쪽지를 버렸습니다.</span>
+            <button
+                type="button"
+                onClick={() => onRestore(memoId)}
+                className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+            >
+                되돌리기
+            </button>
+            <button
+                type="button"
+                aria-label="닫기"
+                onClick={() => onDismiss(memoId)}
+                className="text-sm text-gray-400 hover:text-gray-600"
+            >
+                ×
+            </button>
+        </div>
+    );
+}
+
 export default function BMemosPage() {
     const memosQuery = useInboxMemos();
     const projectsQuery = useProjectCards();
@@ -41,7 +82,10 @@ export default function BMemosPage() {
     const [draftBody, setDraftBody] = useState("");
     const [draftProjectId, setDraftProjectId] = useState<number | "none">("none");
     const [linkTargetMemoId, setLinkTargetMemoId] = useState<number | null>(null);
-    const [deletedMemoId, setDeletedMemoId] = useState<number | null>(null);
+    // 연속 버리기 — 각 soft-delete 를 큐로 추적해 앞서 버린 곁쪽지도 개별 되돌리기 가능.
+    const [deletedMemoIds, setDeletedMemoIds] = useState<number[]>([]);
+    const [linkError, setLinkError] = useState<string | null>(null);
+    const [captureError, setCaptureError] = useState<string | null>(null);
 
     const projects = projectsQuery.data ?? [];
 
@@ -56,21 +100,73 @@ export default function BMemosPage() {
         e.preventDefault();
         const trimmed = draftBody.trim();
         if (!trimmed || captureMemo.isPending) return;
-        await captureMemo.mutateAsync({
-            body: trimmed,
-            linkProjectId: draftProjectId === "none" ? null : draftProjectId,
-        });
-        setDraftBody("");
+        setCaptureError(null);
+        try {
+            await captureMemo.mutateAsync({
+                body: trimmed,
+                linkProjectId: draftProjectId === "none" ? null : draftProjectId,
+            });
+            setDraftBody("");
+            // 다음 메모가 직전 작품에 의도치 않게 연결되지 않도록 연결 선택 초기화.
+            setDraftProjectId("none");
+        } catch (e) {
+            if (e instanceof MemoLinkFailedError) {
+                // 부분 성공 — 메모(POST)는 저장됐고 연결(curation)만 실패. draft 를 비워 동일 본문 재-POST(중복)를 막고
+                // 메모 카드의 '+ 붙이기'로 다시 연결하도록 안내한다.
+                setDraftBody("");
+                setDraftProjectId("none");
+                setCaptureError("메모는 저장됐지만 작품 연결에 실패했습니다. 메모 카드에서 '+ 붙이기'로 다시 연결해 주세요.");
+                return;
+            }
+            // 1단계(POST) 자체 실패 — draft 는 비우지 않아 재시도 가능. 폼 하단에 에러를 노출한다.
+            setCaptureError("메모를 남기지 못했습니다. 다시 시도해 주세요.");
+        }
     };
 
     const handleDelete = (memoId: number) => {
-        deleteMemo.mutate(memoId, { onSuccess: () => setDeletedMemoId(memoId) });
+        deleteMemo.mutate(memoId, {
+            onSuccess: () => setDeletedMemoIds((prev) => (prev.includes(memoId) ? prev : [...prev, memoId])),
+        });
     };
 
-    const handleRestore = () => {
-        if (deletedMemoId == null) return;
-        restoreMemo.mutate(deletedMemoId, { onSettled: () => setDeletedMemoId(null) });
+    const dismissToast = useCallback(
+        (memoId: number) => setDeletedMemoIds((prev) => prev.filter((id) => id !== memoId)),
+        [],
+    );
+
+    const handleRestore = useCallback(
+        (memoId: number) => {
+            setLinkError(null);
+            restoreMemo.mutate(memoId, {
+                // 성공 시에만 토스트 제거 — 실패하면 토스트(되돌리기 진입점)를 남기고 에러를 알린다.
+                onSuccess: () => setDeletedMemoIds((prev) => prev.filter((id) => id !== memoId)),
+                onError: () => setLinkError("되돌리기에 실패했습니다. 다시 시도해 주세요."),
+            });
+        },
+        [restoreMemo],
+    );
+
+    const handleAddLink = (memoId: number, projectId: number) => {
+        setLinkError(null);
+        addLink.mutate({ memoId, projectId }, { onError: () => setLinkError("작품 연결에 실패했습니다. 다시 시도해 주세요.") });
     };
+
+    const handleRemoveLink = (memoId: number, projectId: number) => {
+        setLinkError(null);
+        removeLink.mutate({ memoId, projectId }, { onError: () => setLinkError("작품 연결 해제에 실패했습니다. 다시 시도해 주세요.") });
+    };
+
+    // ESC 로 가장 최근 토스트를 닫는다. 자동 닫힘 타이머는 토스트별로 분리(DeletedMemoToast)해
+    // 연속 버리기 시 앞선 토스트의 5초 타이머가 reset 되지 않게 한다.
+    useEffect(() => {
+        if (deletedMemoIds.length === 0) return;
+        const newest = deletedMemoIds[deletedMemoIds.length - 1];
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") dismissToast(newest);
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [deletedMemoIds, dismissToast]);
 
     const linkableProjects = (memo: Memo) =>
         projects.filter((p) => !memo.linkedProjects.some((lp) => lp.id === p.id));
@@ -96,8 +192,23 @@ export default function BMemosPage() {
                 </select>
             </div>
 
+            {linkError && (
+                <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{linkError}</p>
+            )}
+
             {memosQuery.isLoading ? (
                 <p className="py-12 text-center text-sm text-gray-400">불러오는 중…</p>
+            ) : memosQuery.isError ? (
+                <div className="py-12 text-center">
+                    <p className="text-sm text-gray-500">메모를 불러올 수 없습니다.</p>
+                    <button
+                        type="button"
+                        onClick={() => memosQuery.refetch()}
+                        className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                        다시 시도
+                    </button>
+                </div>
             ) : (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <form
@@ -135,11 +246,14 @@ export default function BMemosPage() {
                                 남기기
                             </button>
                         </div>
+                        {captureError && (
+                            <p className="mt-2 rounded-md bg-red-50 px-2 py-1.5 text-xs text-red-600">{captureError}</p>
+                        )}
                     </form>
 
                     {visibleMemos.map((memo) => (
-                        <div key={memo.id} className="group flex flex-col rounded-xl border border-gray-200 bg-white p-4">
-                            <p className="flex-1 text-sm whitespace-pre-wrap text-gray-700">{memo.body}</p>
+                        <div key={memo.id} className="group flex min-w-0 flex-col rounded-xl border border-gray-200 bg-white p-4">
+                            <p className="flex-1 text-sm whitespace-pre-wrap break-words text-gray-700">{memo.body}</p>
                             <div className="mt-3 flex flex-wrap items-center gap-1.5">
                                 {memo.linkedProjects.map((p) => (
                                     <span
@@ -150,7 +264,7 @@ export default function BMemosPage() {
                                         <button
                                             type="button"
                                             aria-label={`${p.title} 연결 해제`}
-                                            onClick={() => removeLink.mutate({ memoId: memo.id, projectId: p.id })}
+                                            onClick={() => handleRemoveLink(memo.id, p.id)}
                                             className="text-indigo-400 hover:text-indigo-700"
                                         >
                                             ×
@@ -166,7 +280,7 @@ export default function BMemosPage() {
                                         onChange={(e) => {
                                             const projectId = Number(e.target.value);
                                             if (Number.isFinite(projectId) && projectId > 0) {
-                                                addLink.mutate({ memoId: memo.id, projectId });
+                                                handleAddLink(memo.id, projectId);
                                             }
                                             setLinkTargetMemoId(null);
                                         }}
@@ -205,31 +319,26 @@ export default function BMemosPage() {
                             </div>
                         </div>
                     ))}
+                    {visibleMemos.length === 0 && (
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-400">
+                            {filterProjectId === "all"
+                                ? "아직 곁쪽지가 없습니다."
+                                : "이 작품에 연결된 곁쪽지가 없습니다."}
+                        </div>
+                    )}
                 </div>
             )}
 
-            {memosQuery.isError && (
-                <p className="py-12 text-center text-sm text-gray-500">메모를 불러올 수 없습니다.</p>
-            )}
-
-            {deletedMemoId != null && (
-                <div className="fixed bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-lg">
-                    <span className="text-sm text-gray-600">곁쪽지를 버렸습니다.</span>
-                    <button
-                        type="button"
-                        onClick={handleRestore}
-                        className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
-                    >
-                        되돌리기
-                    </button>
-                    <button
-                        type="button"
-                        aria-label="닫기"
-                        onClick={() => setDeletedMemoId(null)}
-                        className="text-sm text-gray-400 hover:text-gray-600"
-                    >
-                        ×
-                    </button>
+            {deletedMemoIds.length > 0 && (
+                <div className="fixed bottom-6 left-1/2 z-30 flex -translate-x-1/2 flex-col-reverse gap-2">
+                    {deletedMemoIds.map((memoId) => (
+                        <DeletedMemoToast
+                            key={memoId}
+                            memoId={memoId}
+                            onRestore={handleRestore}
+                            onDismiss={dismissToast}
+                        />
+                    ))}
                 </div>
             )}
         </div>

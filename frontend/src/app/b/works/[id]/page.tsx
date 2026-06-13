@@ -41,12 +41,18 @@ export default function BWorkDetailPage() {
     const [editor, setEditor] = useState<Editor | null>(null);
     const [endWorkOpen, setEndWorkOpen] = useState(false);
     const [endWorkBody, setEndWorkBody] = useState("");
+    const [endWorkError, setEndWorkError] = useState<string | null>(null);
     const [isEndingWork, setIsEndingWork] = useState(false);
     // 좁은 폭 drawer 열림 상태 — 기본 닫힘. 880px 이상에서는 상태값 무관(항상 inline 3패널).
     const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
     const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
     const leftDrawerRef = useRef<HTMLDivElement>(null);
     const rightDrawerRef = useRef<HTMLDivElement>(null);
+    const conflictModalRef = useRef<HTMLDivElement>(null);
+    const endWorkModalRef = useRef<HTMLDivElement>(null);
+    // 보조 패널 접기·탭 상태를 부모로 끌어올려 inline·drawer 두 인스턴스가 공유(상태 분리 방지).
+    const [panelOpen, setPanelOpen] = useState(true);
+    const [panelTab, setPanelTab] = useState<"memos" | "characters">("memos");
 
     const { endWithLog } = useWorkSession(projectId);
     const paperSize = usePreferences((s) => s.paperSize);
@@ -96,6 +102,7 @@ export default function BWorkDetailPage() {
         const trimmed = endWorkBody.trim();
         if (!trimmed || isEndingWork) return;
         setIsEndingWork(true);
+        setEndWorkError(null);
         try {
             await endWithLog(trimmed);
             await queryClient.invalidateQueries({ queryKey: logKeys.all });
@@ -104,21 +111,58 @@ export default function BWorkDetailPage() {
             router.push("/b");
         } catch {
             // 종료 실패 — 모달 유지(재시도 가능). closedRef 는 useWorkSession 이 복원.
+            setEndWorkError("기록 저장에 실패했습니다. 다시 시도해 주세요.");
         } finally {
             setIsEndingWork(false);
         }
     };
 
-    // ESC 키로 열린 drawer 닫기.
+    // ESC 키로 열린 drawer·종료 모달 닫기(충돌 모달은 선택 강제라 제외).
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key !== "Escape") return;
             if (leftDrawerOpen) setLeftDrawerOpen(false);
             if (rightDrawerOpen) setRightDrawerOpen(false);
+            if (endWorkOpen && !isEndingWork) setEndWorkOpen(false);
         };
         document.addEventListener("keydown", handleKeyDown);
         return () => document.removeEventListener("keydown", handleKeyDown);
-    }, [leftDrawerOpen, rightDrawerOpen]);
+    }, [leftDrawerOpen, rightDrawerOpen, endWorkOpen, isEndingWork]);
+
+    // Tab focus trap — 열린 drawer·모달 안에서만 포커스를 순환시킨다(배경 이탈 방지).
+    // 동시에 하나만 열린다는 가정 하에 우선순위로 활성 컨테이너를 고른다.
+    useEffect(() => {
+        const activeContainer = (): HTMLElement | null => {
+            if (session.conflict != null) return conflictModalRef.current;
+            if (endWorkOpen) return endWorkModalRef.current;
+            if (rightDrawerOpen) return rightDrawerRef.current;
+            if (leftDrawerOpen) return leftDrawerRef.current;
+            return null;
+        };
+        const root = activeContainer();
+        if (!root) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key !== "Tab") return;
+            const items = Array.from(
+                root.querySelectorAll<HTMLElement>(
+                    'button:not([disabled]), textarea, input:not([disabled]), [href], select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+                ),
+            );
+            if (items.length === 0) return;
+            const first = items[0];
+            const last = items[items.length - 1];
+            const active = document.activeElement;
+            if (e.shiftKey && active === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && active === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [leftDrawerOpen, rightDrawerOpen, endWorkOpen, session.conflict]);
 
     const outline = useEditorOutline(editor, ".b-editor-scroll");
     const projectTitle = projectQuery.data?.title ?? "";
@@ -153,7 +197,7 @@ export default function BWorkDetailPage() {
                 <p className="px-2 py-1 text-xs font-medium text-gray-400">목차</p>
                 {outline.items.length === 0 ? (
                     <p className="px-2 py-1 text-xs text-gray-400">
-                        본문에 제목(H1·H2)을 넣으면 목차가 생깁니다.
+                        본문에 제목(H1~H3)을 넣으면 목차가 생깁니다.
                     </p>
                 ) : (
                     outline.items.map((item, i) => (
@@ -180,6 +224,7 @@ export default function BWorkDetailPage() {
                     type="button"
                     onClick={() => {
                         setEndWorkBody("");
+                        setEndWorkError(null);
                         setEndWorkOpen(true);
                         setLeftDrawerOpen(false);
                     }}
@@ -233,6 +278,7 @@ export default function BWorkDetailPage() {
                 role="dialog"
                 aria-modal="true"
                 aria-label="목차"
+                inert={!leftDrawerOpen || undefined}
                 className={`fixed inset-y-0 left-0 z-30 flex w-72 flex-col overflow-hidden bg-white shadow-xl transition-transform duration-200 min-[880px]:hidden ${
                     leftDrawerOpen ? "translate-x-0" : "-translate-x-full"
                 }`}
@@ -265,6 +311,7 @@ export default function BWorkDetailPage() {
                 role="dialog"
                 aria-modal="true"
                 aria-label="쪽지·인물"
+                inert={!rightDrawerOpen || undefined}
                 className={`fixed inset-y-0 right-0 z-30 flex w-80 flex-col overflow-hidden bg-gray-50 shadow-xl transition-transform duration-200 min-[880px]:hidden ${
                     rightDrawerOpen ? "translate-x-0" : "translate-x-full"
                 }`}
@@ -281,7 +328,13 @@ export default function BWorkDetailPage() {
                     </button>
                 </div>
                 <div className="flex flex-1 flex-col overflow-hidden">
-                    <BWorkSidePanel projectId={projectId} />
+                    {/* drawer 안에서는 항상 펼침(collapsible=false) — 공유 panelOpen 무시. 닫기는 상단 ✕ 로만. */}
+                    <BWorkSidePanel
+                        projectId={projectId}
+                        collapsible={false}
+                        tab={panelTab}
+                        onTabChange={setPanelTab}
+                    />
                 </div>
             </div>
 
@@ -304,27 +357,38 @@ export default function BWorkDetailPage() {
                     </Link>
                 </div>
             ) : (
-                <BEditor
-                    key={editorKey}
-                    initialBodyJson={initialBody ?? doc.bodyJson}
-                    onChange={handleChange}
-                    onDraftUpdate={session.flushDraft}
-                    onEditorReady={setEditor}
-                    statusLabel={statusLabel}
-                    statusTone={statusTone}
-                    paperSize={paperSize}
-                />
+                // 좁은 폭(<880px) floating 토글 row(목차·쪽지·인물, 높이 ≈44px)와 에디터 툴바가 겹치지 않도록
+                // 래퍼 상단에 좁은 폭 전용 여백을 둔다(넓은 폭은 0). BEditor 자체는 불변.
+                <div className="flex min-w-0 flex-1 flex-col pt-11 min-[880px]:pt-0">
+                    <BEditor
+                        key={editorKey}
+                        initialBodyJson={initialBody ?? doc.bodyJson}
+                        onChange={handleChange}
+                        onDraftUpdate={session.flushDraft}
+                        onEditorReady={setEditor}
+                        statusLabel={statusLabel}
+                        statusTone={statusTone}
+                        paperSize={paperSize}
+                    />
+                </div>
             )}
 
             {/* ── 넓은 폭(≥880px): inline 우측 패널 ── */}
             {/* display:contents 로 래퍼가 flex-item 취급 없이 BWorkSidePanel 의 자체 w-80/w-8 이 부모 flex 에 직접 참여. */}
             <div className="hidden min-[880px]:contents">
-                <BWorkSidePanel projectId={projectId} />
+                <BWorkSidePanel
+                    projectId={projectId}
+                    isOpen={panelOpen}
+                    onOpenChange={setPanelOpen}
+                    tab={panelTab}
+                    onTabChange={setPanelTab}
+                />
             </div>
 
             {session.conflict != null && (
-                <div className="fixed inset-0 z-30 flex items-center justify-center bg-gray-900/40 p-4">
+                <div className="fixed inset-0 z-40 flex items-center justify-center bg-gray-900/40 p-4">
                     <div
+                        ref={conflictModalRef}
                         role="dialog"
                         aria-modal="true"
                         className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
@@ -359,6 +423,7 @@ export default function BWorkDetailPage() {
                     onClick={() => !isEndingWork && setEndWorkOpen(false)}
                 >
                     <div
+                        ref={endWorkModalRef}
                         role="dialog"
                         aria-modal="true"
                         aria-label="작업 종료"
@@ -373,8 +438,17 @@ export default function BWorkDetailPage() {
                             onChange={(e) => setEndWorkBody(e.target.value)}
                             placeholder="오늘의 기록을 남겨보세요…"
                             rows={4}
+                            maxLength={2000}
                             className="mt-3 w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
                         />
+                        <div className="mt-1 flex items-center justify-between">
+                            {endWorkError ? (
+                                <span className="text-xs text-red-600">{endWorkError}</span>
+                            ) : (
+                                <span />
+                            )}
+                            <span className="text-xs text-gray-400">{endWorkBody.length}/2000</span>
+                        </div>
                         <div className="mt-4 flex justify-end gap-2">
                             <button
                                 type="button"

@@ -27,6 +27,20 @@ import type { LinkedProject, Memo, ProjectMemo } from "@/lib/types/domain";
 /** 캡처 입력 — desktop CaptureMemoInput(body + linkProjectId). linkProjectId 면 그 작품에 연결한다. */
 export type CaptureMemoInput = { body: string; linkProjectId: number | null };
 
+/**
+ * 캡처(POST)는 성공했으나 연결(curation PUT)만 실패한 부분 성공 에러.
+ * 호출부가 이미 저장된 memo 를 알 수 있어, 재시도 시 동일 본문을 재-POST 하지 않고 연결만 다시 시도할 수 있다.
+ */
+export class MemoLinkFailedError extends Error {
+    readonly memo: Memo;
+    constructor(memo: Memo, cause: unknown) {
+        super("메모는 저장됐지만 작품 연결에 실패했습니다.");
+        this.name = "MemoLinkFailedError";
+        this.memo = memo;
+        this.cause = cause;
+    }
+}
+
 function toLinkedProjects(memo: MemoResponse): LinkedProject[] {
     return memo.projects.map((p) => ({ id: p.projectId, title: p.title }));
 }
@@ -72,12 +86,18 @@ export const memos = {
     create: async (input: CaptureMemoInput): Promise<Memo> => {
         const captured = await captureMemo({ body: input.body, activeProjectId: input.linkProjectId });
         if (input.linkProjectId === null) return toMemo(captured);
-        const linked = await curateMemo(captured.id, {
-            projectConnections: [{ projectId: input.linkProjectId, characterIds: [] }],
-            tags: captured.tags,
-            reasonNote: captured.reasonNote,
-        });
-        return toMemo(linked);
+        // 캡처(POST)는 성공 — 여기서부터의 연결(curation) 실패는 부분 성공이다. 메모는 서버에 남았으므로
+        // 재시도 시 동일 본문을 재-POST 하지 않도록 MemoLinkFailedError 로 구분해 던진다.
+        try {
+            const linked = await curateMemo(captured.id, {
+                projectConnections: [{ projectId: input.linkProjectId, characterIds: [] }],
+                tags: captured.tags,
+                reasonNote: captured.reasonNote,
+            });
+            return toMemo(linked);
+        } catch (e) {
+            throw new MemoLinkFailedError(toMemo(captured), e);
+        }
     },
 
     /** 전역 메모 목록(책상). size:100 — 베타 한계(메모 소수 전제, 규모 증가 시 페이지네이션). */
