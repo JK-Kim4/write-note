@@ -48,7 +48,7 @@ class DocumentRepositoryIT
         }
 
         @Test
-        fun `find by project id returns one-to-one document`() {
+        fun `find by project id returns active document`() {
             val owner =
                 userRepository.save(
                     User(email = "doc2-${UUID.randomUUID()}@example.com", passwordHash = "test-fixture-password-hash"),
@@ -59,8 +59,12 @@ class DocumentRepositoryIT
             entityManager.flush()
             entityManager.clear()
 
-            val found = documentRepository.findByProjectId(project.id!!).orElseThrow()
-            assertThat(found.projectId).isEqualTo(project.id)
+            val found =
+                documentRepository
+                    .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(project.id!!)
+                    .firstOrNull()
+            assertThat(found).isNotNull
+            assertThat(found!!.projectId).isEqualTo(project.id)
         }
 
         @Test
@@ -75,12 +79,16 @@ class DocumentRepositoryIT
             entityManager.flush()
             entityManager.clear()
 
-            assertThat(documentRepository.findByProjectId(project.id!!)).isPresent
+            assertThat(
+                documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(project.id!!),
+            ).isNotEmpty
 
             projectRepository.deleteById(project.id!!)
             entityManager.flush()
             entityManager.clear()
 
-            assertThat(documentRepository.findByProjectId(project.id!!)).isEmpty
+            assertThat(
+                documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(project.id!!),
+            ).isEmpty()
         }
     }

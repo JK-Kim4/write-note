@@ -32,8 +32,9 @@ class DocumentService(
         projectService.requireOwnedProject(userId, projectId)
         val document =
             documentRepository
-                .findByProjectId(projectId)
-                .orElseThrow { ResourceNotFoundException("Document not found for project $projectId") }
+                .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectId)
+                .firstOrNull()
+                ?: throw ResourceNotFoundException("Document not found for project $projectId")
         return document.toResponse()
     }
 
@@ -67,8 +68,9 @@ class DocumentService(
         projectService.requireOwnedProject(userId, projectId)
         val document =
             documentRepository
-                .findByProjectId(projectId)
-                .orElseThrow { ResourceNotFoundException("Document not found for project $projectId") }
+                .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectId)
+                .firstOrNull()
+                ?: throw ResourceNotFoundException("Document not found for project $projectId")
         return performSave(document, request)
     }
 

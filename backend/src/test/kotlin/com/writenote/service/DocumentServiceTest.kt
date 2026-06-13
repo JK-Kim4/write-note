@@ -86,7 +86,9 @@ class DocumentServiceTest {
         val body = """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"안녕 세계"}]}]}"""
         val document = newDocument(body = Document.EMPTY_DOC_JSON, updatedAt = BASE_VERSION)
         every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every { documentRepository.findByProjectId(eq(10L)) } returns Optional.of(document)
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns listOf(document)
         stubSaveAndFlushBumpingVersion()
 
         val request = SaveDocumentRequest(body = body, version = BASE_VERSION)
@@ -110,7 +112,9 @@ class DocumentServiceTest {
             """.trimIndent()
         val document = newDocument(body = Document.EMPTY_DOC_JSON, updatedAt = BASE_VERSION)
         every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every { documentRepository.findByProjectId(eq(10L)) } returns Optional.of(document)
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns listOf(document)
         stubSaveAndFlushBumpingVersion()
 
         val request = SaveDocumentRequest(body = body, version = BASE_VERSION)
@@ -129,7 +133,9 @@ class DocumentServiceTest {
         // 서버 현재 토큰 = ADVANCED_VERSION, 클라이언트가 보낸 토큰 = BASE_VERSION(과거) → 불일치
         val document = newDocument(body = currentBody, updatedAt = ADVANCED_VERSION)
         every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every { documentRepository.findByProjectId(eq(10L)) } returns Optional.of(document)
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns listOf(document)
 
         val request = SaveDocumentRequest(body = body, version = BASE_VERSION)
 
@@ -150,7 +156,9 @@ class DocumentServiceTest {
         val body = """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"본문"}]}]}"""
         val document = newDocument(body = Document.EMPTY_DOC_JSON, updatedAt = BASE_VERSION)
         every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every { documentRepository.findByProjectId(eq(10L)) } returns Optional.of(document)
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns listOf(document)
         stubSaveAndFlushBumpingVersion(to = ADVANCED_VERSION)
 
         val request = SaveDocumentRequest(body = body, version = BASE_VERSION)
@@ -169,7 +177,9 @@ class DocumentServiceTest {
         val body = """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"본문"}]}]}"""
         val document = newDocument(body = Document.EMPTY_DOC_JSON, updatedAt = BASE_VERSION)
         every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every { documentRepository.findByProjectId(eq(10L)) } returns Optional.of(document)
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns listOf(document)
         stubSaveAndFlushBumpingVersion(to = ADVANCED_VERSION)
 
         // 1차 저장: BASE 토큰 일치 → 성공, document.updatedAt 이 ADVANCED 로 전진
@@ -200,7 +210,9 @@ class DocumentServiceTest {
         val project = newProject()
         val document = newDocument(body = Document.EMPTY_DOC_JSON, updatedAt = BASE_VERSION)
         every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every { documentRepository.findByProjectId(eq(10L)) } returns Optional.of(document)
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns listOf(document)
         stubSaveAndFlushBumpingVersion()
 
         val request = SaveDocumentRequest(body = Document.EMPTY_DOC_JSON, version = BASE_VERSION)
@@ -230,7 +242,9 @@ class DocumentServiceTest {
         val project = newProject()
         val document = newDocument()
         every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every { documentRepository.findByProjectId(eq(10L)) } returns Optional.of(document)
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns listOf(document)
 
         val response = service.getDocumentByProjectId(userId = 1L, projectId = 10L)
 
@@ -254,7 +268,9 @@ class DocumentServiceTest {
         val project = newProject()
         val document = newDocument(updatedAt = BASE_VERSION)
         every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every { documentRepository.findByProjectId(eq(10L)) } returns Optional.of(document)
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns listOf(document)
 
         val request = SaveDocumentRequest(body = "{not valid json", version = BASE_VERSION)
 
@@ -269,7 +285,9 @@ class DocumentServiceTest {
         val project = newProject()
         val document = newDocument(updatedAt = BASE_VERSION)
         every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every { documentRepository.findByProjectId(eq(10L)) } returns Optional.of(document)
+        every {
+            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
+        } returns listOf(document)
 
         val request = SaveDocumentRequest(body = """{"type":"paragraph","content":[]}""", version = BASE_VERSION)
 

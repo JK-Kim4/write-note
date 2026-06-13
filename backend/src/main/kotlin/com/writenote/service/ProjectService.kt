@@ -46,7 +46,7 @@ class ProjectService(
                     paperSize = validatedPaperSize(request.paperSize),
                 ),
             )
-        documentRepository.save(Document(projectId = requireNotNull(project.id)))
+        documentRepository.save(Document(projectId = requireNotNull(project.id), sortOrder = 0))
         return projectMapper.toResponse(project)
     }
 
@@ -85,7 +85,8 @@ class ProjectService(
         }
 
         val projectIds = projects.map { requireNotNull(it.id) }
-        val documentsByProjectId = documentRepository.findByProjectIdIn(projectIds).associateBy { it.projectId }
+        val documentsByProjectId =
+            documentRepository.findByProjectIdInAndDeletedAtIsNull(projectIds).associateBy { it.projectId }
         val durationByProjectId =
             workSessionRepository
                 .findByProjectIdInAndEndedAtIsNotNull(projectIds)

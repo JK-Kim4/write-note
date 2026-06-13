@@ -266,7 +266,7 @@ class ProjectServiceTest {
         every { userRepository.existsById(eq(1L)) } returns true
         every { projectRepository.findByUserIdAndArchivedAtIsNull(eq(1L)) } returns
             listOf(activeProject(100L, "여름의 끝"), activeProject(200L, "파란색의 온도"))
-        every { documentRepository.findByProjectIdIn(eq(listOf(100L, 200L))) } returns
+        every { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(100L, 200L))) } returns
             listOf(
                 docOf(100L, wordCount = 42500, updatedAt = Instant.parse("2026-06-10T02:00:00Z")),
                 docOf(200L, wordCount = 1000, updatedAt = Instant.parse("2026-06-01T00:00:00Z")),
@@ -296,7 +296,7 @@ class ProjectServiceTest {
     fun `listCards returns zero aggregates for fresh project`() {
         every { userRepository.existsById(eq(1L)) } returns true
         every { projectRepository.findByUserIdAndArchivedAtIsNull(eq(1L)) } returns listOf(activeProject(100L, "새 작품"))
-        every { documentRepository.findByProjectIdIn(eq(listOf(100L))) } returns
+        every { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(100L))) } returns
             listOf(docOf(100L, wordCount = 0, updatedAt = Instant.parse("2026-06-10T00:00:00Z")))
         every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(100L))) } returns emptyList()
         every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }

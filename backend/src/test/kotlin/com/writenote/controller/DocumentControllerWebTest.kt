@@ -68,7 +68,10 @@ class DocumentControllerWebTest {
                 .contentAsString
                 .let { body -> Regex(""""id":(\d+)""").find(body)!!.groupValues[1].toLong() }
 
-        val document = documentRepository.findByProjectId(projectId).orElseThrow()
+        val document =
+            documentRepository
+                .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectId)
+                .first()
         return Pair(projectId, document)
     }
 
