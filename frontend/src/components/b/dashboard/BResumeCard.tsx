@@ -9,6 +9,8 @@ type Props = { card: ProjectCard; onOpen: () => void };
 
 export function BResumeCard({ card, onOpen }: Props) {
     const sentence = lastSentence(card.lastSentenceSource);
+    // 마지막 문장 앞에 다른 내용이 있을 때만 … 표시(본문이 한 문장뿐이면 잘린 듯 보이지 않게 생략).
+    const hasPreceding = sentence !== null && card.lastSentenceSource.trim() !== sentence;
     const meta = [
         `${formatRelativeTime(card.docUpdatedAt, new Date())} 저장`,
         `${card.wordCount.toLocaleString()}자`,
@@ -19,7 +21,7 @@ export function BResumeCard({ card, onOpen }: Props) {
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">이어서 쓰기</p>
             <h2 className="mt-1 text-lg font-bold text-gray-900">{card.title}</h2>
             {sentence ? (
-                <p className="mt-1 italic text-gray-700">&ldquo;…{sentence}&rdquo;</p>
+                <p className="mt-1 italic text-gray-700">&ldquo;{hasPreceding ? "…" : ""}{sentence}&rdquo;</p>
             ) : (
                 <p className="mt-1 italic text-gray-400">아직 첫 문장을 기다리는 중</p>
             )}

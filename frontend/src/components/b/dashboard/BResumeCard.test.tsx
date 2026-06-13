@@ -33,6 +33,15 @@ describe("BResumeCard", () => {
         expect(screen.getByText(/문을 열지 않았다\./)).toBeInTheDocument();
         expect(screen.getByText(/재회/)).toBeInTheDocument();
     });
+    it("본문이 한 문장뿐이면 … 없이 표시한다", () => {
+        render(<BResumeCard card={card({ lastSentenceSource: "한 문장입니다." })} onOpen={() => {}} />);
+        expect(screen.getByText(/한 문장입니다\./)).toBeInTheDocument();
+        expect(screen.queryByText(/…/)).toBeNull();
+    });
+    it("앞에 다른 문장이 있으면 마지막 문장 앞에 …를 붙인다", () => {
+        render(<BResumeCard card={card({ lastSentenceSource: "첫째 문장. 둘째 문장." })} onOpen={() => {}} />);
+        expect(screen.getByText(/…둘째 문장\./)).toBeInTheDocument();
+    });
     it("[이어 쓰기] 클릭 시 onOpen을 호출한다", async () => {
         const onOpen = vi.fn();
         render(<BResumeCard card={card()} onOpen={onOpen} />);
