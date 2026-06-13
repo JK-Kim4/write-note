@@ -20,8 +20,11 @@ class WorkSession(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    @Column(name = "project_id", nullable = false)
-    var projectId: Long = 0,
+    @Column(name = "user_id", nullable = false)
+    var userId: Long = 0,
+    // 작품 삭제 시 ON DELETE SET NULL → 작업 기록은 user 단위로 보존(트랙2). 활성 세션은 항상 project 보유.
+    @Column(name = "project_id")
+    var projectId: Long? = null,
     @Column(name = "started_at", nullable = false, updatable = false)
     var startedAt: Instant? = null,
     @Column(name = "ended_at")

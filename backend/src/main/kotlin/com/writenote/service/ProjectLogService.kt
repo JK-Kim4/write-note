@@ -25,7 +25,7 @@ class ProjectLogService(
         body: String,
     ): ProjectLogResponse {
         requireOwnedProject(userId, projectId)
-        val saved = projectLogRepository.save(ProjectLog(projectId = projectId, body = body.trim()))
+        val saved = projectLogRepository.save(ProjectLog(userId = userId, projectId = projectId, body = body.trim()))
         return saved.toResponse()
     }
 
@@ -59,7 +59,8 @@ class ProjectLogService(
     private fun ProjectLog.toResponse(): ProjectLogResponse =
         ProjectLogResponse(
             id = requireNotNull(id),
-            projectId = projectId,
+            // 응답은 항상 활성 작품 맥락(create/listByProject) — 분리된(project_id=NULL) 로그는 여기로 오지 않음.
+            projectId = requireNotNull(projectId),
             body = body,
             createdAt = requireNotNull(createdAt),
         )

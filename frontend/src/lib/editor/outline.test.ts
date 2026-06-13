@@ -38,11 +38,21 @@ describe("outlineFromDoc", () => {
         ]);
     });
 
-    it("level 3 이상 heading 은 제외한다", () => {
-        const body = doc(heading(1, "큰제목"), heading(3, "작은제목"), heading(2, "중제목"));
+    it("H3 를 등장 순서대로 포함한다", () => {
+        const body = doc(heading(1, "큰제목"), heading(3, "소제목"), heading(2, "중제목"));
         expect(outlineFromDoc(body)).toEqual([
             { level: 1, text: "큰제목", index: 0 },
-            { level: 2, text: "중제목", index: 1 },
+            { level: 3, text: "소제목", index: 1 },
+            { level: 2, text: "중제목", index: 2 },
+        ]);
+    });
+
+    it("level 4 이상 heading 은 제외한다", () => {
+        const body = doc(heading(1, "큰제목"), heading(4, "제외"), heading(3, "소제목"), heading(2, "중제목"));
+        expect(outlineFromDoc(body)).toEqual([
+            { level: 1, text: "큰제목", index: 0 },
+            { level: 3, text: "소제목", index: 1 },
+            { level: 2, text: "중제목", index: 2 },
         ]);
     });
 

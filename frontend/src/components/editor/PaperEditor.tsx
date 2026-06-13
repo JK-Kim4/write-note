@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 
 import { useEditor, EditorContent, type Content, type Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { StarterKit } from "@tiptap/starter-kit";
-import { pageCount, globalLineAt, pageNumberTopsPx, LINE_PX, PAGE_STRIDE_PX, SHEET_H_PX } from "./pageLayout";
+import { pageCount, globalLineAt, pageNumberTopsPx, paperGeometry, LINE_PX } from "./pageLayout";
 
 /**
  * 진짜 페이지 분할 본문 에디터 — desktop `src/components/Editor.tsx` 이식(015 T001, PoC).
@@ -44,6 +44,9 @@ type PaperEditorProps = {
     lined: boolean;
     zoom?: number;
 };
+
+// Phase 2: A4 geometry 상수. 용지 선택 배선은 Phase 3 에서 진행.
+const A4_GEOMETRY = paperGeometry("A4");
 
 export function PaperEditor({ title, initialBodyJson, onChange, onDraftUpdate, onEditorReady, lined, zoom = 1 }: PaperEditorProps) {
     const paperRef = useRef<HTMLElement>(null);
@@ -95,7 +98,7 @@ export function PaperEditor({ title, initialBodyJson, onChange, onDraftUpdate, o
     useEffect(() => {
         const pm = paperRef.current?.querySelector<HTMLElement>(".ProseMirror");
         if (!pm) return;
-        const measure = () => setPages(pageCount(pm.getBoundingClientRect().height, zoom));
+        const measure = () => setPages(pageCount(pm.getBoundingClientRect().height, zoom, A4_GEOMETRY.stridePx));
         measure();
         const ro = new ResizeObserver(measure);
         ro.observe(pm);
@@ -108,9 +111,9 @@ export function PaperEditor({ title, initialBodyJson, onChange, onDraftUpdate, o
         if (!pm) return;
         const pmTop = pm.getBoundingClientRect().top;
         const lineUnit = LINE_PX * zoom;
-        const targetLine = globalLineAt((e.clientY - pmTop) / lineUnit);
+        const targetLine = globalLineAt((e.clientY - pmTop) / lineUnit, A4_GEOMETRY.bodyLines, A4_GEOMETRY.strideLines);
         const endTop = editor.view.coordsAtPos(editor.state.doc.content.size).top;
-        const lastLine = globalLineAt((endTop - pmTop) / lineUnit);
+        const lastLine = globalLineAt((endTop - pmTop) / lineUnit, A4_GEOMETRY.bodyLines, A4_GEOMETRY.strideLines);
         if (targetLine <= lastLine) return;
         e.preventDefault();
         const fill = Math.min(1000, targetLine - lastLine);
@@ -127,7 +130,7 @@ export function PaperEditor({ title, initialBodyJson, onChange, onDraftUpdate, o
             <article
                 ref={paperRef}
                 className="paper"
-                style={{ minHeight: `${(pages - 1) * PAGE_STRIDE_PX + SHEET_H_PX}px` }}
+                style={{ minHeight: `${(pages - 1) * A4_GEOMETRY.stridePx + A4_GEOMETRY.sheetHpx}px` }}
                 onMouseDown={handlePaperMouseDown}
             >
                 <div className="sheets" aria-hidden="true">
@@ -135,7 +138,7 @@ export function PaperEditor({ title, initialBodyJson, onChange, onDraftUpdate, o
                         <div
                             key={i}
                             className={lined ? "sheet sheet--lined" : "sheet"}
-                            style={{ top: `${i * PAGE_STRIDE_PX}px`, height: `${SHEET_H_PX}px` }}
+                            style={{ top: `${i * A4_GEOMETRY.stridePx}px`, height: `${A4_GEOMETRY.sheetHpx}px` }}
                         />
                     ))}
                 </div>
@@ -185,7 +188,7 @@ export function PaperEditor({ title, initialBodyJson, onChange, onDraftUpdate, o
                     </BubbleMenu>
                 )}
                 <EditorContent editor={editor} className="prose" />
-                {pageNumberTopsPx(pages).map((top, i) => (
+                {pageNumberTopsPx(pages, A4_GEOMETRY.stridePx, A4_GEOMETRY.sheetHpx).map((top, i) => (
                     <div key={i} className="page-num" style={{ top: `${top}px` }} aria-label={`${i + 1}쪽`}>
                         {i + 1}
                     </div>

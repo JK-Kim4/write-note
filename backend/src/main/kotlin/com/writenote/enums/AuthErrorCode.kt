@@ -19,7 +19,7 @@ enum class AuthErrorCode(
 
     // 400 — 입력 검증
     EMAIL_INVALID_FORMAT(HttpStatus.BAD_REQUEST, "이메일 형식이 올바르지 않습니다."),
-    PASSWORD_TOO_WEAK(HttpStatus.BAD_REQUEST, "비밀번호는 12자 이상, 영문/숫자/특수문자를 모두 포함해야 합니다."),
+    PASSWORD_TOO_WEAK(HttpStatus.BAD_REQUEST, "비밀번호는 8자 이상, 영문·숫자를 포함해야 합니다."),
 
     // 409 — 충돌
     EMAIL_ALREADY_REGISTERED(HttpStatus.CONFLICT, "이미 가입된 이메일입니다."),

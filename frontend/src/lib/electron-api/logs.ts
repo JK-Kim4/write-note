@@ -27,17 +27,23 @@ export const logs = {
         const projects = (await listProjects({ size: 100 })).content;
         return Promise.all(
             projects.map(async (project) => {
+                // 작품 단위 격리 — 하위 조회(document·latest·total)는 각각 실패해도 나머지 필드로 카드를 만든다.
+                // 한 작품이 통째로 실패해도 빈 카드로 degrade 해 화면 전체가 에러로 가려지지 않게 한다(014 R6).
                 const [doc, latest, total] = await Promise.all([
-                    getProjectDocument(project.id),
-                    apiFetch<ProjectLogResponse | null>(`/api/projects/${project.id}/logs/latest`, { method: "GET" }),
-                    apiFetch<TotalDurationResponse>(`/api/projects/${project.id}/work-sessions/total`, { method: "GET" }),
+                    getProjectDocument(project.id).catch(() => null),
+                    apiFetch<ProjectLogResponse | null>(`/api/projects/${project.id}/logs/latest`, {
+                        method: "GET",
+                    }).catch(() => null),
+                    apiFetch<TotalDurationResponse>(`/api/projects/${project.id}/work-sessions/total`, {
+                        method: "GET",
+                    }).catch(() => null),
                 ]);
                 return {
                     project,
-                    wordCount: doc.wordCount,
-                    lastSentenceSource: extractPlainText(doc.body),
+                    wordCount: doc?.wordCount ?? 0,
+                    lastSentenceSource: doc ? extractPlainText(doc.body) : "",
                     latestLog: latest ? toProjectLog(latest) : null,
-                    totalDurationMs: total.totalDurationMs,
+                    totalDurationMs: total?.totalDurationMs ?? 0,
                 };
             }),
         );

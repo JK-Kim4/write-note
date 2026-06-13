@@ -20,11 +20,11 @@ interface WorkSessionRepository : JpaRepository<WorkSession, Long> {
     fun findByProjectIdInAndEndedAtIsNotNull(projectIds: Collection<Long>): List<WorkSession>
 
     /**
-     * 기간 합계용(018) — 사용자 전체 작품 횡단(아카이브 포함), [from, to) 에 시작된 종료 세션.
-     * WorkSession 에 userId 가 없어(작품 경유 격리) projects join 이 필수.
+     * 기간 합계용(018) — 사용자 전체 작품 횡단(아카이브·삭제 작품 포함), [from, to) 에 시작된 종료 세션.
+     * 트랙2: WorkSession.userId 직접 스코프 → 작품 삭제(project_id=NULL)된 세션도 전체 합계에 보존.
      */
     @Query(
-        "SELECT w FROM WorkSession w, Project p WHERE w.projectId = p.id AND p.userId = :userId " +
+        "SELECT w FROM WorkSession w WHERE w.userId = :userId " +
             "AND w.endedAt IS NOT NULL AND w.startedAt >= :from AND w.startedAt < :to",
     )
     fun findEndedByUserIdAndStartedAtRange(

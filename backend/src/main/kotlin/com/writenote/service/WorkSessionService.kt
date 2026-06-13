@@ -36,7 +36,7 @@ class WorkSessionService(
         workSessionRepository.findFirstByProjectIdAndEndedAtIsNull(projectId)?.let { closeOpen(it, now) }
         // 기존 열린 세션 정리를 먼저 반영해야 partial unique(uq_work_session_open) 충돌이 없다.
         workSessionRepository.flush()
-        val saved = workSessionRepository.save(WorkSession(projectId = projectId, startedAt = now))
+        val saved = workSessionRepository.save(WorkSession(userId = userId, projectId = projectId, startedAt = now))
         return saved.toResponse()
     }
 
@@ -134,7 +134,8 @@ class WorkSessionService(
     private fun WorkSession.toResponse(): WorkSessionResponse =
         WorkSessionResponse(
             id = requireNotNull(id),
-            projectId = projectId,
+            // 응답은 항상 활성 작품 맥락(start/end/currentOpen) — 분리된(project_id=NULL) 세션은 여기로 오지 않음.
+            projectId = requireNotNull(projectId),
             startedAt = requireNotNull(startedAt),
             endedAt = endedAt,
         )

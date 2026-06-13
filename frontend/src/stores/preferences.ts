@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { PaperSize } from "@/components/editor/pageLayout";
 
 /**
  * UI Preferences Store — 사용자의 영속 환경 preference.
@@ -19,16 +20,19 @@ export type WritingMode = "manuscript" | "editor";
 export type ManuscriptSize = 200 | 400 | 1000;
 /** 화면 디자인 한 벌 선택 — "default"=기존 Rail 셸 트리(`/`…), "b"=B타입 트리(`/b`…). */
 export type DesignVariant = "default" | "b";
+export type { PaperSize };
 
 interface PreferencesState {
     theme: ThemeMode;
     writingMode: WritingMode;
     manuscriptSize: ManuscriptSize;
     design: DesignVariant;
+    paperSize: PaperSize;
     setTheme: (theme: ThemeMode) => void;
     setWritingMode: (mode: WritingMode) => void;
     setManuscriptSize: (size: ManuscriptSize) => void;
     setDesign: (design: DesignVariant) => void;
+    setPaperSize: (size: PaperSize) => void;
 }
 
 /** 선택한 디자인의 홈 경로 — 로그인 랜딩·전환 이동·루트 가드가 공유한다. */
@@ -44,7 +48,8 @@ export const PREFERENCE_DEFAULTS = {
     manuscriptSize: 400,
     // 신규 세션(localStorage 비어 있음)은 B타입으로 시작. 사용자가 설정에서 기본 디자인으로 바꿀 수 있다.
     design: "b",
-} as const satisfies Pick<PreferencesState, "theme" | "writingMode" | "manuscriptSize" | "design">;
+    paperSize: "A4",
+} as const satisfies Pick<PreferencesState, "theme" | "writingMode" | "manuscriptSize" | "design" | "paperSize">;
 
 export const usePreferences = create<PreferencesState>()(
     persist(
@@ -54,6 +59,7 @@ export const usePreferences = create<PreferencesState>()(
             setWritingMode: (writingMode) => set({ writingMode }),
             setManuscriptSize: (manuscriptSize) => set({ manuscriptSize }),
             setDesign: (design) => set({ design }),
+            setPaperSize: (paperSize) => set({ paperSize }),
         }),
         {
             name: "writenote.preferences.v1",

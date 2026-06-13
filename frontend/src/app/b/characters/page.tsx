@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     createCharacter,
@@ -13,6 +13,7 @@ import {
 } from "@/lib/api/characters";
 import { characterKeys } from "@/lib/query/useCharacters";
 import { useProjectCards } from "@/lib/query/useProjects";
+import { useModalDismiss } from "@/lib/useModalDismiss";
 import type { CharacterResponse } from "@/types/api";
 
 /**
@@ -32,6 +33,10 @@ type FormValues = {
 
 const EMPTY_FORM: FormValues = { name: "", age: "", gender: "", shortDescription: "", traits: "", notes: "" };
 
+function errorText(error: unknown, fallback: string): string {
+    return error instanceof Error && error.message ? error.message : fallback;
+}
+
 function toInput(values: FormValues): CreateCharacterInput {
     return {
         name: values.name.trim(),
@@ -47,17 +52,24 @@ function CharacterFormModal({
     title,
     initialValues,
     isSaving,
+    errorMessage,
     onSubmit,
     onClose,
 }: {
     title: string;
     initialValues: FormValues;
     isSaving: boolean;
+    errorMessage?: string | null;
     onSubmit: (values: FormValues) => void;
     onClose: () => void;
 }) {
     const [values, setValues] = useState<FormValues>(initialValues);
     const set = (patch: Partial<FormValues>) => setValues((v) => ({ ...v, ...patch }));
+    const dialogRef = useRef<HTMLFormElement>(null);
+
+    useModalDismiss(dialogRef, true, () => {
+        if (!isSaving) onClose();
+    });
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
@@ -74,11 +86,17 @@ function CharacterFormModal({
             onClick={() => !isSaving && onClose()}
         >
             <form
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="character-form-title"
                 onSubmit={handleSubmit}
                 onClick={(e) => e.stopPropagation()}
                 className="max-h-full w-full max-w-md overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
             >
-                <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+                <h2 id="character-form-title" className="text-lg font-bold text-gray-900">
+                    {title}
+                </h2>
                 <label className="mt-4 block text-sm text-gray-600">
                     이름
                     <input autoFocus value={values.name} onChange={(e) => set({ name: e.target.value })} className={inputClass} />
@@ -133,6 +151,7 @@ function CharacterFormModal({
                         className={`${inputClass} resize-none`}
                     />
                 </label>
+                {errorMessage && <p className="mt-3 text-sm text-red-600">{errorMessage}</p>}
                 <div className="mt-5 flex justify-end gap-2">
                     <button
                         type="button"
@@ -197,6 +216,26 @@ export default function BCharactersPage() {
 
     const [isCreating, setIsCreating] = useState(false);
     const [editTarget, setEditTarget] = useState<CharacterResponse | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<CharacterResponse | null>(null);
+    const deleteDialogRef = useRef<HTMLDivElement>(null);
+
+    const closeCreate = () => {
+        createMutation.reset();
+        setIsCreating(false);
+    };
+    const closeEdit = () => {
+        updateMutation.reset();
+        setEditTarget(null);
+    };
+    const closeDelete = () => {
+        deleteMutation.reset();
+        setDeleteTarget(null);
+    };
+
+    // 삭제 다이얼로그 ESC 닫기 + focus trap + 배경 스크롤 잠금(삭제 진행 중이면 닫지 않음).
+    useModalDismiss(deleteDialogRef, deleteTarget != null, () => {
+        if (!deleteMutation.isPending) closeDelete();
+    });
 
     const characters = charactersQuery.data ?? [];
 
@@ -221,6 +260,19 @@ export default function BCharactersPage() {
 
             {projectsQuery.isLoading || charactersQuery.isLoading ? (
                 <p className="py-12 text-center text-sm text-gray-400">불러오는 중…</p>
+            ) : projectsQuery.isError || charactersQuery.isError ? (
+                <div className="py-12 text-center">
+                    <p className="text-sm text-gray-500">
+                        {projectsQuery.isError ? "작품 목록을 불러올 수 없습니다." : "인물을 불러올 수 없습니다."}
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => (projectsQuery.isError ? projectsQuery.refetch() : charactersQuery.refetch())}
+                        className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                        다시 시도
+                    </button>
+                </div>
             ) : projects.length === 0 ? (
                 <p className="py-12 text-center text-sm text-gray-500">먼저 작품을 만들어주세요.</p>
             ) : (
@@ -235,25 +287,25 @@ export default function BCharactersPage() {
                     {characters.map((character) => {
                         const meta = [character.age, genderLabel(character.gender)].filter(Boolean).join(" · ");
                         return (
-                            <div key={character.id} className="group rounded-xl border border-gray-200 bg-white p-4">
+                            <div key={character.id} className="group min-w-0 rounded-xl border border-gray-200 bg-white p-4">
                                 <div className="flex items-baseline justify-between gap-2">
                                     <h2 className="text-base font-bold text-gray-900">{character.name}</h2>
                                     {meta && <span className="shrink-0 text-xs text-gray-400">{meta}</span>}
                                 </div>
                                 {character.shortDescription && (
-                                    <p className="mt-1 text-sm text-gray-600">{character.shortDescription}</p>
+                                    <p className="mt-1 text-sm break-words text-gray-600">{character.shortDescription}</p>
                                 )}
                                 {character.traits && (
-                                    <p className="mt-1.5 rounded-md bg-gray-50 px-2 py-1 text-xs text-gray-500">
+                                    <p className="mt-1.5 rounded-md bg-gray-50 px-2 py-1 text-xs break-words text-gray-500">
                                         {character.traits}
                                     </p>
                                 )}
                                 {character.notes && (
-                                    <p className="mt-1.5 line-clamp-3 text-xs whitespace-pre-wrap text-gray-400">
+                                    <p className="mt-1.5 line-clamp-3 text-xs break-words whitespace-pre-wrap text-gray-400">
                                         {character.notes}
                                     </p>
                                 )}
-                                <div className="mt-3 hidden items-center justify-end gap-1.5 group-hover:flex">
+                                <div className="mt-3 flex items-center justify-end gap-1.5">
                                     <button
                                         type="button"
                                         onClick={() => setEditTarget(character)}
@@ -263,9 +315,8 @@ export default function BCharactersPage() {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => deleteMutation.mutate(character.id)}
-                                        disabled={deleteMutation.isPending}
-                                        className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
+                                        onClick={() => setDeleteTarget(character)}
+                                        className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
                                     >
                                         삭제
                                     </button>
@@ -273,6 +324,11 @@ export default function BCharactersPage() {
                             </div>
                         );
                     })}
+                    {characters.length === 0 && (
+                        <p className="col-span-full py-8 text-center text-sm text-gray-400">
+                            이 작품엔 아직 인물이 없어요. &lsquo;+ 인물 추가&rsquo;로 시작하세요.
+                        </p>
+                    )}
                 </div>
             )}
 
@@ -281,7 +337,8 @@ export default function BCharactersPage() {
                     title="인물 추가"
                     initialValues={EMPTY_FORM}
                     isSaving={createMutation.isPending}
-                    onClose={() => setIsCreating(false)}
+                    errorMessage={createMutation.isError ? errorText(createMutation.error, "저장에 실패했습니다.") : null}
+                    onClose={closeCreate}
                     onSubmit={(values) =>
                         createMutation.mutate(toInput(values), { onSuccess: () => setIsCreating(false) })
                     }
@@ -300,7 +357,8 @@ export default function BCharactersPage() {
                         notes: editTarget.notes ?? "",
                     }}
                     isSaving={updateMutation.isPending}
-                    onClose={() => setEditTarget(null)}
+                    errorMessage={updateMutation.isError ? errorText(updateMutation.error, "저장에 실패했습니다.") : null}
+                    onClose={closeEdit}
                     onSubmit={(values) =>
                         updateMutation.mutate(
                             { id: editTarget.id, input: toInput(values) },
@@ -308,6 +366,52 @@ export default function BCharactersPage() {
                         )
                     }
                 />
+            )}
+
+            {deleteTarget && (
+                <div
+                    className="fixed inset-0 z-30 flex items-center justify-center bg-gray-900/40 p-4"
+                    onClick={() => !deleteMutation.isPending && closeDelete()}
+                >
+                    <div
+                        ref={deleteDialogRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="인물 삭제"
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
+                    >
+                        <h2 className="text-lg font-bold text-gray-900">인물 삭제</h2>
+                        <p className="mt-2 text-sm text-gray-600">
+                            「{deleteTarget.name}」 을(를) 삭제할까요? 되돌릴 수 없습니다.
+                        </p>
+                        {deleteMutation.isError && (
+                            <p className="mt-2 text-sm text-red-600">
+                                {errorText(deleteMutation.error, "삭제에 실패했습니다.")}
+                            </p>
+                        )}
+                        <div className="mt-5 flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={closeDelete}
+                                disabled={deleteMutation.isPending}
+                                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                취소
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    deleteMutation.mutate(deleteTarget.id, { onSuccess: () => setDeleteTarget(null) })
+                                }
+                                disabled={deleteMutation.isPending}
+                                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                            >
+                                삭제
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

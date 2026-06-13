@@ -15,6 +15,7 @@ function card(id: number, title: string, totalDurationMs: number): ProjectCard {
         synopsis: null,
         worldNotes: null,
         nextScene: "",
+        paperSize: "A4",
         archivedAt: null,
         createdAt: "2026-06-01T00:00:00Z",
         updatedAt: "2026-06-01T00:00:00Z",

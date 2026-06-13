@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { webElectronApi } from "@/lib/electron-api";
 import { clearLastProject, getLastProject } from "@/lib/lastProject";
 import type { CreateProjectInput, UpdateProjectInput } from "@/lib/api/projects";
+import type { ProjectCard } from "@/lib/types/domain";
 
 export const projectKeys = {
     all: ["projects"] as const,
@@ -51,9 +52,21 @@ export function useDeleteProject() {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (id: number) => webElectronApi.projects.delete(id),
+        // 낙관적 제거 — 모달 닫힘과 동시에 카드가 캐시에서 즉시 사라진다(refetch 지연 잔존 방지).
+        onMutate: async (id: number) => {
+            await qc.cancelQueries({ queryKey: projectKeys.cards() });
+            const prev = qc.getQueryData<ProjectCard[]>(projectKeys.cards());
+            qc.setQueryData<ProjectCard[]>(projectKeys.cards(), (old) => (old ?? []).filter((c) => c.id !== id));
+            return { prev };
+        },
+        onError: (_err, _id, ctx) => {
+            if (ctx?.prev !== undefined) qc.setQueryData(projectKeys.cards(), ctx.prev);
+        },
         onSuccess: (_data, id) => {
             // 삭제된 작품이 "마지막으로 연 작품"이면 기억 해제 — Rail 이 stale id 로 진입 방지 (019 버그픽스 C).
             if (getLastProject() === id) clearLastProject();
+        },
+        onSettled: () => {
             qc.invalidateQueries({ queryKey: projectKeys.all });
         },
     });

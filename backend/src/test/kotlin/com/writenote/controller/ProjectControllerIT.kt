@@ -381,13 +381,18 @@ class ProjectControllerIT {
         // 종료 세션 fixture — start/end API 는 30초 미만 폐기 규칙이 있어 repository 로 직접 박는다.
         val base = Instant.parse("2026-06-09T10:00:00Z")
         workSessionRepository.saveAndFlush(
-            WorkSession(projectId = activeId, startedAt = base, endedAt = base.plusMillis(1_200_000L)),
+            WorkSession(userId = owner.id!!, projectId = activeId, startedAt = base, endedAt = base.plusMillis(1_200_000L)),
         )
         workSessionRepository.saveAndFlush(
-            WorkSession(projectId = activeId, startedAt = base.plusSeconds(7200), endedAt = base.plusSeconds(7200).plusMillis(600_000L)),
+            WorkSession(
+                userId = owner.id!!,
+                projectId = activeId,
+                startedAt = base.plusSeconds(7200),
+                endedAt = base.plusSeconds(7200).plusMillis(600_000L),
+            ),
         )
         // 진행 중(미종료) 세션은 누적에 포함되지 않아야 한다.
-        workSessionRepository.saveAndFlush(WorkSession(projectId = activeId, startedAt = base.plusSeconds(20000)))
+        workSessionRepository.saveAndFlush(WorkSession(userId = owner.id!!, projectId = activeId, startedAt = base.plusSeconds(20000)))
 
         mockMvc
             .perform(get("/api/projects/cards").header("Authorization", bearer))

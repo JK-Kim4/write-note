@@ -8,6 +8,7 @@ import {
     PREFERENCE_DEFAULTS,
     usePreferences,
     type ManuscriptSize,
+    type PaperSize,
     type ThemeMode,
     type WritingMode,
 } from "@/stores/preferences";
@@ -28,6 +29,7 @@ import {
 const THEMES: readonly ThemeMode[] = ["light", "dark", "system"];
 const WRITING_MODES: readonly WritingMode[] = ["manuscript", "editor"];
 const MANUSCRIPT_SIZES: readonly ManuscriptSize[] = [200, 400, 1000];
+const PAPER_SIZES: readonly PaperSize[] = ["A4", "A3", "A2", "B4"];
 const DEBOUNCE_MS = 600;
 /** 이 브라우저에서 마지막으로 hydrate/시딩을 마친 계정 — 계정 전환 시 시딩 누수 방지용. */
 const OWNER_KEY = "wn:prefsOwner";
@@ -36,11 +38,12 @@ type PreferencesSnapshot = {
     theme: ThemeMode;
     writingMode: WritingMode;
     manuscriptSize: ManuscriptSize;
+    paperSize: PaperSize;
 };
 
 /** store → 서버 전송용 맵(manuscriptSize 는 문자열 직렬화). */
 function toMap(s: PreferencesSnapshot): SettingsMap {
-    return { theme: s.theme, writingMode: s.writingMode, manuscriptSize: String(s.manuscriptSize) };
+    return { theme: s.theme, writingMode: s.writingMode, manuscriptSize: String(s.manuscriptSize), paperSize: s.paperSize };
 }
 
 export function PreferencesSync() {
@@ -70,10 +73,11 @@ export function PreferencesSync() {
                     const owner = localStorage.getItem(OWNER_KEY);
                     if (owner !== null && owner !== String(userId)) {
                         applyingRef.current = true;
-                        const { setTheme, setWritingMode, setManuscriptSize } = usePreferences.getState();
+                        const { setTheme, setWritingMode, setManuscriptSize, setPaperSize } = usePreferences.getState();
                         setTheme(PREFERENCE_DEFAULTS.theme);
                         setWritingMode(PREFERENCE_DEFAULTS.writingMode);
                         setManuscriptSize(PREFERENCE_DEFAULTS.manuscriptSize);
+                        setPaperSize(PREFERENCE_DEFAULTS.paperSize);
                         applyingRef.current = false;
                         localStorage.setItem(OWNER_KEY, String(userId));
                         await putSettings(toMap(PREFERENCE_DEFAULTS));
@@ -85,7 +89,7 @@ export function PreferencesSync() {
                     return;
                 }
                 applyingRef.current = true;
-                const { setTheme, setWritingMode, setManuscriptSize } = usePreferences.getState();
+                const { setTheme, setWritingMode, setManuscriptSize, setPaperSize } = usePreferences.getState();
                 if (server.theme && (THEMES as readonly string[]).includes(server.theme)) {
                     setTheme(server.theme as ThemeMode);
                 }
@@ -95,6 +99,9 @@ export function PreferencesSync() {
                 const size = Number(server.manuscriptSize);
                 if ((MANUSCRIPT_SIZES as readonly number[]).includes(size)) {
                     setManuscriptSize(size as ManuscriptSize);
+                }
+                if (server.paperSize && (PAPER_SIZES as readonly string[]).includes(server.paperSize)) {
+                    setPaperSize(server.paperSize as PaperSize);
                 }
                 applyingRef.current = false;
                 localStorage.setItem(OWNER_KEY, String(userId));

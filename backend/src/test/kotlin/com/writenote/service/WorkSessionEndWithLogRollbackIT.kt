@@ -44,7 +44,7 @@ class WorkSessionEndWithLogRollbackIT {
         val projectId = projectRepository.saveAndFlush(Project(userId = userId, title = "롤백 작품")).id!!
         val sessionId =
             workSessionRepository
-                .saveAndFlush(WorkSession(projectId = projectId, startedAt = Instant.now().minusSeconds(120)))
+                .saveAndFlush(WorkSession(userId = userId, projectId = projectId, startedAt = Instant.now().minusSeconds(120)))
                 .id!!
 
         whenever(projectLogService.create(any(), any(), any())).thenThrow(IllegalStateException("log insert failed"))

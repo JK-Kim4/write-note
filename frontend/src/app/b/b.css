@@ -99,3 +99,194 @@
 .b-editor .ProseMirror s {
     color: #9ca3af; /* gray-400 */
 }
+
+/*
+ * B타입 paged 모드 스킨 — CSS column-wrap 진짜 페이지 분할.
+ * PaperEditor(A 디자인) 기하를 그대로 재사용하되 B 스킨(흰 시트·인디고·sans 계열)으로 변환.
+ * --b-page-line = pageLayout.LINE_PX(18px*1.92=34.56px) — 시트·줄선·column-height 정렬의 기준.
+ */
+.b-paged-stage {
+    --b-page-line: 34.56px; /* pageLayout.LINE_PX */
+    --b-page-h: calc(var(--b-page-line) * 26); /* 26줄 = column-height */
+    --b-page-stride: calc(var(--b-page-line) * 30); /* 보폭 = 종이 28줄 + 책상 2줄 */
+
+    background: #f3f4f6; /* gray-100 — B 배경(나무 책상 대신 밝은 회색 스테이지) */
+    display: flex;
+    flex-direction: column;
+    /* safe center — 좁은 용지는 가운데, 화면보다 넓은 용지(A2 등)는 좌측 정렬로 가로 스크롤 가능(잘림 방지). */
+    align-items: safe center;
+    padding: 40px 32px 96px;
+}
+
+/* 용지 배지 — 현재 용지·치수 칩(규격 변경 인지). sticky 로 스크롤해도 상단 고정. */
+.b-paper-badge {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    z-index: 3;
+    margin-bottom: 8px;
+    padding: 3px 12px;
+    border-radius: 9999px;
+    background: #eef2ff; /* indigo-50 */
+    border: 1px solid #c7d2fe; /* indigo-200 */
+    color: #4338ca; /* indigo-700 */
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+/* 투명 종이 무대 — 실제 종이는 .b-sheet 가 그린다. 폭 = 용지 실제 mm(geometry).
+ * zoom = fit-zoom: A4 는 가용 폭에 맞게 다운스케일(한 화면), 큰 용지는 같은 줌에서 비례 확대 → 가로 스크롤(인지). */
+.b-paged-paper {
+    width: var(--b-page-max-width, 210mm);
+    zoom: var(--b-page-zoom, 1);
+    flex-shrink: 0;
+    position: relative;
+}
+
+.b-paged-sheets {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* 흰 시트 — B 스킨: white·gray-200 보더·인디고 없음·둥근 모서리·옅은 그림자 */
+.b-sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid #e5e7eb; /* gray-200 */
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* 줄노트 — .b-sheet 배경에 그림(.ProseMirror 배경 아님 — A 패턴 그대로). */
+.b-sheet--lined {
+    padding: var(--b-page-line) 25mm;
+    background:
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0,
+            transparent calc(var(--b-page-line) - 1px),
+            #e5e7eb calc(var(--b-page-line) - 1px), /* gray-200 줄선 */
+            #e5e7eb var(--b-page-line)
+        )
+        content-box,
+        #ffffff border-box;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+}
+
+/* TipTap EditorContent → .b-paged-prose(wrapper) > .ProseMirror(contenteditable) */
+.b-paged-prose {
+    max-width: none;
+    position: relative;
+    z-index: 1;
+    padding: var(--b-page-line) 25mm 0;
+}
+
+.b-paged-prose .ProseMirror {
+    font-size: 18px;
+    font-weight: 400;
+    /* paged 전용 line-height — pageLayout.LINE_PX(34.56px) = 18px * 1.92 */
+    line-height: 1.92;
+    color: #374151; /* gray-700 — B 본문 색 유지 */
+    outline: none;
+    text-wrap: pretty;
+    word-break: normal;
+    /* 페이지 분할 핵심 — 용지별 줄수(--b-page-h)를 채우면 다음 장으로. 폭·줄수는 geometry 주입값. */
+    column-width: var(--b-page-col-width, 160mm); /* 본문 폭 = 용지폭 - 50mm */
+    column-height: var(--b-page-h);
+    column-wrap: wrap;
+    column-gap: 30mm;
+    row-gap: calc(var(--b-page-stride) - var(--b-page-h));
+    min-height: var(--b-page-h);
+}
+
+.b-paged-prose .ProseMirror p {
+    margin: 0;
+}
+
+.b-paged-prose .ProseMirror::selection,
+.b-paged-prose .ProseMirror ::selection {
+    background: #c7d2fe; /* indigo-200 — B 액센트 */
+}
+
+.b-paged-prose .ProseMirror {
+    caret-color: #4f46e5; /* indigo-600 */
+}
+
+.b-paged-prose .ProseMirror:focus,
+.b-paged-prose .ProseMirror:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.b-paged-prose .ProseMirror h1 {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: var(--b-page-line);
+    margin: var(--b-page-line) 0 0;
+}
+
+.b-paged-prose .ProseMirror h2 {
+    font-size: 21px;
+    font-weight: 700;
+    line-height: var(--b-page-line);
+    margin: var(--b-page-line) 0 0;
+}
+
+.b-paged-prose .ProseMirror h3 {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: var(--b-page-line);
+    margin: var(--b-page-line) 0 0;
+}
+
+.b-paged-prose .ProseMirror strong {
+    font-weight: 700;
+}
+
+.b-paged-prose .ProseMirror em {
+    font-style: italic;
+}
+
+.b-paged-prose .ProseMirror blockquote {
+    margin: 0;
+    padding-left: 16px;
+    border-left: 2px solid #c7d2fe; /* indigo-200 */
+    color: #4b5563; /* gray-600 */
+}
+
+.b-paged-prose .ProseMirror ul,
+.b-paged-prose .ProseMirror ol {
+    padding-left: 1.4em;
+    margin: 0;
+}
+
+.b-paged-prose .ProseMirror li,
+.b-paged-prose .ProseMirror li p {
+    margin: 0;
+}
+
+.b-paged-prose .ProseMirror s {
+    color: #9ca3af; /* gray-400 */
+}
+
+/* 쪽번호 */
+.b-page-num {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 13px;
+    color: #9ca3af; /* gray-400 */
+    font-variant-numeric: tabular-nums;
+    user-select: none;
+    pointer-events: none;
+    z-index: 2;
+}

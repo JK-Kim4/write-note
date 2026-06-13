@@ -60,6 +60,10 @@ export default function DashboardPage() {
     const isLoading =
         (cardsQuery.data === undefined || weeklyQuery.data === undefined) && !cardsQuery.isError && !weeklyQuery.isError;
 
+    // hydration 전(디자인 미확정) 또는 B 사용자(곧 /b 로 redirect)면 A 홈을 칠하지 않는다 —
+    // 기본화면이 잠깐 노출됐다 전환되는 깜빡임 방지(B layout 의 default 가드와 대칭). 모든 훅 호출 뒤라 Hooks 규칙 위반 없음.
+    if (!hydrated || design === "b") return null;
+
     return (
         <div className="app">
             <Rail />

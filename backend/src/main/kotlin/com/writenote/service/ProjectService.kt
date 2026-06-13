@@ -3,6 +3,7 @@ package com.writenote.service
 import com.writenote.entity.Document
 import com.writenote.entity.Project
 import com.writenote.error.ResourceNotFoundException
+import com.writenote.error.ValidationException
 import com.writenote.mapper.ProjectMapper
 import com.writenote.model.request.CreateProjectRequest
 import com.writenote.model.request.UpdateProjectRequest
@@ -42,6 +43,7 @@ class ProjectService(
                     toneNotes = request.toneNotes,
                     synopsis = request.synopsis,
                     worldNotes = request.worldNotes,
+                    paperSize = validatedPaperSize(request.paperSize),
                 ),
             )
         documentRepository.save(Document(projectId = requireNotNull(project.id)))
@@ -134,8 +136,18 @@ class ProjectService(
         request.synopsis?.let { project.synopsis = it }
         request.worldNotes?.let { project.worldNotes = it }
         request.nextScene?.let { project.nextScene = it }
+        request.paperSize?.let { project.paperSize = validatedPaperSize(it) }
 
         return projectMapper.toResponse(project)
+    }
+
+    /** 용지 크기 허용값 검증 — null 이면 기본 'A4', 비허용값이면 [ValidationException]. */
+    private fun validatedPaperSize(value: String?): String {
+        if (value == null) return "A4"
+        if (value !in ALLOWED_PAPER_SIZES) {
+            throw ValidationException("지원하지 않는 용지 크기입니다: $value")
+        }
+        return value
     }
 
     @Transactional(rollbackFor = [Exception::class])
@@ -179,5 +191,9 @@ class ProjectService(
         if (!userRepository.existsById(userId)) {
             throw ResourceNotFoundException("User not found")
         }
+    }
+
+    companion object {
+        private val ALLOWED_PAPER_SIZES = setOf("A4", "A3", "A2", "B4")
     }
 }

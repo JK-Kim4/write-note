@@ -63,7 +63,7 @@ class WorkSessionControllerIT {
         val projectId = createProject(owner.id!!).id!!
         val sessionId =
             workSessionRepository
-                .saveAndFlush(WorkSession(projectId = projectId, startedAt = Instant.now().minusSeconds(5)))
+                .saveAndFlush(WorkSession(userId = owner.id!!, projectId = projectId, startedAt = Instant.now().minusSeconds(5)))
                 .id!!
 
         // AS3 — 30초 미만 자동 종료 → 폐기
@@ -79,7 +79,9 @@ class WorkSessionControllerIT {
     fun `auto-end preserves session of threshold or longer`() {
         val owner = createUser()
         val projectId = createProject(owner.id!!).id!!
-        workSessionRepository.saveAndFlush(WorkSession(projectId = projectId, startedAt = Instant.now().minusSeconds(90)))
+        workSessionRepository.saveAndFlush(
+            WorkSession(userId = owner.id!!, projectId = projectId, startedAt = Instant.now().minusSeconds(90)),
+        )
 
         // AS4 — 30초 이상 자동 종료 → 보존
         mockMvc
