@@ -3,7 +3,7 @@
  * 기존 lib/api/document(006)를 어댑터로 재사용. 자동저장 충돌(409)은 client.ts ConflictError 로 전파.
  * 022 US1: 챕터 목록(list) / 챕터 생성(create) / 단건 조회(get) 추가.
  */
-import { createChapter, deleteChapter, getDocument, getProjectDocument, listChapters, reorderChapters, restoreChapter, saveDocument } from "@/lib/api/document";
+import { createChapter, deleteChapter, getDocument, listChapters, reorderChapters, restoreChapter, saveDocument } from "@/lib/api/document";
 import type { ChapterMetaResponse, DocumentResponse, DocumentSaveResponse } from "@/types/api";
 import type { ChapterMeta, ProjectDocument } from "@/lib/types/domain";
 
@@ -52,9 +52,6 @@ export const documents = {
      * staleTime:Infinity 정책은 useChapterDocument 훅에서 적용.
      */
     get: async (documentId: number): Promise<ProjectDocument> => toDocument(await getDocument(documentId)),
-
-    /** 활성 작품 문서 열기(레거시, 단수). 기존 호출부 유지. */
-    getByProject: async (projectId: number): Promise<ProjectDocument> => toDocument(await getProjectDocument(projectId)),
 
     /**
      * 본문 저장(낙관적 버전). 자동저장은 useDocumentSession(016)이 saveDocument 를 직접 호출하므로

@@ -92,10 +92,17 @@ describe("webElectronApi.projects", () => {
         expect(result.nextScene).toBe("3장 도입부");
     });
 
-    it("create — 작품 생성 후 자동 생성 문서를 함께 반환한다", async () => {
+    it("create — 작품 생성 후 챕터 목록 첫 항목으로 문서를 로드해 반환한다", async () => {
         server.use(
             http.post(`${ORIGIN}/api/projects`, () => HttpResponse.json({ success: true, data: projectJson({ id: 9 }), error: null })),
-            http.get(`${ORIGIN}/api/projects/9/document`, () =>
+            http.get(`${ORIGIN}/api/projects/9/documents`, () =>
+                HttpResponse.json({
+                    success: true,
+                    data: [{ id: 90, projectId: 9, title: "", sortOrder: 0, wordCount: 0, updatedAt: "2026-06-08T00:00:00Z" }],
+                    error: null,
+                }),
+            ),
+            http.get(`${ORIGIN}/api/documents/90`, () =>
                 HttpResponse.json({
                     success: true,
                     data: { id: 90, projectId: 9, title: "", body: "{}", wordCount: 0, version: 0, updatedAt: "2026-06-08T00:00:00Z" },
