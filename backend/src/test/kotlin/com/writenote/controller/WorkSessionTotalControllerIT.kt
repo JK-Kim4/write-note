@@ -12,6 +12,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -47,14 +48,14 @@ class WorkSessionTotalControllerIT {
 
         val from = Instant.parse("2026-06-08T00:00:00Z")
         // 범위 내 — 두 작품에 걸쳐 합산 대상
-        saveEnded(projectA, from.plusSeconds(3600), 1_200_000L)
-        saveEnded(projectB, from.plusSeconds(7200), 600_000L)
+        saveEnded(owner.id!!, projectA, from.plusSeconds(3600), 1_200_000L)
+        saveEnded(owner.id!!, projectB, from.plusSeconds(7200), 600_000L)
         // 범위 밖(이전 주) — 제외
-        saveEnded(projectA, from.minusSeconds(3600), 900_000L)
+        saveEnded(owner.id!!, projectA, from.minusSeconds(3600), 900_000L)
         // 진행 중 — 제외
-        workSessionRepository.saveAndFlush(WorkSession(projectId = projectA, startedAt = from.plusSeconds(9000)))
+        workSessionRepository.saveAndFlush(WorkSession(userId = owner.id!!, projectId = projectA, startedAt = from.plusSeconds(9000)))
         // 타 사용자 — 제외
-        saveEnded(foreign, from.plusSeconds(3600), 500_000L)
+        saveEnded(other.id!!, foreign, from.plusSeconds(3600), 500_000L)
 
         mockMvc
             .perform(
@@ -65,6 +66,29 @@ class WorkSessionTotalControllerIT {
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.totalDurationMs").value(1_800_000L))
+    }
+
+    @Test
+    fun `total preserves work time after project deletion`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+        val projectA = createProject(bearer, "삭제될 작품")
+        val from = Instant.parse("2026-06-08T00:00:00Z")
+        saveEnded(owner.id!!, projectA, from.plusSeconds(3600), 1_000_000L)
+
+        // 작품 삭제(DELETE) → 세션 project_id=NULL 로 분리, 전체 합계는 user 단위로 보존(트랙2).
+        mockMvc
+            .perform(delete("/api/projects/{id}", projectA).header("Authorization", bearer))
+            .andExpect(status().isNoContent)
+
+        mockMvc
+            .perform(
+                get("/api/work-sessions/total")
+                    .header("Authorization", bearer)
+                    .param("from", "2026-06-08T00:00:00Z")
+                    .param("to", "2026-06-15T00:00:00Z"),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.totalDurationMs").value(1_000_000L))
     }
 
     @Test
@@ -99,12 +123,13 @@ class WorkSessionTotalControllerIT {
     }
 
     private fun saveEnded(
+        userId: Long,
         projectId: Long,
         startedAt: Instant,
         durationMs: Long,
     ) {
         workSessionRepository.saveAndFlush(
-            WorkSession(projectId = projectId, startedAt = startedAt, endedAt = startedAt.plusMillis(durationMs)),
+            WorkSession(userId = userId, projectId = projectId, startedAt = startedAt, endedAt = startedAt.plusMillis(durationMs)),
         )
     }
 

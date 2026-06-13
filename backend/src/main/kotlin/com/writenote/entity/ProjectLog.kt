@@ -16,8 +16,11 @@ class ProjectLog(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    @Column(name = "project_id", nullable = false)
-    var projectId: Long = 0,
+    @Column(name = "user_id", nullable = false)
+    var userId: Long = 0,
+    // 작품 삭제 시 ON DELETE SET NULL → 집필 기록은 user 단위로 보존(트랙2).
+    @Column(name = "project_id")
+    var projectId: Long? = null,
     @Column(nullable = false, columnDefinition = "TEXT")
     var body: String = "",
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -37,7 +37,7 @@ class WorkSessionCleanupServiceTest {
         // 13시간 전 시작된 dangling 열린 세션 (기본 max-open-hours=12 초과 → 폐기 대상)
         val stale =
             workSessionRepository
-                .saveAndFlush(WorkSession(projectId = pid, startedAt = Instant.now().minusSeconds(13 * 3600)))
+                .saveAndFlush(WorkSession(userId = userId, projectId = pid, startedAt = Instant.now().minusSeconds(13 * 3600)))
                 .id!!
         // 종료된 세션 (다른 작품 — 보존 대상)
         val endedProject = projectRepository.saveAndFlush(Project(userId = userId, title = "종료 작품")).id!!
@@ -45,6 +45,7 @@ class WorkSessionCleanupServiceTest {
             workSessionRepository
                 .saveAndFlush(
                     WorkSession(
+                        userId = userId,
                         projectId = endedProject,
                         startedAt = Instant.now().minusSeconds(20 * 3600),
                         endedAt = Instant.now().minusSeconds(19 * 3600),
@@ -54,7 +55,7 @@ class WorkSessionCleanupServiceTest {
         val recentProject = projectRepository.saveAndFlush(Project(userId = userId, title = "최근 작품")).id!!
         val recent =
             workSessionRepository
-                .saveAndFlush(WorkSession(projectId = recentProject, startedAt = Instant.now().minusSeconds(3600)))
+                .saveAndFlush(WorkSession(userId = userId, projectId = recentProject, startedAt = Instant.now().minusSeconds(3600)))
                 .id!!
 
         cleanupService.cleanup()
