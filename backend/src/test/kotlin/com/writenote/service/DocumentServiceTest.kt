@@ -227,7 +227,7 @@ class DocumentServiceTest {
     @DisplayName("updateDocumentTitle — title 갱신 후 응답 반환 (D4)")
     fun `updateDocumentTitle persists new title`() {
         val document = newDocument()
-        every { documentRepository.findById(eq(100L)) } returns Optional.of(document)
+        every { documentRepository.findByIdAndDeletedAtIsNull(eq(100L)) } returns Optional.of(document)
         // ownership 검증을 위해 project 조회
         every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns newProject()
 
@@ -236,6 +236,18 @@ class DocumentServiceTest {
 
         assertThat(response.title).isEqualTo("새 제목")
         assertThat(response.id).isEqualTo(100L)
+    }
+
+    @Test
+    @DisplayName("updateDocumentTitle — soft-delete 된 챕터 제목 변경 시 ResourceNotFoundException (D4 / T012)")
+    fun `updateDocumentTitle throws ResourceNotFoundException when document is soft-deleted`() {
+        // T012: findByIdAndDeletedAtIsNull — 삭제 챕터 제목 변경 불가
+        every { documentRepository.findByIdAndDeletedAtIsNull(eq(100L)) } returns Optional.empty()
+
+        val request = UpdateDocumentTitleRequest(title = "새 제목")
+        assertThatThrownBy {
+            service.updateDocumentTitle(userId = 1L, documentId = 100L, request = request)
+        }.isInstanceOf(ResourceNotFoundException::class.java)
     }
 
     @Test

@@ -175,7 +175,7 @@ class DocumentService(
     ): DocumentTitleResponse {
         val document =
             documentRepository
-                .findById(documentId)
+                .findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow { ResourceNotFoundException("Document not found: $documentId") }
         projectService.requireOwnedProject(userId, document.projectId)
         document.title = request.title
