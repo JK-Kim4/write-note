@@ -120,7 +120,7 @@ export interface MemoResponse {
     projects: MemoProjectResponse[];
 }
 
-/** 작품 맥락 곁쪽지 응답 (014) — GET /api/projects/{id}/memos, PUT …/pin. id 는 memoId. */
+/** 작품 맥락 메모 응답 (014) — GET /api/projects/{id}/memos, PUT …/pin. id 는 memoId. */
 export interface ProjectMemoResponse {
     memoId: number;
     projectId: number;

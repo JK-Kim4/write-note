@@ -49,7 +49,7 @@ function DeletedMemoToast({
             role="status"
             className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-lg"
         >
-            <span className="text-sm text-gray-600">곁쪽지를 버렸습니다.</span>
+            <span className="text-sm text-gray-600">메모를 버렸습니다.</span>
             <button
                 type="button"
                 onClick={() => onRestore(memoId)}
@@ -82,7 +82,7 @@ export default function BMemosPage() {
     const [draftBody, setDraftBody] = useState("");
     const [draftProjectId, setDraftProjectId] = useState<number | "none">("none");
     const [linkTargetMemoId, setLinkTargetMemoId] = useState<number | null>(null);
-    // 연속 버리기 — 각 soft-delete 를 큐로 추적해 앞서 버린 곁쪽지도 개별 되돌리기 가능.
+    // 연속 버리기 — 각 soft-delete 를 큐로 추적해 앞서 버린 메모도 개별 되돌리기 가능.
     const [deletedMemoIds, setDeletedMemoIds] = useState<number[]>([]);
     const [linkError, setLinkError] = useState<string | null>(null);
     const [captureError, setCaptureError] = useState<string | null>(null);
@@ -322,8 +322,8 @@ export default function BMemosPage() {
                     {visibleMemos.length === 0 && (
                         <div className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-400">
                             {filterProjectId === "all"
-                                ? "아직 곁쪽지가 없습니다."
-                                : "이 작품에 연결된 곁쪽지가 없습니다."}
+                                ? "아직 메모가 없습니다."
+                                : "이 작품에 연결된 메모가 없습니다."}
                         </div>
                     )}
                 </div>

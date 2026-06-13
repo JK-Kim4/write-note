@@ -48,12 +48,12 @@ export function getMemo(id: number): Promise<MemoResponse> {
     return apiFetch<MemoResponse>(`/api/memos/${id}`, { method: "GET" });
 }
 
-/** GET /api/projects/{projectId}/memos — 작품에 연결된 곁쪽지(고정 포함, 014). */
+/** GET /api/projects/{projectId}/memos — 작품에 연결된 메모(고정 포함, 014). */
 export function listProjectMemos(projectId: number): Promise<ProjectMemoResponse[]> {
     return apiFetch<ProjectMemoResponse[]>(`/api/projects/${projectId}/memos`, { method: "GET" });
 }
 
-/** PUT /api/projects/{projectId}/memos/{memoId}/pin — 곁쪽지 고정 토글(작품당 1개, 014). */
+/** PUT /api/projects/{projectId}/memos/{memoId}/pin — 메모 고정 토글(작품당 1개, 014). */
 export function setProjectMemoPin(projectId: number, memoId: number, pinned: boolean): Promise<ProjectMemoResponse> {
     return apiFetch<ProjectMemoResponse>(`/api/projects/${projectId}/memos/${memoId}/pin`, {
         method: "PUT",
@@ -109,7 +109,7 @@ export function deleteMemo(id: number): Promise<void> {
     return apiFetch<void>(`/api/memos/${id}`, { method: "DELETE" });
 }
 
-/** POST /api/memos/{id}/restore — 버린 곁쪽지 되돌리기(연결·고정 복귀). 멱등. */
+/** POST /api/memos/{id}/restore — 버린 메모 되돌리기(연결·고정 복귀). 멱등. */
 export function restoreMemo(id: number): Promise<MemoResponse> {
     return apiFetch<MemoResponse>(`/api/memos/${id}/restore`, { method: "POST" });
 }

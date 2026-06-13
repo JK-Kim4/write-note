@@ -37,7 +37,7 @@ export type ProjectDocument = {
 /** 메모에 연결된 작품(제목 포함) — 책상 칩·붙이기 팝오버 표시용(desktop LinkedProject). */
 export type LinkedProject = { id: number; title: string };
 
-/** 곁쪽지(전역) — 본문 + 연결 작품(다대다). 책상(메모 인박스)이 소비. desktop Memo 의 web 판본. */
+/** 메모(전역) — 본문 + 연결 작품(다대다). 책상(메모 인박스)이 소비. desktop Memo 의 web 판본. */
 export type Memo = {
     id: number;
     body: string;
@@ -47,7 +47,7 @@ export type Memo = {
     linkedProjects: LinkedProject[];
 };
 
-/** 곁쪽지(작품 맥락) — 그 작품에서의 고정 여부 포함(014 ProjectMemoResponse, memoId→id). */
+/** 메모(작품 맥락) — 그 작품에서의 고정 여부 포함(014 ProjectMemoResponse, memoId→id). */
 export type ProjectMemo = {
     id: number;
     projectId: number;
@@ -65,7 +65,7 @@ export type InboxMemo = {
     dateLabel: string;
     /** 연결된 작품(제목). 서랍 뷰에선 빈 배열. */
     linkedProjects: LinkedProject[];
-    /** 현재 작품 맥락의 곁쪽지 고정 여부(서랍 전용). 책상 뷰에선 undefined. */
+    /** 현재 작품 맥락의 메모 고정 여부(서랍 전용). 책상 뷰에선 undefined. */
     pinned?: boolean;
 };
 

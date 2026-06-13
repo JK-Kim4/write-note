@@ -8,11 +8,11 @@ type MemoPanelProps = {
     loading: boolean;
     /** 패널 내 빠른 해제 — 현재 작품과의 연결을 끊는다. */
     onUnlink: (memoId: number) => void;
-    /** 곁쪽지 고정 토글 — 재진입 시 한 장으로 떠오를 쪽지를 정한다(작품당 1개). */
+    /** 메모 고정 토글 — 재진입 시 한 장으로 떠오를 쪽지를 정한다(작품당 1개). */
     onSetPin: (memoId: number, pinned: boolean) => void;
 };
 
-/** 연결된 메모 패널(곁쪽지 서랍) — desktop MemoPanel 1:1 이식(015 US2). 에디터보다 시각적으로 약하게. */
+/** 연결된 메모 패널(메모 서랍) — desktop MemoPanel 1:1 이식(015 US2). 에디터보다 시각적으로 약하게. */
 export function MemoPanel({ memos, loading, onUnlink, onSetPin }: MemoPanelProps) {
     const sub = loading ? "불러오는 중" : `${memos.length}개`;
 

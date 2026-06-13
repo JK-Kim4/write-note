@@ -1,7 +1,7 @@
 /**
  * webElectronApi.memos (015 US2) — desktop `electronAPI.memos` 의 web 구현체.
  *
- * 설계 §3: 화면은 동일 인터페이스로 호출하고 구현(fetch)을 모른다. 006 memo 어댑터 + 014 작품-곁쪽지
+ * 설계 §3: 화면은 동일 인터페이스로 호출하고 구현(fetch)을 모른다. 006 memo 어댑터 + 014 작품-메모
  * endpoint 를 contracts/web-electron-api.md 에 매핑한다.
  *
  * 검증된 백엔드 동작에 따른 합성:
@@ -80,7 +80,7 @@ function toCurationInput(memo: MemoResponse): CurationInput {
 
 export const memos = {
     /**
-     * 곁쪽지 캡처. linkProjectId 가 있으면 캡처 후 그 작품에 연결(curation)해 서랍에 노출되게 한다.
+     * 메모 캡처. linkProjectId 가 있으면 캡처 후 그 작품에 연결(curation)해 서랍에 노출되게 한다.
      * 미연결(null)이면 책상(미분류)에만 남는다.
      */
     create: async (input: CaptureMemoInput): Promise<Memo> => {
@@ -103,11 +103,11 @@ export const memos = {
     /** 전역 메모 목록(책상). size:100 — 베타 한계(메모 소수 전제, 규모 증가 시 페이지네이션). */
     list: async (): Promise<Memo[]> => (await listMemos({ size: 100 })).content.map(toMemo),
 
-    /** 작품에 연결된 곁쪽지(서랍) — 고정 우선·최신순(014). */
+    /** 작품에 연결된 메모(서랍) — 고정 우선·최신순(014). */
     listByProject: async (projectId: number): Promise<ProjectMemo[]> =>
         (await listProjectMemos(projectId)).map(toProjectMemo),
 
-    /** 곁쪽지 고정 토글(작품당 1개 불변식은 014 가 보장). */
+    /** 메모 고정 토글(작품당 1개 불변식은 014 가 보장). */
     setPin: async (memoId: number, projectId: number, pinned: boolean): Promise<void> => {
         await setProjectMemoPin(projectId, memoId, pinned);
     },
@@ -133,18 +133,18 @@ export const memos = {
         });
     },
 
-    /** 곁쪽지 버리기(soft-delete) — 연결 보존, restore 로 복귀 가능. */
+    /** 메모 버리기(soft-delete) — 연결 보존, restore 로 복귀 가능. */
     delete: async (memoId: number): Promise<void> => {
         await deleteMemo(memoId);
     },
 
-    /** 버린 곁쪽지 되돌리기 — 작품 연결·고정 복귀. */
+    /** 버린 메모 되돌리기 — 작품 연결·고정 복귀. */
     restore: async (memoId: number): Promise<void> => {
         await restoreMemo(memoId);
     },
 
     /**
-     * 재진입 한 장 후보 — 그 작품의 고정 곁쪽지 1장(없으면 null). 014 가 작품당 1개를 보장하므로 첫 pinned.
+     * 재진입 한 장 후보 — 그 작품의 고정 메모 1장(없으면 null). 014 가 작품당 1개를 보장하므로 첫 pinned.
      * US3(ReentryCard)에서 사용.
      */
     pickReentry: async (projectId: number): Promise<ProjectMemo | null> => {

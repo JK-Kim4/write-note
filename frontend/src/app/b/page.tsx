@@ -28,7 +28,7 @@ export default function BDashboardPage() {
     const [captureOpen, setCaptureOpen] = useState(false);
     const [memoDrawerOpen, setMemoDrawerOpen] = useState(false);
 
-    // 곁쪽지 drawer — 키보드 사용자가 ESC 로 닫을 수 있도록(works/[id] 패턴 정합).
+    // 메모 drawer — 키보드 사용자가 ESC 로 닫을 수 있도록(works/[id] 패턴 정합).
     useEffect(() => {
         if (!memoDrawerOpen) return;
         const onKey = (e: KeyboardEvent) => {
@@ -47,7 +47,7 @@ export default function BDashboardPage() {
           }).format(new Date())
         : "";
 
-    // 최근 곁쪽지 3장 — 보조 맥락이라 조회 실패는 조용한 빈 상태로 격하(전체 차단 X).
+    // 최근 메모 3장 — 보조 맥락이라 조회 실패는 조용한 빈 상태로 격하(전체 차단 X).
     const recentMemos = [...(memosQuery.data ?? [])]
         .sort((a, b) => (a.capturedAt < b.capturedAt ? 1 : -1))
         .slice(0, 3)
@@ -96,16 +96,16 @@ export default function BDashboardPage() {
                     {/* 상단 풀폭: 이어서쓰기 */}
                     <BResumeCard card={resume} onOpen={() => router.push(`/b/works/${resume.id}`)} />
 
-                    {/* 880px 미만: 곁쪽지 drawer 토글 버튼 */}
+                    {/* 880px 미만: 메모 drawer 토글 버튼 */}
                     <button
                         type="button"
                         onClick={() => setMemoDrawerOpen(true)}
                         className="mt-3 w-full rounded-lg border border-amber-200 bg-amber-50 py-2 text-xs text-amber-700 min-[880px]:hidden"
                     >
-                        곁쪽지 보기
+                        메모 보기
                     </button>
 
-                    {/* 2컬럼: 좌=작품미니카드+리듬 / 우=곁쪽지(상시) */}
+                    {/* 2컬럼: 좌=작품미니카드+리듬 / 우=메모(상시) */}
                     <div className="mt-4 grid gap-4 min-[880px]:grid-cols-[1fr_320px]">
                         {/* 좌 컬럼 */}
                         <div className="flex flex-col gap-4">
@@ -127,7 +127,7 @@ export default function BDashboardPage() {
                             />
                         </div>
 
-                        {/* 우 컬럼: 곁쪽지 패널 상시(≥880px) */}
+                        {/* 우 컬럼: 메모 패널 상시(≥880px) */}
                         <div className="hidden min-[880px]:block">
                             <BMemoStrip
                                 memos={recentMemos}
@@ -139,7 +139,7 @@ export default function BDashboardPage() {
                 </div>
             )}
 
-            {/* 880px 미만 곁쪽지 drawer 백드롭 */}
+            {/* 880px 미만 메모 drawer 백드롭 */}
             {memoDrawerOpen && (
                 <div
                     aria-hidden="true"
@@ -148,21 +148,21 @@ export default function BDashboardPage() {
                 />
             )}
 
-            {/* 880px 미만 곁쪽지 drawer */}
+            {/* 880px 미만 메모 drawer */}
             <div
                 role="dialog"
                 aria-modal="true"
-                aria-label="곁쪽지"
+                aria-label="메모"
                 inert={!memoDrawerOpen || undefined}
                 className={`fixed inset-y-0 right-0 z-30 flex w-80 flex-col overflow-hidden bg-white shadow-xl transition-transform duration-200 min-[880px]:hidden ${
                     memoDrawerOpen ? "translate-x-0" : "translate-x-full"
                 }`}
             >
                 <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2">
-                    <span className="text-sm font-medium text-gray-700">곁쪽지</span>
+                    <span className="text-sm font-medium text-gray-700">메모</span>
                     <button
                         type="button"
-                        aria-label="곁쪽지 패널 닫기"
+                        aria-label="메모 패널 닫기"
                         onClick={() => setMemoDrawerOpen(false)}
                         className="rounded-md px-2 py-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                     >

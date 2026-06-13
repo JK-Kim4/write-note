@@ -15,7 +15,7 @@ export const memoKeys = {
     byProject: (projectId: number) => [...memoKeys.all, "project", projectId] as const,
 };
 
-/** 책상 — 전역 곁쪽지 목록(연결 작품 포함). */
+/** 책상 — 전역 메모 목록(연결 작품 포함). */
 export function useInboxMemos() {
     return useQuery({
         queryKey: memoKeys.inbox(),
@@ -23,7 +23,7 @@ export function useInboxMemos() {
     });
 }
 
-/** 서랍 — 현재 작품에 연결된 곁쪽지(고정 포함). */
+/** 서랍 — 현재 작품에 연결된 메모(고정 포함). */
 export function useProjectMemos(projectId: number) {
     return useQuery({
         queryKey: memoKeys.byProject(projectId),
@@ -33,7 +33,7 @@ export function useProjectMemos(projectId: number) {
 }
 
 /**
- * 곁쪽지 캡처(잉크 한 방울). 연결 시 작품 카드·서랍에도 영향 → 메모/작품 전체 무효화.
+ * 메모 캡처(잉크 한 방울). 연결 시 작품 카드·서랍에도 영향 → 메모/작품 전체 무효화.
  * onSettled — create 는 캡처(POST) 후 선택적 연결(curation PUT) 2단계라, 연결 단계가 실패해도
  * 캡처된 메모(미연결)는 서버에 남는다. 성공·실패 모두 무효화해 캐시가 실제 상태를 반영하게 한다.
  */
@@ -48,7 +48,7 @@ export function useCaptureMemo() {
     });
 }
 
-/** 곁쪽지 고정 토글(작품당 1개). 그 작품 서랍만 무효화. */
+/** 메모 고정 토글(작품당 1개). 그 작품 서랍만 무효화. */
 export function useSetPinMemo() {
     const qc = useQueryClient();
     return useMutation({
@@ -79,7 +79,7 @@ export function useRemoveLinkMemo() {
 }
 
 /**
- * 곁쪽지 버리기(soft-delete). 낙관적으로 책상 캐시에서 즉시 제거(desktop 1:1) → 되돌리기 토스트.
+ * 메모 버리기(soft-delete). 낙관적으로 책상 캐시에서 즉시 제거(desktop 1:1) → 되돌리기 토스트.
  * 실패 시 onSettled 무효화가 서버 상태로 복원. 작품 서랍·재진입에도 영향 → 메모/작품 전체 무효화.
  */
 export function useDeleteMemo() {
@@ -103,7 +103,7 @@ export function useDeleteMemo() {
     });
 }
 
-/** 버린 곁쪽지 되돌리기. 책상·서랍·재진입 복귀 → 메모/작품 전체 무효화. */
+/** 버린 메모 되돌리기. 책상·서랍·재진입 복귀 → 메모/작품 전체 무효화. */
 export function useRestoreMemo() {
     const qc = useQueryClient();
     return useMutation({
