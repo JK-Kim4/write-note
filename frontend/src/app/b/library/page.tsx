@@ -66,7 +66,7 @@ export default function BWorksPage() {
         if (new URLSearchParams(window.location.search).get("new") !== "1") return;
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsCreating(true);
-        window.history.replaceState(null, "", "/b");
+        window.history.replaceState(null, "", "/b/library");
     }, []);
     const [title, setTitle] = useState("");
     const [genre, setGenre] = useState("");
