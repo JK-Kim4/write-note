@@ -51,14 +51,16 @@ export interface ProjectResponse {
     updatedAt: string;
 }
 
-/** 작품 카드 집계 (018) — GET /api/projects/cards. 작품 + 문서·세션 집계 동봉(본문 미포함). */
+/** 작품 카드 집계 (018/022) — GET /api/projects/cards. 작품 + 챕터·세션 집계 동봉. */
 export interface ProjectCardResponse extends ProjectResponse {
-    /** 문서 글자수 (document.word_count). */
+    /** 활성 챕터 word_count 합. */
     wordCount: number;
-    /** 문서 저장 시각 (document.updated_at, ISO8601) — "최근에 집필함" 기준. */
+    /** 활성 챕터 중 최신 updated_at (ISO8601) — "최근에 집필함" 기준. */
     documentUpdatedAt: string;
     /** 작품별 누적 작업시간(ms) — 종료된 세션 합(진행 중 제외). */
     totalDurationMs: number;
+    /** 마지막 문장 파생 원료 — 최근 수정 활성 챕터 body 의 plainText. 챕터 없으면 빈 문자열. */
+    lastSentenceSource: string;
 }
 
 export interface AuthMeResponse {

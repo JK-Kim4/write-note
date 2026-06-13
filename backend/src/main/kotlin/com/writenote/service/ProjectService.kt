@@ -1,5 +1,6 @@
 package com.writenote.service
 
+import com.writenote.components.documents.ProseMirrorText
 import com.writenote.entity.Document
 import com.writenote.entity.Project
 import com.writenote.error.ResourceNotFoundException
@@ -103,14 +104,19 @@ class ProjectService(
             val chapters = chaptersByProjectId[projectId] ?: emptyList()
             // INV-1: 활성 작품은 항상 활성 챕터 ≥ 1 이나 방어적으로 빈 그룹 허용 (wordCount 0)
             val wordCount = chapters.sumOf { it.wordCount }
+            val latestChapter = chapters.maxByOrNull { requireNotNull(it.updatedAt) }
             val documentUpdatedAt =
-                chapters.maxOfOrNull { requireNotNull(it.updatedAt) }
+                latestChapter?.updatedAt
                     ?: requireNotNull(project.updatedAt) // 챕터 없는 경우 작품 수정 시각 fallback
+            // 최근 수정 챕터 body 의 plainText — 추가 쿼리 없이 이미 조회된 그룹에서 파생
+            val lastSentenceSource =
+                latestChapter?.let { ProseMirrorText.extractPlainText(it.body) } ?: ""
             ProjectCardResponse.from(
                 base = projectMapper.toResponse(project),
                 wordCount = wordCount,
                 documentUpdatedAt = documentUpdatedAt,
                 totalDurationMs = durationByProjectId[projectId] ?: 0L,
+                lastSentenceSource = lastSentenceSource,
             )
         }
     }

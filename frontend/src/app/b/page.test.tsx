@@ -41,6 +41,7 @@ function cardJson(id: number, title: string, documentUpdatedAt: string, over: Re
         wordCount: 100,
         documentUpdatedAt,
         totalDurationMs: 0,
+        lastSentenceSource: "",
         ...over,
     };
 }

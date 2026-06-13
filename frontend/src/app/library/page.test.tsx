@@ -40,6 +40,7 @@ function cardJson(id: number, title: string) {
         wordCount: 10,
         documentUpdatedAt: "2026-06-10T02:00:00Z",
         totalDurationMs: 0,
+        lastSentenceSource: "",
     };
 }
 
@@ -54,20 +55,9 @@ function stubAuthed() {
 function stubCards() {
     server.use(
         http.get(`${ORIGIN}/api/projects/cards`, () =>
-            HttpResponse.json({ success: true, data: [cardJson(1, "여름의 끝")], error: null }),
-        ),
-        http.get(`${ORIGIN}/api/projects/1/document`, () =>
             HttpResponse.json({
                 success: true,
-                data: {
-                    id: 10,
-                    projectId: 1,
-                    title: "",
-                    body: bodyWith("바다는 조용했다. 그리고 그녀는 떠났다."),
-                    wordCount: 10,
-                    version: 0,
-                    updatedAt: "2026-06-10T02:00:00Z",
-                },
+                data: [{ ...cardJson(1, "여름의 끝"), lastSentenceSource: "바다는 조용했다. 그리고 그녀는 떠났다." }],
                 error: null,
             }),
         ),
@@ -102,13 +92,6 @@ describe("LibraryPage(작품 벽 — /library 이동)", () => {
         server.use(
             http.get(`${ORIGIN}/api/projects/cards`, () =>
                 HttpResponse.json({ success: true, data: [cardJson(2, "빈 작품")], error: null }),
-            ),
-            http.get(`${ORIGIN}/api/projects/2/document`, () =>
-                HttpResponse.json({
-                    success: true,
-                    data: { id: 20, projectId: 2, title: "", body: "{}", wordCount: 0, version: 0, updatedAt: "2026-06-10T02:00:00Z" },
-                    error: null,
-                }),
             ),
         );
 
