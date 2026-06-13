@@ -12,7 +12,25 @@ import { webElectronApi } from "@/lib/electron-api";
 export const sessionKeys = {
     all: ["sessions"] as const,
     weeklyByDay: (weekStartIso: string, todayIso: string) => [...sessionKeys.all, "weeklyByDay", weekStartIso, todayIso] as const,
+    allTime: () => [...sessionKeys.all, "allTime"] as const,
 };
+
+/**
+ * 전체 작업시간 합계(트랙2) — user 단위. 작품을 삭제해도 보존된 세션이 합계에 남는다.
+ * "작품별 작업시간"(per-project, 활성 작품만)과 별도. 충분히 넓은 범위로 모든 종료 세션 포함.
+ */
+export function useAllTimeTotal() {
+    return useQuery({
+        queryKey: sessionKeys.allTime(),
+        queryFn: async () => {
+            const { totalDurationMs } = await webElectronApi.sessions.rangeTotal(
+                "1970-01-01T00:00:00.000Z",
+                "2100-01-01T00:00:00.000Z",
+            );
+            return totalDurationMs;
+        },
+    });
+}
 
 /** 이번 주 요일별(월~일) 작업시간 합계 — `dayMs[7]` + 주간 총합. */
 export function useWeeklyByDay() {

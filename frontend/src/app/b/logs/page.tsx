@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useLogCards, useProjectLogs } from "@/lib/query/useLogs";
+import { useAllTimeTotal } from "@/lib/query/useSessions";
 import { lastSentence } from "@/lib/lastSentence";
 import type { LogCard } from "@/lib/types/domain";
 
@@ -117,9 +118,11 @@ function ProjectLogCard({ card }: { card: LogCard }) {
 
 export default function BLogsPage() {
     const { data: cards, isLoading, isError, refetch } = useLogCards();
+    // 전체 작업시간은 user 단위(트랙2) — 작품을 삭제해도 보존된 세션이 합계에 남는다. 작품별 누적과 별도.
+    const allTimeTotal = useAllTimeTotal();
 
     const totalWordCount = (cards ?? []).reduce((sum, c) => sum + c.wordCount, 0);
-    const totalDurationMs = (cards ?? []).reduce((sum, c) => sum + c.totalDurationMs, 0);
+    const totalDurationMs = allTimeTotal.data ?? 0;
 
     return (
         <div>
