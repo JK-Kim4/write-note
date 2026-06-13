@@ -64,7 +64,7 @@ description: "Task list for 챕터(Chapter) — 작품 1:N 본문 구조"
 
 - [ ] T010 [US1] DocumentService 챕터 목록(`listChapters`)·생성(`createChapter` 맨 뒤, title 미지정 시 기본 `새 챕터`) in `backend/src/main/kotlin/com/writenote/service/DocumentService.kt`
 - [ ] T011 [US1] 챕터 목록 `GET /api/projects/{projectId}/documents`(메타만) + 생성 `POST` endpoint in `backend/src/main/kotlin/com/writenote/controller/DocumentController.kt` (실측: 기존 document endpoint 위치, ProjectController 아님)
-- [ ] T012 [US1] **기존 `getDocumentById`(`GET /api/documents/{id}`, DocumentController.kt:47) 수정** — 삭제(soft-delete) 챕터 조회 404 가드 추가 in `backend/src/main/kotlin/com/writenote/controller/DocumentController.kt`
+- [ ] T012 [US1] **기존 단건 조회·자동저장 둘 다 삭제 챕터 404 가드** — `getDocumentById`(`GET /api/documents/{id}`, DocumentController.kt:47)·`saveDocument`(`PUT /api/documents/{id}`, :62)가 현재 `findById`(삭제 포함) 사용 → `findByIdAndDeletedAtIsNull` 기반으로 soft-delete 챕터 조회/저장 404. (code-quality 리뷰 ea1f0d8 지적) in `backend/src/main/kotlin/com/writenote/service/DocumentService.kt`, `backend/src/main/kotlin/com/writenote/controller/DocumentController.kt`
 - [ ] T013 [US1] FE shim `documents.list/create/get` + 훅 `useProjectChapters(projectId)`·`useChapterDocument(documentId)` in `frontend/src/lib/electron-api/index.ts`, `frontend/src/lib/query/useDocument.ts`
 - [ ] T014 [US1] ChapterList presentational 컴포넌트 (A·B 공용, props: 챕터배열·현재·onSelect·onCreate) in `frontend/src/components/editor/ChapterList.tsx` — `'use client'`
 - [ ] T015 [US1] A형 집필실 좌패널 2단(챕터 목록 + 기존 아웃라인) + `?chapter={documentId}` 전환 + editorKey 리마운트 + 전환 직전 `flushDraft` in `frontend/src/app/projects/[id]/write/page.tsx`

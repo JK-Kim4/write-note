@@ -110,9 +110,9 @@ export function useReorderChapters(projectId: number) {
             // 낙관적 갱신: 전달된 id 순서로 캐시 재정렬
             if (previous != null) {
                 const byId = new Map(previous.map((c) => [c.id, c]));
-                const reordered = documentIds.flatMap((id) => {
+                const reordered = documentIds.flatMap((id, index) => {
                     const chapter = byId.get(id);
-                    return chapter != null ? [{ ...chapter, sortOrder: documentIds.indexOf(id) }] : [];
+                    return chapter != null ? [{ ...chapter, sortOrder: index }] : [];
                 });
                 queryClient.setQueryData<ChapterMeta[]>(documentKeys.chapters(projectId), reordered);
             }

@@ -135,6 +135,7 @@ timeout / cap 룰은 글로벌 [`~/.claude/rules/shared/long-running-bash.md`](f
 <!-- SPECKIT START -->
 Current implementation plan:
 
+- [022 챕터 (Chapter) — 작품 1:N 본문 구조. 기존 documents 테이블 1:N 확장(project_id UNIQUE 제거 + sort_order·deleted_at, V14 마이그레이션, 기존 본문 무손실 1번 챕터). 챕터 목록/생성/순서/soft-delete/복구 5 endpoint + 마지막 챕터 가드(409 LAST_CHAPTER_UNDELETABLE) + 카드 합산 집계. FE A형·B형 집필실 좌패널 챕터 목록·전환(?chapter, 016 세션 재사용). Round 2.5, export(Round 3) 선행](specs/022-chapters/plan.md)
 - [019 Round 1 스키마 확장 — 곁쪽지 삭제/되돌리기(soft-delete deleted_at·restore·연결행 보존) + 설정 서버 영속(user_settings key-value·테마/작성모드/원고지크기) + 등장인물 확장(age·gender·traits·Rail 진입). 마이그레이션 V9~V11 로컬 dev 한정](specs/019-round1-schema-extensions/plan.md)
 - [017 집필실 3단 (Studio 3-panel) — [아웃라인 | 원고 | 인물+곁쪽지] 3열. 아웃라인=heading 클라이언트 파생 TOC(점프+하이라이트), 인물=기존 API 보기+빠른추가, 곁쪽지=MemoPanel 불변. 백엔드 변경 0](specs/017-studio-three-panel/plan.md)
 - [016 자동저장 재설계 — 로컬 우선 보존(localStorage draft) + 수정시각(updatedAt 겸용) @Version 버전 토큰. 거짓 409 충돌 근본 해결 + 작성분 복구 + 비동기 공동집필 토대](specs/016-autosave-localstorage-redesign/plan.md)

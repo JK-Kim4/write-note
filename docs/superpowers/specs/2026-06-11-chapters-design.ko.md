@@ -30,14 +30,16 @@
 - export 챕터 선택·합본 UI 구현 — **Round 3 export 설계에 요건으로 위임** (본 설계는 데이터 구조만 보장)
 - 드래그 앤 드롭 순서 변경 — 위/아래 버튼으로 시작, 드래그는 후속 후보
 - 챕터 묶음(부/권) 등 상위 계층 — 단일 평면 목록만
-- 운영(Supabase) 마이그레이션 적용 — 기존 전략대로 Round 4 일괄 (신규 V9 는 로컬 dev DB 만)
+- 운영(Supabase) 마이그레이션 적용 — 기존 전략대로 Round 4 일괄 (신규 V14 는 로컬 dev DB 만)
 
-## 3. 데이터 모델 — V9 마이그레이션
+## 3. 데이터 모델 — V14 마이그레이션
+
+> **버전 정정(2026-06-13):** 본 설계 작성(2026-06-11) 당시 챕터 마이그레이션을 V9 로 적었으나, 이후 019(V9~V11)·020(V12·V13)이 실제 점유 → 챕터는 **V14** 로 진행.
 
 `documents` 테이블 재사용. **챕터 = document 행 1개.** 신규 테이블 없음.
 
 ```sql
--- V9__documents_chapters.sql (개요)
+-- V14__documents_chapters.sql (개요)
 ALTER TABLE documents DROP CONSTRAINT documents_project_id_key;       -- 1:1 강제 해제 (V5 컬럼 인라인 UNIQUE 의 Postgres 자동 명명)
 ALTER TABLE documents ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0; -- 작품 안 챕터 순서 (0부터)
 ALTER TABLE documents ADD COLUMN deleted_at TIMESTAMPTZ NULL;           -- soft-delete 표시
@@ -112,7 +114,7 @@ CREATE INDEX idx_documents_project_sort ON documents (project_id, sort_order);
 
 **TDD (글로벌 testing-strategy + 본 프로젝트 룰 정합):**
 
-- 백엔드: 목록 정렬·삭제 필터 / reorder 검증(전량·중복·소속) / 마지막 활성 챕터 삭제 409 / restore 후 목록 복귀·순서 맨 뒤 / 카드 집계(합산·최신·삭제 제외) / V9 후 기존 데이터 보존(sort_order=0 단일 챕터로 조회).
+- 백엔드: 목록 정렬·삭제 필터 / reorder 검증(전량·중복·소속) / 마지막 활성 챕터 삭제 409 / restore 후 목록 복귀·순서 맨 뒤 / 카드 집계(합산·최신·삭제 제외) / V14 후 기존 데이터 보존(sort_order=0 단일 챕터로 조회).
 - 프론트: 챕터 전환 시 초안 키 격리 / 목록·하이라이트 / 위·아래 순서 변경 / 삭제→되돌리기 토스트 / 마지막 챕터 삭제 비활성.
 
 **dogfooding 게이트 (Round 5 에 항목 추가):**
@@ -126,7 +128,7 @@ CREATE INDEX idx_documents_project_sort ON documents (project_id, sort_order);
 
 - **Round 2.5 (신규)** — Round 2(집필실 기능) 뒤, Round 3(export) 앞. export 가 챕터 합본에 의존하므로 선행 필수.
 - 추정 **5~7.5 dev-day** (백엔드 2.5~3.5 + 프론트 2.5~4, TDD 포함·dogfooding 별도). 런칭 합계 19.5~32d → **약 25~39.5d**.
-- V9 는 로컬 dev DB 만 적용, 운영은 Round 4 일괄 (코드-우선 전략 유지).
+- V14 는 로컬 dev DB 만 적용, 운영은 Round 4 일괄 (코드-우선 전략 유지).
 
 ## 9. 1:1 가정 해제 지점 체크리스트 (구현 시 전수 확인)
 
@@ -134,7 +136,7 @@ CREATE INDEX idx_documents_project_sort ON documents (project_id, sort_order);
 
 | 레이어 | 지점 | 조치 |
 |---|---|---|
-| DB | `documents.project_id UNIQUE` (V5) | V9 에서 제거 |
+| DB | `documents.project_id UNIQUE` (V5) | V14 에서 제거 |
 | BE | `Document.projectId @Column(unique = true)` | 제거 + sortOrder·deletedAt 추가 |
 | BE | `DocumentRepository.findByProjectId(): Optional` | 목록 메서드로 대체 |
 | BE | `ProjectService.createProject` 자동 프로비저닝 | 유지 (챕터 1개 생성, sort_order=0) |
