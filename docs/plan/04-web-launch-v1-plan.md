@@ -57,7 +57,15 @@
 - [x] **R2-2** (#41 재정의) B 집필실 좁은 폭 대응 — ✅ 구현완료(Phase 4, `5b3b7ce`). 좌 목차·우 BWorkSidePanel 880px 미만 토글 drawer(백드롭·ESC), 넓은 폭 3패널 불변. **잔여=GATE-2 시각 dogfooding**
 - [x] **R2-3** (#39·#50 잔여) 검증·소규모 격차 — ✅ 완료(Phase 5, `bd591f3`). 목차 H3 포함(TDD), H1~H3 툴바·헤더 네비 영속은 B 기충족(검증). A 디자인 동결 기록(아래)
 
-**구현완료(자동 게이트 GREEN, 2026-06-12)** — Opus advisor + Sonnet implementer. spec=`specs/020-round2-b-studio/`. 잔여=human dogfooding GATE-1·GATE-2뿐. 원추정 5.5~7.5d 대비 자동 구현 1세션.
+**구현완료(자동 게이트 GREEN, 2026-06-12) + dogfooding 후속 완료(2026-06-13)** — Opus advisor + Sonnet implementer. spec=`specs/020-round2-b-studio/`. 원추정 5.5~7.5d 대비 자동 구현 1세션.
+
+**dogfooding 후속 트랙(2026-06-13, develop merge에 포함):**
+- **QA sweep**: 멀티에이전트 5라운드 62건 하드닝(에러 상태·모달 접근성·낙관 업데이트·반응형) + 인물 삭제 확인 모달
+- **트랙1**: 빈작품 안내창 → 새 작품 생성 직행 / **집필 메뉴** 작품 존재 시 모달 대신 진입
+- **트랙2(작업 기록 분리)**: `work_sessions`·`project_logs` user_id + project_id nullable + FK **SET NULL**(V13) → 작품 삭제해도 전체 작업시간 보존, 기록 화면 "총 작업시간"=user 전체 합계
+- **트랙3(작품별 용지)**: `projects.paper_size`(V12) → 전역 설정에서 작품 속성으로. 새 작품 모달 + 집필실 "용지" 셀렉트. **용지 시각 인지**: b.css 하드코딩 제거(폭·줄수 geometry 구동) + 용지 배지 + **A4 fit-zoom**(A4 항상 한 화면, 큰 용지 비례 확대 가로 스크롤)
+- **인증**: 비밀번호 정책 12→8자 완화 + 메시지 정합 / **로그인 후 B 사용자 A화면 깜빡임 제거**(A 홈 디자인 가드)
+- **신규 마이그레이션 V12·V13**(로컬 dev 적용·운영 Round 4 D1 일괄)
 
 **A 디자인 동결(2026-06-12 확정):** Round 2 신규 기능(페이지 분할·용지·반응형 패널)은 **B 디자인에만** 적용. A 디자인(`/`·`/projects`·PaperEditor)은 선택 옵션으로 잔존하되 신규 미적용 — A/B 비대칭(A 사용자는 Round 2 기능 미수령)은 런칭 후 정리 후보. **동결 예외 1건**: 공용 outline 파생(`outlineFromDoc`)의 H3 포함이 A 집필실 목차에도 자연 반영(무해, 신규 기능 아님).
 
@@ -89,7 +97,7 @@
 > Claude = 코드·설정·SQL·절차 작성 / 사용자 = 적용 실행(컨펌).
 
 - [ ] **D2** (#52) Render 백엔드 — Dockerfile·render 설정·환경변수 (web 백엔드 최초 배포)
-- [ ] **D1** (#45) Supabase 마이그레이션 **일괄 적용** — V7·V8 + Round 1/2의 신규 마이그레이션 한 번에 (적용 SQL·롤백안)
+- [ ] **D1** (#45) Supabase 마이그레이션 **일괄 적용** — V7·V8 + Round 1/2의 신규 마이그레이션(019 V9~V11 + 020 **V12 작품 용지·V13 작업기록 분리**) 한 번에 (적용 SQL·롤백안). ⚠️ V13은 기존 행 backfill(user_id) + FK CASCADE→SET NULL 교체 — 운영 데이터 ALTER 주의
 - [ ] **D3** (#53) Vercel 프로덕션 브랜치 설정
 - [ ] **D4** (#46) CORS·httpOnly 쿠키 운영 도메인 정합 + 실브라우저 검증
 - [ ] **D5** (#47) 카카오 OAuth redirect URI 운영 콜백 등록(`/api/auth/oauth/kakao/callback`)
