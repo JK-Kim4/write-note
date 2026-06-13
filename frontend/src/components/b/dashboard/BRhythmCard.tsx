@@ -11,7 +11,7 @@ type Props = {
 
 const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
 
-export function BRhythmCard({ dayMs, todayIndex, cards: _cards }: Props) {
+export function BRhythmCard({ dayMs, todayIndex }: Props) {
     const scaled = barScale(dayMs);
     return (
         <div className="rounded-xl border border-gray-200 bg-white p-4">
