@@ -214,7 +214,7 @@ class DocumentService(
 
     /**
      * C4: 챕터 soft-delete. [deletedAt] = now(). 활성 챕터가 1개뿐이면 [LastChapterException] (409).
-     * 이미 삭제된 챕터면 멱등(no-op).
+     * 이미 삭제된(또는 존재하지 않는) 챕터면 [ResourceNotFoundException] (404).
      */
     @Transactional(rollbackFor = [Exception::class])
     fun deleteChapter(
