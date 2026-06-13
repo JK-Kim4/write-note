@@ -132,7 +132,10 @@ export default function BWorkDetailPage() {
         }
     }, [createChapter, handleChapterSelect]);
 
-    // 챕터 전환 시 body 초기화
+    // 챕터 전환 시 body 초기화.
+    // handleChapterSelect 도 setBody(null) 하지만, 브라우저 뒤로가기·앞으로가기 등
+    // URL 이 외부에서 직접 바뀌어 currentChapterId 가 handleChapterSelect 를 거치지 않고
+    // 변경되는 경우를 방어한다. 두 경로의 이중 호출은 null→null 로 무해하다.
     const prevChapterIdRef = useRef<number | null>(null);
     useEffect(() => {
         if (prevChapterIdRef.current !== null && prevChapterIdRef.current !== currentChapterId) {
