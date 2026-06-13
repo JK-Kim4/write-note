@@ -3,9 +3,11 @@
 import { useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { useProjectCards } from "@/lib/query/useProjects";
-import { selectDashboard } from "@/lib/dashboardView";
+import { selectDashboard, weekDayRanges } from "@/lib/dashboardView";
+import { useWeeklyByDay } from "@/lib/query/useSessions";
 import { BResumeCard } from "@/components/b/dashboard/BResumeCard";
 import { BWorkMiniCard } from "@/components/b/dashboard/BWorkMiniCard";
+import { BRhythmCard } from "@/components/b/dashboard/BRhythmCard";
 
 export default function BDashboardPage() {
     const router = useRouter();
@@ -16,6 +18,8 @@ export default function BDashboardPage() {
         () => false,
     );
     const { resume, others } = selectDashboard(cardsQuery.data ?? []);
+    const weeklyQuery = useWeeklyByDay();
+    const todayIndex = weekDayRanges(new Date()).findIndex((r) => r.isToday);
 
     const dateLabel = mounted
         ? new Intl.DateTimeFormat("ko-KR", {
@@ -64,13 +68,22 @@ export default function BDashboardPage() {
             ) : (
                 <div className="mt-6">
                     <BResumeCard card={resume} onOpen={() => router.push(`/b/works/${resume.id}`)} />
-                    {others.length > 0 && (
-                        <div className="mt-4 grid grid-cols-2 gap-3">
-                            {others.map((c) => (
-                                <BWorkMiniCard key={c.id} card={c} onOpen={() => router.push(`/b/works/${c.id}`)} />
-                            ))}
+                    <div className="mt-4 grid gap-4 min-[880px]:grid-cols-[1.4fr_1fr]">
+                        <div>
+                            {others.length > 0 && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    {others.map((c) => (
+                                        <BWorkMiniCard key={c.id} card={c} onOpen={() => router.push(`/b/works/${c.id}`)} />
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    )}
+                        <BRhythmCard
+                            dayMs={weeklyQuery.data?.dayMs ?? [0, 0, 0, 0, 0, 0, 0]}
+                            todayIndex={todayIndex}
+                            cards={cardsQuery.data ?? []}
+                        />
+                    </div>
                 </div>
             )}
         </div>
