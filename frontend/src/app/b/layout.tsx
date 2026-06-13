@@ -19,7 +19,8 @@ import { useModalDismiss } from "@/lib/useModalDismiss";
  */
 
 const NAV_ITEMS = [
-    { href: "/b", label: "작품", exact: true },
+    { href: "/b", label: "홈", exact: true },
+    { href: "/b/library", label: "작품", exact: false },
     { href: "/b/memos", label: "메모", exact: false },
     { href: "/b/characters", label: "인물", exact: false },
     { href: "/b/logs", label: "기록", exact: false },
@@ -120,7 +121,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                                                 }
                                                 // last id 없는 로딩 중이면 거짓 모달 방지 위해 작품 목록으로.
                                                 if (isProjectsLoading || projectCards === undefined) {
-                                                    router.push("/b");
+                                                    router.push("/b/library");
                                                     return;
                                                 }
                                                 // 로딩 성공 + 0개 → 안내 모달.
@@ -183,7 +184,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    router.push("/b");
+                                    router.push("/b/library");
                                     setNoProjectModalOpen(false);
                                 }}
                                 className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
@@ -193,8 +194,8 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    // 작품 목록으로 이동하며 생성 모달 자동 오픈(?new=1) — b/page 가 파라미터를 읽어 연다.
-                                    router.push("/b?new=1");
+                                    // 작품 목록으로 이동하며 생성 모달 자동 오픈(?new=1) — b/library 페이지가 파라미터를 읽어 연다.
+                                    router.push("/b/library?new=1");
                                     setNoProjectModalOpen(false);
                                 }}
                                 className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
@@ -235,7 +236,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    router.push("/b");
+                                    router.push("/b/library");
                                     setLoadErrorModalOpen(false);
                                 }}
                                 className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"

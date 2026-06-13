@@ -114,7 +114,7 @@ export default function BWorkDetailPage() {
             await queryClient.invalidateQueries({ queryKey: logKeys.all });
             setEndWorkOpen(false);
             setEndWorkBody("");
-            router.push("/b");
+            router.push("/b/library");
         } catch {
             // 종료 실패 — 모달 유지(재시도 가능). closedRef 는 useWorkSession 이 복원.
             setEndWorkError("기록 저장에 실패했습니다. 다시 시도해 주세요.");
@@ -187,7 +187,7 @@ export default function BWorkDetailPage() {
     const outlinePanel = (
         <>
             <div className="border-b border-gray-200 p-3">
-                <Link href="/b" className="text-xs text-gray-400 hover:text-indigo-600">
+                <Link href="/b/library" className="text-xs text-gray-400 hover:text-indigo-600">
                     ← 작품 목록
                 </Link>
                 <h1 className="mt-1 truncate text-base font-bold text-gray-900" title={projectTitle}>
@@ -374,7 +374,7 @@ export default function BWorkDetailPage() {
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white">
                     <p className="text-sm text-gray-500">문서를 불러올 수 없습니다.</p>
                     <Link
-                        href="/b"
+                        href="/b/library"
                         className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
                     >
                         작품 목록으로

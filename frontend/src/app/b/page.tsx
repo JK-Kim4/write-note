@@ -1,423 +1,195 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import Link from "next/link";
-import { useCreateProject, useDeleteProject, useProjectCards, useUpdateProject } from "@/lib/query/useProjects";
-import { useModalDismiss } from "@/lib/useModalDismiss";
-import { usePreferences } from "@/stores/preferences";
-import { PAPER_PRESETS, type PaperSize } from "@/components/editor/pageLayout";
-import type { ProjectCard } from "@/lib/types/domain";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
+import { useProjectCards } from "@/lib/query/useProjects";
+import { selectDashboard, weekDayRanges } from "@/lib/dashboardView";
+import { useWeeklyByDay } from "@/lib/query/useSessions";
+import { useInboxMemos } from "@/lib/query/useMemos";
+import { toInboxMemoView } from "@/lib/memoView";
+import { QuickCapture } from "@/components/QuickCapture";
+import { BResumeCard } from "@/components/b/dashboard/BResumeCard";
+import { BWorkMiniCard } from "@/components/b/dashboard/BWorkMiniCard";
+import { BRhythmCard } from "@/components/b/dashboard/BRhythmCard";
+import { BMemoStrip } from "@/components/b/dashboard/BMemoStrip";
 
-/**
- * B타입 작품 목록 — fable-test WorksPage 이식. 카드 그리드 + 점선 "새 작품" 카드 + 생성 모달.
- * 데이터는 기존 useProjectCards/useCreateProject/useDeleteProject 재사용.
- */
-
-function formatDate(iso: string): string {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "";
-    return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function WorkCard({ card, onDelete }: { card: ProjectCard; onDelete: (id: number) => void }) {
-    return (
-        <div className="group relative rounded-xl border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md">
-            <Link href={`/b/works/${card.id}`} className="block">
-                <div className="flex items-start justify-between gap-2">
-                    <h2 className="text-lg font-bold text-gray-900">{card.title}</h2>
-                    {card.genre && (
-                        <span className="shrink-0 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
-                            {card.genre}
-                        </span>
-                    )}
-                </div>
-                {card.synopsis && <p className="mt-2 line-clamp-2 text-sm text-gray-600">{card.synopsis}</p>}
-                {card.nextScene && (
-                    <p className="mt-2 rounded-md bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-700">
-                        다음 장면 — {card.nextScene}
-                    </p>
-                )}
-                <div className="mt-3 flex items-center gap-3 text-xs text-gray-400">
-                    <span>{card.wordCount.toLocaleString()}자</span>
-                    <span>마지막 저장 {formatDate(card.docUpdatedAt)}</span>
-                </div>
-            </Link>
-            <button
-                type="button"
-                aria-label={`${card.title} 삭제`}
-                onClick={() => onDelete(card.id)}
-                className="absolute right-3 bottom-3 rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
-            >
-                삭제
-            </button>
-        </div>
+export default function BDashboardPage() {
+    const router = useRouter();
+    const cardsQuery = useProjectCards();
+    const mounted = useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false,
     );
-}
+    const { resume, others } = selectDashboard(cardsQuery.data ?? []);
+    const weeklyQuery = useWeeklyByDay();
+    const todayIndex = weekDayRanges(new Date()).findIndex((r) => r.isToday);
+    const memosQuery = useInboxMemos();
+    const [captureOpen, setCaptureOpen] = useState(false);
+    const [memoDrawerOpen, setMemoDrawerOpen] = useState(false);
 
-export default function BWorksPage() {
-    const { data: cards, isLoading, isError, refetch } = useProjectCards();
-    const createProject = useCreateProject();
-    const updateProject = useUpdateProject();
-    const deleteProject = useDeleteProject();
-
-    const [isCreating, setIsCreating] = useState(false);
-    // 빈작품 안내 "새 작품 만들기" 동선 — /b?new=1 진입 시 생성 모달 1회 자동 오픈 후 URL 정리(재오픈 방지).
+    // 메모 drawer — 키보드 사용자가 ESC 로 닫을 수 있도록(works/[id] 패턴 정합).
     useEffect(() => {
-        if (new URLSearchParams(window.location.search).get("new") !== "1") return;
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setIsCreating(true);
-        window.history.replaceState(null, "", "/b");
-    }, []);
-    const [title, setTitle] = useState("");
-    const [genre, setGenre] = useState("");
-    const [targetLengthRaw, setTargetLengthRaw] = useState("");
-    const [synopsis, setSynopsis] = useState("");
-    const [toneNotes, setToneNotes] = useState("");
-    const [worldNotes, setWorldNotes] = useState("");
-    const [nextScene, setNextScene] = useState("");
-    // 새 작품 용지 기본값 = 설정의 "새 작품 기본 용지"(전역 preferences). 작품 생성 후엔 작품 속성으로 영속.
-    const defaultPaperSize = usePreferences((s) => s.paperSize);
-    const [paperSize, setPaperSize] = useState<PaperSize>(defaultPaperSize);
-    const [lengthError, setLengthError] = useState<string | null>(null);
-    // 작품은 생성됐으나 '다음 장면'(nextScene) 저장 PATCH 만 실패했을 때의 경고. 모달 닫힌 뒤 목록 위에 노출.
-    const [nextSceneWarning, setNextSceneWarning] = useState<string | null>(null);
-    const [deleteTarget, setDeleteTarget] = useState<ProjectCard | null>(null);
-    const createDialogRef = useRef<HTMLFormElement>(null);
-    const deleteDialogRef = useRef<HTMLDivElement>(null);
+        if (!memoDrawerOpen) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setMemoDrawerOpen(false);
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [memoDrawerOpen]);
 
-    const resetCreateForm = useCallback(() => {
-        setTitle("");
-        setGenre("");
-        setTargetLengthRaw("");
-        setSynopsis("");
-        setToneNotes("");
-        setWorldNotes("");
-        setNextScene("");
-        setPaperSize(defaultPaperSize);
-        setLengthError(null);
-    }, [defaultPaperSize]);
+    const dateLabel = mounted
+        ? new Intl.DateTimeFormat("ko-KR", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              weekday: "long",
+          }).format(new Date())
+        : "";
 
-    const closeCreate = useCallback(() => {
-        resetCreateForm();
-        createProject.reset();
-        setIsCreating(false);
-    }, [resetCreateForm, createProject]);
-
-    const closeDelete = useCallback(() => {
-        deleteProject.reset();
-        setDeleteTarget(null);
-    }, [deleteProject]);
-
-    const handleCreate = async (e: FormEvent) => {
-        e.preventDefault();
-        const trimmed = title.trim();
-        if (!trimmed || createProject.isPending) return;
-        // 목표 분량: 빈 값 = null(선택). 입력했으면 정수 + 백엔드 @Min(1)/@Max(100_000_000) 범위만 허용.
-        let targetLength: number | null = null;
-        const raw = targetLengthRaw.trim();
-        if (raw !== "") {
-            const parsed = Math.trunc(Number(raw));
-            if (!Number.isFinite(Number(raw)) || !Number.isInteger(Number(raw)) || parsed < 1 || parsed > 100_000_000) {
-                setLengthError("목표 분량은 1 이상 1억 이하의 정수로 입력해 주세요.");
-                return;
-            }
-            targetLength = parsed;
-        }
-        setLengthError(null);
-        setNextSceneWarning(null);
-        let created: Awaited<ReturnType<typeof createProject.mutateAsync>>;
-        try {
-            created = await createProject.mutateAsync({
-                title: trimmed,
-                genre: genre.trim() || null,
-                targetLength,
-                paperSize,
-                synopsis: synopsis.trim() || null,
-                toneNotes: toneNotes.trim() || null,
-                worldNotes: worldNotes.trim() || null,
-            });
-        } catch {
-            // 작품 생성 자체 실패 — 입력·모달 유지. createProject.isError 로 에러 배너를 띄운다.
-            return;
-        }
-        // 작품은 이미 생성됨. 백엔드 create 는 nextScene 미수용(CreateProjectRequest 에 필드 없음) → 생성 직후 PATCH 로 채운다.
-        // PATCH 가 실패해도 모달은 닫고 폼은 리셋(중복 create 방지) — '다음 장면' 저장 실패만 별도 경고로 안내.
-        const trimmedNextScene = nextScene.trim();
-        if (trimmedNextScene) {
-            try {
-                await updateProject.mutateAsync({ id: created.project.id, patch: { nextScene: trimmedNextScene } });
-            } catch {
-                setNextSceneWarning("작품은 만들어졌지만 '다음 장면' 저장에 실패했어요. 작품을 열어 다시 입력해 주세요.");
-            }
-        }
-        resetCreateForm();
-        setIsCreating(false);
-    };
-
-    const handleConfirmDelete = async () => {
-        if (!deleteTarget || deleteProject.isPending) return;
-        try {
-            await deleteProject.mutateAsync(deleteTarget.id);
-            setDeleteTarget(null);
-        } catch {
-            // 실패 — 다이얼로그 유지. deleteProject.isError 로 에러를 표시한다.
-        }
-    };
-
-    // ESC 닫기 + focus trap + 배경 스크롤 잠금(진행 중이면 닫지 않음).
-    useModalDismiss(
-        createDialogRef,
-        isCreating,
-        useCallback(() => {
-            if (!createProject.isPending) closeCreate();
-        }, [createProject.isPending, closeCreate]),
-    );
-    useModalDismiss(
-        deleteDialogRef,
-        deleteTarget != null,
-        useCallback(() => {
-            if (!deleteProject.isPending) closeDelete();
-        }, [deleteProject.isPending, closeDelete]),
-    );
+    // 최근 메모 3장 — 보조 맥락이라 조회 실패는 조용한 빈 상태로 격하(전체 차단 X).
+    const recentMemos = [...(memosQuery.data ?? [])]
+        .sort((a, b) => (a.capturedAt < b.capturedAt ? 1 : -1))
+        .slice(0, 3)
+        .map((m) => {
+            const v = toInboxMemoView(m, new Date());
+            return { id: v.id, body: v.body, dateLabel: v.dateLabel };
+        });
 
     return (
         <div>
-            <div className="mb-6 flex items-center justify-between">
-                <h1 className="text-xl font-bold">내 작품</h1>
-                <button
-                    type="button"
-                    onClick={() => setIsCreating(true)}
-                    className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-                >
-                    새 작품
-                </button>
-            </div>
+            <h1 className="text-xl font-bold text-gray-900">안녕하세요.</h1>
+            <p className="mt-1 text-sm text-gray-500">
+                {mounted ? `${dateLabel} — 오늘도 곁에 있을게요.` : " "}
+            </p>
 
-            {nextSceneWarning && (
-                <div className="mb-4 flex items-start justify-between gap-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700">
-                    <span>{nextSceneWarning}</span>
+            {cardsQuery.data === undefined && !cardsQuery.isError ? (
+                <p className="mt-6 text-sm text-gray-400">불러오는 중…</p>
+            ) : cardsQuery.isError ? (
+                <div role="alert" className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm">
+                    작업실을 불러오지 못했습니다.
                     <button
                         type="button"
-                        aria-label="알림 닫기"
-                        onClick={() => setNextSceneWarning(null)}
-                        className="shrink-0 text-amber-500 hover:text-amber-700"
-                    >
-                        ×
-                    </button>
-                </div>
-            )}
-
-            {isLoading ? (
-                <p className="py-12 text-center text-sm text-gray-400">불러오는 중…</p>
-            ) : isError ? (
-                <div className="py-12 text-center">
-                    <p className="text-sm text-gray-500">작품을 불러올 수 없습니다.</p>
-                    <button
-                        type="button"
-                        onClick={() => refetch()}
-                        className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                        className="ml-2 underline"
+                        aria-label="작업실 불러오기 다시 시도"
+                        onClick={() => void cardsQuery.refetch()}
                     >
                         다시 시도
                     </button>
                 </div>
-            ) : (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {(cards ?? []).length === 0 && (
-                        <p className="col-span-full py-4 text-center text-sm text-gray-400">
-                            아직 작품이 없어요. 첫 작품을 시작해 보세요.
-                        </p>
-                    )}
-                    {(cards ?? []).map((card) => (
-                        <WorkCard key={card.id} card={card} onDelete={() => setDeleteTarget(card)} />
-                    ))}
+            ) : resume === null ? (
+                <section className="mt-8 rounded-xl border border-gray-200 bg-white p-8 text-center">
+                    <h2 className="text-lg font-bold text-gray-900">작업실이 준비됐습니다</h2>
+                    <p className="mt-2 text-sm text-gray-600">
+                        메모와 등장인물, 지난 세션의 마지막 한 줄까지 한자리에.
+                    </p>
                     <button
                         type="button"
-                        onClick={() => setIsCreating(true)}
-                        className="flex min-h-32 items-center justify-center rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-indigo-400 hover:text-indigo-600"
+                        className="mt-4 rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
+                        onClick={() => router.push("/b/library?new=1")}
                     >
-                        + 새 작품 시작하기
+                        첫 작품 시작하기
                     </button>
-                </div>
-            )}
+                </section>
+            ) : (
+                <div className="mt-6">
+                    {/* 상단 풀폭: 이어서쓰기 */}
+                    <BResumeCard card={resume} onOpen={() => router.push(`/b/works/${resume.id}`)} />
 
-            {isCreating && (
-                <div
-                    className="fixed inset-0 z-30 flex items-center justify-center bg-gray-900/40 p-4"
-                    onClick={() => {
-                        if (createProject.isPending) return;
-                        closeCreate();
-                    }}
-                >
-                    <form
-                        ref={createDialogRef}
-                        role="dialog"
-                        aria-modal="true"
-                        aria-label="새 작품"
-                        onSubmit={handleCreate}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-full max-w-sm max-h-[85vh] overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
+                    {/* 880px 미만: 메모 drawer 토글 버튼 */}
+                    <button
+                        type="button"
+                        onClick={() => setMemoDrawerOpen(true)}
+                        className="mt-3 w-full rounded-lg border border-amber-200 bg-amber-50 py-2 text-xs text-amber-700 min-[880px]:hidden"
                     >
-                        <h2 className="text-lg font-bold text-gray-900">새 작품</h2>
-                        {createProject.isError && (
-                            <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
-                                {createProject.error instanceof Error
-                                    ? createProject.error.message
-                                    : "작품 생성에 실패했습니다. 다시 시도해 주세요."}
-                            </p>
-                        )}
-                        <label className="mt-4 block text-sm text-gray-600">
-                            제목
-                            <input
-                                autoFocus
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="작품 제목"
-                                maxLength={120}
-                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                        메모 보기
+                    </button>
+
+                    {/* 2컬럼: 좌=작품미니카드+리듬 / 우=메모(상시) */}
+                    <div className="mt-4 grid gap-4 min-[880px]:grid-cols-[1fr_320px]">
+                        {/* 좌 컬럼 */}
+                        <div className="flex flex-col gap-4">
+                            {others.length > 0 && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    {others.map((c) => (
+                                        <BWorkMiniCard
+                                            key={c.id}
+                                            card={c}
+                                            onOpen={() => router.push(`/b/works/${c.id}`)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                            <BRhythmCard
+                                dayMs={weeklyQuery.data?.dayMs ?? [0, 0, 0, 0, 0, 0, 0]}
+                                todayIndex={todayIndex}
+                                cards={cardsQuery.data ?? []}
                             />
-                        </label>
-                        <label className="mt-3 block text-sm text-gray-600">
-                            장르 (선택)
-                            <input
-                                value={genre}
-                                onChange={(e) => setGenre(e.target.value)}
-                                placeholder="예: 장편소설, 에세이"
-                                maxLength={100}
-                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-                            />
-                        </label>
-                        <label className="mt-3 block text-sm text-gray-600">
-                            용지 크기
-                            <select
-                                value={paperSize}
-                                onChange={(e) => setPaperSize(e.target.value as PaperSize)}
-                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-                            >
-                                {(["A4", "A3", "A2", "B4"] as const).map((size) => (
-                                    <option key={size} value={size}>
-                                        {size} ({PAPER_PRESETS[size].widthMm}×{PAPER_PRESETS[size].heightMm}mm)
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                        <label className="mt-3 block text-sm text-gray-600">
-                            목표 분량 (선택)
-                            <input
-                                type="number"
-                                value={targetLengthRaw}
-                                onChange={(e) => {
-                                    setTargetLengthRaw(e.target.value);
-                                    if (lengthError) setLengthError(null);
-                                }}
-                                placeholder="예: 80000 (자)"
-                                min={1}
-                                max={100000000}
-                                step={1}
-                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-                            />
-                            {lengthError && <span className="mt-1 block text-xs text-red-600">{lengthError}</span>}
-                        </label>
-                        <label className="mt-3 block text-sm text-gray-600">
-                            줄거리 (선택)
-                            <textarea
-                                value={synopsis}
-                                onChange={(e) => setSynopsis(e.target.value)}
-                                maxLength={5000}
-                                rows={3}
-                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-                            />
-                        </label>
-                        <label className="mt-3 block text-sm text-gray-600">
-                            톤·문체 (선택)
-                            <textarea
-                                value={toneNotes}
-                                onChange={(e) => setToneNotes(e.target.value)}
-                                maxLength={2000}
-                                rows={3}
-                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-                            />
-                        </label>
-                        <label className="mt-3 block text-sm text-gray-600">
-                            세계관 (선택)
-                            <textarea
-                                value={worldNotes}
-                                onChange={(e) => setWorldNotes(e.target.value)}
-                                maxLength={10000}
-                                rows={3}
-                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-                            />
-                        </label>
-                        <label className="mt-3 block text-sm text-gray-600">
-                            다음 장면 (선택)
-                            <input
-                                value={nextScene}
-                                onChange={(e) => setNextScene(e.target.value)}
-                                placeholder="다음에 쓸 장면 한 줄"
-                                maxLength={500}
-                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-                            />
-                        </label>
-                        <div className="mt-5 flex justify-end gap-2">
-                            <button
-                                type="button"
-                                onClick={closeCreate}
-                                disabled={createProject.isPending}
-                                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                            >
-                                취소
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={title.trim().length === 0 || createProject.isPending || updateProject.isPending}
-                                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-                            >
-                                {createProject.isPending || updateProject.isPending ? "만드는 중…" : "만들기"}
-                            </button>
                         </div>
-                    </form>
-                </div>
-            )}
 
-            {deleteTarget && (
-                <div
-                    className="fixed inset-0 z-30 flex items-center justify-center bg-gray-900/40 p-4"
-                    onClick={() => !deleteProject.isPending && closeDelete()}
-                >
-                    <div
-                        ref={deleteDialogRef}
-                        role="dialog"
-                        aria-modal="true"
-                        aria-label="작품 삭제"
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
-                    >
-                        <h2 className="text-lg font-bold text-gray-900">작품 삭제</h2>
-                        <p className="mt-2 text-sm text-gray-600">
-                            「{deleteTarget.title}」 을(를) 삭제할까요? 본문과 기록이 함께 사라집니다.
-                        </p>
-                        {deleteProject.isError && (
-                            <p className="mt-2 text-sm text-red-600">삭제에 실패했습니다. 다시 시도해 주세요.</p>
-                        )}
-                        <div className="mt-5 flex justify-end gap-2">
-                            <button
-                                type="button"
-                                onClick={closeDelete}
-                                disabled={deleteProject.isPending}
-                                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                            >
-                                취소
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleConfirmDelete}
-                                disabled={deleteProject.isPending}
-                                className="rounded-md border border-red-200 px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
-                            >
-                                {deleteProject.isPending ? "삭제 중…" : "삭제"}
-                            </button>
+                        {/* 우 컬럼: 메모 패널 상시(≥880px) */}
+                        <div className="hidden min-[880px]:block">
+                            <BMemoStrip
+                                memos={recentMemos}
+                                onNew={() => setCaptureOpen(true)}
+                                onOpenAll={() => router.push("/b/memos")}
+                            />
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* 880px 미만 메모 drawer 백드롭 */}
+            {memoDrawerOpen && (
+                <div
+                    aria-hidden="true"
+                    className="fixed inset-0 z-20 bg-gray-900/40 min-[880px]:hidden"
+                    onClick={() => setMemoDrawerOpen(false)}
+                />
+            )}
+
+            {/* 880px 미만 메모 drawer */}
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="메모"
+                inert={!memoDrawerOpen || undefined}
+                className={`fixed inset-y-0 right-0 z-30 flex w-80 flex-col overflow-hidden bg-white shadow-xl transition-transform duration-200 min-[880px]:hidden ${
+                    memoDrawerOpen ? "translate-x-0" : "translate-x-full"
+                }`}
+            >
+                <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2">
+                    <span className="text-sm font-medium text-gray-700">메모</span>
+                    <button
+                        type="button"
+                        aria-label="메모 패널 닫기"
+                        onClick={() => setMemoDrawerOpen(false)}
+                        className="rounded-md px-2 py-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                    >
+                        ✕
+                    </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-3">
+                    <BMemoStrip
+                        memos={recentMemos}
+                        onNew={() => {
+                            setMemoDrawerOpen(false);
+                            setCaptureOpen(true);
+                        }}
+                        onOpenAll={() => {
+                            setMemoDrawerOpen(false);
+                            router.push("/b/memos");
+                        }}
+                    />
+                </div>
+            </div>
+
+            {captureOpen && (
+                <QuickCapture
+                    activeProjectId={null}
+                    onClose={() => setCaptureOpen(false)}
+                    onCaptured={() => void memosQuery.refetch()}
+                />
             )}
         </div>
     );

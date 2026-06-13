@@ -312,7 +312,7 @@ describe("DashboardPage(/ 재진입 허브)", () => {
         expect(pushMock).toHaveBeenCalledWith("/library");
     });
 
-    it("최근 곁쪽지 3장 + '+ 새 곁쪽지'를 보여주고, 곁쪽지 클릭은 /memos·새 곁쪽지는 빠른 메모 모달(US5 v4)", async () => {
+    it("최근 메모 3장 + '+ 새 메모'를 보여주고, 메모 클릭은 /memos·새 메모는 빠른 메모 모달(US5 v4)", async () => {
         stubAuthed();
         stubWeekly();
         server.use(
@@ -339,14 +339,14 @@ describe("DashboardPage(/ 재진입 허브)", () => {
         await userEvent.click(screen.getByRole("button", { name: /가장 최근 메모/ }));
         expect(pushMock).toHaveBeenCalledWith("/memos");
 
-        await userEvent.click(screen.getByRole("button", { name: /모든 곁쪽지 보기/ }));
+        await userEvent.click(screen.getByRole("button", { name: /모든 메모 보기/ }));
         expect(pushMock).toHaveBeenCalledWith("/memos");
 
-        await userEvent.click(screen.getByRole("button", { name: /새 곁쪽지/ }));
+        await userEvent.click(screen.getByRole("button", { name: /새 메모/ }));
         expect(await screen.findByRole("dialog", { name: "빠른 메모" })).toBeInTheDocument();
     });
 
-    it("곁쪽지가 0장이면 라벨은 유지하고 조용한 빈 문구를 보여준다(US5)", async () => {
+    it("메모가 0장이면 라벨은 유지하고 조용한 빈 문구를 보여준다(US5)", async () => {
         stubAuthed();
         stubWeekly();
         server.use(
@@ -359,7 +359,7 @@ describe("DashboardPage(/ 재진입 허브)", () => {
 
         renderPage();
 
-        expect(await screen.findByText("최근 곁쪽지")).toBeInTheDocument();
-        expect(screen.getByText("아직 곁쪽지가 없어요")).toBeInTheDocument();
+        expect(await screen.findByText("최근 메모")).toBeInTheDocument();
+        expect(screen.getByText("아직 메모가 없어요")).toBeInTheDocument();
     });
 });

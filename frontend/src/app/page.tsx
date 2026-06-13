@@ -19,7 +19,7 @@ import { useWeeklyByDay } from "@/lib/query/useSessions";
 /**
  * 대시보드(작가 홈) — 018 재진입 허브, v4 2단(B안).
  * 좌 = 이어서 쓰기 타일 + 작품 미니 카드 2열 / 우 = 집필 리듬 카드(주간·작품별 막대, 좌측 바닥선 정렬)
- * / 하단 전폭 = 최근 곁쪽지 3장 + 새 곁쪽지(빠른 메모 모달). 전부 읽기 전용 + 진입 동작만.
+ * / 하단 전폭 = 최근 메모 3장 + 새 메모(빠른 메모 모달). 전부 읽기 전용 + 진입 동작만.
  */
 export default function DashboardPage() {
     useAuthGuard("requireAuth");
@@ -51,7 +51,7 @@ export default function DashboardPage() {
         : "";
     const todayIndex = weekDayRanges(new Date()).findIndex((r) => r.isToday);
 
-    // 최근 곁쪽지 3장 — 보조 맥락이라 조회 실패는 조용한 빈 상태로 격하(전체 차단 X).
+    // 최근 메모 3장 — 보조 맥락이라 조회 실패는 조용한 빈 상태로 격하(전체 차단 X).
     const recentMemos = [...(memosQuery.data ?? [])]
         .sort((a, b) => (a.capturedAt < b.capturedAt ? 1 : -1))
         .slice(0, 3)
@@ -146,13 +146,13 @@ export default function DashboardPage() {
                                     </div>
 
                                     <div className="sec-head">
-                                        <p className="dash-label">최근 곁쪽지</p>
+                                        <p className="dash-label">최근 메모</p>
                                         <button type="button" className="sec-link" onClick={() => router.push("/memos")}>
-                                            모든 곁쪽지 보기 →
+                                            모든 메모 보기 →
                                         </button>
                                     </div>
                                     {recentMemos.length === 0 ? (
-                                        <p className="dash-empty">아직 곁쪽지가 없어요</p>
+                                        <p className="dash-empty">아직 메모가 없어요</p>
                                     ) : (
                                         <div className="dash-memos">
                                             {recentMemos.map((memo) => (
@@ -174,7 +174,7 @@ export default function DashboardPage() {
                                                 <span className="dash-memo--new__plus" aria-hidden="true">
                                                     +
                                                 </span>
-                                                새 곁쪽지
+                                                새 메모
                                             </button>
                                         </div>
                                     )}

@@ -7,7 +7,7 @@ import { MemoPanel } from "./MemoPanel";
 
 type StudioRightStackProps = {
     projectId: number;
-    /** 곁쪽지(MemoPanel) props — 동작 불변(017 FR-017). */
+    /** 메모(MemoPanel) props — 동작 불변(017 FR-017). */
     memos: InboxMemo[];
     memosLoading: boolean;
     onUnlink: (memoId: number) => void;
@@ -15,7 +15,7 @@ type StudioRightStackProps = {
 };
 
 /**
- * 우측 패널 스택(017 US2/US3) — 인물 노트(상단) + 곁쪽지(하단) 세로 스택, 섹션별 개별 접기.
+ * 우측 패널 스택(017 US2/US3) — 인물 노트(상단) + 메모(하단) 세로 스택, 섹션별 개별 접기.
  * MemoPanel 은 props·동작 불변으로 재사용.
  */
 export function StudioRightStack({ projectId, memos, memosLoading, onUnlink, onSetPin }: StudioRightStackProps) {
@@ -46,7 +46,7 @@ export function StudioRightStack({ projectId, memos, memosLoading, onUnlink, onS
                     aria-expanded={memoOpen}
                     onClick={() => setMemoOpen((v) => !v)}
                 >
-                    <span>곁쪽지</span>
+                    <span>메모</span>
                     <span className="stack-section__chevron" aria-hidden="true">
                         {memoOpen ? "▾" : "▸"}
                     </span>

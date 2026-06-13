@@ -19,7 +19,7 @@ import { useProjectCards } from "@/lib/query/useProjects";
 import type { LinkedProject } from "@/lib/types/domain";
 
 /**
- * 곁쪽지 책상 (015 US2) — desktop MemoInboxScreen 1:1 이식. 006 `/memos` 폐기·교체.
+ * 메모 책상 (015 US2) — desktop MemoInboxScreen 1:1 이식. 006 `/memos` 폐기·교체.
  * 흩어진 쪽지를 본문 중심으로 모아 보고, 어느 작품에 다시 붙일지 정한다(작품 단위 추림).
  *
  * 버리기/되돌리기 (019 US1): soft-delete + restore. 버리면 낙관적으로 사라지고 되돌리기 토스트가 뜬다.

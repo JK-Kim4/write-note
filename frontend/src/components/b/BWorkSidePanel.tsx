@@ -7,7 +7,7 @@ import { useCaptureMemo, useProjectMemos, useRemoveLinkMemo, useSetPinMemo } fro
 
 /**
  * B타입 집필 보조 패널 — fable-test WorkSidePanel 이식 (w-80, 메모/인물 탭, ◀▶ 접이식).
- * 메모 탭 = 이 작품에 연결된 곁쪽지(고정 우선) + 인라인 캡처. 인물 탭 = 목록 + 빠른 추가.
+ * 메모 탭 = 이 작품에 연결된 메모(고정 우선) + 인라인 캡처. 인물 탭 = 목록 + 빠른 추가.
  * 공백 최소화: 목록·입력을 패널 전체 높이에 채우고 빈 상태에도 바로 쓸 수 있는 입력을 둔다.
  */
 
@@ -37,7 +37,7 @@ function MemosTab({ projectId }: { projectId: number }) {
                 <textarea
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
-                    placeholder="이 작품에 곁쪽지 남기기…"
+                    placeholder="이 작품에 메모 남기기…"
                     rows={2}
                     className="w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
                 />
@@ -52,14 +52,14 @@ function MemosTab({ projectId }: { projectId: number }) {
             <div className="flex-1 space-y-2 overflow-y-auto p-3">
                 {actionFailed && (
                     <p className="rounded-md bg-red-50 px-2 py-1.5 text-xs text-red-600">
-                        곁쪽지 작업에 실패했습니다. 다시 시도해 주세요.
+                        메모 작업에 실패했습니다. 다시 시도해 주세요.
                     </p>
                 )}
                 {memosQuery.isLoading ? (
                     <p className="text-xs text-gray-400">불러오는 중…</p>
                 ) : memosQuery.isError ? (
                     <div>
-                        <p className="text-xs text-gray-500">곁쪽지를 불러오지 못했습니다.</p>
+                        <p className="text-xs text-gray-500">메모를 불러오지 못했습니다.</p>
                         <button
                             type="button"
                             onClick={() => memosQuery.refetch()}
@@ -69,7 +69,7 @@ function MemosTab({ projectId }: { projectId: number }) {
                         </button>
                     </div>
                 ) : memos.length === 0 ? (
-                    <p className="text-xs text-gray-400">아직 연결된 곁쪽지가 없습니다.</p>
+                    <p className="text-xs text-gray-400">아직 연결된 메모가 없습니다.</p>
                 ) : (
                     memos.map((memo) => (
                         <div key={memo.id} className="rounded-md border border-gray-200 bg-white p-2.5">

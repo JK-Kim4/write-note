@@ -9,7 +9,7 @@ import { memos } from "./memos";
  *
  * 주의(검증된 백엔드 동작):
  * - 캡처(POST /api/memos)는 작품을 "연결"하지 않고 activeProjectAtCapture(맥락)만 기록한다.
- *   따라서 작품에 붙은 곁쪽지(서랍 listByProject 노출)를 만들려면 캡처 후 curation 으로 연결해야 한다.
+ *   따라서 작품에 붙은 메모(서랍 listByProject 노출)를 만들려면 캡처 후 curation 으로 연결해야 한다.
  * - addLink/removeLink 는 선언적 큐레이션(PUT /api/memos/{id}/curation)으로 매핑 → 기존 상태를 읽고 차이를 반영.
  */
 const ORIGIN = "http://localhost:3000";
@@ -35,7 +35,7 @@ describe("webElectronApi.memos", () => {
                 HttpResponse.json({
                     success: true,
                     data: [
-                        { memoId: 11, projectId: 7, body: "곁쪽지", source: "DESKTOP", capturedAt: "2026-06-08T00:00:00Z", reasonNote: null, tags: [], pinned: true },
+                        { memoId: 11, projectId: 7, body: "메모", source: "DESKTOP", capturedAt: "2026-06-08T00:00:00Z", reasonNote: null, tags: [], pinned: true },
                     ],
                     error: null,
                 }),

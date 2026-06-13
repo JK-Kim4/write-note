@@ -53,7 +53,7 @@ export default function ProjectWritePage() {
     const [endWorkBody, setEndWorkBody] = useState("");
     const [endingWork, setEndingWork] = useState(false);
 
-    // 곁쪽지 서랍 — 이 작품에 연결된 곁쪽지(고정 포함).
+    // 메모 서랍 — 이 작품에 연결된 메모(고정 포함).
     const now = useMemo(() => new Date(), []);
     const projectMemosQuery = useProjectMemos(projectId);
     const setPinMemo = useSetPinMemo();
@@ -185,8 +185,8 @@ export default function ProjectWritePage() {
                 type="button"
                 className={rightOpen ? "panel-toggle is-open" : "panel-toggle"}
                 aria-pressed={rightOpen}
-                aria-label="맥락 패널 (인물·곁쪽지)"
-                title="맥락 패널 (인물·곁쪽지)"
+                aria-label="맥락 패널 (인물·메모)"
+                title="맥락 패널 (인물·메모)"
                 onClick={() => setRightOpen((v) => !v)}
             >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
