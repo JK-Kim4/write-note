@@ -11,6 +11,7 @@ data class ProjectResponse(
     val synopsis: String?,
     val worldNotes: String?,
     val nextScene: String,
+    val paperSize: String,
     val archivedAt: Instant?,
     val createdAt: Instant,
     val updatedAt: Instant,

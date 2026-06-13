@@ -4,6 +4,7 @@ import com.writenote.entity.Document
 import com.writenote.entity.Project
 import com.writenote.entity.WorkSession
 import com.writenote.error.ResourceNotFoundException
+import com.writenote.error.ValidationException
 import com.writenote.mapper.ProjectMapper
 import com.writenote.model.request.CreateProjectRequest
 import com.writenote.model.request.UpdateProjectRequest
@@ -53,6 +54,7 @@ class ProjectServiceTest {
                 synopsis = project.synopsis,
                 worldNotes = project.worldNotes,
                 nextScene = project.nextScene,
+                paperSize = project.paperSize,
                 archivedAt = project.archivedAt,
                 createdAt = project.createdAt ?: Instant.now(),
                 updatedAt = project.updatedAt ?: Instant.now(),
@@ -90,6 +92,32 @@ class ProjectServiceTest {
         assertThat(saved.toneNotes).isEqualTo("잔잔")
         assertThat(saved.synopsis).isEqualTo("할머니")
         assertThat(saved.worldNotes).isEqualTo("1990s")
+    }
+
+    @Test
+    @DisplayName("createProject — paperSize 허용값 영속, 미지정 시 A4")
+    fun `createProject persists paperSize and defaults to A4`() {
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { documentRepository.save(any<Document>()) } answers { firstArg() }
+        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+
+        val withPaper = slot<Project>()
+        every { projectRepository.save(capture(withPaper)) } answers { firstArg<Project>().apply { id = 100L } }
+        service.createProject(1L, CreateProjectRequest(title = "T", paperSize = "B4"))
+        assertThat(withPaper.captured.paperSize).isEqualTo("B4")
+
+        val noPaper = slot<Project>()
+        every { projectRepository.save(capture(noPaper)) } answers { firstArg<Project>().apply { id = 101L } }
+        service.createProject(1L, CreateProjectRequest(title = "T2"))
+        assertThat(noPaper.captured.paperSize).isEqualTo("A4")
+    }
+
+    @Test
+    @DisplayName("createProject — 비허용 paperSize 는 ValidationException")
+    fun `createProject rejects unknown paperSize`() {
+        every { userRepository.existsById(eq(1L)) } returns true
+        assertThatThrownBy { service.createProject(1L, CreateProjectRequest(title = "T", paperSize = "A5")) }
+            .isInstanceOf(ValidationException::class.java)
     }
 
     @Test

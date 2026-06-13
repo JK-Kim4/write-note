@@ -20,4 +20,6 @@ data class UpdateProjectRequest(
     val worldNotes: String? = null,
     @field:Size(max = 500)
     val nextScene: String? = null,
+    @field:Size(max = 8)
+    val paperSize: String? = null,
 )
