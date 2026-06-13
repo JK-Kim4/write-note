@@ -19,7 +19,8 @@ import { useModalDismiss } from "@/lib/useModalDismiss";
  */
 
 const NAV_ITEMS = [
-    { href: "/b", label: "작품", exact: true },
+    { href: "/b", label: "홈", exact: true },
+    { href: "/b/library", label: "작품", exact: false },
     { href: "/b/memos", label: "메모", exact: false },
     { href: "/b/characters", label: "인물", exact: false },
     { href: "/b/logs", label: "기록", exact: false },
