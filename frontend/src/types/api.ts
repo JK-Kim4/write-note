@@ -5,6 +5,8 @@
  * 본 spec contracts/api-client.md §3 인용.
  */
 
+import type { PaperSize } from "@/components/editor/pageLayout";
+
 export type Result<T> = SuccessResult<T> | FailureResult;
 
 export interface SuccessResult<T> {
@@ -42,6 +44,8 @@ export interface ProjectResponse {
     worldNotes: string | null;
     /** "다음에 쓸 장면" 한 줄 (014 backend 확장). 미설정은 빈 문자열. */
     nextScene: string;
+    /** 작품별 용지 크기 (트랙3 / V12). 백엔드 CHECK 로 4종 보장. */
+    paperSize: PaperSize;
     archivedAt: string | null;
     createdAt: string;
     updatedAt: string;

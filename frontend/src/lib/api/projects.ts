@@ -1,4 +1,5 @@
 import { apiFetch } from "./client";
+import type { PaperSize } from "@/components/editor/pageLayout";
 import type { Page, ProjectCardResponse, ProjectResponse } from "@/types/api";
 
 /**
@@ -45,6 +46,8 @@ export interface CreateProjectInput {
     worldNotes?: string | null;
     /** "다음에 쓸 장면" 한 줄 (014). 부분 수정 시 빈 문자열 = 비우기. */
     nextScene?: string;
+    /** 작품별 용지 크기 (트랙3). 미지정 시 백엔드 기본 A4. */
+    paperSize?: PaperSize;
 }
 
 export function createProject(input: CreateProjectInput): Promise<ProjectResponse> {

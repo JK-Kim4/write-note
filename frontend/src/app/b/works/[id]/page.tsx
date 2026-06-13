@@ -6,7 +6,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Editor } from "@tiptap/react";
 import { documentKeys, useProjectDocument } from "@/lib/query/useDocument";
-import { useProject } from "@/lib/query/useProjects";
+import { useProject, useUpdateProject } from "@/lib/query/useProjects";
+import { PAPER_PRESETS, type PaperSize } from "@/components/editor/pageLayout";
 import { logKeys } from "@/lib/query/useLogs";
 import { useDocumentSession } from "@/hooks/useDocumentSession";
 import { useWorkSession } from "@/hooks/useWorkSession";
@@ -14,7 +15,6 @@ import { rememberLastProject } from "@/lib/lastProject";
 import { useEditorOutline } from "@/components/editor/useEditorOutline";
 import type { DocumentChange } from "@/components/editor/PaperEditor";
 import { BEditor } from "@/components/b/BEditor";
-import { usePreferences } from "@/stores/preferences";
 import { BWorkSidePanel } from "@/components/b/BWorkSidePanel";
 import type { ProjectDocument } from "@/lib/types/domain";
 
@@ -55,7 +55,13 @@ export default function BWorkDetailPage() {
     const [panelTab, setPanelTab] = useState<"memos" | "characters">("memos");
 
     const { endWithLog } = useWorkSession(projectId);
-    const paperSize = usePreferences((s) => s.paperSize);
+    const updateProject = useUpdateProject();
+    // 용지 크기는 작품 속성(트랙3) — 전역 설정이 아니라 이 작품의 paperSize. 변경 시 PATCH → 비율 즉시 반영.
+    const paperSize: PaperSize = projectQuery.data?.paperSize ?? "A4";
+    const handlePaperSizeChange = (next: PaperSize) => {
+        if (next === paperSize) return;
+        updateProject.mutate({ id: projectId, patch: { paperSize: next } });
+    };
 
     // 집필 네비("집필" 메뉴)가 돌아올 작품으로 기억 — A Rail 과 동일한 lastProject 공유.
     useEffect(() => {
@@ -192,6 +198,24 @@ export default function BWorkDetailPage() {
                         다음 장면 — {projectQuery.data.nextScene}
                     </p>
                 )}
+                <div className="mt-2 flex items-center gap-2">
+                    <label htmlFor="b-paper-size" className="shrink-0 text-xs text-gray-400">
+                        용지
+                    </label>
+                    <select
+                        id="b-paper-size"
+                        value={paperSize}
+                        onChange={(e) => handlePaperSizeChange(e.target.value as PaperSize)}
+                        disabled={updateProject.isPending || projectQuery.data == null}
+                        className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-indigo-500 focus:outline-none disabled:opacity-50"
+                    >
+                        {(["A4", "A3", "A2", "B4"] as const).map((size) => (
+                            <option key={size} value={size}>
+                                {size} ({PAPER_PRESETS[size].widthMm}×{PAPER_PRESETS[size].heightMm}mm)
+                            </option>
+                        ))}
+                    </select>
+                </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2">
                 <p className="px-2 py-1 text-xs font-medium text-gray-400">목차</p>

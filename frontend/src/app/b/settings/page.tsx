@@ -120,9 +120,11 @@ export default function BSettingsPage() {
             </section>
 
             <section className="mb-4 rounded-xl border border-gray-200 bg-white p-5">
-                <h2 className="text-base font-semibold text-gray-900">용지 크기</h2>
-                <p className="mt-0.5 text-xs text-gray-400">B 집필실 본문의 용지 크기를 고릅니다. 선택 즉시 반영됩니다.</p>
-                <div role="radiogroup" aria-label="용지 크기" aria-busy={!isHydrated} className="mt-3 grid grid-cols-2 gap-2">
+                <h2 className="text-base font-semibold text-gray-900">새 작품 기본 용지</h2>
+                <p className="mt-0.5 text-xs text-gray-400">
+                    새 작품을 만들 때 기본으로 쓸 용지입니다. 작품별 용지는 집필실 좌측 &ldquo;용지&rdquo;에서 바꿀 수 있어요.
+                </p>
+                <div role="radiogroup" aria-label="새 작품 기본 용지" aria-busy={!isHydrated} className="mt-3 grid grid-cols-2 gap-2">
                     {PAPER_SIZE_OPTIONS.map((option) => {
                         const selected = isHydrated && paperSize === option.value;
                         return (

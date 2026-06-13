@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import Link from "next/link";
 import { useCreateProject, useDeleteProject, useProjectCards, useUpdateProject } from "@/lib/query/useProjects";
 import { useModalDismiss } from "@/lib/useModalDismiss";
+import { usePreferences } from "@/stores/preferences";
+import { PAPER_PRESETS, type PaperSize } from "@/components/editor/pageLayout";
 import type { ProjectCard } from "@/lib/types/domain";
 
 /**
@@ -73,6 +75,9 @@ export default function BWorksPage() {
     const [toneNotes, setToneNotes] = useState("");
     const [worldNotes, setWorldNotes] = useState("");
     const [nextScene, setNextScene] = useState("");
+    // 새 작품 용지 기본값 = 설정의 "새 작품 기본 용지"(전역 preferences). 작품 생성 후엔 작품 속성으로 영속.
+    const defaultPaperSize = usePreferences((s) => s.paperSize);
+    const [paperSize, setPaperSize] = useState<PaperSize>(defaultPaperSize);
     const [lengthError, setLengthError] = useState<string | null>(null);
     // 작품은 생성됐으나 '다음 장면'(nextScene) 저장 PATCH 만 실패했을 때의 경고. 모달 닫힌 뒤 목록 위에 노출.
     const [nextSceneWarning, setNextSceneWarning] = useState<string | null>(null);
@@ -88,8 +93,9 @@ export default function BWorksPage() {
         setToneNotes("");
         setWorldNotes("");
         setNextScene("");
+        setPaperSize(defaultPaperSize);
         setLengthError(null);
-    }, []);
+    }, [defaultPaperSize]);
 
     const closeCreate = useCallback(() => {
         resetCreateForm();
@@ -125,6 +131,7 @@ export default function BWorksPage() {
                 title: trimmed,
                 genre: genre.trim() || null,
                 targetLength,
+                paperSize,
                 synopsis: synopsis.trim() || null,
                 toneNotes: toneNotes.trim() || null,
                 worldNotes: worldNotes.trim() || null,
@@ -278,6 +285,20 @@ export default function BWorksPage() {
                                 maxLength={100}
                                 className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
                             />
+                        </label>
+                        <label className="mt-3 block text-sm text-gray-600">
+                            용지 크기
+                            <select
+                                value={paperSize}
+                                onChange={(e) => setPaperSize(e.target.value as PaperSize)}
+                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                            >
+                                {(["A4", "A3", "A2", "B4"] as const).map((size) => (
+                                    <option key={size} value={size}>
+                                        {size} ({PAPER_PRESETS[size].widthMm}×{PAPER_PRESETS[size].heightMm}mm)
+                                    </option>
+                                ))}
+                            </select>
                         </label>
                         <label className="mt-3 block text-sm text-gray-600">
                             목표 분량 (선택)

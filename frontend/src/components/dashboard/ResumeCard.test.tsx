@@ -16,6 +16,7 @@ function card(over: Partial<ProjectCard> = {}): ProjectCard {
         synopsis: null,
         worldNotes: null,
         nextScene: "은하가 등대지기를 처음 만나는 장면",
+        paperSize: "A4",
         archivedAt: null,
         createdAt: "2026-06-01T00:00:00Z",
         updatedAt: "2026-06-01T00:00:00Z",
