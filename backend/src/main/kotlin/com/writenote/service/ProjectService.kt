@@ -104,7 +104,7 @@ class ProjectService(
             val chapters = chaptersByProjectId[projectId] ?: emptyList()
             // INV-1: 활성 작품은 항상 활성 챕터 ≥ 1 이나 방어적으로 빈 그룹 허용 (wordCount 0)
             val wordCount = chapters.sumOf { it.wordCount }
-            val latestChapter = chapters.maxByOrNull { requireNotNull(it.updatedAt) }
+            val latestChapter = chapters.maxByOrNull { it.updatedAt ?: Instant.EPOCH }
             val documentUpdatedAt =
                 latestChapter?.updatedAt
                     ?: requireNotNull(project.updatedAt) // 챕터 없는 경우 작품 수정 시각 fallback

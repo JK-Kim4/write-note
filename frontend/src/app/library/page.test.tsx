@@ -21,9 +21,6 @@ vi.mock("next/navigation", () => ({
 
 const ORIGIN = "http://localhost:3000";
 
-const bodyWith = (text: string) =>
-    JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text }] }] });
-
 function cardJson(id: number, title: string) {
     return {
         id,

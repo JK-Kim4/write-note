@@ -40,7 +40,6 @@ export const projects = {
         return cards.map((card) => ({
             ...card,
             docUpdatedAt: card.documentUpdatedAt,
-            lastSentenceSource: card.lastSentenceSource,
         }));
     },
 

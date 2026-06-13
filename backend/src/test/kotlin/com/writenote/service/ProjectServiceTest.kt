@@ -398,8 +398,8 @@ class ProjectServiceTest {
     }
 
     @Test
-    @DisplayName("listCards — 챕터 합산 시 repository 호출 수가 3회 고정 (N+1 금지)")
-    fun `listCards makes exactly 3 repository calls regardless of chapter count`() {
+    @DisplayName("listCards — 챕터 합산 시 repository 호출 수가 4회 고정 (N+1 금지)")
+    fun `listCards makes exactly 4 repository calls regardless of chapter count`() {
         val t = Instant.parse("2026-06-10T00:00:00Z")
         every { userRepository.existsById(eq(1L)) } returns true
         every { projectRepository.findByUserIdAndArchivedAtIsNull(eq(1L)) } returns listOf(activeProject(100L, "소설"))
@@ -416,7 +416,7 @@ class ProjectServiceTest {
 
         service.listCards(userId = 1L)
 
-        // 3쿼리 일괄: existsById(user) / findByUserIdAndArchivedAtIsNull / findByProjectIdInAndDeletedAtIsNull / findByProjectIdInAndEndedAtIsNotNull
+        // 4쿼리 일괄: existsById(user) / findByUserIdAndArchivedAtIsNull / findByProjectIdInAndDeletedAtIsNull / findByProjectIdInAndEndedAtIsNotNull
         verify(exactly = 1) { userRepository.existsById(eq(1L)) }
         verify(exactly = 1) { projectRepository.findByUserIdAndArchivedAtIsNull(eq(1L)) }
         verify(exactly = 1) { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(100L))) }
