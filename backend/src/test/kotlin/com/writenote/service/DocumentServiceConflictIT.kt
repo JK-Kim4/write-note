@@ -55,7 +55,10 @@ class DocumentServiceConflictIT
             entityManager.flush()
             entityManager.clear()
 
-            val document = documentRepository.findByProjectId(projectResponse.id).orElseThrow()
+            val document =
+                documentRepository
+                    .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectResponse.id)
+                    .first()
             val projectId = projectResponse.id
             val documentId = requireNotNull(document.id)
             val token0 = requireNotNull(document.updatedAt)
@@ -106,7 +109,10 @@ class DocumentServiceConflictIT
             entityManager.flush()
             entityManager.clear()
 
-            val document = documentRepository.findByProjectId(projectResponse.id).orElseThrow()
+            val document =
+                documentRepository
+                    .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectResponse.id)
+                    .first()
             val projectId = projectResponse.id
             val documentId = requireNotNull(document.id)
             val token0 = requireNotNull(document.updatedAt)
@@ -146,7 +152,10 @@ class DocumentServiceConflictIT
             entityManager.flush()
             entityManager.clear()
 
-            val document = documentRepository.findByProjectId(projectResponse.id).orElseThrow()
+            val document =
+                documentRepository
+                    .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectResponse.id)
+                    .first()
             val projectId = projectResponse.id
             val documentId = requireNotNull(document.id)
             val token0 = requireNotNull(document.updatedAt)
@@ -186,7 +195,10 @@ class DocumentServiceConflictIT
             entityManager.flush()
             entityManager.clear()
 
-            val document = documentRepository.findByProjectId(projectResponse.id).orElseThrow()
+            val document =
+                documentRepository
+                    .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectResponse.id)
+                    .first()
             val projectId = projectResponse.id
             val documentId = requireNotNull(document.id)
             val token0 = requireNotNull(document.updatedAt)

@@ -374,3 +374,168 @@ describe("useDocumentSession — 진짜 충돌(US3)", () => {
         expect(result.current.syncStatus).not.toBe("conflict");
     });
 });
+
+describe("useDocumentSession — 챕터 전환(방안 A: 리마운트) 거짓 409 회귀", () => {
+    /**
+     * 버그 재현: 챕터 A(documentId=10, serverVersion="vA")에서 B(documentId=20, serverVersion="vB")로
+     * 전환할 때, initRef 가드로 인해 versionRef 가 A 의 토큰으로 남아 B 저장 시 거짓 409 발생.
+     *
+     * 방안 A 검증: 챕터 전환 = 세션 리마운트(unmount → 새 renderHook).
+     * 새 인스턴스는 initRef.current = false → B 의 serverVersion 으로 올바르게 초기화.
+     * B 에서 편집 후 PUT 에 "vB" 토큰이 나가야 한다(버그 시 "vA 토큰" → 409).
+     */
+    afterEach(() => {
+        if (typeof localStorage !== "undefined") localStorage.clear();
+    });
+
+    it("챕터 A 에서 저장 후 챕터 B 세션을 새로 마운트하면 B 의 version 으로 저장된다(거짓 409 없음)", async () => {
+        const DOC_A = 10;
+        const DOC_B = 20;
+        const VERSION_A = "2026-06-01T00:00:00Z";
+        const VERSION_B = "2026-06-02T00:00:00Z";
+        const BODY_A = JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "챕터A" }] }] });
+        const BODY_B = JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "챕터B" }] }] });
+
+        // 두 챕터 각각의 서버 토큰 추적
+        let tokenA = VERSION_A;
+        let tokenB = VERSION_B;
+        const capturedVersions: { docId: number; version: string }[] = [];
+
+        server.use(
+            http.put(`${ORIGIN}/api/documents/${DOC_A}`, async ({ request }) => {
+                const { body, version } = (await request.json()) as { body: string; version: string };
+                capturedVersions.push({ docId: DOC_A, version });
+                if (version !== tokenA) {
+                    return HttpResponse.json(
+                        { success: false, data: { code: "DOCUMENT_VERSION_CONFLICT", currentVersion: tokenA, currentBody: BODY_A }, error: { code: "DOCUMENT_VERSION_CONFLICT", message: "충돌" } },
+                        { status: 409 },
+                    );
+                }
+                tokenA = `tA-${capturedVersions.length}`;
+                return HttpResponse.json({ success: true, data: { id: DOC_A, body, wordCount: 0, version: tokenA, updatedAt: tokenA }, error: null });
+            }),
+            http.put(`${ORIGIN}/api/documents/${DOC_B}`, async ({ request }) => {
+                const { body, version } = (await request.json()) as { body: string; version: string };
+                capturedVersions.push({ docId: DOC_B, version });
+                if (version !== tokenB) {
+                    return HttpResponse.json(
+                        { success: false, data: { code: "DOCUMENT_VERSION_CONFLICT", currentVersion: tokenB, currentBody: BODY_B }, error: { code: "DOCUMENT_VERSION_CONFLICT", message: "충돌" } },
+                        { status: 409 },
+                    );
+                }
+                tokenB = `tB-${capturedVersions.length}`;
+                return HttpResponse.json({ success: true, data: { id: DOC_B, body, wordCount: 0, version: tokenB, updatedAt: tokenB }, error: null });
+            }),
+        );
+
+        // ── 챕터 A 세션 ──
+        const sessionA = renderHook((props) => useDocumentSession(props, FAST), {
+            initialProps: { documentId: DOC_A, projectId: PROJECT_ID, serverBody: BODY_A, serverVersion: VERSION_A, body: BODY_A },
+        });
+        // 챕터 A 에서 편집 → 저장 → 세션 토큰 전진
+        sessionA.rerender({ documentId: DOC_A, projectId: PROJECT_ID, serverBody: BODY_A, serverVersion: VERSION_A, body: "챕터A-편집" });
+        await waitFor(() => expect(sessionA.result.current.syncStatus).toBe("synced"));
+        const advancedTokenA = sessionA.result.current.version;
+        expect(advancedTokenA).not.toBe(VERSION_A); // A 토큰이 전진됨
+
+        // 챕터 전환 전 flushDraft (IME 보존 — 방안 A 의 언마운트 직전 시나리오)
+        act(() => sessionA.result.current.flushDraft("챕터A-편집"));
+        // 챕터 A 세션 언마운트 (방안 A: key 교체로 리마운트 = 언마운트 + 새 마운트)
+        sessionA.unmount();
+
+        // ── 챕터 B 세션 (새 인스턴스 — 방안 A 의 핵심) ──
+        const sessionB = renderHook((props) => useDocumentSession(props, FAST), {
+            initialProps: { documentId: DOC_B, projectId: PROJECT_ID, serverBody: BODY_B, serverVersion: VERSION_B, body: BODY_B },
+        });
+        // 챕터 B 에서 편집 → 저장
+        sessionB.rerender({ documentId: DOC_B, projectId: PROJECT_ID, serverBody: BODY_B, serverVersion: VERSION_B, body: "챕터B-편집" });
+        await waitFor(() => expect(sessionB.result.current.syncStatus).toBe("synced"));
+
+        // 검증: B 에 저장된 version 이 B 의 초기 토큰(VERSION_B)이어야 한다.
+        // 버그 시: A 의 전진된 토큰(advancedTokenA)이 B 저장에 사용 → 서버가 VERSION_B 기대 → 409.
+        const bSaveVersions = capturedVersions.filter((v) => v.docId === DOC_B).map((v) => v.version);
+        expect(bSaveVersions.length).toBeGreaterThan(0);
+        // 첫 번째 B 저장의 version 은 반드시 VERSION_B 여야 한다(방안 A 정상 경로).
+        // 버그 경로라면 advancedTokenA 가 나와서 409 → conflict 상태.
+        expect(bSaveVersions[0]).toBe(VERSION_B);
+        expect(sessionB.result.current.syncStatus).toBe("synced");
+        expect(sessionB.result.current.conflict).toBeNull();
+
+        sessionB.unmount();
+    });
+
+    it("같은 세션 인스턴스에서 documentId 만 바꾸면(re-render — 버그 경로) B 저장 시 A 토큰이 나가 409 가 된다", async () => {
+        /**
+         * 이 테스트는 기존 버그(initRef 가드로 인한 stale versionRef)를 재현한다.
+         * 방안 A 이전의 page.tsx 동작: 같은 useDocumentSession 인스턴스에 documentId prop 만 변경.
+         * 이 테스트는 "버그가 실재함"을 RED로 확인하는 테스트다.
+         * 방안 A 구현 후에도 이 테스트 자체는 여전히 "같은 훅 인스턴스에서는 버그가 있음"을 보여준다.
+         * (방안 A 는 리마운트로 이 경로를 아예 피함)
+         */
+        const DOC_A = 10;
+        const DOC_B = 20;
+        const VERSION_A = "2026-06-01T00:00:00Z";
+        const VERSION_B = "2026-06-02T00:00:00Z";
+        const BODY_A = JSON.stringify({ type: "doc", content: [] });
+        const BODY_B = JSON.stringify({ type: "doc", content: [{ type: "paragraph" }] });
+
+        let tokenA = VERSION_A;
+        let tokenB = VERSION_B;
+        const bSaveVersions: string[] = [];
+
+        server.use(
+            http.put(`${ORIGIN}/api/documents/${DOC_A}`, async ({ request }) => {
+                const { body, version } = (await request.json()) as { body: string; version: string };
+                if (version !== tokenA) {
+                    return HttpResponse.json({ success: false, data: { code: "DOCUMENT_VERSION_CONFLICT", currentVersion: tokenA, currentBody: BODY_A }, error: { code: "DOCUMENT_VERSION_CONFLICT", message: "충돌" } }, { status: 409 });
+                }
+                tokenA = "tA1";
+                return HttpResponse.json({ success: true, data: { id: DOC_A, body, wordCount: 0, version: tokenA, updatedAt: tokenA }, error: null });
+            }),
+            http.put(`${ORIGIN}/api/documents/${DOC_B}`, async ({ request }) => {
+                const { body, version } = (await request.json()) as { body: string; version: string };
+                bSaveVersions.push(version);
+                if (version !== tokenB) {
+                    return HttpResponse.json({ success: false, data: { code: "DOCUMENT_VERSION_CONFLICT", currentVersion: tokenB, currentBody: BODY_B }, error: { code: "DOCUMENT_VERSION_CONFLICT", message: "충돌" } }, { status: 409 });
+                }
+                tokenB = "tB1";
+                return HttpResponse.json({ success: true, data: { id: DOC_B, body, wordCount: 0, version: tokenB, updatedAt: tokenB }, error: null });
+            }),
+        );
+
+        // 같은 훅 인스턴스에서 A 로 시작
+        const { result, rerender } = renderHook((props) => useDocumentSession(props, FAST), {
+            initialProps: { documentId: DOC_A, projectId: PROJECT_ID, serverBody: BODY_A, serverVersion: VERSION_A, body: BODY_A },
+        });
+        // A 에서 편집 → 저장(A 토큰 전진)
+        rerender({ documentId: DOC_A, projectId: PROJECT_ID, serverBody: BODY_A, serverVersion: VERSION_A, body: "A-편집" });
+        await waitFor(() => expect(result.current.version).toBe("tA1"));
+
+        // 같은 인스턴스로 documentId 만 B 로 변경 (기존 버그 경로)
+        // serverVersion = VERSION_B, serverBody = BODY_B 로 변경 + body 도 B 로 변경해 dirty 발생
+        rerender({ documentId: DOC_B, projectId: PROJECT_ID, serverBody: BODY_B, serverVersion: VERSION_B, body: "B-편집" });
+
+        // 버그 분석:
+        // - initRef.current = true → initEffect 에서 early return → versionRef 재초기화 안 됨
+        // - 그런데 body = "B-편집" ≠ baselineBodyRef(BODY_A) 이므로 dirty
+        // - but documentId 가 바뀌면 initRef.current 가 true 여서 body effect 도 early return(if (!initRef.current) return)
+        // - 따라서 B 에 편집이 있어도 setTimeout 이 스케줄되지 않아 저장 자체가 안 일어남
+        // - page.tsx 에서는 PaperEditor key={editorKey++} 로 에디터만 리마운트 + body setState(null)→(B본문)
+        //   → useDocumentSession 은 같은 인스턴스 + body prop 이 변경되어 effect 재실행
+        //   → initRef.current = true 이므로 latestBodyRef 는 갱신되지 않음
+        //   → 그 뒤 다시 body prop 이 들어와도 latestBodyRef 가 stale A 본문
+        // 실제 page.tsx 동작을 모사: body 가 null→B 으로 바뀌는 흐름을 rerender 로 재현
+        rerender({ documentId: DOC_B, projectId: PROJECT_ID, serverBody: BODY_B, serverVersion: VERSION_B, body: BODY_B });
+        await new Promise((r) => setTimeout(r, 10)); // initRef effect 처리 대기
+        // 이제 B 에서 실제 편집
+        rerender({ documentId: DOC_B, projectId: PROJECT_ID, serverBody: BODY_B, serverVersion: VERSION_B, body: "B-편집2" });
+
+        await waitFor(() => bSaveVersions.length > 0, { timeout: 200 });
+
+        // 버그: initRef.current = true → B serverVersion(VERSION_B)으로 재초기화 안 됨
+        // → versionRef = "tA1"(A 의 전진된 토큰)로 B 저장 → 서버 B 는 VERSION_B 기대 → 409
+        // 이 테스트는 버그 경로를 문서화한다.
+        // bSaveVersions[0] 이 "tA1"(A 토큰)이면 버그 확인, VERSION_B 이면 의도치 않게 고쳐진 것.
+        expect(bSaveVersions[0]).toBe("tA1"); // 버그: A 의 토큰이 B 에 나감
+    });
+});

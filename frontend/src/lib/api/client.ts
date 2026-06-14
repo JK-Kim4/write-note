@@ -10,6 +10,8 @@ import type { Result } from "@/types/api";
  * - 401 reactive refresh: 보호 요청 401 → `POST /api/auth/refresh`(쿠키의 refresh_token) 1회 → 성공 시 원요청 재시도.
  *   refresh 자체 / 인증 흐름(login·logout 등)은 `retryOnAuthFailure: false` 로 무한 루프 방지.
  * - 409 DOCUMENT_VERSION_CONFLICT: `ConflictError` throw — currentVersion/currentBody 포함 (006 US1 자동저장).
+ * - 409 LAST_CHAPTER_UNDELETABLE: `LastChapterError` throw — 마지막 활성 챕터 삭제 거부 (022 US3).
+ *   ⚠️ 409 분기는 error.code 기준 — EMAIL_ALREADY_REGISTERED / KAKAO_ALREADY_LINKED 등 다른 409 와 status 공유.
  */
 
 const REFRESH_PATH = "/api/auth/refresh";
@@ -36,6 +38,17 @@ export class ConflictError extends Error {
         this.code = "DOCUMENT_VERSION_CONFLICT";
         this.currentVersion = currentVersion;
         this.currentBody = currentBody;
+    }
+}
+
+/** 마지막 활성 챕터 삭제 거부(409) 전용 에러 — 022 US3 C4. */
+export class LastChapterError extends Error {
+    code: string;
+
+    constructor(message = "마지막 챕터는 삭제할 수 없습니다.") {
+        super(message);
+        this.name = "LastChapterError";
+        this.code = "LAST_CHAPTER_UNDELETABLE";
     }
 }
 
@@ -82,6 +95,11 @@ const unwrap = async <T>(response: Response): Promise<T> => {
             const currentVersion = typeof data?.["currentVersion"] === "string" ? data["currentVersion"] : "";
             const currentBody = typeof data?.["currentBody"] === "string" ? data["currentBody"] : "";
             throw new ConflictError(currentVersion, currentBody);
+        }
+        if (code === "LAST_CHAPTER_UNDELETABLE") {
+            throw new LastChapterError(
+                typeof error?.["message"] === "string" ? error["message"] : undefined,
+            );
         }
         throw new ApiError(
             code ?? "CONFLICT",

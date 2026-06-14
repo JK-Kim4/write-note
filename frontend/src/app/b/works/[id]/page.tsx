@@ -1,43 +1,56 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Editor } from "@tiptap/react";
-import { documentKeys, useProjectDocument } from "@/lib/query/useDocument";
+import { useCreateChapter, useDeleteChapter, useProjectChapters, useReorderChapters, useRestoreChapter, useUpdateChapterTitle } from "@/lib/query/useDocument";
 import { useProject, useUpdateProject } from "@/lib/query/useProjects";
 import { PAPER_PRESETS, type PaperSize } from "@/components/editor/pageLayout";
 import { logKeys } from "@/lib/query/useLogs";
-import { useDocumentSession } from "@/hooks/useDocumentSession";
 import { useWorkSession } from "@/hooks/useWorkSession";
 import { rememberLastProject } from "@/lib/lastProject";
 import { useEditorOutline } from "@/components/editor/useEditorOutline";
-import type { DocumentChange } from "@/components/editor/PaperEditor";
-import { BEditor } from "@/components/b/BEditor";
+import { Toast } from "@/components/ui/Toast";
 import { BWorkSidePanel } from "@/components/b/BWorkSidePanel";
-import type { ProjectDocument } from "@/lib/types/domain";
+import { BChapterEditor, type BChapterEditorConflictHandlers, type BChapterEditorSyncStatus } from "@/components/b/BChapterEditor";
+import { ChapterList } from "@/components/editor/ChapterList";
 
 /**
  * B타입 집필 화면 — fable-test WorkDetailPage 3패널: [목차 w-64 | 에디터 | 메모·인물 w-80].
  * 에디터는 BEditor(흰 배경 + 상단 서식 메뉴바 + 줄노트 라인 + 상태바) — 사용자 확정 디자인.
  * 자동저장 결선(useDocumentSession — localStorage draft·버전 토큰·충돌)과 작업 세션(useWorkSession)은
  * A 집필실과 동일 규약.
+ *
+ * 방안 A (022 거짓 409 수정):
+ * 에디터·세션을 BChapterEditor 로 분리하고 `key={currentChapterId}` 로 리마운트.
+ * 챕터 전환 시 새 useDocumentSession 인스턴스 → versionRef 새 챕터 토큰 초기화 → 거짓 409 제거.
  */
-const EMPTY_DOC = JSON.stringify({ type: "doc", content: [] });
 
 export default function BWorkDetailPage() {
     const params = useParams<{ id: string }>();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const projectId = Number(params.id);
     const queryClient = useQueryClient();
 
     const projectQuery = useProject(projectId);
-    const { data: doc, isLoading, isError } = useProjectDocument(projectId);
 
-    const [body, setBody] = useState<string | null>(null);
-    // editorKey: 복구/충돌 시 BEditor 강제 리마운트용(본문 교체 반영).
-    const [editorKey, setEditorKey] = useState(0);
+    // 챕터 목록 로드
+    const chaptersQuery = useProjectChapters(projectId);
+    const chapters = useMemo(() => chaptersQuery.data ?? [], [chaptersQuery.data]);
+
+    // URL ?chapter 쿼리에서 현재 챕터 ID 결정. 없으면 가장 최근 수정 챕터.
+    const chapterIdFromUrl = Number(searchParams.get("chapter") ?? "") || null;
+    const currentChapterId = useMemo<number | null>(() => {
+        if (chapterIdFromUrl != null && chapters.some((c) => c.id === chapterIdFromUrl)) {
+            return chapterIdFromUrl;
+        }
+        if (chapters.length === 0) return null;
+        return chapters.reduce((latest, c) => (c.updatedAt > latest.updatedAt ? c : latest)).id;
+    }, [chapterIdFromUrl, chapters]);
+
     const [editor, setEditor] = useState<Editor | null>(null);
     const [endWorkOpen, setEndWorkOpen] = useState(false);
     const [endWorkBody, setEndWorkBody] = useState("");
@@ -50,59 +63,118 @@ export default function BWorkDetailPage() {
     const rightDrawerRef = useRef<HTMLDivElement>(null);
     const conflictModalRef = useRef<HTMLDivElement>(null);
     const endWorkModalRef = useRef<HTMLDivElement>(null);
-    // 보조 패널 접기·탭 상태를 부모로 끌어올려 inline·drawer 두 인스턴스가 공유(상태 분리 방지).
+    // 보조 패널 접기·탭 상태
     const [panelOpen, setPanelOpen] = useState(true);
     const [panelTab, setPanelTab] = useState<"memos" | "characters">("memos");
 
+    // BChapterEditor 로부터 받은 저장 상태 / flushDraft / 충돌 핸들러
+    const flushDraftRef = useRef<((body: string) => void) | null>(null);
+    const latestBodyForFlushRef = useRef<string>(JSON.stringify({ type: "doc", content: [] }));
+    const [conflictHandlers, setConflictHandlers] = useState<BChapterEditorConflictHandlers>({ conflict: null, reload: () => {}, overwrite: () => {} });
+
+    const handleSyncStatus = useCallback(({ flushDraft }: BChapterEditorSyncStatus) => {
+        flushDraftRef.current = flushDraft;
+    }, []);
+
+    const handleConflict = useCallback((handlers: BChapterEditorConflictHandlers) => {
+        setConflictHandlers(handlers);
+    }, []);
+
     const { endWithLog } = useWorkSession(projectId);
     const updateProject = useUpdateProject();
-    // 용지 크기는 작품 속성(트랙3) — 전역 설정이 아니라 이 작품의 paperSize. 변경 시 PATCH → 비율 즉시 반영.
+    const createChapter = useCreateChapter(projectId);
+
+    // 챕터 순서 이동 mutation (022 US2)
+    const reorderChapters = useReorderChapters(projectId);
+
+    // 챕터 삭제·복구 mutation (022 US3 T030)
+    const deleteChapter = useDeleteChapter(projectId);
+    const restoreChapter = useRestoreChapter(projectId);
+    const [pendingDelete, setPendingDelete] = useState<{ ids: number[]; seq: number } | null>(null);
+
+    // 챕터 제목 변경 mutation (022 dogfooding T-RENAME)
+    const updateChapterTitle = useUpdateChapterTitle(projectId);
+
+    // 용지 크기는 작품 속성 — 변경 시 PATCH → 비율 즉시 반영.
     const paperSize: PaperSize = projectQuery.data?.paperSize ?? "A4";
     const handlePaperSizeChange = (next: PaperSize) => {
         if (next === paperSize) return;
         updateProject.mutate({ id: projectId, patch: { paperSize: next } });
     };
 
-    // 집필 네비("집필" 메뉴)가 돌아올 작품으로 기억 — A Rail 과 동일한 lastProject 공유.
     useEffect(() => {
         if (Number.isFinite(projectId)) rememberLastProject(projectId);
     }, [projectId]);
 
-    const session = useDocumentSession({
-        documentId: doc?.id ?? 0,
-        projectId,
-        serverBody: doc?.bodyJson ?? EMPTY_DOC,
-        serverVersion: doc?.version ?? "",
-        body: body ?? doc?.bodyJson ?? EMPTY_DOC,
-        onSaved: (res) =>
-            queryClient.setQueryData<ProjectDocument | undefined>(documentKeys.byProject(projectId), (old) =>
-                old ? { ...old, version: res.version, wordCount: res.wordCount, bodyJson: res.body } : old,
-            ),
-    });
+    // 챕터 전환 핸들러 — 전환 직전 현재 초안 flush + URL 변경.
+    // BChapterEditor key={currentChapterId} 리마운트가 새 세션 생성 → 거짓 409 제거.
+    const handleChapterSelect = useCallback(
+        (nextId: number) => {
+            if (nextId === currentChapterId) return;
+            // 전환 직전 현재 챕터 초안 즉시 기록 (IME 조합 중 작성분 보존 — 016).
+            flushDraftRef.current?.(latestBodyForFlushRef.current);
+            const url = `/b/works/${projectId}?chapter=${nextId}`;
+            router.replace(url, { scroll: false });
+        },
+        [currentChapterId, projectId, router],
+    );
 
-    // localStorage-first 자동 복원 — 미동기화 draft 가 있으면 에디터 초기 본문으로 즉시 복원.
-    const initialBody = body ?? session.restoredBody ?? doc?.bodyJson ?? null;
+    // 챕터 삭제 핸들러 (022 US3 T030)
+    const handleDeleteChapter = useCallback(
+        (deletedId: number) => {
+            if (deletedId === currentChapterId && chapters.length > 1) {
+                const idx = chapters.findIndex((c) => c.id === deletedId);
+                const nextChapter = idx > 0 ? chapters[idx - 1] : chapters[idx + 1];
+                if (nextChapter != null) {
+                    handleChapterSelect(nextChapter.id);
+                }
+            }
+            setPendingDelete((prev) => ({ ids: [...(prev?.ids ?? []), deletedId], seq: (prev?.seq ?? 0) + 1 }));
+            deleteChapter.mutate(deletedId);
+        },
+        [chapters, currentChapterId, deleteChapter, handleChapterSelect],
+    );
 
-    useEffect(() => {
-        // 미동기화 draft 를 편집 state 로 1회 채택(localStorage-first 복원). 외부(세션)→state 동기화라 effect 가 맞다.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        if (session.restoredBody != null) setBody((b) => b ?? session.restoredBody);
-    }, [session.restoredBody]);
+    const handleRestoreChapter = useCallback(() => {
+        if (!pendingDelete) return;
+        for (const id of pendingDelete.ids) restoreChapter.mutate(id);
+        setPendingDelete(null);
+    }, [pendingDelete, restoreChapter]);
 
-    const handleChange = useCallback((change: DocumentChange) => setBody(change.bodyJson), []);
+    const dismissDeleteToast = useCallback(() => setPendingDelete(null), []);
 
-    // 진짜 충돌(409) — 다시 불러오기: 서버 최신본·토큰을 세션 baseline 으로 채택 / 덮어쓰기: 내 본문 강제 저장.
-    const handleReload = useCallback(() => {
-        const conflict = session.conflict;
-        if (!conflict) return;
-        queryClient.setQueryData<ProjectDocument | undefined>(documentKeys.byProject(projectId), (old) =>
-            old ? { ...old, bodyJson: conflict.currentBody, version: conflict.currentVersion } : old,
-        );
-        setBody(conflict.currentBody);
-        setEditorKey((k) => k + 1);
-        // dismissConflict 만 하면 세션 토큰이 옛 값에 머물러 다음 저장이 또 409(불러오기→충돌 루프).
-        session.reloadFromServer(conflict.currentVersion, conflict.currentBody);
-    }, [session, queryClient, projectId]);
+    // 챕터 생성 핸들러
+    const handleCreateChapter = useCallback(async () => {
+        try {
+            const newDoc = await createChapter.mutateAsync(undefined);
+            handleChapterSelect(newDoc.id);
+        } catch {
+            // 생성 실패 — 조용히 처리
+        }
+    }, [createChapter, handleChapterSelect]);
+
+    // 챕터 순서 이동 핸들러 (022 US2)
+    const handleMoveChapter = useCallback(
+        (id: number, direction: "up" | "down") => {
+            const idx = chapters.findIndex((c) => c.id === id);
+            if (idx < 0) return;
+            if (direction === "up" && idx === 0) return;
+            if (direction === "down" && idx === chapters.length - 1) return;
+            const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+            const newIds = chapters.map((c) => c.id);
+            [newIds[idx], newIds[swapIdx]] = [newIds[swapIdx], newIds[idx]];
+            reorderChapters.mutate(newIds);
+        },
+        [chapters, reorderChapters],
+    );
+
+    // 챕터 제목 변경 핸들러 (022 dogfooding T-RENAME)
+    const handleRenameChapter = useCallback(
+        (documentId: number, title: string) => {
+            updateChapterTitle.mutate({ documentId, title });
+        },
+        [updateChapterTitle],
+    );
 
     const handleEndWork = async () => {
         const trimmed = endWorkBody.trim();
@@ -116,14 +188,13 @@ export default function BWorkDetailPage() {
             setEndWorkBody("");
             router.push("/b/library");
         } catch {
-            // 종료 실패 — 모달 유지(재시도 가능). closedRef 는 useWorkSession 이 복원.
             setEndWorkError("기록 저장에 실패했습니다. 다시 시도해 주세요.");
         } finally {
             setIsEndingWork(false);
         }
     };
 
-    // ESC 키로 열린 drawer·종료 모달 닫기(충돌 모달은 선택 강제라 제외).
+    // ESC 키로 열린 drawer·종료 모달 닫기
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key !== "Escape") return;
@@ -135,11 +206,10 @@ export default function BWorkDetailPage() {
         return () => document.removeEventListener("keydown", handleKeyDown);
     }, [leftDrawerOpen, rightDrawerOpen, endWorkOpen, isEndingWork]);
 
-    // Tab focus trap — 열린 drawer·모달 안에서만 포커스를 순환시킨다(배경 이탈 방지).
-    // 동시에 하나만 열린다는 가정 하에 우선순위로 활성 컨테이너를 고른다.
+    // Tab focus trap
     useEffect(() => {
         const activeContainer = (): HTMLElement | null => {
-            if (session.conflict != null) return conflictModalRef.current;
+            if (conflictHandlers.conflict != null) return conflictModalRef.current;
             if (endWorkOpen) return endWorkModalRef.current;
             if (rightDrawerOpen) return rightDrawerRef.current;
             if (leftDrawerOpen) return leftDrawerRef.current;
@@ -168,20 +238,10 @@ export default function BWorkDetailPage() {
         };
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
-    }, [leftDrawerOpen, rightDrawerOpen, endWorkOpen, session.conflict]);
+    }, [leftDrawerOpen, rightDrawerOpen, endWorkOpen, conflictHandlers.conflict]);
 
     const outline = useEditorOutline(editor, ".b-editor-scroll");
     const projectTitle = projectQuery.data?.title ?? "";
-
-    const statusLabel =
-        session.syncStatus === "syncing"
-            ? "저장 중…"
-            : session.syncStatus === "error"
-              ? "저장 실패 — 잠시 후 다시 시도합니다"
-              : session.syncStatus === "conflict"
-                ? "충돌 — 다른 기기에서 수정됨"
-                : "저장됨";
-    const statusTone = session.syncStatus === "error" || session.syncStatus === "conflict" ? "error" : "ok";
 
     /** 목차 패널 내용 — 좁은 폭 drawer 와 넓은 폭 inline 모두 동일 마크업 공유. */
     const outlinePanel = (
@@ -216,6 +276,21 @@ export default function BWorkDetailPage() {
                         ))}
                     </select>
                 </div>
+            </div>
+            {/* 챕터 목록 */}
+            <div className="border-b border-gray-200 px-2 py-2">
+                <ChapterList
+                    chapters={chapters}
+                    currentChapterId={currentChapterId}
+                    onSelect={(id) => {
+                        handleChapterSelect(id);
+                        setLeftDrawerOpen(false);
+                    }}
+                    onCreate={handleCreateChapter}
+                    onMove={handleMoveChapter}
+                    onDelete={handleDeleteChapter}
+                    onRename={handleRenameChapter}
+                />
             </div>
             <div className="flex-1 overflow-y-auto p-2">
                 <p className="px-2 py-1 text-xs font-medium text-gray-400">목차</p>
@@ -267,8 +342,7 @@ export default function BWorkDetailPage() {
                 {outlinePanel}
             </div>
 
-            {/* ── 좁은 폭(<880px): 토글 버튼 row (에디터 위) + 백드롭 + drawer ── */}
-            {/* 토글 버튼 row — 좁은 폭에서만 표시, floating bar */}
+            {/* ── 좁은 폭(<880px): 토글 버튼 row + 백드롭 + drawer ── */}
             <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 flex items-center gap-2 px-2 pt-1.5 min-[880px]:hidden">
                 <button
                     type="button"
@@ -352,7 +426,6 @@ export default function BWorkDetailPage() {
                     </button>
                 </div>
                 <div className="flex flex-1 flex-col overflow-hidden">
-                    {/* drawer 안에서는 항상 펼침(collapsible=false) — 공유 panelOpen 무시. 닫기는 상단 ✕ 로만. */}
                     <BWorkSidePanel
                         projectId={projectId}
                         collapsible={false}
@@ -362,43 +435,37 @@ export default function BWorkDetailPage() {
                 </div>
             </div>
 
+            {/* 에디터 영역 — BChapterEditor key={currentChapterId} 로 챕터 전환 시 리마운트 */}
             {Number.isNaN(projectId) ? (
                 <div className="flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white">
                     <p className="text-sm text-gray-500">잘못된 작품입니다.</p>
                 </div>
-            ) : isLoading ? (
+            ) : chaptersQuery.isLoading ? (
                 <div className="flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white">
                     <p className="text-sm text-gray-400">문서 불러오는 중…</p>
                 </div>
-            ) : isError || !doc ? (
+            ) : currentChapterId == null ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white">
-                    <p className="text-sm text-gray-500">문서를 불러올 수 없습니다.</p>
-                    <Link
-                        href="/b/library"
-                        className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
-                    >
+                    <p className="text-sm text-gray-400">챕터를 선택하거나 생성해 주세요.</p>
+                    <Link href="/b/library" className="text-xs text-indigo-600 hover:underline">
                         작품 목록으로
                     </Link>
                 </div>
             ) : (
-                // 좁은 폭(<880px) floating 토글 row(목차·쪽지·인물, 높이 ≈44px)와 에디터 툴바가 겹치지 않도록
-                // 래퍼 상단에 좁은 폭 전용 여백을 둔다(넓은 폭은 0). BEditor 자체는 불변.
-                <div className="flex min-w-0 flex-1 flex-col pt-11 min-[880px]:pt-0">
-                    <BEditor
-                        key={editorKey}
-                        initialBodyJson={initialBody ?? doc.bodyJson}
-                        onChange={handleChange}
-                        onDraftUpdate={session.flushDraft}
-                        onEditorReady={setEditor}
-                        statusLabel={statusLabel}
-                        statusTone={statusTone}
-                        paperSize={paperSize}
-                    />
-                </div>
+                <BChapterEditor
+                    key={currentChapterId}
+                    documentId={currentChapterId}
+                    projectId={projectId}
+                    paperSize={paperSize}
+                    chapterTitle={chapters.find((c) => c.id === currentChapterId)?.title}
+                    onChapterRename={currentChapterId != null ? (title) => handleRenameChapter(currentChapterId, title) : undefined}
+                    onSyncStatus={handleSyncStatus}
+                    onConflict={handleConflict}
+                    onEditorReady={setEditor}
+                />
             )}
 
-            {/* ── 넓은 폭(≥880px): inline 우측 패널 ── */}
-            {/* display:contents 로 래퍼가 flex-item 취급 없이 BWorkSidePanel 의 자체 w-80/w-8 이 부모 flex 에 직접 참여. */}
+            {/* 넓은 폭 inline 우측 패널 */}
             <div className="hidden min-[880px]:contents">
                 <BWorkSidePanel
                     projectId={projectId}
@@ -409,7 +476,18 @@ export default function BWorkDetailPage() {
                 />
             </div>
 
-            {session.conflict != null && (
+            {pendingDelete && (
+                <Toast
+                    key={pendingDelete.seq}
+                    message="챕터를 삭제했어요."
+                    actionLabel="되돌리기"
+                    onAction={handleRestoreChapter}
+                    onDismiss={dismissDeleteToast}
+                />
+            )}
+
+            {/* 충돌 다이얼로그 — BChapterEditor 가 콜백으로 올린 conflict / 해결 핸들러 사용 */}
+            {conflictHandlers.conflict != null && (
                 <div className="fixed inset-0 z-40 flex items-center justify-center bg-gray-900/40 p-4">
                     <div
                         ref={conflictModalRef}
@@ -424,14 +502,14 @@ export default function BWorkDetailPage() {
                         <div className="mt-5 flex justify-end gap-2">
                             <button
                                 type="button"
-                                onClick={handleReload}
+                                onClick={conflictHandlers.reload}
                                 className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
                             >
                                 서버 최신본 불러오기
                             </button>
                             <button
                                 type="button"
-                                onClick={() => session.overwrite(session.conflict?.currentVersion ?? "")}
+                                onClick={conflictHandlers.overwrite}
                                 className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
                             >
                                 내 본문으로 덮어쓰기

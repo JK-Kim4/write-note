@@ -252,7 +252,16 @@ class ProjectServiceTest {
         projectId: Long,
         wordCount: Int,
         updatedAt: Instant,
-    ) = Document(id = projectId * 10, projectId = projectId, wordCount = wordCount, createdAt = updatedAt, updatedAt = updatedAt)
+        id: Long = projectId * 10,
+        deletedAt: Instant? = null,
+    ) = Document(
+        id = id,
+        projectId = projectId,
+        wordCount = wordCount,
+        createdAt = updatedAt,
+        updatedAt = updatedAt,
+        deletedAt = deletedAt,
+    )
 
     private fun endedSession(
         projectId: Long,
@@ -266,7 +275,7 @@ class ProjectServiceTest {
         every { userRepository.existsById(eq(1L)) } returns true
         every { projectRepository.findByUserIdAndArchivedAtIsNull(eq(1L)) } returns
             listOf(activeProject(100L, "여름의 끝"), activeProject(200L, "파란색의 온도"))
-        every { documentRepository.findByProjectIdIn(eq(listOf(100L, 200L))) } returns
+        every { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(100L, 200L))) } returns
             listOf(
                 docOf(100L, wordCount = 42500, updatedAt = Instant.parse("2026-06-10T02:00:00Z")),
                 docOf(200L, wordCount = 1000, updatedAt = Instant.parse("2026-06-01T00:00:00Z")),
@@ -296,7 +305,7 @@ class ProjectServiceTest {
     fun `listCards returns zero aggregates for fresh project`() {
         every { userRepository.existsById(eq(1L)) } returns true
         every { projectRepository.findByUserIdAndArchivedAtIsNull(eq(1L)) } returns listOf(activeProject(100L, "새 작품"))
-        every { documentRepository.findByProjectIdIn(eq(listOf(100L))) } returns
+        every { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(100L))) } returns
             listOf(docOf(100L, wordCount = 0, updatedAt = Instant.parse("2026-06-10T00:00:00Z")))
         every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(100L))) } returns emptyList()
         every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
@@ -324,5 +333,173 @@ class ProjectServiceTest {
 
         assertThatThrownBy { service.listCards(userId = 9L) }
             .isInstanceOf(ResourceNotFoundException::class.java)
+    }
+
+    // ── T031 챕터 합산 listCards ─────────────────────────────────────────────
+
+    @Test
+    @DisplayName("listCards — 활성 챕터 여럿일 때 wordCount 합산·documentUpdatedAt 최신값")
+    fun `listCards aggregates wordCount sum and latest updatedAt across chapters`() {
+        val older = Instant.parse("2026-06-10T00:00:00Z")
+        val newer = Instant.parse("2026-06-12T10:00:00Z")
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { projectRepository.findByUserIdAndArchivedAtIsNull(eq(1L)) } returns listOf(activeProject(100L, "소설A"))
+        // 작품 100에 활성 챕터 3개
+        every { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(100L))) } returns
+            listOf(
+                docOf(100L, wordCount = 1000, updatedAt = older, id = 1001L),
+                docOf(100L, wordCount = 2500, updatedAt = newer, id = 1002L),
+                docOf(100L, wordCount = 500, updatedAt = older, id = 1003L),
+            )
+        every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(100L))) } returns emptyList()
+        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+
+        val cards = service.listCards(userId = 1L)
+
+        assertThat(cards).hasSize(1)
+        val card = cards[0]
+        // wordCount = 1000 + 2500 + 500 = 4000
+        assertThat(card.wordCount).isEqualTo(4000)
+        // documentUpdatedAt = 세 챕터 중 최신 updated_at
+        assertThat(card.documentUpdatedAt).isEqualTo(newer)
+    }
+
+    @Test
+    @DisplayName("listCards — 삭제(deletedAt) 챕터는 합산에서 제외 (findByProjectIdInAndDeletedAtIsNull 계약)")
+    fun `listCards excludes soft-deleted chapters from aggregation`() {
+        // findByProjectIdInAndDeletedAtIsNull 가 활성 챕터만 반환하는 계약이므로,
+        // 삭제 챕터가 결과에 포함되지 않음을 서비스가 groupBy 로 올바르게 합산하는지 검증한다.
+        val t1 = Instant.parse("2026-06-10T00:00:00Z")
+        val t2 = Instant.parse("2026-06-11T00:00:00Z")
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { projectRepository.findByUserIdAndArchivedAtIsNull(eq(1L)) } returns
+            listOf(activeProject(200L, "소설B"), activeProject(300L, "소설C"))
+        // 200 = 활성 챕터 2개, 300 = 활성 챕터 1개
+        every {
+            documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(200L, 300L)))
+        } returns
+            listOf(
+                docOf(200L, wordCount = 3000, updatedAt = t1, id = 2001L),
+                docOf(200L, wordCount = 700, updatedAt = t2, id = 2002L),
+                docOf(300L, wordCount = 1200, updatedAt = t1, id = 3001L),
+            )
+        every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(200L, 300L))) } returns emptyList()
+        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+
+        val cards = service.listCards(userId = 1L)
+
+        assertThat(cards).hasSize(2)
+        val b = cards.first { it.id == 200L }
+        assertThat(b.wordCount).isEqualTo(3700) // 3000 + 700
+        assertThat(b.documentUpdatedAt).isEqualTo(t2) // 최신
+        val c = cards.first { it.id == 300L }
+        assertThat(c.wordCount).isEqualTo(1200)
+        assertThat(c.documentUpdatedAt).isEqualTo(t1)
+    }
+
+    @Test
+    @DisplayName("listCards — 챕터 합산 시 repository 호출 수가 4회 고정 (N+1 금지)")
+    fun `listCards makes exactly 4 repository calls regardless of chapter count`() {
+        val t = Instant.parse("2026-06-10T00:00:00Z")
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { projectRepository.findByUserIdAndArchivedAtIsNull(eq(1L)) } returns listOf(activeProject(100L, "소설"))
+        // 챕터 4개 — 호출 수 증가 없어야 함
+        every { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(100L))) } returns
+            listOf(
+                docOf(100L, wordCount = 100, updatedAt = t, id = 1001L),
+                docOf(100L, wordCount = 200, updatedAt = t, id = 1002L),
+                docOf(100L, wordCount = 300, updatedAt = t, id = 1003L),
+                docOf(100L, wordCount = 400, updatedAt = t, id = 1004L),
+            )
+        every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(100L))) } returns emptyList()
+        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+
+        service.listCards(userId = 1L)
+
+        // 4쿼리 일괄: existsById(user) / findByUserIdAndArchivedAtIsNull / findByProjectIdInAndDeletedAtIsNull / findByProjectIdInAndEndedAtIsNotNull
+        verify(exactly = 1) { userRepository.existsById(eq(1L)) }
+        verify(exactly = 1) { projectRepository.findByUserIdAndArchivedAtIsNull(eq(1L)) }
+        verify(exactly = 1) { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(100L))) }
+        verify(exactly = 1) { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(100L))) }
+    }
+
+    // ── T031 보강 — lastSentenceSource: 최신 챕터 body ──────────────────────
+
+    private fun docWithBody(
+        projectId: Long,
+        wordCount: Int,
+        updatedAt: Instant,
+        body: String,
+        id: Long,
+    ) = Document(
+        id = id,
+        projectId = projectId,
+        wordCount = wordCount,
+        body = body,
+        createdAt = updatedAt,
+        updatedAt = updatedAt,
+    )
+
+    @Test
+    @DisplayName("listCards — lastSentenceSource 는 max updatedAt 활성 챕터 body 의 plainText")
+    fun `listCards lastSentenceSource comes from max updatedAt chapter`() {
+        val older = Instant.parse("2026-06-10T00:00:00Z")
+        val newer = Instant.parse("2026-06-12T10:00:00Z")
+        val olderBody = """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"첫 챕터 내용"}]}]}"""
+        val newerBody = """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"최신 챕터 내용"}]}]}"""
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { projectRepository.findByUserIdAndArchivedAtIsNull(eq(1L)) } returns listOf(activeProject(100L, "소설"))
+        // sortOrder=0 챕터가 오래된 updatedAt, sortOrder=1 챕터가 최신 updatedAt
+        every { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(100L))) } returns
+            listOf(
+                docWithBody(100L, wordCount = 100, updatedAt = older, body = olderBody, id = 1001L),
+                docWithBody(100L, wordCount = 200, updatedAt = newer, body = newerBody, id = 1002L),
+            )
+        every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(100L))) } returns emptyList()
+        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+
+        val cards = service.listCards(userId = 1L)
+
+        assertThat(cards).hasSize(1)
+        // 최신 챕터(newer updatedAt)의 plainText 가 lastSentenceSource 로 와야 함
+        assertThat(cards[0].lastSentenceSource).isEqualTo("최신 챕터 내용")
+        // 오래된 챕터의 텍스트는 포함되면 안 됨
+        assertThat(cards[0].lastSentenceSource).doesNotContain("첫 챕터 내용")
+    }
+
+    @Test
+    @DisplayName("listCards — 삭제된 챕터는 lastSentenceSource 에 포함되지 않는다")
+    fun `listCards lastSentenceSource excludes deleted chapters`() {
+        val t1 = Instant.parse("2026-06-10T00:00:00Z")
+        val t2 = Instant.parse("2026-06-11T00:00:00Z")
+        // findByProjectIdInAndDeletedAtIsNull 계약: 삭제 챕터는 결과에 없음
+        // 여기서는 활성 챕터 1개만 반환하여 deleted 챕터가 제외됨을 검증
+        val activeBody = """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"활성 챕터"}]}]}"""
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { projectRepository.findByUserIdAndArchivedAtIsNull(eq(1L)) } returns listOf(activeProject(200L, "소설B"))
+        every { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(200L))) } returns
+            listOf(docWithBody(200L, wordCount = 50, updatedAt = t1, body = activeBody, id = 2001L))
+        every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(200L))) } returns emptyList()
+        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+
+        val cards = service.listCards(userId = 1L)
+
+        assertThat(cards).hasSize(1)
+        assertThat(cards[0].lastSentenceSource).isEqualTo("활성 챕터")
+    }
+
+    @Test
+    @DisplayName("listCards — 챕터 없으면 lastSentenceSource 빈 문자열")
+    fun `listCards lastSentenceSource is empty when no chapters`() {
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { projectRepository.findByUserIdAndArchivedAtIsNull(eq(1L)) } returns listOf(activeProject(300L, "소설C"))
+        every { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(300L))) } returns emptyList()
+        every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(300L))) } returns emptyList()
+        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+
+        val cards = service.listCards(userId = 1L)
+
+        assertThat(cards).hasSize(1)
+        assertThat(cards[0].lastSentenceSource).isEmpty()
     }
 }

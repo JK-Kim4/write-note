@@ -1,5 +1,6 @@
 package com.writenote.service
 
+import com.writenote.components.documents.ProseMirrorText
 import com.writenote.entity.Document
 import com.writenote.entity.Project
 import com.writenote.error.ResourceNotFoundException
@@ -46,7 +47,7 @@ class ProjectService(
                     paperSize = validatedPaperSize(request.paperSize),
                 ),
             )
-        documentRepository.save(Document(projectId = requireNotNull(project.id)))
+        documentRepository.save(Document(projectId = requireNotNull(project.id), sortOrder = 0))
         return projectMapper.toResponse(project)
     }
 
@@ -85,7 +86,9 @@ class ProjectService(
         }
 
         val projectIds = projects.map { requireNotNull(it.id) }
-        val documentsByProjectId = documentRepository.findByProjectIdIn(projectIds).associateBy { it.projectId }
+        // 활성 챕터 전량 일괄 조회 — groupBy 로 projectId 별 그룹 조립 (N+1 금지)
+        val chaptersByProjectId =
+            documentRepository.findByProjectIdInAndDeletedAtIsNull(projectIds).groupBy { it.projectId }
         val durationByProjectId =
             workSessionRepository
                 .findByProjectIdInAndEndedAtIsNotNull(projectIds)
@@ -98,15 +101,22 @@ class ProjectService(
 
         return projects.map { project ->
             val projectId = requireNotNull(project.id)
-            // 문서는 작품 생성 시 1:1 자동 생성되는 불변식(FR-009/010) — 부재는 데이터 정합 깨짐.
-            val document =
-                documentsByProjectId[projectId]
-                    ?: throw ResourceNotFoundException("Document not found for project $projectId")
+            val chapters = chaptersByProjectId[projectId] ?: emptyList()
+            // INV-1: 활성 작품은 항상 활성 챕터 ≥ 1 이나 방어적으로 빈 그룹 허용 (wordCount 0)
+            val wordCount = chapters.sumOf { it.wordCount }
+            val latestChapter = chapters.maxByOrNull { it.updatedAt ?: Instant.EPOCH }
+            val documentUpdatedAt =
+                latestChapter?.updatedAt
+                    ?: requireNotNull(project.updatedAt) // 챕터 없는 경우 작품 수정 시각 fallback
+            // 최근 수정 챕터 body 의 plainText — 추가 쿼리 없이 이미 조회된 그룹에서 파생
+            val lastSentenceSource =
+                latestChapter?.let { ProseMirrorText.extractPlainText(it.body) } ?: ""
             ProjectCardResponse.from(
                 base = projectMapper.toResponse(project),
-                wordCount = document.wordCount,
-                documentUpdatedAt = requireNotNull(document.updatedAt),
+                wordCount = wordCount,
+                documentUpdatedAt = documentUpdatedAt,
                 totalDurationMs = durationByProjectId[projectId] ?: 0L,
+                lastSentenceSource = lastSentenceSource,
             )
         }
     }

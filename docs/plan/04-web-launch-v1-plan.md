@@ -71,9 +71,9 @@
 
 ### Round 2.5 — 챕터 (작품 1:N 본문 구조) **(2026-06-11 추가)**
 
-> 설계 SoT = `docs/superpowers/specs/2026-06-11-chapters-design.ko.md`. `documents` 테이블 1:N 확장(안 A) — 기존 본문 = 1번 챕터 무손실 이관. 신규 V9 마이그레이션은 로컬 dev DB만, **운영 적용은 Round 4 D1 일괄**.
+> 설계 SoT = `docs/superpowers/specs/2026-06-11-chapters-design.ko.md`. `documents` 테이블 1:N 확장(안 A) — 기존 본문 = 1번 챕터 무손실 이관. 신규 V14 마이그레이션은 로컬 dev DB만, **운영 적용은 Round 4 D1 일괄**.
 
-- [ ] **BE-1** (#58) V9 마이그레이션·엔티티 — `project_id` UNIQUE 해제 + `sort_order` + `deleted_at`(soft-delete) + 기존 데이터 보존 검증
+- [ ] **BE-1** (#58) V14 마이그레이션·엔티티 — `project_id` UNIQUE 해제 + `sort_order` + `deleted_at`(soft-delete) + 기존 데이터 보존 검증
 - [ ] **BE-2** (#59) 챕터 endpoint — 목록(본문 제외 메타)/생성(맨 뒤)/순서 일괄 변경(004 reorder 패턴)/soft-delete(마지막 활성 챕터 409 `LAST_CHAPTER_UNDELETABLE`)/복구 + 단수 조회 제거
 - [ ] **BE-3** (#60) 대시보드 카드 집계 재설계 — 글자수 합산·최신 저장시각·마지막 문장 원천=최근 챕터, 응답 스키마 불변
 - [ ] **FE-1** (#61) 집필실 좌패널 2단(챕터 목록 + 기존 아웃라인) + `?chapter=` 전환 + 016 초안 키 격리 재사용

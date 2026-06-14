@@ -7,8 +7,7 @@
  */
 import { createProject, deleteProject, getProject, listProjectCards, listProjects, updateProject } from "@/lib/api/projects";
 import type { CreateProjectInput, UpdateProjectInput } from "@/lib/api/projects";
-import { getProjectDocument } from "@/lib/api/document";
-import { extractPlainText } from "@/components/editor/wordCountUtils";
+import { getDocument, listChapters } from "@/lib/api/document";
 import type { DocumentResponse } from "@/types/api";
 import type { Project, ProjectCard, ProjectDocument } from "@/lib/types/domain";
 
@@ -32,30 +31,30 @@ export const projects = {
     list: async (): Promise<Project[]> => (await listProjects({ size: 100 })).content,
 
     /**
-     * 작품 벽/홈 카드 집계(018) — 카드 endpoint 1회(글자수·문서 저장 시각·누적 작업시간 동봉)
-     * + 작품별 문서 병렬 조회(마지막 문장 파생 원료만 — 본문 텍스트 파생은 클라 책임).
-     * 한 조회라도 실패하면 전체 reject — 반쪽 데이터로 그리지 않는다(화면은 에러+재시도).
+     * 작품 벽/홈 카드 집계(018/022) — 카드 endpoint 1회.
+     * lastSentenceSource 는 BE 가 최근 수정 활성 챕터 body plainText 를 동봉(022 US4) — FE 별도 조회 제거.
+     * N+1 해소: 카드별 단수 조회 제거.
      */
     listCards: async (): Promise<ProjectCard[]> => {
         const cards = await listProjectCards();
-        return Promise.all(
-            cards.map(async (card) => {
-                const doc = await getProjectDocument(card.id);
-                return {
-                    ...card,
-                    docUpdatedAt: card.documentUpdatedAt,
-                    lastSentenceSource: extractPlainText(doc.body),
-                };
-            }),
-        );
+        return cards.map((card) => ({
+            ...card,
+            docUpdatedAt: card.documentUpdatedAt,
+        }));
     },
 
     get: (id: number): Promise<Project> => getProject(id),
 
-    /** desktop create 는 {project, document} 반환 — 014 는 작품 생성 시 빈 문서 1:1 자동 생성. */
+    /**
+     * 작품 생성 — {project, document} 반환.
+     * BE 가 createProject 시 첫 챕터를 자동 생성하므로, 챕터 목록의 첫 항목(GET /documents)으로 본문을 로드.
+     * 단수 endpoint(GET /document) 대신 챕터 API 경유(022 챕터 모델 정합).
+     */
     create: async (input: CreateProjectInput): Promise<{ project: Project; document: ProjectDocument }> => {
         const project = await createProject(input);
-        const document = toDocument(await getProjectDocument(project.id));
+        const chapters = await listChapters(project.id);
+        const firstChapter = chapters[0];
+        const document = toDocument(await getDocument(firstChapter.id));
         return { project, document };
     },
 

@@ -5,6 +5,7 @@ import { useEditor, EditorContent, type Content, type Editor } from "@tiptap/rea
 import { BubbleMenu } from "@tiptap/react/menus";
 import { StarterKit } from "@tiptap/starter-kit";
 import { pageCount, globalLineAt, pageNumberTopsPx, paperGeometry, LINE_PX } from "./pageLayout";
+import { InlineEditableTitle } from "./InlineEditableTitle";
 
 /**
  * 진짜 페이지 분할 본문 에디터 — desktop `src/components/Editor.tsx` 이식(015 T001, PoC).
@@ -29,6 +30,8 @@ function parseContent(bodyJson: string): Content {
 
 type PaperEditorProps = {
     title: string;
+    /** 현재 챕터 제목 — 작품 제목(.doc-title) 아래 부제로 표시. 미전달 시 표시 안 함. */
+    chapterTitle?: string;
     initialBodyJson: string;
     onChange: (change: DocumentChange) => void;
     /**
@@ -41,6 +44,11 @@ type PaperEditorProps = {
      * 준비 시 editor, 파기 시 null. PaperEditor 의 useEditor 소유·IME 가드·자동저장은 무변경.
      */
     onEditorReady?: (editor: Editor | null) => void;
+    /**
+     * 본문 상단 챕터 제목 인라인 편집 완료 콜백 — 더블클릭 → input → Enter/blur 저장 시 호출.
+     * 미전달 시 제목 편집 비활성(표시만).
+     */
+    onChapterRename?: (title: string) => void;
     lined: boolean;
     zoom?: number;
 };
@@ -48,7 +56,7 @@ type PaperEditorProps = {
 // Phase 2: A4 geometry 상수. 용지 선택 배선은 Phase 3 에서 진행.
 const A4_GEOMETRY = paperGeometry("A4");
 
-export function PaperEditor({ title, initialBodyJson, onChange, onDraftUpdate, onEditorReady, lined, zoom = 1 }: PaperEditorProps) {
+export function PaperEditor({ title, chapterTitle, initialBodyJson, onChange, onDraftUpdate, onEditorReady, onChapterRename, lined, zoom = 1 }: PaperEditorProps) {
     const paperRef = useRef<HTMLElement>(null);
     const [pages, setPages] = useState(1);
 
@@ -127,6 +135,15 @@ export function PaperEditor({ title, initialBodyJson, onChange, onDraftUpdate, o
     return (
         <main className="editor-scroll" aria-label="본문 편집기">
             <h1 className="doc-title">{title}</h1>
+            {chapterTitle != null && (
+                <InlineEditableTitle
+                    title={chapterTitle}
+                    onRename={onChapterRename}
+                    placeholder="새 챕터"
+                    className="doc-chapter-title"
+                    ariaLabel="챕터 제목 편집"
+                />
+            )}
             <article
                 ref={paperRef}
                 className="paper"

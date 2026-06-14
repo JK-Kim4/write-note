@@ -51,14 +51,16 @@ export interface ProjectResponse {
     updatedAt: string;
 }
 
-/** 작품 카드 집계 (018) — GET /api/projects/cards. 작품 + 문서·세션 집계 동봉(본문 미포함). */
+/** 작품 카드 집계 (018/022) — GET /api/projects/cards. 작품 + 챕터·세션 집계 동봉. */
 export interface ProjectCardResponse extends ProjectResponse {
-    /** 문서 글자수 (document.word_count). */
+    /** 활성 챕터 word_count 합. */
     wordCount: number;
-    /** 문서 저장 시각 (document.updated_at, ISO8601) — "최근에 집필함" 기준. */
+    /** 활성 챕터 중 최신 updated_at (ISO8601) — "최근에 집필함" 기준. */
     documentUpdatedAt: string;
     /** 작품별 누적 작업시간(ms) — 종료된 세션 합(진행 중 제외). */
     totalDurationMs: number;
+    /** 마지막 문장 파생 원료 — 최근 수정 활성 챕터 body 의 plainText. 챕터 없으면 빈 문자열. */
+    lastSentenceSource: string;
 }
 
 export interface AuthMeResponse {
@@ -93,6 +95,21 @@ export interface DocumentResponse {
     /** 016 — updatedAt 겸용 불투명 버전 토큰(ISO8601 문자열). 파싱·증감 금지, 받은 값 그대로 전달. */
     version: string;
     updatedAt: string;
+}
+
+/** 챕터 목록 항목 (022 US1) — GET /api/projects/{projectId}/documents 응답 원소. 본문 미포함 메타만. */
+export interface ChapterMetaResponse {
+    id: number;
+    projectId: number;
+    title: string;
+    sortOrder: number;
+    wordCount: number;
+    updatedAt: string;
+}
+
+/** 챕터 생성 요청 (022 US1) — POST /api/projects/{projectId}/documents */
+export interface CreateChapterInput {
+    title?: string;
 }
 
 /** 메모에 연결된 등장인물 (006 US4) — MemoProjectResponse.characters 원소 */

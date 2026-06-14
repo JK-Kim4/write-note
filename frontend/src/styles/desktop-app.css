@@ -249,6 +249,108 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .screen-body--studio.no-right { grid-template-columns: 240px minmax(0, 1fr); }
 .screen-body--studio.no-left.no-right { grid-template-columns: minmax(0, 1fr); }
 
+/* 집필실 좌패널 — ChapterList + StudioOutline 세로 스택. */
+.studio-left-panel {
+  display: flex; flex-direction: column;
+  background: var(--surface); border-right: 1px solid var(--hairline);
+  overflow: hidden; min-height: 0;
+}
+
+/* 챕터 목록 패널 (ChapterList) — 좌패널 상단, 아웃라인 위. */
+.chapter-list {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 10px 6px;
+  border-bottom: 1px solid var(--hairline);
+  flex-shrink: 0;
+}
+.chapter-list__items { display: flex; flex-direction: column; gap: 1px; }
+
+/* 항목 row: 제목(좌 flex-1) + 컨트롤(▲▼✕ 우) 가로 정렬. */
+.chapter-list__item-row {
+  display: flex; align-items: center; gap: 2px;
+}
+.chapter-list__item-row:hover .chapter-list__move,
+.chapter-list__item-row:hover .chapter-list__delete {
+  opacity: 1;
+}
+
+/* 챕터 선택 버튼 — 제목 영역(flex-1). */
+.chapter-list__item {
+  flex: 1; min-width: 0;
+  text-align: left; border: none; background: transparent; cursor: pointer;
+  font: inherit; font-size: 12.5px; color: var(--ink-soft);
+  padding: 5px 7px; border-radius: var(--radius-sm);
+  border-left: 2px solid transparent;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+}
+.chapter-list__item:hover { background: var(--accent-soft); color: var(--ink); }
+.chapter-list__item:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent-soft); }
+/* 현재 챕터 — 배경·좌측 보더·굵기 병행(AA: 색 단독 의존 금지). */
+.chapter-list__item--current {
+  background: var(--accent-soft); color: var(--ink); font-weight: 600;
+  border-left-color: var(--accent);
+}
+.chapter-list__item--current:hover { background: var(--accent-soft); }
+
+/* 인라인 제목 편집 input */
+.chapter-list__rename-input {
+  flex: 1; min-width: 0;
+  font: inherit; font-size: 12.5px; color: var(--ink);
+  background: var(--paper); border: 1px solid var(--accent); border-radius: var(--radius-sm);
+  padding: 4px 7px;
+  outline: none; box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+/* 순서 버튼 그룹 — 은은하게(opacity), hover·current 시 또렷. */
+.chapter-list__move-buttons {
+  display: flex; flex-direction: column; gap: 0; flex-shrink: 0;
+}
+.chapter-list__move {
+  border: none; background: transparent; cursor: pointer;
+  font-size: 8px; line-height: 1; color: var(--faint);
+  width: 16px; height: 12px; display: grid; place-items: center; border-radius: 3px;
+  opacity: 0;
+  transition: color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out), opacity var(--dur-micro) var(--ease-out);
+}
+.chapter-list__move:hover { color: var(--ink-soft); background: var(--surface-sunken); opacity: 1; }
+.chapter-list__move:focus-visible { opacity: 1; box-shadow: 0 0 0 2px var(--accent-soft); }
+/* 현재 챕터 row 에서도 컨트롤 은은하게 표시. */
+.chapter-list__item-row:has(.chapter-list__item--current) .chapter-list__move { opacity: 0.4; }
+.chapter-list__item-row:has(.chapter-list__item--current) .chapter-list__move:hover { opacity: 1; }
+
+/* 삭제 버튼 — 은은하게(opacity), hover·row hover 시 또렷. */
+.chapter-list__delete {
+  border: none; background: transparent; cursor: pointer;
+  font-size: 9px; color: var(--faint);
+  width: 18px; height: 22px; display: grid; place-items: center; flex-shrink: 0;
+  border-radius: var(--radius-sm); opacity: 0;
+  transition: color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out), opacity var(--dur-micro) var(--ease-out);
+}
+.chapter-list__delete:hover { color: var(--danger); background: var(--danger-soft); opacity: 1; }
+.chapter-list__delete:disabled { cursor: default; color: var(--faint); opacity: 0; }
+.chapter-list__delete:focus-visible { opacity: 1; box-shadow: 0 0 0 2px var(--danger-soft); }
+
+/* + 새 챕터 버튼. */
+.chapter-list__create {
+  align-self: flex-start;
+  border: none; background: transparent; cursor: pointer;
+  font: inherit; font-size: 11.5px; color: var(--muted);
+  padding: 4px 7px; border-radius: var(--radius-sm);
+  transition: color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
+}
+.chapter-list__create:hover { color: var(--accent-ink); background: var(--accent-soft); }
+.chapter-list__create:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent-soft); }
+.chapter-list__create:active { transform: scale(0.97); }
+
+/* 챕터 부제 — doc-title(작품 제목) 아래, 본문 위. 작품 제목보다 작고 muted 톤으로 구분. */
+.doc-chapter-title {
+  width: 100%; max-width: 210mm; padding: 0 25mm;
+  font-family: var(--font-serif); font-size: 15px; font-weight: 400; color: var(--muted);
+  margin: -14px 0 18px;
+  letter-spacing: -0.01em;
+}
+
 /* 아웃라인 패널(좌) — surface-sunken 톤으로 물러나게(원고는 종이 순도 유지). */
 .studio-outline {
   background: var(--surface); border-right: 1px solid var(--hairline);

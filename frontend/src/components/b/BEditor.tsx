@@ -6,6 +6,7 @@ import { StarterKit } from "@tiptap/starter-kit";
 import type { DocumentChange } from "@/components/editor/PaperEditor";
 import { extractPlainText } from "@/components/editor/wordCountUtils";
 import { pageCount, globalLineAt, pageNumberTopsPx, paperGeometry, PAPER_PRESETS, LINE_PX, type PaperGeometry, type PaperSize } from "@/components/editor/pageLayout";
+import { InlineEditableTitle } from "@/components/editor/InlineEditableTitle";
 
 /**
  * B타입 본문 에디터 — fable-test ChapterEditor 디자인(툴바 / 본문 / 상태바 세로 3단) + 줄노트 라인.
@@ -37,6 +38,13 @@ type BEditorProps = {
     statusTone: "ok" | "error";
     /** 용지 크기 — 분할·CSS변수 계산에 사용. Phase 3에서 store 연결. 미전달 시 A4. */
     paperSize?: PaperSize;
+    /** 현재 챕터 제목 — 본문 상단에 부제로 표시. 미전달 시 표시 안 함. */
+    chapterTitle?: string;
+    /**
+     * 본문 상단 챕터 제목 인라인 편집 완료 콜백 — 더블클릭 → input → Enter/blur 저장 시 호출.
+     * 미전달 시 제목 편집 비활성(표시만).
+     */
+    onChapterRename?: (title: string) => void;
 };
 
 function ToolbarButton({
@@ -135,7 +143,7 @@ function BPagedBody({
     );
 }
 
-export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorReady, statusLabel, statusTone, paperSize = "A4" }: BEditorProps) {
+export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorReady, statusLabel, statusTone, paperSize = "A4", chapterTitle, onChapterRename }: BEditorProps) {
     // 용지 크기 기하 — paperSize prop 변경 시 재계산(순수함수, 메모이제이션 불필요).
     const geometry = paperGeometry(paperSize);
     // 초기 글자수는 본문 JSON 에서 직접 파생 — 이후엔 onUpdate 가 갱신.
@@ -339,6 +347,18 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
                     </>
                 )}
             </div>
+            {/* 챕터 제목 — 작품 제목 구분 없이 에디터 영역 상단에 부제로 표시. */}
+            {chapterTitle != null && (
+                <div className="border-b border-gray-100 px-6 py-2">
+                    <InlineEditableTitle
+                        title={chapterTitle}
+                        onRename={onChapterRename}
+                        placeholder="새 챕터"
+                        className="text-sm font-medium text-gray-400"
+                        ariaLabel="챕터 제목 편집"
+                    />
+                </div>
+            )}
             {/* b-editor-scroll — 아웃라인 현재 섹션 추적의 스크롤 컨테이너(useEditorOutline 에 선택자 전달). */}
             {isPaged ? (
                 <div ref={stageRef} className="b-editor-scroll b-paged-stage flex-1 overflow-x-auto overflow-y-auto">

@@ -18,7 +18,7 @@ class Document(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    @Column(name = "project_id", nullable = false, unique = true)
+    @Column(name = "project_id", nullable = false)
     var projectId: Long = 0,
     @Column(nullable = false, length = 120)
     var title: String = "",
@@ -27,6 +27,10 @@ class Document(
     var body: String = EMPTY_DOC_JSON,
     @Column(name = "word_count", nullable = false)
     var wordCount: Int = 0,
+    @Column(name = "sort_order", nullable = false)
+    var sortOrder: Int = 0,
+    @Column(name = "deleted_at")
+    var deletedAt: Instant? = null,
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: Instant? = null,
     // updatedAt = 수정 시각 + 낙관적 잠금 토큰 겸용(@Version). Hibernate 가 flush 시 자동 set.

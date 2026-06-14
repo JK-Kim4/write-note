@@ -52,6 +52,7 @@ function cardJson(id: number, title: string, documentUpdatedAt: string, over: Re
         wordCount: 100,
         documentUpdatedAt,
         totalDurationMs: 0,
+        lastSentenceSource: "",
         ...over,
     };
 }
@@ -147,15 +148,16 @@ describe("DashboardPage(/ 재진입 허브)", () => {
                 HttpResponse.json({
                     success: true,
                     data: [
-                        cardJson(1, "옛 작품", "2026-06-01T00:00:00Z"),
-                        cardJson(2, "최신 작품", "2026-06-10T02:00:00Z", { nextScene: "등대 장면" }),
+                        cardJson(1, "옛 작품", "2026-06-01T00:00:00Z", { lastSentenceSource: "옛 마지막 문장." }),
+                        cardJson(2, "최신 작품", "2026-06-10T02:00:00Z", {
+                            nextScene: "등대 장면",
+                            lastSentenceSource: "바다는 조용했다. 최신 마지막 문장이다.",
+                        }),
                     ],
                     error: null,
                 }),
             ),
         );
-        stubDocument(1, "옛 마지막 문장.");
-        stubDocument(2, "바다는 조용했다. 최신 마지막 문장이다.");
 
         renderPage();
 
