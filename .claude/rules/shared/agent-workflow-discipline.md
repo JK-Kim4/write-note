@@ -226,6 +226,31 @@ systematic-debugging Phase 1(버그 실재·재현 확정)·§10-4(버그 보고
 - 회피 가능 시점: 1차 수정 실패 직후. "저장/표시/입력 중 어느 레이어인지" 화면·localStorage·서버 3중 관찰로 먼저 확정했어야. 결국 사용자의 정밀 재현("Enter 누르면 살고 안 누르면 죽는다")이 입력(조합) 레이어를 가리켜 해결.
 - 회고: `docs/retrospectives/2026-06-09-autosave-redesign-ime-loss-misdiagnosis.md`
 
+## 12. 기존 1:1 인프라를 1:N 으로 재사용 시 — 차원 변경 추종 검증 (HARD-GATE)
+
+자동저장 세션·캐시·단일 인스턴스 상태 등 기존 인프라를 **새 차원(1:1→1:N, 단일→다중)에 재사용**할 때, 그 인프라가 **새 차원의 키 변경(예: documentId 전환)을 따라가는지**(리마운트/재초기화) 검증한다. "단일 인스턴스 + 1회 초기화" 가정을 점검하지 않으면 stale 상태가 새 차원에서 회귀한다.
+
+### 회피 절차
+
+1. 기존 인프라를 새 차원에 재사용하기로 결정한 시점에 그 인프라의 **초기화·생명주기 가정**을 명시한다(예: "page 진입 1회 초기화", "documentId 단위 세션").
+2. 새 차원에서 그 키가 바뀌는 경로(챕터 전환·탭 전환 등)를 나열하고, 각 경로에서 인프라가 **재초기화/리마운트되는지** 확인한다. 안 되면 키 단위 리마운트(`key={newKey}`) 또는 내부 재초기화를 추가한다.
+3. 자동화 테스트가 새 차원의 stale 경로(예: 토큰 stale → 충돌)를 **실제로 검증**하는지 점검한다 — 표면 격리(localStorage 키 등)만 보면 stale 가 dogfooding 까지 샌다.
+
+### 회귀 사례 — 2026-06-14 022 챕터 거짓 409
+
+- 016 `useDocumentSession`(page 단일 인스턴스 + `initRef` 1회 가드 = **1:1 전제**)을 챕터(1:N) 전환에 재사용. 챕터 전환 시 `documentId` 가 바뀌어도 세션이 재초기화 안 돼 `versionRef` 가 옛 챕터 토큰으로 stale → 새 챕터에 옛 토큰 PUT → **거짓 409 저장 충돌 회귀**(016 이 근본 해결했던 바로 그 증상).
+- `editorKey` 는 `PaperEditor` 만 리마운트하고 세션은 page 레벨이라 영속. 자동화 테스트(draft 키 격리)는 version 토큰 stale 경로를 안 봐 게이트 GREEN 인 채 dogfooding 까지 통과.
+- 해결: 에디터+세션을 `ChapterEditor`/`BChapterEditor` 로 분리해 `key={documentId}` 리마운트 → 챕터별 독립 세션. 회피 가능 시점: US1 챕터 전환 설계 시 "세션이 documentId 를 따라가는가" 점검.
+
+## 13. Subagent 인프라 쓰기 금지 지시 — 완료 후 실제 상태 확인 (HARD-GATE)
+
+subagent 에 인프라 쓰기 금지(로컬 DB migrate/적용 금지, 외부 호출 금지 등)를 지시했으면, 완료 후 **실제 상태를 직접 확인**한다(§7 "자기진단 무검증 수용 금지"의 인프라 확장). 지시만으로 subagent 가 따랐다고 단정하지 않는다. 가능하면 `settings.json` deny 로 보강한다.
+
+### 회귀 사례 — 2026-06-14 022 챕터 V14 로컬 DB 적용
+
+- 모든 BE dispatch 에 "로컬 dev DB 적용 금지(IT/Testcontainers 만)"를 명시했으나, dogfooding 준비 시 V14 마이그레이션이 **이미 로컬 dev DB 에 적용**돼 있었음(구현 중 어떤 subagent 가 `bootRun`/`flywayMigrate` 실행 추정). 결과는 무손실 정상이었으나 지시 위반 — 명시 지시가 실제 준수를 보장하지 못했다.
+- 회피 가능 시점: dispatch 완료 후 `flyway_schema_history` 등 실제 DB 상태 확인, 또는 `settings.json` 으로 `flywayMigrate`/`bootRun` deny.
+
 ## 메타 — 본 룰의 누적 정책
 
 본 룰은 **회고 회귀 사례에서 도출** 된 항목을 누적한다. 새 항목 추가 절차:

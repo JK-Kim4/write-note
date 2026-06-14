@@ -56,6 +56,12 @@
 - 데이터 fetching 은 container / page 레벨, 표시 컴포넌트는 props 만
 - Server state = React Query, Local UI = Zustand / `useState` (docs/plan §2-1)
 - `react-hooks/exhaustive-deps` 활성
+- **커스텀 훅 반환 객체/함수를 `useCallback`/`useEffect` deps 에 직접 넣지 말 것** — 커스텀 훅(예: `useDocumentSession`)이 매 렌더 새 인스턴스를 반환하면, 그것을 deps 로 잡은 `useCallback`/effect 가 매 렌더 새로 생성·실행된다. 반환 함수가 미안정이면 **ref 로 안정화**(`const xRef = useRef(x); useEffect(() => { xRef.current = x; })` 후 `xRef.current` 참조)하거나, 훅이 반환 함수를 `useCallback` 으로 안정화한다. **effect 가 부모 setState 를 호출하는 경우 deps 불안정 = 무한 렌더 → JavaScript heap OOM** 으로 직결된다.
+
+#### 회귀 사례 — 2026-06-14 022 챕터 BChapterEditor 무한루프 OOM
+
+- `BChapterEditor` 의 `handleReload`/`handleOverwrite` `useCallback` deps 에 `session`(`useDocumentSession` 반환, 매 렌더 새 객체)을 넣음 → 그 핸들러가 매 렌더 새 함수 → `onConflict` effect(deps `[session.conflict, handleReload, handleOverwrite]`)가 매 렌더 실행 → page `setConflictHandlers`(매번 새 객체) 무한 → 재렌더 무한 → 전체 vitest 가 `ERR_IPC_CHANNEL_CLOSED`/heap OOM 으로 죽음. (A형 `ChapterEditor` 는 conflict 를 내부 렌더라 무한 없음.)
+- 해결: `session` 을 ref 로 안정화하고 두 핸들러의 deps 에서 제거 → `onConflict` effect 가 `session.conflict` 변경 시에만 실행. 회피 가능 시점: 컴포넌트 작성 시 훅 반환값의 deps 안정성 점검(특히 effect 가 부모 setState 를 호출할 때).
 
 ### Next.js 16 App Router server/client component 경계 (HARD-GATE)
 
