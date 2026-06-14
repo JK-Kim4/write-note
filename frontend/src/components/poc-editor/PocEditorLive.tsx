@@ -365,7 +365,8 @@ export function PocEditorLive() {
                 <span style={{ fontSize: 13, color: "#6b7280" }}>{view.pages.length}장 · {buffer.length}자</span>
                 <span style={{ fontSize: 12, color: "#9ca3af" }}>여기 클릭 후 한글 입력 · Enter=문단 · Backspace=삭제</span>
             </div>
-            <div ref={stageRef} tabIndex={0} style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 24, padding: 24, outline: "none" }}>
+            {/* caretColor: transparent — EditContext 호스트의 네이티브 캐럿을 끔(우리가 .poc-caret 을 직접 그림). 안 끄면 캐럿 2개. */}
+            <div ref={stageRef} tabIndex={0} style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 24, padding: 24, outline: "none", caretColor: "transparent" }}>
                 {view.pages.map((pg) => (
                     <PageBox key={pg.index} page={pg} geo={geo} blocks={view.blocks} caret={caretPos} onHit={(x, y) => placeCaretAt(pg.index, x, y)} />
                 ))}
