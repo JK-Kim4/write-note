@@ -11,7 +11,7 @@
  * 미구현(후속): 클릭 캐럿 배치(hit-test)·화살표 정밀 이동·선택/복붙/undo·서식.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { pageGeometry, paperLabel, PAPER_SIZES, type PageGeometry, type PaperSize } from "./geometry";
 import { layout, type LaidOutPage, type MeasuredBlock, type MeasuredLine } from "./layoutEngine";
 import { measureParagraphLines } from "./measure";
@@ -113,9 +113,58 @@ function caretToScreen(caret: number, blocks: ParsedBlock[], pages: LaidOutPage[
     };
 }
 
-function PageBox({ page, geo, blocks, caret }: { page: LaidOutPage; geo: PageGeometry; blocks: ParsedBlock[]; caret: CaretPos | null }) {
+/** 화면 좌표(페이지·콘텐츠 상대 x/y) → 버퍼 캐럿 오프셋. caretToScreen 의 역 — 클릭 배치·세로 이동용. */
+function screenToCaret(
+    pageIndex: number,
+    x: number,
+    y: number,
+    view: { blocks: ParsedBlock[]; pages: LaidOutPage[] },
+    geo: PageGeometry,
+): number | null {
+    const page = view.pages[pageIndex];
+    if (!page || page.fragments.length === 0) return null;
+    let frag = page.fragments.find((f) => y >= f.offsetY && y < f.offsetY + f.height);
+    if (!frag) frag = y < page.fragments[0].offsetY ? page.fragments[0] : page.fragments[page.fragments.length - 1];
+    const block = view.blocks.find((b) => b.id === frag!.blockId);
+    if (!block) return null;
+    if (frag.kind === "image" || block.kind === "image") return block.bufStart;
+    const lineWithin = Math.min(frag.endLine - frag.startLine, Math.max(0, Math.floor((y - frag.offsetY) / geo.lineHeightPx)));
+    const line = block.lines[frag.startLine + lineWithin];
+    if (!line) return block.bufEnd;
+    let best = line.start;
+    let bestDist = Infinity;
+    for (let i = line.start; i <= line.end; i++) {
+        const d = Math.abs(textWidth(block.text.slice(line.start, i), geo.fontSizePx) - x);
+        if (d < bestDist) {
+            bestDist = d;
+            best = i;
+        }
+    }
+    return block.bufStart + best;
+}
+
+function PageBox({
+    page,
+    geo,
+    blocks,
+    caret,
+    onHit,
+}: {
+    page: LaidOutPage;
+    geo: PageGeometry;
+    blocks: ParsedBlock[];
+    caret: CaretPos | null;
+    onHit: (x: number, y: number) => void;
+}) {
     const marginPx = (geo.pageWidthPx - geo.contentWidthPx) / 2;
     const byId: Record<string, ParsedBlock> = Object.fromEntries(blocks.map((b) => [b.id, b]));
+    const contentRef = useRef<HTMLDivElement>(null);
+    const handleDown = (e: ReactMouseEvent<HTMLDivElement>) => {
+        const el = contentRef.current;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        onHit(e.clientX - r.left, e.clientY - r.top);
+    };
     return (
         <div
             style={{
@@ -128,7 +177,7 @@ function PageBox({ page, geo, blocks, caret }: { page: LaidOutPage; geo: PageGeo
                 boxShadow: "0 1px 3px rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.08)",
             }}
         >
-            <div style={{ position: "absolute", left: marginPx, top: marginPx, width: geo.contentWidthPx, height: geo.contentHeightPx }}>
+            <div ref={contentRef} onMouseDown={handleDown} style={{ position: "absolute", left: marginPx, top: marginPx, width: geo.contentWidthPx, height: geo.contentHeightPx, userSelect: "none", cursor: "text" }}>
                 {page.fragments.map((f, idx) => {
                     const b = byId[f.blockId];
                     if (f.kind === "image" && b?.kind === "image") {
@@ -182,6 +231,12 @@ export function PocEditorLive() {
     );
     const caretPos = mounted ? caretToScreen(caret, view.blocks, view.pages, geo) : null;
 
+    // keydown 핸들러(마운트 1회 생성)가 최신 view/geo 를 보도록 ref 로 안정화 — 화살표 세로 이동에 필요.
+    const viewRef = useRef(view);
+    const geoRef = useRef(geo);
+    viewRef.current = view;
+    geoRef.current = geo;
+
     useEffect(() => setMounted(true), []);
 
     // EditContext 부착 + 입력 루프(마운트 1회).
@@ -205,16 +260,46 @@ export function PocEditorLive() {
         updateCB();
         window.addEventListener("resize", updateCB);
 
-        // Enter 는 textupdate 가 안 오므로 keydown 에서 '\n' 삽입(문단 분할). Backspace/화살표는 자동.
+        // Enter 는 textupdate 가 안 오므로 keydown 에서 '\n' 삽입(문단 분할). 화살표도 직접 처리(EditContext 는 시각 레이아웃을 모름).
+        const setSel = (p: number) => {
+            ec.updateSelection(p, p);
+            setCaret(p);
+        };
         const onKey = (e: KeyboardEvent) => {
-            if (e.key !== "Enter") return;
-            e.preventDefault();
             const start = Math.min(ec.selectionStart, ec.selectionEnd);
             const end = Math.max(ec.selectionStart, ec.selectionEnd);
-            ec.updateText(start, end, "\n");
-            ec.updateSelection(start + 1, start + 1);
-            setBuffer(ec.text);
-            setCaret(start + 1);
+            const len = ec.text.length;
+            if (e.key === "Enter") {
+                e.preventDefault();
+                ec.updateText(start, end, "\n");
+                ec.updateSelection(start + 1, start + 1);
+                setBuffer(ec.text);
+                setCaret(start + 1);
+            } else if (e.key === "ArrowLeft") {
+                e.preventDefault();
+                setSel(start === end ? Math.max(0, start - 1) : start);
+            } else if (e.key === "ArrowRight") {
+                e.preventDefault();
+                setSel(start === end ? Math.min(len, end + 1) : end);
+            } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                e.preventDefault();
+                const dir = e.key === "ArrowDown" ? 1 : -1;
+                const v = viewRef.current;
+                const g = geoRef.current;
+                const cur = caretToScreen(ec.selectionStart, v.blocks, v.pages, g);
+                if (!cur) return;
+                let pageIndex = cur.pageIndex;
+                let ty = cur.y + (dir > 0 ? 1.5 : -0.5) * g.lineHeightPx; // 다음/이전 줄 중앙
+                if (ty < 0 && pageIndex > 0) {
+                    pageIndex -= 1;
+                    ty += g.contentHeightPx;
+                } else if (ty > g.contentHeightPx && pageIndex < v.pages.length - 1) {
+                    pageIndex += 1;
+                    ty -= g.contentHeightPx;
+                }
+                const off = screenToCaret(pageIndex, cur.x, ty, v, g);
+                if (off != null) setSel(off);
+            }
         };
         host.addEventListener("keydown", onKey);
         host.focus();
@@ -237,6 +322,17 @@ export function PocEditorLive() {
         ec.updateSelection(start + 3, start + 3);
         setBuffer(ec.text);
         setCaret(start + 3);
+        stageRef.current?.focus();
+    };
+
+    // 클릭 → 해당 페이지·줄·문자 오프셋 역산 → 캐럿 배치(EditContext 선택도 동기).
+    const placeCaretAt = (pageIndex: number, x: number, y: number) => {
+        const ec = ecRef.current;
+        if (!ec) return;
+        const off = screenToCaret(pageIndex, x, y, view, geo);
+        if (off == null) return;
+        ec.updateSelection(off, off);
+        setCaret(off);
         stageRef.current?.focus();
     };
 
@@ -278,7 +374,7 @@ export function PocEditorLive() {
             </div>
             <div ref={stageRef} tabIndex={0} style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 24, padding: 24, outline: "none" }}>
                 {view.pages.map((pg) => (
-                    <PageBox key={pg.index} page={pg} geo={geo} blocks={view.blocks} caret={caretPos} />
+                    <PageBox key={pg.index} page={pg} geo={geo} blocks={view.blocks} caret={caretPos} onHit={(x, y) => placeCaretAt(pg.index, x, y)} />
                 ))}
             </div>
         </div>

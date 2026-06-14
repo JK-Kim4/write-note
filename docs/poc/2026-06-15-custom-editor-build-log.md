@@ -17,8 +17,8 @@
 - [x] M2. 기하(`geometry.ts`, 실제 A4 비율 px)
 - [x] M3. 측정 `measure.ts`(Range.getClientRects)
 - [x] M4. 렌더러(clip+translate) + 정적 PoC 라우트 `/poc/editor` — typecheck/build GREEN
-- [x] M5. EditContext 입력 루프(IME·Enter·Backspace·캐럿) + 렌더 — **빌드·헤드리스 스크린샷 검증**. IME 라이브만 아침 dogfooding.
-- [ ] M6. 캐럿 정밀화(클릭 hit-test·화살표) + ②반응형 인터랙티브 검증 + 아침 요약 ← **다음**
+- [x] M5. EditContext 입력 루프(IME·Enter·Backspace·캐럿) + 렌더 — 빌드·헤드리스 스크린샷 검증.
+- [x] M6. 캐럿 클릭 배치(hit-test)·화살표 + **CDP 인터랙티브 검증 통과**.
 
 ## 현재 상태 (iteration 3 끝)
 
@@ -37,15 +37,32 @@
 
 캐럿 클릭 배치(hit-test: 클릭 좌표 → 페이지·줄·문자 오프셋 역산 → `updateSelection`) + 화살표 이동(keydown). 그 후 ② 반응형은 헤드리스 CDP 로 select 구동해 스크린샷, 또는 아침 dogfooding 위임. 마지막에 아침 요약 작성 + prod 서버(3939) 정리.
 
-## 아침 리뷰 방법 (사용자용)
+## ✅ 빌드 완료 — 아침 리뷰 가이드 (사용자용)
 
+**PoC 완성. `/poc/editor` (라이브 EditContext 에디터) · `/poc/editor-static` (정적 fallback).**
+밤사이 **prod 서버가 이미 http://localhost:3939/poc/editor 에 떠 있습니다** (이 세션이 살아있는 한 유지). 새로 띄우려면:
 ```bash
 cd /Users/jongwan-air/Desktop/workspaces/write-note-024-custom-editor/frontend
-pnpm dev          # 그 후 Chrome에서 http://localhost:3000/poc/editor
-pnpm exec vitest run src/components/poc-editor   # 엔진 단위테스트
+pnpm dev   # → Chrome 에서 http://localhost:3000/poc/editor
+pnpm exec vitest run src/components/poc-editor   # 엔진 단위테스트 7개
 ```
-PoC 화면에서 확인할 것: 한글 타이핑이 페이지를 줄 단위로 넘는지 / 용지·폰트 바꾸면 재배치되는지 / 이미지 삽입 시 통째로 밀리는지.
-(M5까지 못 가면 정적 화면이라도 ①②③는 확인 가능 — 진척은 위 마일스톤 체크박스 참고.)
+**반드시 Chrome(Chromium)으로 열 것** — EditContext 는 Chrome/Edge 121+ 전용(Safari/Firefox 미지원, 이번 결정).
+
+### 자동 검증으로 이미 통과한 것 (밤사이)
+- 엔진 단위테스트 7 GREEN, `tsc` GREEN, `pnpm build` GREEN.
+- **헤드리스 스크린샷**: ① 문단이 페이지 경계에서 줄 단위로 이어짐(통째 점프 아님) / ③ 이미지(가변높이) 흐름 배치 / 실제 A4 비율.
+- **CDP 인터랙티브 구동**: 문단 중간 클릭(520,250)→캐럿 정확 이동(518,234) / 텍스트 삽입 시 글자수·본문 리플로우 / 화살표 이동 무크래시 / 3페이지 렌더.
+
+### 당신이 직접 dogfooding 할 것 (자동으론 불가)
+1. **④ 한글 IME 조합** — 화면 클릭 후 빠르게 한글 타자(겹받침·한자변환 포함). 자모가 분리되지 않고 조합되는지. (헤드리스로 IME 못 돌려 유일한 미검증 핵심 — 그러나 EditContext IME 는 2026-06-07 PoC 에서 이미 실증된 바 있음.)
+2. **② 반응형** — 상단 용지(A5/A4/B4/A3)·폰트(14~28px) 셀렉터를 바꿔 즉시 재배치(깨짐 없이)되는지.
+3. 클릭 캐럿 배치·화살표·Enter(문단)·Backspace·이미지 삽입 버튼의 손맛.
+
+### 판단 포인트 (go/no-go)
+이 PoC 가 증명하려던 것 = "CSS column-wrap 으로 구조적으로 안 되던 것(줄단위 분할 정확·규격 리플로우·가변높이 이미지)을 자체 엔진이 한다." → **자동 검증 범위에선 증명됨.** ④ IME 손맛만 확인되면 본 구축(서식·저장 결선·기존 집필실 통합·Safari fallback) 진행 결정 가능.
+
+### 알려진 한계 (PoC 의도적 범위 밖 — 본 구축 대상)
+서식 마크(볼드 등)·저장 결선·텍스트 선택/복붙/undo·문단 간 여백·캐럿 위/아래 페이지경계 정밀·Safari/Firefox·대용량 성능(현재 매 입력마다 전체 재측정).
 
 ## 결정 로그 (자율 빌드)
 
