@@ -69,15 +69,16 @@
 
 **A 디자인 동결(2026-06-12 확정):** Round 2 신규 기능(페이지 분할·용지·반응형 패널)은 **B 디자인에만** 적용. A 디자인(`/`·`/projects`·PaperEditor)은 선택 옵션으로 잔존하되 신규 미적용 — A/B 비대칭(A 사용자는 Round 2 기능 미수령)은 런칭 후 정리 후보. **동결 예외 1건**: 공용 outline 파생(`outlineFromDoc`)의 H3 포함이 A 집필실 목차에도 자연 반영(무해, 신규 기능 아님).
 
-### Round 2.5 — 챕터 (작품 1:N 본문 구조) **(2026-06-11 추가)**
+### Round 2.5 — 챕터 (작품 1:N 본문 구조) ✅ **완료**(2026-06-14, develop merge `1add4b6`, #58~#62 closed) **(2026-06-11 추가)**
 
 > 설계 SoT = `docs/superpowers/specs/2026-06-11-chapters-design.ko.md`. `documents` 테이블 1:N 확장(안 A) — 기존 본문 = 1번 챕터 무손실 이관. 신규 V14 마이그레이션은 로컬 dev DB만, **운영 적용은 Round 4 D1 일괄**.
 
-- [ ] **BE-1** (#58) V14 마이그레이션·엔티티 — `project_id` UNIQUE 해제 + `sort_order` + `deleted_at`(soft-delete) + 기존 데이터 보존 검증
-- [ ] **BE-2** (#59) 챕터 endpoint — 목록(본문 제외 메타)/생성(맨 뒤)/순서 일괄 변경(004 reorder 패턴)/soft-delete(마지막 활성 챕터 409 `LAST_CHAPTER_UNDELETABLE`)/복구 + 단수 조회 제거
-- [ ] **BE-3** (#60) 대시보드 카드 집계 재설계 — 글자수 합산·최신 저장시각·마지막 문장 원천=최근 챕터, 응답 스키마 불변
-- [ ] **FE-1** (#61) 집필실 좌패널 2단(챕터 목록 + 기존 아웃라인) + `?chapter=` 전환 + 016 초안 키 격리 재사용
-- [ ] **FE-2** (#62) 삭제·되돌리기 토스트 + 마지막 챕터 가드(`error.code` 분기)
+- [x] **BE-1** (#58) V14 마이그레이션·엔티티 — `project_id` UNIQUE 해제 + `sort_order` + `deleted_at`(soft-delete) + 기존 데이터 보존 검증
+- [x] **BE-2** (#59) 챕터 endpoint — 목록(본문 제외 메타)/생성(맨 뒤)/순서 일괄 변경(004 reorder 패턴)/soft-delete(마지막 활성 챕터 409 `LAST_CHAPTER_UNDELETABLE`)/복구 + 단수 조회 제거
+- [x] **BE-3** (#60) 대시보드 카드 집계 재설계 — 글자수 합산·최신 저장시각·마지막 문장 원천=최근 챕터(`lastSentenceSource` 응답 동봉으로 N+1 해소)
+- [x] **FE-1** (#61) 집필실 좌패널 2단(챕터 목록 + 기존 아웃라인) + `?chapter=` 전환 + 016 초안 키 격리 재사용 — A·B 양쪽
+- [x] **FE-2** (#62) 삭제·되돌리기 토스트 + 마지막 챕터 가드(`error.code` 분기)
+- **dogfooding 후속(2026-06-14):** ① 거짓 409 재발 → 방안 A(세션 documentId 리마운트, `ChapterEditor`/`BChapterEditor` 분리) ② 챕터 패널 CSS 정돈 ③ 본문 상단 챕터 제목 + 인라인 rename(`InlineEditableTitle`). 회고=`docs/retrospectives/2026-06-14-chapters-autosave-oom.md`. **#63 챕터 dogfooding(Round 5)은 IME 4케이스 물리키보드 최종확인 잔여.**
 
 **추정 5~7.5d**
 
