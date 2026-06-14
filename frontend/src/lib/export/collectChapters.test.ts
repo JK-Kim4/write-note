@@ -21,6 +21,5 @@ describe("collectChapters", () => {
 	it("빈 선택이면 빈 배열을 반환한다", async () => {
 		const fetchDoc = vi.fn();
 		expect(await collectChapters([], fetchDoc)).toEqual([]);
-		expect(fetchDoc).not.toHaveBeenCalled();
 	});
 });

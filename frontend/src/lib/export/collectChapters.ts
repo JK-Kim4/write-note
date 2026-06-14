@@ -12,5 +12,5 @@ export async function collectChapters(
 	fetchDoc: (id: number) => Promise<DocumentResponse>,
 ): Promise<CollectedChapter[]> {
 	const docs = await Promise.all(orderedIds.map((id) => fetchDoc(id)));
-	return docs.map((d) => ({ id: d.id, title: d.title, bodyJson: d.body }));
+	return docs.map((d) => ({ id: d.id, title: d.title, bodyJson: d.body /* DocumentResponse.body → bodyJson (export 다운스트림 명명 일관) */ }));
 }
