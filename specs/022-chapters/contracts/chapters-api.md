@@ -65,16 +65,19 @@
 
 ## C9. 대시보드 카드 집계 변경 — `GET /api/projects/cards`
 
-endpoint·요청·응답 스키마(`ProjectCardResponse`) **불변**. 내부 집계만 교체:
+> **정정(2026-06-14, 실측):** 당초 "ProjectCardResponse 스키마 불변 + FE 변경 0" 으로 적었으나, 실측 결과 **마지막 문장은 응답에 없었고** FE `projects.list` 가 카드마다 `getProjectDocument`(단수, sortOrder 첫 챕터)를 **별도 호출**해 파생하고 있었다. 챕터 여럿이면 첫 챕터에서 와 스펙(최신 챕터)과 어긋나고, 단수 endpoint 제거(C6/T033) 시 깨지며 카드별 N회 조회 N+1 도 있다. → **`ProjectCardResponse` 에 `lastSentenceSource` 를 추가**하고 FE 별도 조회를 제거한다.
+
+`GET /api/projects/cards` 내부 집계 교체 + 응답 1필드 추가:
 
 | 필드 | 기존(1:1) | 변경(1:N) |
 |---|---|---|
 | `wordCount` | document.word_count | **활성 챕터 word_count 합** |
 | `documentUpdatedAt` | document.updated_at | **활성 챕터 중 최신 updated_at** |
-| 마지막 문장 | document.body 파생 | **최근 수정 활성 챕터 body 파생** |
+| `lastSentenceSource` (**신규**) | (FE 가 단수 조회로 별도 파생) | **최근 수정 활성 챕터 body 의 plainText** — 응답에 동봉 |
 
-- `findByProjectIdIn` 에 `deletedAt IS NULL` 필터 추가 후 메모리 그룹 집계(3쿼리 일괄·N+1 금지 유지).
-- 응답 스키마 불변 → **프론트 대시보드 표시 코드 변경 0**.
+- `findByProjectIdInAndDeletedAtIsNull` 일괄 조회 후 메모리 그룹 집계(N+1 금지). 마지막 문장도 같은 그룹의 max-updatedAt 챕터 body 에서 추출 → 추가 쿼리 0.
+- **FE 변경**: `projects.list` 의 카드별 `getProjectDocument` 호출 제거 → 응답 `lastSentenceSource` 사용. 작품 벽/대시보드 표시 컴포넌트(`ProjectWallCard`·`BWorkMiniCard`·`projectView`/`dashboardView`)는 마지막 문장 파생(`lastSentence(source)`) 로직 유지, 입력만 응답 필드로.
+- **효과**: 스펙(최신 챕터) 정합 + 카드별 N회 조회 제거(N+1 해소) + 단수 endpoint 미사용화(C6/T033 선결).
 
 ## 신규 에러 코드
 

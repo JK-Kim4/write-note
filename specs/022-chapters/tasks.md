@@ -132,7 +132,7 @@ description: "Task list for 챕터(Chapter) — 작품 1:N 본문 구조"
 
 ### Implementation for User Story 4
 
-- [ ] T032 [US4] ProjectService.`listCards` 활성 챕터 합산 재설계 — `findByProjectIdInAndDeletedAtIsNull` 일괄 후 메모리 그룹 집계, `ProjectCardResponse` 스키마 불변 in `backend/src/main/kotlin/com/writenote/service/ProjectService.kt`
+- [ ] T032 [US4] ProjectService.`listCards` 활성 챕터 합산 재설계 — `findByProjectIdInAndDeletedAtIsNull` 일괄 후 메모리 그룹 집계(wordCount 합·documentUpdatedAt 최신). **+ `ProjectCardResponse` 에 `lastSentenceSource` 추가**(그룹 max-updatedAt 챕터 body 의 plainText, 추가 쿼리 0) **+ FE `projects.list` 의 카드별 `getProjectDocument` 별도 조회 제거**(응답 필드 사용 → N+1 해소·단수 endpoint 미사용화). 정정 근거 = contracts C9. in `backend/.../service/ProjectService.kt`, `backend/.../model/response/ProjectCardResponse.kt`, `frontend/src/lib/electron-api/projects.ts`
 
 **Checkpoint**: 모든 US 독립 동작. FE 대시보드 표시 코드 변경 0 회귀 확인(ProjectWallCard·BWorkMiniCard 불변)
 
@@ -140,7 +140,7 @@ description: "Task list for 챕터(Chapter) — 작품 1:N 본문 구조"
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T033 [P] 단수 조회 제거 — BE `DocumentController.getDocumentByProject`(`GET /api/projects/{projectId}/document`) + FE shim `documents.getByProject` 잔여 참조 정리 in `backend/src/main/kotlin/com/writenote/controller/DocumentController.kt`, `frontend/src/lib/electron-api/index.ts`
+- [ ] T033 [P] 단수 조회 제거 — BE `DocumentController.getDocumentByProject`(`GET /api/projects/{projectId}/document`)·`getDocumentByProjectId` + FE shim `documents.getByProject` 잔여 참조 정리. **선결**: US4 T032 에서 `projects.list` 의 단수 조회 의존이 이미 제거됨(응답 `lastSentenceSource` 사용) — 잔여 참조만 확인 후 제거 in `backend/.../controller/DocumentController.kt`, `frontend/src/lib/electron-api/index.ts`
 - [ ] T034 전체 게이트 — backend `ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` / frontend `pnpm typecheck && pnpm lint && pnpm test && pnpm build`(RSC 경계 검출)
 - [ ] T035 quickstart.md dogfooding — US1~4 시나리오 + **한국어 IME 4케이스 + 조합 중 챕터 전환 무유실** + 회귀 가드(016 세션·017 골격·대시보드 표시 불변). **V14 로컬 dev DB 적용은 이 단계에서 사용자 컨펌** (사용자 영역)
 - [ ] T036 [P] 설계/계획/vault 문서 동기 — `docs/plan/04-web-launch-v1-plan.md` Round 2.5 체크 + vault `02-PROGRESS.md` 진척(merge 후)

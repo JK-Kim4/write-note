@@ -4,13 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
-import { documentKeys, useChapterDocument, useCreateChapter, useDeleteChapter, useProjectChapters, useReorderChapters, useRestoreChapter } from "@/lib/query/useDocument";
+import { useCreateChapter, useDeleteChapter, useProjectChapters, useReorderChapters, useRestoreChapter } from "@/lib/query/useDocument";
 import { useProject } from "@/lib/query/useProjects";
 import { useProjectMemos, useRemoveLinkMemo, useSetPinMemo } from "@/lib/query/useMemos";
 import { logKeys } from "@/lib/query/useLogs";
 import { toDrawerMemoView } from "@/lib/memoView";
-import type { ProjectDocument } from "@/lib/types/domain";
-import { useDocumentSession } from "@/hooks/useDocumentSession";
 import { useWorkSession } from "@/hooks/useWorkSession";
 import { rememberLastProject } from "@/lib/lastProject";
 import type { Editor } from "@tiptap/react";
@@ -18,18 +16,20 @@ import { Toast } from "@/components/ui/Toast";
 import { Rail } from "@/components/workspace/Rail";
 import { Titlebar } from "@/components/workspace/Titlebar";
 import { StudioRightStack } from "@/components/workspace/StudioRightStack";
-import { PaperEditor } from "@/components/editor/PaperEditor";
 import { StudioOutline } from "@/components/editor/StudioOutline";
 import { ChapterList } from "@/components/editor/ChapterList";
+import { ChapterEditor, type ChapterEditorSyncStatus } from "@/components/editor/ChapterEditor";
 import { useEditorOutline } from "@/components/editor/useEditorOutline";
-import { ConflictDialog } from "@/components/editor/ConflictDialog";
 
 /**
  * 집필실 (015 US1 / 016 / 022 US1 T015) — A형 3단: [좌:ChapterList+StudioOutline | 원고 | 우].
  * 챕터 전환 = URL 쿼리 ?chapter={documentId}. 없으면 목록에서 가장 최근 수정 챕터로 진입.
- * 전환 직전 현재 챕터 초안 flush (016 IME 유실 방지). editorKey 증가로 PaperEditor 재마운트.
+ *
+ * 방안 A (022 거짓 409 수정):
+ * 에디터·세션을 ChapterEditor 로 분리하고 `key={currentChapterId}` 로 리마운트.
+ * 챕터 전환 시 새 useDocumentSession 인스턴스가 생성 → versionRef 가 새 챕터 토큰으로 초기화.
+ * 전환 직전 현재 챕터 본문을 flushDraft 로 flush 해 IME 조합 중 작성분 보존 (016).
  */
-const EMPTY_DOC = JSON.stringify({ type: "doc", content: [] });
 
 export default function ProjectWritePage() {
     useAuthGuard("requireAuth");
@@ -57,12 +57,6 @@ export default function ProjectWritePage() {
         return chapters.reduce((latest, c) => (c.updatedAt > latest.updatedAt ? c : latest)).id;
     }, [chapterIdFromUrl, chapters]);
 
-    // 현재 챕터 본문 로드
-    const { data: doc, isLoading, isError } = useChapterDocument(currentChapterId ?? 0);
-
-    const [body, setBody] = useState<string | null>(null);
-    // editorKey: 챕터 전환 / 복구 / 충돌 시 PaperEditor 강제 리마운트용.
-    const [editorKey, setEditorKey] = useState(0);
     const [lined, setLined] = useState(true);
     const [zoom, setZoom] = useState(1);
     const [leftOpen, setLeftOpen] = useState(true);
@@ -71,6 +65,20 @@ export default function ProjectWritePage() {
     const [endWorkOpen, setEndWorkOpen] = useState(false);
     const [endWorkBody, setEndWorkBody] = useState("");
     const [endingWork, setEndingWork] = useState(false);
+
+    // ChapterEditor 로부터 받은 저장 상태 / flushDraft 참조
+    const [syncStatus, setSyncStatus] = useState<ChapterEditorSyncStatus["syncStatus"]>("idle");
+    const flushDraftRef = useRef<((body: string) => void) | null>(null);
+    // 최신 본문 ref — flushDraft 호출 시 전달할 현재 본문.
+    // ChapterEditor 의 onDraftUpdate 로 갱신되지만, page 레벨에서는 별도 추적이 어려우므로
+    // ChapterEditor 의 언마운트 cleanup(pagehide) 와 handleChapterSelect 의 flushDraftRef 콜백으로 처리.
+    // latestBodyRef 는 ChapterEditor 가 마지막으로 전달한 body 를 보존하는 용도.
+    const latestBodyForFlushRef = useRef<string>(JSON.stringify({ type: "doc", content: [] }));
+
+    const handleSyncStatus = useCallback(({ syncStatus: s, flushDraft }: ChapterEditorSyncStatus) => {
+        setSyncStatus(s);
+        flushDraftRef.current = flushDraft;
+    }, []);
 
     // 메모 서랍
     const now = useMemo(() => new Date(), []);
@@ -98,39 +106,15 @@ export default function ProjectWritePage() {
         if (Number.isFinite(projectId)) rememberLastProject(projectId);
     }, [projectId]);
 
-    // 챕터 전환 직전 flush 를 위한 ref — session.flushDraft 를 챕터 선택 핸들러에서 호출.
-    const flushDraftRef = useRef<((body: string) => void) | null>(null);
-    const latestBodyRef = useRef<string>(EMPTY_DOC);
-
-    const session = useDocumentSession({
-        documentId: doc?.id ?? 0,
-        projectId,
-        serverBody: doc?.bodyJson ?? EMPTY_DOC,
-        serverVersion: doc?.version ?? "",
-        body: body ?? doc?.bodyJson ?? EMPTY_DOC,
-        onSaved: (res) =>
-            queryClient.setQueryData<ProjectDocument | undefined>(documentKeys.chapter(doc?.id ?? 0), (old) =>
-                old ? { ...old, version: res.version, wordCount: res.wordCount, bodyJson: res.body } : old,
-            ),
-    });
-
-    // flushDraftRef 와 latestBodyRef 를 session 과 body 최신 값으로 유지.
-    useEffect(() => {
-        flushDraftRef.current = session.flushDraft;
-    }, [session.flushDraft]);
-    useEffect(() => {
-        latestBodyRef.current = body ?? doc?.bodyJson ?? EMPTY_DOC;
-    }, [body, doc?.bodyJson]);
-
-    // 챕터 전환 핸들러 — 전환 직전 현재 초안 flush + URL 변경 + 에디터 재마운트.
+    // 챕터 전환 핸들러 — 전환 직전 현재 초안 flush + URL 변경.
+    // ChapterEditor 리마운트(key={currentChapterId})가 새 세션을 생성하므로 editorKey 증가 불필요.
     const handleChapterSelect = useCallback(
         (nextId: number) => {
             if (nextId === currentChapterId) return;
             // 전환 직전 현재 챕터 초안 즉시 기록 (IME 조합 중 작성분 보존 — 016).
-            flushDraftRef.current?.(latestBodyRef.current);
-            setBody(null);
-            setEditorKey((k) => k + 1);
-            // URL 쿼리 교체로 챕터 전환
+            // ChapterEditor 가 flushDraft 콜백을 onSyncStatus 로 전달해 flushDraftRef 에 보관됨.
+            flushDraftRef.current?.(latestBodyForFlushRef.current);
+            // URL 쿼리 교체로 챕터 전환 → currentChapterId 변경 → ChapterEditor key 변경 → 리마운트.
             const url = `/projects/${projectId}/write?chapter=${nextId}`;
             router.replace(url, { scroll: false });
         },
@@ -138,9 +122,6 @@ export default function ProjectWritePage() {
     );
 
     // 챕터 삭제 핸들러 (022 US3 T030)
-    // - 낙관적으로 목록에서 제거 (useDeleteChapter.onMutate)
-    // - 현재 챕터 삭제 시 바로 앞 챕터(맨 앞이면 다음)로 자동 전환
-    // - 되돌리기 토스트 표시
     const handleDeleteChapter = useCallback(
         (deletedId: number) => {
             // 현재 챕터 삭제 시 전환 대상 결정 (낙관적 제거 전 현재 chapters 기준)
@@ -176,7 +157,6 @@ export default function ProjectWritePage() {
     }, [createChapter, handleChapterSelect]);
 
     // 챕터 순서 이동 핸들러 (022 US2)
-    // direction: "up" → 현재 항목을 앞 항목과 교체, "down" → 뒤 항목과 교체
     const handleMoveChapter = useCallback(
         (id: number, direction: "up" | "down") => {
             const idx = chapters.findIndex((c) => c.id === id);
@@ -191,42 +171,6 @@ export default function ProjectWritePage() {
         },
         [chapters, reorderChapters],
     );
-
-    // localStorage-first 자동 복원
-    const initialBody = body ?? session.restoredBody ?? doc?.bodyJson ?? null;
-
-    useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        if (session.restoredBody != null) setBody((b) => b ?? session.restoredBody);
-    }, [session.restoredBody]);
-
-    // 챕터 전환 시(currentChapterId 변경) body 초기화 — 새 챕터 본문으로 시작.
-    // handleChapterSelect 도 setBody(null) 하지만, 브라우저 뒤로가기·앞으로가기 등
-    // URL 이 외부에서 직접 바뀌어 currentChapterId 가 handleChapterSelect 를 거치지 않고
-    // 변경되는 경우를 방어한다. 두 경로의 이중 호출은 null→null 로 무해하다.
-    const prevChapterIdRef = useRef<number | null>(null);
-    useEffect(() => {
-        if (prevChapterIdRef.current !== null && prevChapterIdRef.current !== currentChapterId) {
-            setBody(null);
-        }
-        prevChapterIdRef.current = currentChapterId;
-    }, [currentChapterId]);
-
-    const handleChange = useCallback((change: { bodyJson: string }) => setBody(change.bodyJson), []);
-
-    const handleReload = useCallback(
-        (currentBody: string) => {
-            const currentVersion = session.conflict?.currentVersion ?? doc?.version ?? "";
-            queryClient.setQueryData<ProjectDocument | undefined>(documentKeys.chapter(doc?.id ?? 0), (old) =>
-                old ? { ...old, bodyJson: currentBody, version: currentVersion } : old,
-            );
-            setBody(currentBody);
-            setEditorKey((k) => k + 1);
-            session.reloadFromServer(currentVersion, currentBody);
-        },
-        [session, queryClient, doc?.id, doc?.version],
-    );
-    const handleOverwrite = useCallback((currentVersion: string) => session.overwrite(currentVersion), [session]);
 
     const outline = useEditorOutline(editor);
 
@@ -249,13 +193,13 @@ export default function ProjectWritePage() {
 
     const projectTitle = projectQuery.data?.title ?? "";
     const saveStateClass =
-        session.syncStatus === "syncing" ? "saving" : session.syncStatus === "synced" ? "saved" : session.syncStatus;
+        syncStatus === "syncing" ? "saving" : syncStatus === "synced" ? "saved" : syncStatus;
     const saveLabel =
-        session.syncStatus === "syncing"
+        syncStatus === "syncing"
             ? "저장 중…"
-            : session.syncStatus === "error"
+            : syncStatus === "error"
               ? "저장 실패"
-              : session.syncStatus === "conflict"
+              : syncStatus === "conflict"
                 ? "충돌"
                 : "저장됨";
 
@@ -341,25 +285,22 @@ export default function ProjectWritePage() {
                     <div className="studio">
                         {Number.isNaN(projectId) ? (
                             <p style={{ padding: "2rem" }}>잘못된 작품입니다.</p>
-                        ) : isLoading || chaptersQuery.isLoading ? (
+                        ) : chaptersQuery.isLoading ? (
                             <p style={{ padding: "2rem", opacity: 0.5 }}>문서 불러오는 중…</p>
-                        ) : isError || !doc ? (
-                            <div style={{ padding: "2rem" }}>
-                                <p style={{ opacity: 0.6 }}>문서를 불러올 수 없습니다.</p>
-                                <button type="button" className="btn btn--ghost" onClick={() => router.push("/library")}>
-                                    작품 벽으로
-                                </button>
-                            </div>
+                        ) : currentChapterId == null ? (
+                            <p style={{ padding: "2rem", opacity: 0.5 }}>챕터를 선택하거나 생성해 주세요.</p>
                         ) : (
-                            <PaperEditor
-                                key={editorKey}
-                                title={projectTitle}
-                                initialBodyJson={initialBody ?? doc.bodyJson}
-                                onChange={handleChange}
-                                onDraftUpdate={session.flushDraft}
-                                onEditorReady={setEditor}
+                            // key={currentChapterId} — 챕터 전환 시 ChapterEditor 리마운트.
+                            // 새 useDocumentSession 인스턴스가 새 챕터의 version 으로 초기화 → 거짓 409 제거.
+                            <ChapterEditor
+                                key={currentChapterId}
+                                documentId={currentChapterId}
+                                projectId={projectId}
+                                projectTitle={projectTitle}
                                 lined={lined}
                                 zoom={zoom}
+                                onEditorReady={setEditor}
+                                onSyncStatus={handleSyncStatus}
                             />
                         )}
                     </div>
@@ -373,9 +314,6 @@ export default function ProjectWritePage() {
                         />
                     )}
                 </div>
-                {session.conflict != null && (
-                    <ConflictDialog conflict={session.conflict} onReload={handleReload} onOverwrite={handleOverwrite} />
-                )}
             </div>
 
             {pendingDelete && (
