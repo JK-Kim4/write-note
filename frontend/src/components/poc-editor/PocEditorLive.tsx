@@ -14,7 +14,7 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { pageGeometry, paperLabel, PAPER_SIZES, type PageGeometry, type PaperSize } from "./geometry";
 import { layout, type LaidOutPage, type MeasuredBlock, type MeasuredLine } from "./layoutEngine";
-import { measureParagraphLines } from "./measure";
+import { measureLineXs, measureParagraphLines } from "./measure";
 
 const FONT_FAMILY = "'Apple SD Gothic Neo', 'Noto Serif KR', serif";
 const OBJ = "￼"; // 이미지 마커
@@ -65,15 +65,6 @@ function relayout(buffer: string, geo: PageGeometry): { blocks: ParsedBlock[]; p
     return { blocks, pages: layout(measured, geo.contentHeightPx) };
 }
 
-let measureCtx: CanvasRenderingContext2D | null = null;
-/** 줄 내 캐럿 x 오프셋 — canvas measureText(레이아웃 없이 advance width). 폰트는 렌더와 동일. */
-function textWidth(s: string, fontSizePx: number): number {
-    if (!measureCtx) measureCtx = document.createElement("canvas").getContext("2d");
-    if (!measureCtx) return 0;
-    measureCtx.font = `${fontSizePx}px ${FONT_FAMILY}`;
-    return measureCtx.measureText(s).width;
-}
-
 type CaretPos = { pageIndex: number; x: number; y: number; height: number };
 
 /** 버퍼 오프셋 캐럿 → 화면 위치(페이지·x·y). 측정·레이아웃에서 줄·페이지를 역추적. */
@@ -105,9 +96,10 @@ function caretToScreen(caret: number, blocks: ParsedBlock[], pages: LaidOutPage[
     const line = blk.lines[lineIdx];
     const fr = findFrag(lineIdx);
     if (!fr) return null;
+    const xs = measureLineXs(blk.text, line.start, line.end, geo.contentWidthPx, geo.lineHeightPx, geo.fontSizePx, FONT_FAMILY);
     return {
         pageIndex: fr.pageIndex,
-        x: textWidth(blk.text.slice(line.start, within), geo.fontSizePx),
+        x: xs[within - line.start] ?? 0,
         y: fr.offsetY + (lineIdx - fr.startLine) * geo.lineHeightPx,
         height: geo.lineHeightPx,
     };
@@ -131,16 +123,17 @@ function screenToCaret(
     const lineWithin = Math.min(frag.endLine - frag.startLine, Math.max(0, Math.floor((y - frag.offsetY) / geo.lineHeightPx)));
     const line = block.lines[frag.startLine + lineWithin];
     if (!line) return block.bufEnd;
-    let best = line.start;
+    const xs = measureLineXs(block.text, line.start, line.end, geo.contentWidthPx, geo.lineHeightPx, geo.fontSizePx, FONT_FAMILY);
+    let best = 0;
     let bestDist = Infinity;
-    for (let i = line.start; i <= line.end; i++) {
-        const d = Math.abs(textWidth(block.text.slice(line.start, i), geo.fontSizePx) - x);
+    for (let i = 0; i < xs.length; i++) {
+        const d = Math.abs(xs[i] - x);
         if (d < bestDist) {
             bestDist = d;
             best = i;
         }
     }
-    return block.bufStart + best;
+    return block.bufStart + line.start + best;
 }
 
 function PageBox({

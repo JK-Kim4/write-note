@@ -33,6 +33,10 @@
 
 - **SWC 상수폴딩이 보간 템플릿 리터럴의 `'/>`를 유실** — `\`<svg ... height='${IMG_NH}'/>\`` 형태를 빌드가 `height='400<rect`로 깨뜨려 SVG 무효화 → 이미지 미표시. node(런타임)는 멀쩡. **정적판은 리터럴 숫자라 무사.** 수정: SVG data URI 를 **보간 없는 리터럴 문자열**로(PocEditorLive `IMG_SRC`). 회귀 신호 — 빌드 산출 chunk grep(`400<rect`)로 확정.
 
+### 발견·수정한 버그 (it.5 — 사용자 dogfooding 보고)
+
+- **캐럿 x 누적 드리프트** — 캐럿 x 를 **canvas `measureText`** 로 쟀는데 canvas 가 한글 폰트(Apple SD Gothic Neo)를 좁게 폴백 측정("그날"=31px, 실제 DOM ~36px) → DOM 렌더와 어긋나 줄 깊을수록 캐럿이 글자에서 벌어짐. 줄바꿈은 DOM(`getClientRects`)으로 재는데 캐럿 x 만 canvas 라 불일치. **수정:** 캐럿 x·클릭 hit-test 를 줄바꿈·렌더와 동일한 오프스크린 DOM Range(`measure.ts measureLineXs`)로 통일, canvas 제거. **검증:** CDP 로 4지점 클릭 시 내 캐럿 vs 브라우저 `caretRangeFromPoint` **diff 0px**(이전엔 누적 드리프트). 교훈 — 텍스트 위치 계산은 렌더와 **같은 측정 방식**을 써야 한다(canvas↔DOM 혼용 금지).
+
 ### 다음 iteration 진입점 (M6)
 
 캐럿 클릭 배치(hit-test: 클릭 좌표 → 페이지·줄·문자 오프셋 역산 → `updateSelection`) + 화살표 이동(keydown). 그 후 ② 반응형은 헤드리스 CDP 로 select 구동해 스크린샷, 또는 아침 dogfooding 위임. 마지막에 아침 요약 작성 + prod 서버(3939) 정리.

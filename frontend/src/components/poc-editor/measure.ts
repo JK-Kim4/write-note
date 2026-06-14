@@ -57,3 +57,44 @@ export function measureParagraphLines(
     document.body.removeChild(el);
     return lines;
 }
+
+/**
+ * 한 줄 내 각 문자 경계의 x 오프셋(줄 시작 기준 px) 배열을 반환. xs[i] = lineStart..(lineStart+i) 의 advance.
+ *
+ * 캐럿 x·클릭 hit-test 에 쓴다. **canvas measureText 금지** — canvas 는 한글 폰트를 좁게 폴백 측정해
+ * DOM 렌더와 어긋나 캐럿이 누적 드리프트한다(2026-06-15 사용자 보고). 줄바꿈·렌더와 같은 오프스크린
+ * DOM(Range.getBoundingClientRect)으로 재야 픽셀 일치.
+ */
+export function measureLineXs(
+    text: string,
+    lineStart: number,
+    lineEnd: number,
+    contentWidthPx: number,
+    lineHeightPx: number,
+    fontSizePx: number,
+    fontFamily: string,
+): number[] {
+    const el = document.createElement("div");
+    el.style.cssText =
+        `position:absolute;visibility:hidden;left:-99999px;top:0;` +
+        `width:${contentWidthPx}px;font-size:${fontSizePx}px;line-height:${lineHeightPx}px;` +
+        `font-family:${fontFamily};white-space:pre-wrap;word-break:break-word;`;
+    const node = document.createTextNode(text);
+    el.appendChild(node);
+    document.body.appendChild(el);
+
+    const range = document.createRange();
+    const xs: number[] = [];
+    for (let i = lineStart; i <= lineEnd; i++) {
+        if (i === lineStart) {
+            xs.push(0);
+            continue;
+        }
+        range.setStart(node, lineStart);
+        range.setEnd(node, i);
+        xs.push(range.getBoundingClientRect().width);
+    }
+
+    document.body.removeChild(el);
+    return xs;
+}
