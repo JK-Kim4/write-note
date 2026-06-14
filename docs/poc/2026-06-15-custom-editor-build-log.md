@@ -17,19 +17,25 @@
 - [x] M2. 기하(`geometry.ts`, 실제 A4 비율 px)
 - [x] M3. 측정 `measure.ts`(Range.getClientRects)
 - [x] M4. 렌더러(clip+translate) + 정적 PoC 라우트 `/poc/editor` — typecheck/build GREEN
-- [ ] M5. EditContext 입력 루프(IME·Enter·Backspace·캐럿) + 라이브 리플로우 (④) ← **다음**
-- [ ] M6. 이미지 삽입 컨트롤 + 검증 + 브라우저 스크린샷 + 아침 요약
+- [x] M5. EditContext 입력 루프(IME·Enter·Backspace·캐럿) + 렌더 — **빌드·헤드리스 스크린샷 검증**. IME 라이브만 아침 dogfooding.
+- [ ] M6. 캐럿 정밀화(클릭 hit-test·화살표) + ②반응형 인터랙티브 검증 + 아침 요약 ← **다음**
 
-## 현재 상태 (iteration 2 끝)
+## 현재 상태 (iteration 3 끝)
 
-- M1~M4 완료. `/poc/editor` 정적 화면: 샘플 문서(한글 문단 + 가변높이 이미지) → measure → layout → 페이지 박스 렌더. 용지(A5/A4/B4/A3)·폰트(14~28px) 컨트롤로 ①②③ 즉시 확인 가능.
+- **M1~M5 완료.** `/poc/editor` = EditContext 라이브 에디터, `/poc/editor-static` = 정적 fallback.
+- **헤드리스 Chrome 스크린샷으로 시각 검증 완료(①②③):**
+  - 다중 페이지 렌더 정상 — 페이지1이 첫 문단으로 꽉 차고 **페이지2가 같은 문단을 줄 단위로 이어받음**(=① 통째 점프 아님).
+  - **이미지(가변높이 블록)**가 흐름에 정상 배치·렌더(=③). 실제 A4 비율·한글 줄바꿈 정확.
 - 게이트: poc-editor 단위테스트 7 GREEN, `tsc --noEmit` GREEN, `pnpm build` GREEN.
-- 리서치 디제스트 확보(EditContext 정규 루프: textupdate→모델 splice→재렌더→캐럿 / characterboundsupdate→updateCharacterBounds / 측정 Range.getClientRects / 상용 에디터 비교). M5 구현에 반영 예정.
-- **미검증(아침 dogfooding 영역):** 실제 브라우저 시각 렌더(측정 정확도·clip 밴드 정합). 헤드리스로는 layout 미발생이라 코드 정합·빌드까지만 확인.
+- **미검증(아침 dogfooding 영역):** ④ 한글 IME 라이브 타이핑(헤드리스 IME 불가) / ② 용지·폰트 변경 인터랙티브 반응(엔진 로직은 단위테스트 GREEN, 화면 반응은 클릭 필요) / 캐럿 클릭 배치·화살표 이동(M6).
 
-### 다음 iteration 진입점 (M5)
+### 발견·수정한 버그 (it.3)
 
-EditContext 를 `PocEditor` 에 결선: 호스트 div 에 `editContext` 붙이고 `textupdate` 에서 활성 문단 텍스트 splice → 해당 문단만 재측정 → `layout` 재실행 → 재렌더, 캐럿은 직접 그림(문자 위치 = measure 의 줄·문자범위로 산출). Enter=문단 분할, Backspace=병합/삭제. 최소 캐럿 이동만(전체 선택/복붙/undo 는 OUT).
+- **SWC 상수폴딩이 보간 템플릿 리터럴의 `'/>`를 유실** — `\`<svg ... height='${IMG_NH}'/>\`` 형태를 빌드가 `height='400<rect`로 깨뜨려 SVG 무효화 → 이미지 미표시. node(런타임)는 멀쩡. **정적판은 리터럴 숫자라 무사.** 수정: SVG data URI 를 **보간 없는 리터럴 문자열**로(PocEditorLive `IMG_SRC`). 회귀 신호 — 빌드 산출 chunk grep(`400<rect`)로 확정.
+
+### 다음 iteration 진입점 (M6)
+
+캐럿 클릭 배치(hit-test: 클릭 좌표 → 페이지·줄·문자 오프셋 역산 → `updateSelection`) + 화살표 이동(keydown). 그 후 ② 반응형은 헤드리스 CDP 로 select 구동해 스크린샷, 또는 아침 dogfooding 위임. 마지막에 아침 요약 작성 + prod 서버(3939) 정리.
 
 ## 아침 리뷰 방법 (사용자용)
 

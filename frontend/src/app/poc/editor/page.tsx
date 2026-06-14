@@ -1,6 +1,6 @@
-import { PocEditor } from "@/components/poc-editor/PocEditor";
+import { PocEditorLive } from "@/components/poc-editor/PocEditorLive";
 
-/** PoC 자체 에디터 라우트 — /poc/editor. Chrome 한정 dogfooding. */
+/** PoC 자체 에디터(EditContext 라이브) — /poc/editor. Chromium 121+ 한정 dogfooding. */
 export default function PocEditorPage() {
-    return <PocEditor />;
+    return <PocEditorLive />;
 }
