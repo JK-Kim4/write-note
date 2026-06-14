@@ -79,9 +79,14 @@ function ChapterItem({
     const commit = useCallback(() => {
         if (committedRef.current) return;
         committedRef.current = true;
-        onRename?.(chapter.id, editValue);
+        // 빈/공백 제목은 서버(@NotBlank) 거부 대상 → 저장하지 않고 기존 제목 유지(취소처럼).
+        // 변경이 없을 때도 불필요한 PATCH 를 보내지 않는다.
+        const trimmed = editValue.trim();
+        if (trimmed.length > 0 && trimmed !== chapter.title) {
+            onRename?.(chapter.id, trimmed);
+        }
         setEditing(false);
-    }, [chapter.id, editValue, onRename]);
+    }, [chapter.id, chapter.title, editValue, onRename]);
 
     const cancel = useCallback(() => {
         if (committedRef.current) return;
