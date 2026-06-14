@@ -308,4 +308,23 @@ describe("ChapterList", () => {
 
         expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     });
+
+    // ── 내보내기 버튼 (023) ───────────────────────────────────────────────────
+
+    it("'내보내기' 버튼 클릭 시 onExport() 를 호출한다", async () => {
+        const onExport = vi.fn();
+        render(
+            <ChapterList
+                chapters={CHAPTERS}
+                currentChapterId={null}
+                onSelect={vi.fn()}
+                onCreate={vi.fn()}
+                onExport={onExport}
+            />,
+        );
+
+        await userEvent.click(screen.getByRole("button", { name: /내보내기/ }));
+
+        expect(onExport).toHaveBeenCalledTimes(1);
+    });
 });

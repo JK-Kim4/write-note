@@ -16,6 +16,7 @@ import { Toast } from "@/components/ui/Toast";
 import { BWorkSidePanel } from "@/components/b/BWorkSidePanel";
 import { BChapterEditor, type BChapterEditorConflictHandlers, type BChapterEditorSyncStatus } from "@/components/b/BChapterEditor";
 import { ChapterList } from "@/components/editor/ChapterList";
+import { ExportDialog } from "@/components/export/ExportDialog";
 
 /**
  * B타입 집필 화면 — fable-test WorkDetailPage 3패널: [목차 w-64 | 에디터 | 메모·인물 w-80].
@@ -54,6 +55,7 @@ export default function BWorkDetailPage() {
     const [editor, setEditor] = useState<Editor | null>(null);
     const [endWorkOpen, setEndWorkOpen] = useState(false);
     const [endWorkBody, setEndWorkBody] = useState("");
+    const [exportOpen, setExportOpen] = useState(false);
     const [endWorkError, setEndWorkError] = useState<string | null>(null);
     const [isEndingWork, setIsEndingWork] = useState(false);
     // 좁은 폭 drawer 열림 상태 — 기본 닫힘. 880px 이상에서는 상태값 무관(항상 inline 3패널).
@@ -290,6 +292,7 @@ export default function BWorkDetailPage() {
                     onMove={handleMoveChapter}
                     onDelete={handleDeleteChapter}
                     onRename={handleRenameChapter}
+                    onExport={() => setExportOpen(true)}
                 />
             </div>
             <div className="flex-1 overflow-y-auto p-2">
@@ -483,6 +486,16 @@ export default function BWorkDetailPage() {
                     actionLabel="되돌리기"
                     onAction={handleRestoreChapter}
                     onDismiss={dismissDeleteToast}
+                />
+            )}
+
+            {exportOpen && (
+                <ExportDialog
+                    open
+                    chapters={chapters}
+                    paperSize={paperSize}
+                    onExportPdf={() => { /* Phase 3: PDF 생성 — 임시 no-op */ }}
+                    onClose={() => setExportOpen(false)}
                 />
             )}
 

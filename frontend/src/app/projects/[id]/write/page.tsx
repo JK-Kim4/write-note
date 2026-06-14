@@ -20,6 +20,8 @@ import { StudioOutline } from "@/components/editor/StudioOutline";
 import { ChapterList } from "@/components/editor/ChapterList";
 import { ChapterEditor, type ChapterEditorSyncStatus } from "@/components/editor/ChapterEditor";
 import { useEditorOutline } from "@/components/editor/useEditorOutline";
+import type { PaperSize } from "@/components/editor/pageLayout";
+import { ExportDialog } from "@/components/export/ExportDialog";
 
 /**
  * 집필실 (015 US1 / 016 / 022 US1 T015) — A형 3단: [좌:ChapterList+StudioOutline | 원고 | 우].
@@ -65,6 +67,7 @@ export default function ProjectWritePage() {
     const [endWorkOpen, setEndWorkOpen] = useState(false);
     const [endWorkBody, setEndWorkBody] = useState("");
     const [endingWork, setEndingWork] = useState(false);
+    const [exportOpen, setExportOpen] = useState(false);
 
     // ChapterEditor 로부터 받은 저장 상태 / flushDraft 참조
     const [syncStatus, setSyncStatus] = useState<ChapterEditorSyncStatus["syncStatus"]>("idle");
@@ -203,6 +206,7 @@ export default function ProjectWritePage() {
     };
 
     const projectTitle = projectQuery.data?.title ?? "";
+    const paperSize: PaperSize = projectQuery.data?.paperSize ?? "A4";
     const saveStateClass =
         syncStatus === "syncing" ? "saving" : syncStatus === "synced" ? "saved" : syncStatus;
     const saveLabel =
@@ -286,6 +290,7 @@ export default function ProjectWritePage() {
                                 onMove={handleMoveChapter}
                                 onDelete={handleDeleteChapter}
                                 onRename={handleRenameChapter}
+                                onExport={() => setExportOpen(true)}
                             />
                             <StudioOutline
                                 items={outline.items}
@@ -337,6 +342,15 @@ export default function ProjectWritePage() {
                     actionLabel="되돌리기"
                     onAction={handleRestoreChapter}
                     onDismiss={dismissDeleteToast}
+                />
+            )}
+            {exportOpen && (
+                <ExportDialog
+                    open
+                    chapters={chapters}
+                    paperSize={paperSize}
+                    onExportPdf={() => { /* Phase 3: PDF 생성 — 임시 no-op */ }}
+                    onClose={() => setExportOpen(false)}
                 />
             )}
             {endWorkOpen && (

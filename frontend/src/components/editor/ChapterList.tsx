@@ -31,6 +31,8 @@ export type ChapterListProps = {
     onDelete?: (id: number) => void;
     /** 챕터 제목 편집 콜백. 미전달 시 더블클릭 인라인 편집 비활성. */
     onRename?: (id: number, title: string) => void;
+    /** 내보내기 버튼 콜백. 미전달 시 버튼 숨김. */
+    onExport?: () => void;
 };
 
 /** 챕터 항목 — 인라인 편집 상태를 지역적으로 관리. */
@@ -170,7 +172,7 @@ function ChapterItem({
     );
 }
 
-export function ChapterList({ chapters, currentChapterId, onSelect, onCreate, onMove, onDelete, onRename }: ChapterListProps) {
+export function ChapterList({ chapters, currentChapterId, onSelect, onCreate, onMove, onDelete, onRename, onExport }: ChapterListProps) {
     const showMoveButtons = onMove != null;
     const showDeleteButtons = onDelete != null;
     const showRename = onRename != null;
@@ -206,6 +208,11 @@ export function ChapterList({ chapters, currentChapterId, onSelect, onCreate, on
             <button type="button" onClick={onCreate} className="chapter-list__create">
                 + 새 챕터
             </button>
+            {onExport != null && (
+                <button type="button" onClick={onExport} className="chapter-list__export">
+                    내보내기
+                </button>
+            )}
         </div>
     );
 }
