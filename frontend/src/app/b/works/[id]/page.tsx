@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Editor } from "@tiptap/react";
-import { useCreateChapter, useDeleteChapter, useProjectChapters, useReorderChapters, useRestoreChapter } from "@/lib/query/useDocument";
+import { useCreateChapter, useDeleteChapter, useProjectChapters, useReorderChapters, useRestoreChapter, useUpdateChapterTitle } from "@/lib/query/useDocument";
 import { useProject, useUpdateProject } from "@/lib/query/useProjects";
 import { PAPER_PRESETS, type PaperSize } from "@/components/editor/pageLayout";
 import { logKeys } from "@/lib/query/useLogs";
@@ -92,6 +92,9 @@ export default function BWorkDetailPage() {
     const restoreChapter = useRestoreChapter(projectId);
     const [pendingDelete, setPendingDelete] = useState<{ ids: number[]; seq: number } | null>(null);
 
+    // 챕터 제목 변경 mutation (022 dogfooding T-RENAME)
+    const updateChapterTitle = useUpdateChapterTitle(projectId);
+
     // 용지 크기는 작품 속성 — 변경 시 PATCH → 비율 즉시 반영.
     const paperSize: PaperSize = projectQuery.data?.paperSize ?? "A4";
     const handlePaperSizeChange = (next: PaperSize) => {
@@ -163,6 +166,14 @@ export default function BWorkDetailPage() {
             reorderChapters.mutate(newIds);
         },
         [chapters, reorderChapters],
+    );
+
+    // 챕터 제목 변경 핸들러 (022 dogfooding T-RENAME)
+    const handleRenameChapter = useCallback(
+        (documentId: number, title: string) => {
+            updateChapterTitle.mutate({ documentId, title });
+        },
+        [updateChapterTitle],
     );
 
     const handleEndWork = async () => {
@@ -278,6 +289,7 @@ export default function BWorkDetailPage() {
                     onCreate={handleCreateChapter}
                     onMove={handleMoveChapter}
                     onDelete={handleDeleteChapter}
+                    onRename={handleRenameChapter}
                 />
             </div>
             <div className="flex-1 overflow-y-auto p-2">
@@ -445,6 +457,7 @@ export default function BWorkDetailPage() {
                     documentId={currentChapterId}
                     projectId={projectId}
                     paperSize={paperSize}
+                    chapterTitle={chapters.find((c) => c.id === currentChapterId)?.title}
                     onSyncStatus={handleSyncStatus}
                     onConflict={handleConflict}
                     onEditorReady={setEditor}

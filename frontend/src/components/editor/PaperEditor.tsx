@@ -29,6 +29,8 @@ function parseContent(bodyJson: string): Content {
 
 type PaperEditorProps = {
     title: string;
+    /** 현재 챕터 제목 — 작품 제목(.doc-title) 아래 부제로 표시. 미전달 시 표시 안 함. */
+    chapterTitle?: string;
     initialBodyJson: string;
     onChange: (change: DocumentChange) => void;
     /**
@@ -48,7 +50,7 @@ type PaperEditorProps = {
 // Phase 2: A4 geometry 상수. 용지 선택 배선은 Phase 3 에서 진행.
 const A4_GEOMETRY = paperGeometry("A4");
 
-export function PaperEditor({ title, initialBodyJson, onChange, onDraftUpdate, onEditorReady, lined, zoom = 1 }: PaperEditorProps) {
+export function PaperEditor({ title, chapterTitle, initialBodyJson, onChange, onDraftUpdate, onEditorReady, lined, zoom = 1 }: PaperEditorProps) {
     const paperRef = useRef<HTMLElement>(null);
     const [pages, setPages] = useState(1);
 
@@ -127,6 +129,9 @@ export function PaperEditor({ title, initialBodyJson, onChange, onDraftUpdate, o
     return (
         <main className="editor-scroll" aria-label="본문 편집기">
             <h1 className="doc-title">{title}</h1>
+            {chapterTitle != null && chapterTitle !== "" && (
+                <p className="doc-chapter-title">{chapterTitle}</p>
+            )}
             <article
                 ref={paperRef}
                 className="paper"

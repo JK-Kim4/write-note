@@ -3,8 +3,8 @@
  * 기존 lib/api/document(006)를 어댑터로 재사용. 자동저장 충돌(409)은 client.ts ConflictError 로 전파.
  * 022 US1: 챕터 목록(list) / 챕터 생성(create) / 단건 조회(get) 추가.
  */
-import { createChapter, deleteChapter, getDocument, listChapters, reorderChapters, restoreChapter, saveDocument } from "@/lib/api/document";
-import type { ChapterMetaResponse, DocumentResponse, DocumentSaveResponse } from "@/types/api";
+import { createChapter, deleteChapter, getDocument, listChapters, reorderChapters, restoreChapter, saveDocument, updateDocumentTitle } from "@/lib/api/document";
+import type { ChapterMetaResponse, DocumentResponse, DocumentSaveResponse, DocumentTitleResponse } from "@/types/api";
 import type { ChapterMeta, ProjectDocument } from "@/lib/types/domain";
 
 function toDocument(d: DocumentResponse): ProjectDocument {
@@ -79,4 +79,11 @@ export const documents = {
      * deleted_at = NULL, sort_order = 활성 맨 뒤. 022 US3 C5.
      */
     restore: (documentId: number): Promise<void> => restoreChapter(documentId),
+
+    /**
+     * 챕터 제목 변경 — PATCH /api/documents/{id}/title.
+     * 022 dogfooding T-RENAME.
+     */
+    updateTitle: (documentId: number, title: string): Promise<DocumentTitleResponse> =>
+        updateDocumentTitle(documentId, { title }),
 };

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
-import { useCreateChapter, useDeleteChapter, useProjectChapters, useReorderChapters, useRestoreChapter } from "@/lib/query/useDocument";
+import { useCreateChapter, useDeleteChapter, useProjectChapters, useReorderChapters, useRestoreChapter, useUpdateChapterTitle } from "@/lib/query/useDocument";
 import { useProject } from "@/lib/query/useProjects";
 import { useProjectMemos, useRemoveLinkMemo, useSetPinMemo } from "@/lib/query/useMemos";
 import { logKeys } from "@/lib/query/useLogs";
@@ -99,6 +99,9 @@ export default function ProjectWritePage() {
     const deleteChapter = useDeleteChapter(projectId);
     const restoreChapter = useRestoreChapter(projectId);
 
+    // 챕터 제목 변경 mutation (022 dogfooding T-RENAME)
+    const updateChapterTitle = useUpdateChapterTitle(projectId);
+
     // 되돌리기 토스트 상태 — memos 패턴 (key=seq 로 Toast remount → 타이머 재시작)
     const [pendingDelete, setPendingDelete] = useState<{ ids: number[]; seq: number } | null>(null);
 
@@ -170,6 +173,14 @@ export default function ProjectWritePage() {
             reorderChapters.mutate(newIds);
         },
         [chapters, reorderChapters],
+    );
+
+    // 챕터 제목 변경 핸들러 (022 dogfooding T-RENAME)
+    const handleRenameChapter = useCallback(
+        (documentId: number, title: string) => {
+            updateChapterTitle.mutate({ documentId, title });
+        },
+        [updateChapterTitle],
     );
 
     const outline = useEditorOutline(editor);
@@ -274,6 +285,7 @@ export default function ProjectWritePage() {
                                 onCreate={handleCreateChapter}
                                 onMove={handleMoveChapter}
                                 onDelete={handleDeleteChapter}
+                                onRename={handleRenameChapter}
                             />
                             <StudioOutline
                                 items={outline.items}
@@ -297,6 +309,7 @@ export default function ProjectWritePage() {
                                 documentId={currentChapterId}
                                 projectId={projectId}
                                 projectTitle={projectTitle}
+                                chapterTitle={chapters.find((c) => c.id === currentChapterId)?.title}
                                 lined={lined}
                                 zoom={zoom}
                                 onEditorReady={setEditor}

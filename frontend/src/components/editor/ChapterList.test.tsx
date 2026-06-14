@@ -195,4 +195,117 @@ describe("ChapterList", () => {
         expect(onDelete).toHaveBeenCalledWith(2);
         expect(onDelete).toHaveBeenCalledTimes(1);
     });
+
+    // ── T-RENAME: 챕터 제목 인라인 편집 테스트 ────────────────────────────
+
+    it("onRename 전달 시 제목 더블클릭으로 인라인 편집 input 이 표시된다", async () => {
+        const onRename = vi.fn();
+        render(
+            <ChapterList
+                chapters={CHAPTERS}
+                currentChapterId={null}
+                onSelect={vi.fn()}
+                onCreate={vi.fn()}
+                onRename={onRename}
+            />,
+        );
+
+        // 첫 번째 챕터 제목 더블클릭
+        const titleBtn = screen.getByRole("button", { name: /1장 — 시작/ });
+        await userEvent.dblClick(titleBtn);
+
+        // input 이 표시되고 기존 제목이 초기값으로 설정되어야 함
+        const input = screen.getByRole("textbox");
+        expect(input).toBeInTheDocument();
+        expect(input).toHaveValue("1장 — 시작");
+    });
+
+    it("인라인 편집 input 에서 Enter 입력 시 onRename(id, title) 이 호출된다", async () => {
+        const onRename = vi.fn();
+        render(
+            <ChapterList
+                chapters={CHAPTERS}
+                currentChapterId={null}
+                onSelect={vi.fn()}
+                onCreate={vi.fn()}
+                onRename={onRename}
+            />,
+        );
+
+        const titleBtn = screen.getByRole("button", { name: /1장 — 시작/ });
+        await userEvent.dblClick(titleBtn);
+
+        const input = screen.getByRole("textbox");
+        await userEvent.clear(input);
+        await userEvent.type(input, "수정된 제목");
+        await userEvent.keyboard("{Enter}");
+
+        expect(onRename).toHaveBeenCalledWith(1, "수정된 제목");
+        expect(onRename).toHaveBeenCalledTimes(1);
+    });
+
+    it("인라인 편집 input 에서 blur 시 onRename(id, title) 이 호출된다", async () => {
+        const onRename = vi.fn();
+        render(
+            <ChapterList
+                chapters={CHAPTERS}
+                currentChapterId={null}
+                onSelect={vi.fn()}
+                onCreate={vi.fn()}
+                onRename={onRename}
+            />,
+        );
+
+        const titleBtn = screen.getByRole("button", { name: /1장 — 시작/ });
+        await userEvent.dblClick(titleBtn);
+
+        const input = screen.getByRole("textbox");
+        await userEvent.clear(input);
+        await userEvent.type(input, "blur 후 저장");
+        // blur 발생
+        await userEvent.tab();
+
+        expect(onRename).toHaveBeenCalledWith(1, "blur 후 저장");
+    });
+
+    it("인라인 편집 input 에서 Escape 입력 시 편집이 취소된다 (onRename 호출 안 함)", async () => {
+        const onRename = vi.fn();
+        render(
+            <ChapterList
+                chapters={CHAPTERS}
+                currentChapterId={null}
+                onSelect={vi.fn()}
+                onCreate={vi.fn()}
+                onRename={onRename}
+            />,
+        );
+
+        const titleBtn = screen.getByRole("button", { name: /1장 — 시작/ });
+        await userEvent.dblClick(titleBtn);
+
+        const input = screen.getByRole("textbox");
+        await userEvent.type(input, "취소될 제목");
+        await userEvent.keyboard("{Escape}");
+
+        expect(onRename).not.toHaveBeenCalled();
+        // input 이 사라지고 원래 제목 버튼이 복원되어야 함
+        expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /1장 — 시작/ })).toBeInTheDocument();
+    });
+
+    it("onRename 없이 렌더링 시 더블클릭해도 input 이 표시되지 않는다", async () => {
+        render(
+            <ChapterList
+                chapters={CHAPTERS}
+                currentChapterId={null}
+                onSelect={vi.fn()}
+                onCreate={vi.fn()}
+            />,
+        );
+
+        const titleBtn = screen.getByRole("button", { name: /1장 — 시작/ });
+        await userEvent.dblClick(titleBtn);
+
+        expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    });
 });

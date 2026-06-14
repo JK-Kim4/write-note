@@ -124,6 +124,36 @@ export function useRestoreChapter(projectId: number) {
 export { LastChapterError };
 
 /**
+ * 챕터 제목 변경 mutation — 022 dogfooding T-RENAME.
+ *
+ * 낙관적 갱신: 성공 시 챕터 목록 캐시의 해당 챕터 title 을 즉시 갱신.
+ * 실패 시 캐시 롤백.
+ */
+export function useUpdateChapterTitle(projectId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ documentId, title }: { documentId: number; title: string }) =>
+            webElectronApi.documents.updateTitle(documentId, title),
+        onMutate: async ({ documentId, title }) => {
+            await queryClient.cancelQueries({ queryKey: documentKeys.chapters(projectId) });
+            const previous = queryClient.getQueryData<ChapterMeta[]>(documentKeys.chapters(projectId));
+            queryClient.setQueryData<ChapterMeta[]>(documentKeys.chapters(projectId), (cur) =>
+                cur ? cur.map((c) => (c.id === documentId ? { ...c, title } : c)) : cur,
+            );
+            return { previous };
+        },
+        onError: (_err, _vars, ctx) => {
+            if (ctx?.previous != null) {
+                queryClient.setQueryData<ChapterMeta[]>(documentKeys.chapters(projectId), ctx.previous);
+            }
+        },
+        onSettled: () => {
+            void queryClient.invalidateQueries({ queryKey: documentKeys.chapters(projectId) });
+        },
+    });
+}
+
+/**
  * 챕터 순서 이동 mutation — 022 US2 T022.
  *
  * ChapterList 의 onMove(id, direction) 콜백을 받아:

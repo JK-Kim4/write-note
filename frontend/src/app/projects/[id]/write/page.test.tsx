@@ -539,3 +539,49 @@ describe("ProjectWritePage — 챕터 전환 거짓 409 버그 (T015 방안 A)",
         expect(screen.queryByText("충돌")).toBeNull();
     });
 });
+
+describe("ProjectWritePage — 챕터 제목 rename (T-RENAME)", () => {
+    beforeEach(() => {
+        localStorage.clear();
+        searchParamsStore = new URLSearchParams("chapter=10");
+    });
+    afterEach(() => {
+        localStorage.clear();
+    });
+
+    it("챕터 제목 더블클릭 후 Enter 시 PATCH /api/documents/{id}/title 를 호출한다", async () => {
+        let patchedId: number | undefined;
+        let patchedTitle: string | undefined;
+
+        server.use(
+            http.patch(`${ORIGIN}/api/documents/:id/title`, async ({ params, request }) => {
+                patchedId = Number(params["id"]);
+                const body = await request.json() as { title: string };
+                patchedTitle = body.title;
+                return HttpResponse.json({
+                    success: true,
+                    data: { id: patchedId, title: patchedTitle, updatedAt: "2026-06-14T00:00:00Z" },
+                    error: null,
+                });
+            }),
+        );
+        stubWith([CHAPTER_A_META, CHAPTER_B_META]);
+        renderPage();
+
+        await screen.findByText("1챕터");
+
+        // 1챕터 제목 더블클릭 → 인라인 input 진입
+        const titleBtn = screen.getByRole("button", { name: "1챕터" });
+        await userEvent.dblClick(titleBtn);
+
+        const input = screen.getByRole("textbox");
+        await userEvent.clear(input);
+        await userEvent.type(input, "새 제목");
+        await userEvent.keyboard("{Enter}");
+
+        await waitFor(() => {
+            expect(patchedId).toBe(10);
+            expect(patchedTitle).toBe("새 제목");
+        });
+    });
+});
