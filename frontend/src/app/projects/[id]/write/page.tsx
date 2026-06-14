@@ -310,6 +310,7 @@ export default function ProjectWritePage() {
                                 projectId={projectId}
                                 projectTitle={projectTitle}
                                 chapterTitle={chapters.find((c) => c.id === currentChapterId)?.title}
+                                onChapterRename={currentChapterId != null ? (title) => handleRenameChapter(currentChapterId, title) : undefined}
                                 lined={lined}
                                 zoom={zoom}
                                 onEditorReady={setEditor}

@@ -32,8 +32,26 @@ vi.mock("next/navigation", () => ({
 }));
 
 // BEditor, BWorkSidePanel 은 jsdom 미지원 API(ResizeObserver 등) 사용 → 내부 컴포넌트이므로 mock.
+// chapterTitle / onChapterRename 을 노출해 본문 상단 제목 편집 흐름 검증 가능.
 vi.mock("@/components/b/BEditor", () => ({
-    BEditor: () => <div data-testid="b-editor" />,
+    BEditor: ({
+        chapterTitle,
+        onChapterRename,
+    }: {
+        chapterTitle?: string;
+        onChapterRename?: (title: string) => void;
+    }) => (
+        <div data-testid="b-editor">
+            {chapterTitle != null && (
+                <span
+                    data-testid="b-editor-chapter-title"
+                    onDoubleClick={() => onChapterRename?.("B형 본문에서 변경된 제목")}
+                >
+                    {chapterTitle || "새 챕터"}
+                </span>
+            )}
+        </div>
+    ),
 }));
 vi.mock("@/components/b/BWorkSidePanel", () => ({
     BWorkSidePanel: () => <div data-testid="b-work-side-panel" />,
@@ -207,6 +225,58 @@ describe("BWorkDetailPage — 챕터 순서 이동 (US2)", () => {
 
         await waitFor(() => {
             expect(capturedIds).toEqual([20, 10]);
+        });
+    });
+});
+
+describe("BWorkDetailPage — 본문 상단 챕터 제목 인라인 편집 (T-BODY-RENAME)", () => {
+    /**
+     * BEditor mock 에 chapterTitle / onChapterRename 을 노출하므로,
+     * 본문 상단 제목 영역의 더블클릭 → onChapterRename 콜백 → PATCH 호출 흐름을 검증.
+     * 좌측 ChapterList rename 과 동일한 mutation(useUpdateChapterTitle)을 사용.
+     */
+    beforeEach(() => {
+        searchParamsStore = new URLSearchParams("chapter=10");
+    });
+
+    it("본문 상단 챕터 제목이 표시된다", async () => {
+        stubCommon();
+        renderPage();
+
+        await waitFor(() => {
+            expect(screen.getByTestId("b-editor-chapter-title")).toBeInTheDocument();
+        });
+        expect(screen.getByTestId("b-editor-chapter-title")).toHaveTextContent("1챕터");
+    });
+
+    it("본문 상단 챕터 제목 더블클릭 시 onChapterRename 이 호출되고 PATCH /api/documents/{id}/title 를 호출한다", async () => {
+        let patchedId: number | undefined;
+        let patchedTitle: string | undefined;
+
+        server.use(
+            http.patch(`${ORIGIN}/api/documents/:id/title`, async ({ params, request }) => {
+                patchedId = Number(params["id"]);
+                const body = await request.json() as { title: string };
+                patchedTitle = body.title;
+                return HttpResponse.json({
+                    success: true,
+                    data: { id: patchedId, title: patchedTitle, updatedAt: "2026-06-14T00:00:00Z" },
+                    error: null,
+                });
+            }),
+        );
+        stubCommon();
+        renderPage();
+
+        // 본문 상단 챕터 제목 영역 더블클릭 → mock 이 onChapterRename("B형 본문에서 변경된 제목") 호출
+        const titleEl = await screen.findByTestId("b-editor-chapter-title");
+        await userEvent.dblClick(titleEl);
+
+        // onChapterRename → handleRenameChapter(currentChapterId=10, "B형 본문에서 변경된 제목") →
+        // updateChapterTitle.mutate → PATCH /api/documents/10/title
+        await waitFor(() => {
+            expect(patchedId).toBe(10);
+            expect(patchedTitle).toBe("B형 본문에서 변경된 제목");
         });
     });
 });

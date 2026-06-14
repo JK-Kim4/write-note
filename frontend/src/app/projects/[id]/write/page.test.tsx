@@ -8,10 +8,28 @@ import { server } from "@/test/msw/server";
 import ProjectWritePage from "./page";
 
 // PaperEditor 는 jsdom 에서 ResizeObserver 미지원으로 crash → 외부 경계(HTTP) 가 아닌 내부 컴포넌트이므로 mock 처리.
-// onChange / onDraftUpdate 를 받아 버튼으로 트리거 가능하게 노출(챕터 전환 버전 테스트용).
+// onChange / onDraftUpdate / chapterTitle / onChapterRename 을 받아 테스트 가능하게 노출.
 vi.mock("@/components/editor/PaperEditor", () => ({
-    PaperEditor: ({ onChange, onDraftUpdate }: { onChange?: (c: { bodyJson: string; plainText: string; wordCount: number }) => void; onDraftUpdate?: (body: string) => void }) => (
+    PaperEditor: ({
+        onChange,
+        onDraftUpdate,
+        chapterTitle,
+        onChapterRename,
+    }: {
+        onChange?: (c: { bodyJson: string; plainText: string; wordCount: number }) => void;
+        onDraftUpdate?: (body: string) => void;
+        chapterTitle?: string;
+        onChapterRename?: (title: string) => void;
+    }) => (
         <div data-testid="paper-editor">
+            {chapterTitle != null && (
+                <span
+                    data-testid="paper-editor-chapter-title"
+                    onDoubleClick={() => onChapterRename?.("본문에서 변경된 제목")}
+                >
+                    {chapterTitle || "새 챕터"}
+                </span>
+            )}
             <button
                 type="button"
                 data-testid="paper-editor-change"
@@ -582,6 +600,64 @@ describe("ProjectWritePage — 챕터 제목 rename (T-RENAME)", () => {
         await waitFor(() => {
             expect(patchedId).toBe(10);
             expect(patchedTitle).toBe("새 제목");
+        });
+    });
+});
+
+describe("ProjectWritePage — 본문 상단 챕터 제목 인라인 편집 (T-BODY-RENAME)", () => {
+    /**
+     * PaperEditor mock 에 chapterTitle / onChapterRename 을 노출하므로,
+     * 본문 상단 제목 영역의 더블클릭 → onChapterRename 콜백 → PATCH 호출 흐름을 검증.
+     * 좌측 ChapterList rename 과 동일한 mutation(useUpdateChapterTitle)을 사용하므로
+     * 같은 PATCH /api/documents/{id}/title 엔드포인트를 호출한다.
+     */
+    beforeEach(() => {
+        localStorage.clear();
+        searchParamsStore = new URLSearchParams("chapter=10");
+    });
+    afterEach(() => {
+        localStorage.clear();
+    });
+
+    it("본문 상단 챕터 제목이 표시된다", async () => {
+        stubWith([CHAPTER_A_META, CHAPTER_B_META]);
+        renderPage();
+
+        // PaperEditor mock 의 chapterTitle span 이 표시되어야 함
+        await waitFor(() => {
+            expect(screen.getByTestId("paper-editor-chapter-title")).toBeInTheDocument();
+        });
+        expect(screen.getByTestId("paper-editor-chapter-title")).toHaveTextContent("1챕터");
+    });
+
+    it("본문 상단 챕터 제목 더블클릭 시 onChapterRename 이 호출되고 PATCH /api/documents/{id}/title 를 호출한다", async () => {
+        let patchedId: number | undefined;
+        let patchedTitle: string | undefined;
+
+        server.use(
+            http.patch(`${ORIGIN}/api/documents/:id/title`, async ({ params, request }) => {
+                patchedId = Number(params["id"]);
+                const body = await request.json() as { title: string };
+                patchedTitle = body.title;
+                return HttpResponse.json({
+                    success: true,
+                    data: { id: patchedId, title: patchedTitle, updatedAt: "2026-06-14T00:00:00Z" },
+                    error: null,
+                });
+            }),
+        );
+        stubWith([CHAPTER_A_META, CHAPTER_B_META]);
+        renderPage();
+
+        // 본문 상단 챕터 제목 영역 더블클릭 → mock 이 onChapterRename("본문에서 변경된 제목") 호출
+        const titleEl = await screen.findByTestId("paper-editor-chapter-title");
+        await userEvent.dblClick(titleEl);
+
+        // onChapterRename → handleRenameChapter(currentChapterId=10, "본문에서 변경된 제목") →
+        // updateChapterTitle.mutate → PATCH /api/documents/10/title
+        await waitFor(() => {
+            expect(patchedId).toBe(10);
+            expect(patchedTitle).toBe("본문에서 변경된 제목");
         });
     });
 });

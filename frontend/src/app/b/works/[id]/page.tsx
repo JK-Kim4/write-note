@@ -458,6 +458,7 @@ export default function BWorkDetailPage() {
                     projectId={projectId}
                     paperSize={paperSize}
                     chapterTitle={chapters.find((c) => c.id === currentChapterId)?.title}
+                    onChapterRename={currentChapterId != null ? (title) => handleRenameChapter(currentChapterId, title) : undefined}
                     onSyncStatus={handleSyncStatus}
                     onConflict={handleConflict}
                     onEditorReady={setEditor}

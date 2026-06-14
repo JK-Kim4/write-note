@@ -36,6 +36,11 @@ interface ChapterEditorProps {
     projectTitle: string;
     /** 현재 챕터 제목 — 본문 상단에 작품 제목 아래 부제로 표시. */
     chapterTitle?: string;
+    /**
+     * 본문 상단 챕터 제목 인라인 편집 완료 콜백.
+     * PaperEditor 의 onChapterRename 으로 전달됨.
+     */
+    onChapterRename?: (title: string) => void;
     lined: boolean;
     zoom: number;
     /** 에디터 인스턴스를 page 로 올려 아웃라인 갱신에 사용. */
@@ -46,7 +51,7 @@ interface ChapterEditorProps {
 
 const EMPTY_DOC = JSON.stringify({ type: "doc", content: [] });
 
-export function ChapterEditor({ documentId, projectId, projectTitle, chapterTitle, lined, zoom, onEditorReady, onSyncStatus }: ChapterEditorProps) {
+export function ChapterEditor({ documentId, projectId, projectTitle, chapterTitle, onChapterRename, lined, zoom, onEditorReady, onSyncStatus }: ChapterEditorProps) {
     const queryClient = useQueryClient();
     const { data: doc, isLoading, isError } = useChapterDocument(documentId);
 
@@ -122,6 +127,7 @@ export function ChapterEditor({ documentId, projectId, projectTitle, chapterTitl
                 onChange={handleChange}
                 onDraftUpdate={session.flushDraft}
                 onEditorReady={onEditorReady}
+                onChapterRename={onChapterRename}
                 lined={lined}
                 zoom={zoom}
             />

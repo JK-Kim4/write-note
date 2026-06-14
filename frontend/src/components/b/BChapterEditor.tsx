@@ -40,6 +40,11 @@ interface BChapterEditorProps {
     paperSize: PaperSize;
     /** 현재 챕터 제목 — 에디터 상단에 부제로 표시. 미전달 시 표시 안 함. */
     chapterTitle?: string;
+    /**
+     * 본문 상단 챕터 제목 인라인 편집 완료 콜백.
+     * BEditor 의 onChapterRename 으로 전달됨.
+     */
+    onChapterRename?: (title: string) => void;
     /** 저장 상태 / flushDraft 를 page 로 전달 (Titlebar 저장 표시 + 챕터 전환 직전 flush). */
     onSyncStatus: (status: BChapterEditorSyncStatus) => void;
     /** 충돌 상태 / 해결 핸들러를 page 로 전달 — page 가 충돌 다이얼로그를 렌더. */
@@ -55,6 +60,7 @@ export function BChapterEditor({
     projectId,
     paperSize,
     chapterTitle,
+    onChapterRename,
     onSyncStatus,
     onConflict,
     onEditorReady,
@@ -175,6 +181,7 @@ export function BChapterEditor({
                 statusTone={statusTone}
                 paperSize={paperSize}
                 chapterTitle={chapterTitle}
+                onChapterRename={onChapterRename}
             />
         </div>
     );
