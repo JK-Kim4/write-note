@@ -367,6 +367,7 @@ export function CustomEditor({
 }) {
     const buffer = model.buffer;
     const [sel, setSel] = useState({ anchor: buffer.length, focus: buffer.length });
+    const [pendingMarks, setPendingMarks] = useState<Mask | null>(null);
     const [mounted, setMounted] = useState(false);
     const stageRef = useRef<HTMLDivElement>(null);
     const ecRef = useRef<EditContext | null>(null);
@@ -394,8 +395,9 @@ export function CustomEditor({
     // 툴바 활성 표시 — 현재 캐럿이 속한 블록의 attr.
     const activeBlockIdx = blockIndexAt(model, sel.focus);
     const activeAttr: BlockAttr = model.blockAttrs[activeBlockIdx] ?? { type: "paragraph" };
-    // 마크 버튼 활성 — focus 캐럿 좌측 글자의 mask(선택 구간 한가운데 캐럿 = 그 구간 mask).
-    const activeMask = marksAt(model, sel.focus);
+    // 마크 버튼 활성(T027) — pendingMarks 가 있으면 그것을, 없으면 focus 캐럿 좌측 글자의 mask.
+    // pendingMarks state 또는 sel state 가 바뀌면 리렌더되어 버튼 활성 갱신됨.
+    const activeMask = pendingMarks !== null ? pendingMarks : marksAt(model, sel.focus);
 
     // keydown/드래그 핸들러(마운트 1회 생성)가 최신 값을 보도록 ref 안정화.
     const viewRef = useRef(view);
@@ -403,11 +405,14 @@ export function CustomEditor({
     const selStateRef = useRef(sel);
     const modelRef = useRef(model);
     const onModelChangeRef = useRef(onModelChange);
+    // pendingMarks ref — onKey(마운트 1회 effect)에서 최신값 읽기. setter 는 안정적이라 ref 불필요.
+    const pendingMarksRef = useRef<Mask | null>(null);
     viewRef.current = view;
     geoRef.current = geo;
     selStateRef.current = sel;
     modelRef.current = model;
     onModelChangeRef.current = onModelChange;
+    pendingMarksRef.current = pendingMarks;
     const effectiveScale = scale * userZoom;
     scaleRef.current = effectiveScale;
 
@@ -491,13 +496,16 @@ export function CustomEditor({
                 historyRef.current = pushSnapshot(historyRef.current, snapshotOf(), { coalesce: false });
                 typingRunRef.current = true;
             }
-            // 마크 상속(T022): 삽입 글자는 좌측 글자(updateRangeStart)의 mask 를 이어받는다. EditContext 의
-            // updateRange[Start,End) 가 치환 범위(편집 전 buffer 좌표 = modelRef.current.buffer 와 동일).
+            // 마크 상속(T022): 삽입 글자는 보류 마크(pendingMarks)가 있으면 그것을, 없으면 좌측 글자
+            // (updateRangeStart)의 mask 를 이어받는다. EditContext 의 updateRange[Start,End) 가 치환 범위.
             // insertText 로 재구성해 markRuns 가 삽입/삭제를 추종(modelFromEc 의 reconcile 은 mask 0 으로 평탄).
             const pre = modelRef.current;
-            const inheritMask = marksAt(pre, te.updateRangeStart);
+            const pending = pendingMarksRef.current;
+            const inheritMask = pending !== null ? pending : marksAt(pre, te.updateRangeStart);
             const next = insertText(pre, te.updateRangeStart, te.updateRangeEnd, te.text, inheritMask);
             onModelChangeRef.current(next);
+            // 보류 마크 소비 — 입력이 들어오면 폐기.
+            if (pending !== null) setPendingMarks(null);
             setSel({ anchor: te.selectionStart, focus: te.selectionEnd }); // 편집 후 collapse
         };
         ec.addEventListener("textupdate", onText);
@@ -570,15 +578,20 @@ export function CustomEditor({
             const len = ec.text.length;
             const m = modelRef.current;
 
-            // 마크 단축키(T021) — Cmd/Ctrl+B/I/U. strike 는 툴바 버튼만. 선택 구간만 토글(collapsed 무동작).
+            // 마크 단축키(T021+T025) — Cmd/Ctrl+B/I/U. strike 는 툴바 버튼만.
+            // 선택 있으면 구간 토글(applyToggleMark). collapsed 이면 보류 마크 토글(pendingMarks).
             // IME 가드 아래 = 조합 중 토글 차단(정상). 'z'/'c'/'x'/'a' 분기와 키가 달라 충돌 없음.
             if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
                 const k = e.key.toLowerCase();
                 if (k === "b" || k === "i" || k === "u") {
                     e.preventDefault();
+                    const mark = k === "b" ? MARK.bold : k === "i" ? MARK.italic : MARK.underline;
                     if (!collapsed) {
-                        const mark = k === "b" ? MARK.bold : k === "i" ? MARK.italic : MARK.underline;
                         applyToggleMark(mark);
+                    } else {
+                        // collapsed: 보류 마크 토글 — base 는 현재 pendingMarks 또는 캐럿 좌측 글자 mask.
+                        const base = pendingMarksRef.current !== null ? pendingMarksRef.current : marksAt(modelRef.current, cur.focus);
+                        setPendingMarks(base ^ mark);
                     }
                     return;
                 }
@@ -626,11 +639,15 @@ export function CustomEditor({
                 recordBeforeStructural();
                 // 선택이 있으면 먼저 삭제 후 split(EditContext 텍스트도 함께 정합).
                 const caret = lo;
+                // Enter 직전 활성 마크(보류 마크 또는 좌측 글자 mask)를 새 줄로 이어준다 — 워드 관습:
+                // 굵게 쓰던 중 Enter 치면 다음 줄도 굵게 유지. 새 블록은 빈 run 이라 marksAt=0 → 평문이 되는 회귀 방지.
+                const carry = pendingMarksRef.current !== null ? pendingMarksRef.current : marksAt(m, caret);
                 const next = splitBlock(deleteRange(m, lo, hi), caret);
                 ec.updateText(0, ec.text.length, next.buffer);
                 ec.updateSelection(caret + 1, caret + 1);
                 onModelChangeRef.current(next);
                 setSel({ anchor: caret + 1, focus: caret + 1 });
+                setPendingMarks(carry !== 0 ? carry : null);
                 return;
             }
             // 전체 선택
@@ -693,6 +710,8 @@ export function CustomEditor({
             if (!isArrow) return;
             e.preventDefault();
             typingRunRef.current = false; // 캐럿/선택만 변경 → 다음 타이핑이 새 undo 경계
+            // 캐럿 이동 시 보류 마크 폐기 — 화살표로 다른 위치로 가면 토글 컨텍스트가 무효화됨.
+            if (pendingMarksRef.current !== null) setPendingMarks(null);
             let newFocus = cur.focus;
             const horiz = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
 
@@ -799,6 +818,8 @@ export function CustomEditor({
         const off = pointToCaret(e.clientX, e.clientY);
         if (off == null) return;
         typingRunRef.current = false; // 클릭/드래그 = 캐럿 이동 → 다음 타이핑이 새 undo 경계
+        // 클릭/드래그 시작 = 캐럿 이동 → 보류 마크 폐기.
+        if (pendingMarks !== null) setPendingMarks(null);
         dragAnchorRef.current = off;
         applySel(off, off);
         const onMove = (me: MouseEvent) => {
@@ -827,9 +848,17 @@ export function CustomEditor({
         if (attr?.type === "heading") onModelChangeRef.current(toggleHeading(modelRef.current, idx, attr.level));
         stageRef.current?.focus();
     };
-    // 마크 토글 버튼 — 선택 구간만(effect 안 applyToggleMark 가 collapsed 무동작 처리). 포커스 복귀.
+    // 마크 토글 버튼 — 선택 있으면 구간 토글, collapsed 이면 보류 마크 토글(T025). 포커스 복귀.
     const applyMark = (mark: Mask) => {
-        toggleMarkRef.current(mark);
+        const cur = selStateRef.current;
+        const collapsed = cur.anchor === cur.focus;
+        if (!collapsed) {
+            toggleMarkRef.current(mark);
+        } else {
+            // collapsed: 보류 마크 토글 — base 는 현재 pendingMarks 또는 캐럿 좌측 글자 mask.
+            const base = pendingMarksRef.current !== null ? pendingMarksRef.current : marksAt(modelRef.current, cur.focus);
+            setPendingMarks(base ^ mark);
+        }
         stageRef.current?.focus();
     };
 
