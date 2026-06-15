@@ -19,6 +19,7 @@
 - [x] M4. 렌더러(clip+translate) + 정적 PoC 라우트 `/poc/editor` — typecheck/build GREEN
 - [x] M5. EditContext 입력 루프(IME·Enter·Backspace·캐럿) + 렌더 — 빌드·헤드리스 스크린샷 검증.
 - [x] M6. 캐럿 클릭 배치(hit-test)·화살표 + **CDP 인터랙티브 검증 통과**.
+- [x] M7. 기본 선택 묶음(사용자 요청) — 드래그 선택·Shift/Cmd/Option+화살표·Cmd+A·선택 교체/삭제·선택 하이라이트·네이티브 선택 억제. **CDP 검증 통과**.
 
 ## 현재 상태 (iteration 3 끝)
 
@@ -37,6 +38,11 @@
 
 - **캐럿 x 누적 드리프트** — 캐럿 x 를 **canvas `measureText`** 로 쟀는데 canvas 가 한글 폰트(Apple SD Gothic Neo)를 좁게 폴백 측정("그날"=31px, 실제 DOM ~36px) → DOM 렌더와 어긋나 줄 깊을수록 캐럿이 글자에서 벌어짐. 줄바꿈은 DOM(`getClientRects`)으로 재는데 캐럿 x 만 canvas 라 불일치. **수정:** 캐럿 x·클릭 hit-test 를 줄바꿈·렌더와 동일한 오프스크린 DOM Range(`measure.ts measureLineXs`)로 통일, canvas 제거. **검증:** CDP 로 4지점 클릭 시 내 캐럿 vs 브라우저 `caretRangeFromPoint` **diff 0px**(이전엔 누적 드리프트). 교훈 — 텍스트 위치 계산은 렌더와 **같은 측정 방식**을 써야 한다(canvas↔DOM 혼용 금지).
 - **캐럿 2개(네이티브 캐럿 미차단)** — EditContext 호스트(focusable div)에 브라우저 **네이티브 캐럿**(line 시작 x=0)이 우리가 그린 `.poc-caret` 과 별개로 보임. CDP 확인: `.poc-caret` 1개·contenteditable 0·host caret-color 비투명. **수정:** 호스트에 `caret-color: transparent`(자체 캐럿 그릴 때 표준 처방). 검증: caret-color `rgba(0,0,0,0)`·캐럿 1개. 교훈 — EditContext/contenteditable 위에 자체 캐럿 그릴 땐 호스트 `caret-color: transparent` 필수.
+
+### 선택(selection) 구현 + 버그 (it.6 — 사용자 요청 "기본 선택 묶음")
+
+- 입력 모델 캐럿(단일)→선택 `{anchor, focus}` 확장. EditContext 선택 동기(`updateSelection(min,max)`)로 **선택 위 타이핑/Backspace 를 EditContext 가 교체/삭제**(실증: charCount). 드래그=`elementFromPoint`+`screenToCaret`, Shift+화살표=focus 확장, Cmd+←→=줄끝(`lineBoundsOf`), Option+←→=단어(`wordBoundary`), Cmd+A=전체, 선택 하이라이트=줄별 rect. 네이티브 선택 억제=mousedown `preventDefault`+수동 focus+`user-select:none`+`caret-color:transparent`. **CDP 검증:** 드래그 하이라이트3·native 0 / 타이핑교체 / Backspace선택삭제 / Cmd+A→Backspace 전체삭제 0 전부 OK.
+- **(버그) wrap 경계 캐럿 affinity** — `caretToScreen` 가 줄 찾기를 `within <= line.end` 로 해서 경계 offset(line[K].start==line[K-1].end)을 **이전 줄 끝**에 렌더 → Cmd+← "줄 맨앞"이 오른쪽에 표시(caretX 652 기대 348 인데 955). **수정:** `within < line.end`(downstream affinity, 맨끝은 fallback) → Cmd+← caretX 652→348 OK. 타이핑 중 줄바꿈 캐럿도 개선. 한계 — 줄 끝 정확히 클릭 시 다음 줄 시작에 캐럿(affinity 미추적, 본 구축에서 upstream/downstream 추적).
 
 ### 다음 iteration 진입점 (M6)
 
