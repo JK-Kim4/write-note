@@ -14,22 +14,27 @@
  * (용지는 props, 폰트 고정, 이미지삽입 보류) — CustomEditor 는 편집 표면만.
  */
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { blockFont, pageGeometry, type PageGeometry, type PaperSize } from "./geometry";
 import { emptyHistory, pushSnapshot, redo, undo, type Snapshot } from "./history";
 import { layout, type LaidOutPage, type MeasuredBlock, type MeasuredLine } from "./layoutEngine";
 import { measureLineXs, measureParagraphLines } from "./measure";
 import {
     blockIndexAt,
+    blockRuns,
     deleteRange,
     insertText,
+    MARK,
+    marksAt,
     mergeWithNext,
     mergeWithPrev,
-    reconcileAttrs,
     splitBlock,
     toggleHeading,
+    toggleMark,
     type BlockAttr,
     type DocModel,
+    type MarkRun,
+    type Mask,
 } from "./model";
 
 const FONT_FAMILY = "'Apple SD Gothic Neo', 'Noto Serif KR', serif";
@@ -53,6 +58,8 @@ type ParsedBlock =
           kind: "paragraph";
           text: string;
           lines: MeasuredLine[];
+          /** 이 블록의 정규형 run-list — measure/caret/render 가 혼합폭·스타일에 공통 사용. */
+          marks: MarkRun[];
           bufStart: number;
           bufEnd: number;
           fontSizePx: number;
@@ -82,9 +89,10 @@ function relayout(model: DocModel, geo: PageGeometry): View {
         } else {
             const attr: BlockAttr = model.blockAttrs[i] ?? { type: "paragraph" };
             const font = blockFont(attr, geo);
-            const lines = measureParagraphLines(seg, [], geo.contentWidthPx, font.lineHeightPx, font.fontSizePx, FONT_FAMILY);
+            const marks = blockRuns(model, i);
+            const lines = measureParagraphLines(seg, marks, geo.contentWidthPx, font.lineHeightPx, font.fontSizePx, FONT_FAMILY);
             const headingLevel: 1 | 2 | 3 | undefined = attr.type === "heading" ? attr.level : undefined;
-            blocks.push({ id, kind: "paragraph", text: seg, lines, bufStart, bufEnd, fontSizePx: font.fontSizePx, lineHeightPx: font.lineHeightPx, headingLevel });
+            blocks.push({ id, kind: "paragraph", text: seg, lines, marks, bufStart, bufEnd, fontSizePx: font.fontSizePx, lineHeightPx: font.lineHeightPx, headingLevel });
         }
         off = bufEnd + 1; // '\n' 구분자 1칸
     });
@@ -128,7 +136,7 @@ function caretToScreen(caret: number, blocks: ParsedBlock[], pages: LaidOutPage[
     const line = blk.lines[lineIdx];
     const fr = findFrag(lineIdx);
     if (!fr) return null;
-    const xs = measureLineXs(blk.text, [], line.start, line.end, geo.contentWidthPx, blk.lineHeightPx, blk.fontSizePx, FONT_FAMILY);
+    const xs = measureLineXs(blk.text, blk.marks, line.start, line.end, geo.contentWidthPx, blk.lineHeightPx, blk.fontSizePx, FONT_FAMILY);
     return {
         pageIndex: fr.pageIndex,
         x: xs[within - line.start] ?? 0,
@@ -149,7 +157,7 @@ function screenToCaret(pageIndex: number, x: number, y: number, view: View, geo:
     const lineWithin = Math.min(frag.endLine - frag.startLine, Math.max(0, Math.floor((y - frag.offsetY) / block.lineHeightPx)));
     const line = block.lines[frag.startLine + lineWithin];
     if (!line) return block.bufEnd;
-    const xs = measureLineXs(block.text, [], line.start, line.end, geo.contentWidthPx, block.lineHeightPx, block.fontSizePx, FONT_FAMILY);
+    const xs = measureLineXs(block.text, block.marks, line.start, line.end, geo.contentWidthPx, block.lineHeightPx, block.fontSizePx, FONT_FAMILY);
     let best = 0;
     let bestDist = Infinity;
     for (let i = 0; i < xs.length; i++) {
@@ -190,7 +198,7 @@ function selectionRects(s: number, e: number, view: View, geo: PageGeometry): Se
                         rects.push({ pageIndex: pg.index, x: 0, y, width: 8, height: block.lineHeightPx });
                     continue;
                 }
-                const xs = measureLineXs(block.text, [], line.start, line.end, geo.contentWidthPx, block.lineHeightPx, block.fontSizePx, FONT_FAMILY);
+                const xs = measureLineXs(block.text, block.marks, line.start, line.end, geo.contentWidthPx, block.lineHeightPx, block.fontSizePx, FONT_FAMILY);
                 const xStart = xs[os - block.bufStart - line.start];
                 const xEnd = xs[oe - block.bufStart - line.start];
                 const tail = hi > lineHi ? 8 : 0; // 개행까지 선택되면 줄 끝에 sliver
@@ -223,6 +231,49 @@ function wordBoundary(text: string, offset: number, dir: number): number {
         while (i < text.length && !isWs(text[i])) i++;
     }
     return i;
+}
+
+/**
+ * 블록 텍스트를 run 별 React 노드로 렌더. measure.ts 의 buildOffscreenDiv 와 동일 규칙:
+ * - marks 가 비었거나 전부 mask 0 → 단일 텍스트노드(1라운드와 동일 렌더 = 무회귀).
+ * - 그 외 → run 마다 style 있으면 <span>, 없으면(mask 0) 텍스트노드. 미덮 꼬리는 mask 0.
+ * 스타일은 measure.ts maskToStyle 와 1:1(bold→700, italic, underline/strike→text-decoration).
+ */
+function renderRuns(text: string, marks: MarkRun[]): ReactNode {
+    if (text.length === 0) return text;
+    const allZero = marks.length === 0 || marks.every((r) => r.mask === 0);
+    if (allZero) return text;
+
+    const nodes: ReactNode[] = [];
+    let pos = 0;
+    let key = 0;
+    for (const run of marks) {
+        if (run.len <= 0) continue;
+        const runText = text.slice(pos, pos + run.len);
+        if (!runText) {
+            pos += run.len;
+            continue;
+        }
+        const style = maskToReactStyle(run.mask);
+        if (style) nodes.push(<span key={key++} style={style}>{runText}</span>);
+        else nodes.push(runText);
+        pos += run.len;
+    }
+    if (pos < text.length) nodes.push(text.slice(pos));
+    return nodes;
+}
+
+/** mask → React 인라인 스타일. measure.ts maskToStyle 과 동일(빈 스타일이면 null = span 생략). */
+function maskToReactStyle(mask: Mask): CSSProperties | null {
+    const style: CSSProperties = {};
+    let has = false;
+    if (mask & MARK.bold) { style.fontWeight = 700; has = true; }
+    if (mask & MARK.italic) { style.fontStyle = "italic"; has = true; }
+    const deco: string[] = [];
+    if (mask & MARK.underline) deco.push("underline");
+    if (mask & MARK.strike) deco.push("line-through");
+    if (deco.length > 0) { style.textDecoration = deco.join(" "); has = true; }
+    return has ? style : null;
 }
 
 function PageBox({
@@ -287,7 +338,7 @@ function PageBox({
                                         color: "#1f2937",
                                     }}
                                 >
-                                    {b.text}
+                                    {renderRuns(b.text, b.marks)}
                                 </div>
                             </div>
                         );
@@ -322,6 +373,9 @@ export function CustomEditor({
     const dragAnchorRef = useRef<number | null>(null);
     // IME 조합 상태 — EditContext 의 compositionstart/end 로 추적(keydown e.isComposing 은 EditContext 에서 미설정).
     const composingRef = useRef(false);
+    // 마크 토글(선택 구간) — 단축키(effect 안 keydown)와 툴바 버튼(render)이 공유. effect 안에서 ec 동기까지
+    // 처리하는 실제 구현을 ref 에 담아 양쪽이 호출. 선택 없으면(US2 보류 마크 전) 무동작.
+    const toggleMarkRef = useRef<(mark: Mask) => void>(() => {});
     // undo/redo 스택 + 타이핑 런 경계(연속 타이핑은 undo 1회). 마운트 1회 effect 안 핸들러가 참조.
     const historyRef = useRef(emptyHistory());
     const typingRunRef = useRef(false);
@@ -340,6 +394,8 @@ export function CustomEditor({
     // 툴바 활성 표시 — 현재 캐럿이 속한 블록의 attr.
     const activeBlockIdx = blockIndexAt(model, sel.focus);
     const activeAttr: BlockAttr = model.blockAttrs[activeBlockIdx] ?? { type: "paragraph" };
+    // 마크 버튼 활성 — focus 캐럿 좌측 글자의 mask(선택 구간 한가운데 캐럿 = 그 구간 mask).
+    const activeMask = marksAt(model, sel.focus);
 
     // keydown/드래그 핸들러(마운트 1회 생성)가 최신 값을 보도록 ref 안정화.
     const viewRef = useRef(view);
@@ -405,9 +461,6 @@ export function CustomEditor({
         ecRef.current = ec;
         host.editContext = ec;
 
-        /** ec.text 로부터 새 DocModel 구성 — blockAttrs 는 길이 일치 시 기존 유지, 아니면 reconcile 보정. */
-        const modelFromEc = (): DocModel => reconcileAttrs({ buffer: ec.text, blockAttrs: modelRef.current.blockAttrs, markRuns: modelRef.current.markRuns });
-
         // ── undo/redo 헬퍼(effect 안 = ec 직접 접근). ──
         /** 현재 편집 직전 상태 스냅샷(modelRef 는 아직 이전 모델 → pre-edit 캡처). */
         const snapshotOf = (): Snapshot => ({
@@ -438,7 +491,12 @@ export function CustomEditor({
                 historyRef.current = pushSnapshot(historyRef.current, snapshotOf(), { coalesce: false });
                 typingRunRef.current = true;
             }
-            const next = modelFromEc();
+            // 마크 상속(T022): 삽입 글자는 좌측 글자(updateRangeStart)의 mask 를 이어받는다. EditContext 의
+            // updateRange[Start,End) 가 치환 범위(편집 전 buffer 좌표 = modelRef.current.buffer 와 동일).
+            // insertText 로 재구성해 markRuns 가 삽입/삭제를 추종(modelFromEc 의 reconcile 은 mask 0 으로 평탄).
+            const pre = modelRef.current;
+            const inheritMask = marksAt(pre, te.updateRangeStart);
+            const next = insertText(pre, te.updateRangeStart, te.updateRangeEnd, te.text, inheritMask);
             onModelChangeRef.current(next);
             setSel({ anchor: te.selectionStart, focus: te.selectionEnd }); // 편집 후 collapse
         };
@@ -484,6 +542,20 @@ export function CustomEditor({
             ec.updateSelection(Math.min(a, f), Math.max(a, f));
             setSel({ anchor: a, focus: f });
         };
+
+        // 선택 구간 마크 토글(T021) — buffer/선택 불변(EC 텍스트 동기 불필요), markRuns 만 변경 + undo 스냅샷.
+        // 선택 없으면(collapsed) 무동작 — 보류 마크(pendingMarks)는 US2 범위.
+        const applyToggleMark = (mark: Mask) => {
+            const cur = selStateRef.current;
+            const lo = Math.min(cur.anchor, cur.focus);
+            const hi = Math.max(cur.anchor, cur.focus);
+            if (lo >= hi) return;
+            recordBeforeStructural();
+            const next = toggleMark(modelRef.current, lo, hi, mark);
+            onModelChangeRef.current(next);
+        };
+        toggleMarkRef.current = applyToggleMark;
+
         // Enter·블록경계병합·선택삭제·화살표 — keydown 직접 처리(EditContext 는 시각 레이아웃/blockAttrs 를 모름).
         const onKey = (e: KeyboardEvent) => {
             // IME 조합 중(한글 등)에는 커스텀 키 처리를 건너뛴다 — 조합 중 Enter/Backspace/화살표는
@@ -497,6 +569,20 @@ export function CustomEditor({
             const collapsed = cur.anchor === cur.focus;
             const len = ec.text.length;
             const m = modelRef.current;
+
+            // 마크 단축키(T021) — Cmd/Ctrl+B/I/U. strike 는 툴바 버튼만. 선택 구간만 토글(collapsed 무동작).
+            // IME 가드 아래 = 조합 중 토글 차단(정상). 'z'/'c'/'x'/'a' 분기와 키가 달라 충돌 없음.
+            if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
+                const k = e.key.toLowerCase();
+                if (k === "b" || k === "i" || k === "u") {
+                    e.preventDefault();
+                    if (!collapsed) {
+                        const mark = k === "b" ? MARK.bold : k === "i" ? MARK.italic : MARK.underline;
+                        applyToggleMark(mark);
+                    }
+                    return;
+                }
+            }
 
             // ⓪ Cmd/Ctrl+Z = undo, +Shift = redo. 'z'·'a' 다른 키라 Cmd+A 분기와 충돌 없음.
             if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
@@ -714,6 +800,11 @@ export function CustomEditor({
         if (attr?.type === "heading") onModelChangeRef.current(toggleHeading(modelRef.current, idx, attr.level));
         stageRef.current?.focus();
     };
+    // 마크 토글 버튼 — 선택 구간만(effect 안 applyToggleMark 가 collapsed 무동작 처리). 포커스 복귀.
+    const applyMark = (mark: Mask) => {
+        toggleMarkRef.current(mark);
+        stageRef.current?.focus();
+    };
 
     const toolbarBtn = (label: string, isActive: boolean, onClick: () => void) => (
         <button
@@ -741,6 +832,11 @@ export function CustomEditor({
                 {toolbarBtn("제목1", activeAttr.type === "heading" && activeAttr.level === 1, () => applyHeading(1))}
                 {toolbarBtn("제목2", activeAttr.type === "heading" && activeAttr.level === 2, () => applyHeading(2))}
                 {toolbarBtn("제목3", activeAttr.type === "heading" && activeAttr.level === 3, () => applyHeading(3))}
+                {/* 마크 — 선택 구간 토글. 활성 표시 = focus 좌측 글자 mask. */}
+                {toolbarBtn("B", (activeMask & MARK.bold) !== 0, () => applyMark(MARK.bold))}
+                {toolbarBtn("I", (activeMask & MARK.italic) !== 0, () => applyMark(MARK.italic))}
+                {toolbarBtn("U", (activeMask & MARK.underline) !== 0, () => applyMark(MARK.underline))}
+                {toolbarBtn("S", (activeMask & MARK.strike) !== 0, () => applyMark(MARK.strike))}
                 {/* 확대/축소 — fit-to-width(scale) 위의 사용자 배수(userZoom). 표시는 실제 배율(effectiveScale). */}
                 <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
                     <button
