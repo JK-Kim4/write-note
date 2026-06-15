@@ -8,6 +8,7 @@ import {
   mergeWithPrev,
   mergeWithNext,
   reconcileAttrs,
+  toggleHeading,
 } from "./model";
 
 // INV-1 보조: blockAttrs.length === buffer.split('\n').length
@@ -315,6 +316,69 @@ describe("reconcileAttrs", () => {
     const result = reconcileAttrs(m);
     expect(result.blockAttrs).toHaveLength(2);
     assertINV1(result, "정합 무변경");
+  });
+});
+
+// ─────────────────────────────────────────
+// toggleHeading — T015
+// ─────────────────────────────────────────
+describe("toggleHeading", () => {
+  it("paragraph → heading(level) 로 변환", () => {
+    const m = makeModel("안녕\n세계");
+    const result = toggleHeading(m, 0, 1);
+    expect(result.blockAttrs[0]).toEqual({ type: "heading", level: 1 });
+    expect(result.blockAttrs[1]).toEqual({ type: "paragraph" });
+    assertINV1(result, "paragraph→heading");
+  });
+
+  it("heading 같은 level → paragraph 로 토글 해제", () => {
+    const m = makeModel("제목", [{ type: "heading", level: 2 }]);
+    const result = toggleHeading(m, 0, 2);
+    expect(result.blockAttrs[0]).toEqual({ type: "paragraph" });
+    assertINV1(result, "heading 같은 level 토글 해제");
+  });
+
+  it("heading 다른 level → 새 level 로 변환", () => {
+    const m = makeModel("제목", [{ type: "heading", level: 1 }]);
+    const result = toggleHeading(m, 0, 3);
+    expect(result.blockAttrs[0]).toEqual({ type: "heading", level: 3 });
+    assertINV1(result, "heading 다른 level");
+  });
+
+  it("buffer 는 불변 — buffer 내용 그대로", () => {
+    const m = makeModel("제목\n본문");
+    const result = toggleHeading(m, 0, 2);
+    expect(result.buffer).toBe(m.buffer);
+    expect(result.buffer).toBe("제목\n본문");
+  });
+
+  it("INV-1: blockAttrs 길이는 블록 수와 동일", () => {
+    const m = makeModel("a\nb\nc");
+    const result = toggleHeading(m, 1, 2);
+    assertINV1(result, "INV-1 유지");
+  });
+
+  it("INV-2: 결과 blockAttr 의 heading level 은 1|2|3", () => {
+    const m = makeModel("a\nb");
+    const result = toggleHeading(m, 0, 3);
+    const attr = result.blockAttrs[0];
+    expect(attr.type).toBe("heading");
+    if (attr.type === "heading") {
+      expect([1, 2, 3]).toContain(attr.level);
+      expect(attr.level).toBe(3);
+    }
+  });
+
+  it("범위 밖 blockIdx 이면 model 그대로 반환", () => {
+    const m = makeModel("a\nb");
+    const result = toggleHeading(m, 99, 1);
+    expect(result).toBe(m); // 동일 참조
+  });
+
+  it("blockIdx 음수이면 model 그대로 반환", () => {
+    const m = makeModel("a");
+    const result = toggleHeading(m, -1, 1);
+    expect(result).toBe(m);
   });
 });
 

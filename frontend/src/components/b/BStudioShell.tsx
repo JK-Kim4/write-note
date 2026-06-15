@@ -374,7 +374,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
     return (
         <div className="relative flex h-[calc(100vh-6.5rem)] gap-4">
             {/* ── 넓은 폭(≥880px): inline 목차 패널 ── */}
-            <div className="hidden min-[880px]:flex w-64 shrink-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white">
+            <div className="hidden min-[880px]:flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white">
                 {outlinePanel}
             </div>
 

@@ -239,7 +239,7 @@ export function BWorkSidePanel({
     }
 
     return (
-        <div className="flex w-80 shrink-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+        <div className="flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
             <div className="flex items-center border-b border-gray-200">
                 <button
                     type="button"

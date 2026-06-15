@@ -15,7 +15,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { pageGeometry, type PageGeometry, type PaperSize } from "./geometry";
+import { blockFont, pageGeometry, type PageGeometry, type PaperSize } from "./geometry";
 import { emptyHistory, pushSnapshot, redo, undo, type Snapshot } from "./history";
 import { layout, type LaidOutPage, type MeasuredBlock, type MeasuredLine } from "./layoutEngine";
 import { measureLineXs, measureParagraphLines } from "./measure";
@@ -27,6 +27,8 @@ import {
     mergeWithPrev,
     reconcileAttrs,
     splitBlock,
+    toggleHeading,
+    type BlockAttr,
     type DocModel,
 } from "./model";
 
@@ -46,14 +48,28 @@ const IMG_SRC =
     );
 
 type ParsedBlock =
-    | { id: string; kind: "paragraph"; text: string; lines: MeasuredLine[]; bufStart: number; bufEnd: number }
+    | {
+          id: string;
+          kind: "paragraph";
+          text: string;
+          lines: MeasuredLine[];
+          bufStart: number;
+          bufEnd: number;
+          fontSizePx: number;
+          lineHeightPx: number;
+          /** heading 블록이면 레벨(1·2·3), paragraph 이면 undefined. 아웃라인 data 속성 태깅에 사용. */
+          headingLevel?: 1 | 2 | 3;
+      }
     | { id: string; kind: "image"; height: number; bufStart: number; bufEnd: number };
 
 type View = { blocks: ParsedBlock[]; pages: LaidOutPage[] };
 
-/** 버퍼 → 블록 파싱 + 측정 + 레이아웃. geo/버퍼 변경 시 재호출 = 리플로우. */
-function relayout(buffer: string, geo: PageGeometry): View {
-    const segs = buffer.split("\n");
+/**
+ * 모델 → 블록 파싱 + 측정 + 레이아웃. geo/모델 변경 시 재호출 = 리플로우.
+ * 블록마다 blockFont(attr, geo) 로 폰트를 파생해 측정·캐럿·렌더에 관통한다(heading = 블록별 큰 폰트).
+ */
+function relayout(model: DocModel, geo: PageGeometry): View {
+    const segs = model.buffer.split("\n");
     const blocks: ParsedBlock[] = [];
     let off = 0;
     segs.forEach((seg, i) => {
@@ -64,8 +80,11 @@ function relayout(buffer: string, geo: PageGeometry): View {
             const scale = Math.min(1, geo.contentWidthPx / IMG_NW, geo.contentHeightPx / IMG_NH);
             blocks.push({ id, kind: "image", height: IMG_NH * scale, bufStart, bufEnd });
         } else {
-            const lines = measureParagraphLines(seg, geo.contentWidthPx, geo.lineHeightPx, geo.fontSizePx, FONT_FAMILY);
-            blocks.push({ id, kind: "paragraph", text: seg, lines, bufStart, bufEnd });
+            const attr: BlockAttr = model.blockAttrs[i] ?? { type: "paragraph" };
+            const font = blockFont(attr, geo);
+            const lines = measureParagraphLines(seg, geo.contentWidthPx, font.lineHeightPx, font.fontSizePx, FONT_FAMILY);
+            const headingLevel: 1 | 2 | 3 | undefined = attr.type === "heading" ? attr.level : undefined;
+            blocks.push({ id, kind: "paragraph", text: seg, lines, bufStart, bufEnd, fontSizePx: font.fontSizePx, lineHeightPx: font.lineHeightPx, headingLevel });
         }
         off = bufEnd + 1; // '\n' 구분자 1칸
     });
@@ -109,12 +128,12 @@ function caretToScreen(caret: number, blocks: ParsedBlock[], pages: LaidOutPage[
     const line = blk.lines[lineIdx];
     const fr = findFrag(lineIdx);
     if (!fr) return null;
-    const xs = measureLineXs(blk.text, line.start, line.end, geo.contentWidthPx, geo.lineHeightPx, geo.fontSizePx, FONT_FAMILY);
+    const xs = measureLineXs(blk.text, line.start, line.end, geo.contentWidthPx, blk.lineHeightPx, blk.fontSizePx, FONT_FAMILY);
     return {
         pageIndex: fr.pageIndex,
         x: xs[within - line.start] ?? 0,
-        y: fr.offsetY + (lineIdx - fr.startLine) * geo.lineHeightPx,
-        height: geo.lineHeightPx,
+        y: fr.offsetY + (lineIdx - fr.startLine) * blk.lineHeightPx,
+        height: blk.lineHeightPx,
     };
 }
 
@@ -127,10 +146,10 @@ function screenToCaret(pageIndex: number, x: number, y: number, view: View, geo:
     const block = view.blocks.find((b) => b.id === frag!.blockId);
     if (!block) return null;
     if (frag.kind === "image" || block.kind === "image") return block.bufStart;
-    const lineWithin = Math.min(frag.endLine - frag.startLine, Math.max(0, Math.floor((y - frag.offsetY) / geo.lineHeightPx)));
+    const lineWithin = Math.min(frag.endLine - frag.startLine, Math.max(0, Math.floor((y - frag.offsetY) / block.lineHeightPx)));
     const line = block.lines[frag.startLine + lineWithin];
     if (!line) return block.bufEnd;
-    const xs = measureLineXs(block.text, line.start, line.end, geo.contentWidthPx, geo.lineHeightPx, geo.fontSizePx, FONT_FAMILY);
+    const xs = measureLineXs(block.text, line.start, line.end, geo.contentWidthPx, block.lineHeightPx, block.fontSizePx, FONT_FAMILY);
     let best = 0;
     let bestDist = Infinity;
     for (let i = 0; i < xs.length; i++) {
@@ -164,18 +183,18 @@ function selectionRects(s: number, e: number, view: View, geo: PageGeometry): Se
                 const lineHi = block.bufStart + line.end;
                 const os = Math.max(lo, lineLo);
                 const oe = Math.min(hi, lineHi);
-                const y = f.offsetY + (L - f.startLine) * geo.lineHeightPx;
+                const y = f.offsetY + (L - f.startLine) * block.lineHeightPx;
                 if (os >= oe) {
                     // 빈 줄이 통째로 선택됐거나, 줄 끝 개행만 걸친 경우 작은 sliver 표시
                     if (lo <= lineLo && lineLo < hi)
-                        rects.push({ pageIndex: pg.index, x: 0, y, width: 8, height: geo.lineHeightPx });
+                        rects.push({ pageIndex: pg.index, x: 0, y, width: 8, height: block.lineHeightPx });
                     continue;
                 }
-                const xs = measureLineXs(block.text, line.start, line.end, geo.contentWidthPx, geo.lineHeightPx, geo.fontSizePx, FONT_FAMILY);
+                const xs = measureLineXs(block.text, line.start, line.end, geo.contentWidthPx, block.lineHeightPx, block.fontSizePx, FONT_FAMILY);
                 const xStart = xs[os - block.bufStart - line.start];
                 const xEnd = xs[oe - block.bufStart - line.start];
                 const tail = hi > lineHi ? 8 : 0; // 개행까지 선택되면 줄 끝에 sliver
-                rects.push({ pageIndex: pg.index, x: xStart, y, width: xEnd - xStart + tail, height: geo.lineHeightPx });
+                rects.push({ pageIndex: pg.index, x: xStart, y, width: xEnd - xStart + tail, height: block.lineHeightPx });
             }
         }
     }
@@ -248,14 +267,20 @@ function PageBox({
                         return <img key={idx} src={IMG_SRC} alt="" style={{ position: "absolute", top: f.offsetY, left: 0, height: f.height, width: "auto", maxWidth: geo.contentWidthPx }} />;
                     }
                     if (f.kind === "paragraph" && b?.kind === "paragraph") {
+                        // heading 의 첫 fragment(startLine===0)에만 data-heading-level 태깅.
+                        // 다페이지 heading 중복 방지 — fragment 가 여러 페이지에 걸쳐도 인덱스는 1개.
+                        const headingDataAttr =
+                            b.headingLevel != null && f.startLine === 0
+                                ? { "data-heading-level": b.headingLevel }
+                                : {};
                         return (
-                            <div key={idx} style={{ position: "absolute", top: f.offsetY, left: 0, width: geo.contentWidthPx, height: f.height, overflow: "hidden" }}>
+                            <div key={idx} style={{ position: "absolute", top: f.offsetY, left: 0, width: geo.contentWidthPx, height: f.height, overflow: "hidden" }} {...headingDataAttr}>
                                 <div
                                     style={{
-                                        transform: `translateY(${-(f.startLine * geo.lineHeightPx)}px)`,
+                                        transform: `translateY(${-(f.startLine * b.lineHeightPx)}px)`,
                                         width: geo.contentWidthPx,
-                                        fontSize: geo.fontSizePx,
-                                        lineHeight: `${geo.lineHeightPx}px`,
+                                        fontSize: b.fontSizePx,
+                                        lineHeight: `${b.lineHeightPx}px`,
                                         fontFamily: FONT_FAMILY,
                                         whiteSpace: "pre-wrap",
                                         wordBreak: "break-word",
@@ -300,11 +325,21 @@ export function CustomEditor({
     // undo/redo 스택 + 타이핑 런 경계(연속 타이핑은 undo 1회). 마운트 1회 effect 안 핸들러가 참조.
     const historyRef = useRef(emptyHistory());
     const typingRunRef = useRef(false);
+    // fit-to-width — 종이가 에디터 폭보다 넓으면 축소비율(0<scale≤1). 클릭 hit-test 보정에 scaleRef 사용.
+    const [scale, setScale] = useState(1);
+    const scaleRef = useRef(1);
+    // 사용자 확대/축소 배수(−/+ 버튼). 최종 zoom = fit-to-width(scale) × userZoom.
+    const [userZoom, setUserZoom] = useState(1);
 
     const geo = useMemo(() => pageGeometry(paperSize, fontSizePx), [paperSize, fontSizePx]);
-    const view = useMemo<View>(() => (mounted ? relayout(buffer, geo) : { blocks: [], pages: [] }), [mounted, buffer, geo]);
+    // 버퍼뿐 아니라 blockAttrs(heading 토글) 변경도 리플로우 — 블록별 폰트가 측정·렌더에 관통.
+    const view = useMemo<View>(() => (mounted ? relayout(model, geo) : { blocks: [], pages: [] }), [mounted, model, geo]);
     const caretPos = mounted ? caretToScreen(sel.focus, view.blocks, view.pages, geo) : null;
     const selRects = mounted ? selectionRects(sel.anchor, sel.focus, view, geo) : [];
+
+    // 툴바 활성 표시 — 현재 캐럿이 속한 블록의 attr.
+    const activeBlockIdx = blockIndexAt(model, sel.focus);
+    const activeAttr: BlockAttr = model.blockAttrs[activeBlockIdx] ?? { type: "paragraph" };
 
     // keydown/드래그 핸들러(마운트 1회 생성)가 최신 값을 보도록 ref 안정화.
     const viewRef = useRef(view);
@@ -317,6 +352,40 @@ export function CustomEditor({
     selStateRef.current = sel;
     modelRef.current = model;
     onModelChangeRef.current = onModelChange;
+    const effectiveScale = scale * userZoom;
+    scaleRef.current = effectiveScale;
+
+    // fit-to-width — stage 가용 폭에 종이가 들어가도록 축소비율 계산(ResizeObserver 로 패널/창 변화 추종).
+    // 페이지 + 좌우 패딩(48*2=96)이 stage clientWidth 안에 들어가도록. 종이가 좁으면 scale=1(축소 안 함).
+    useEffect(() => {
+        if (!mounted) return;
+        const stage = stageRef.current;
+        if (!stage) return;
+        const compute = () => {
+            const avail = stage.clientWidth - 8; // 세로 스크롤바 여유
+            const natural = geo.pageWidthPx + 96;
+            setScale(Math.max(0.3, Math.min(1, avail / natural)));
+        };
+        compute();
+        const ro = new ResizeObserver(compute);
+        ro.observe(stage);
+        return () => ro.disconnect();
+    }, [geo, mounted]);
+
+    // 캐럿 가시화 — 캐럿이 페이지를 넘어가 stage 뷰포트 밖이면 stage 만 최소 스크롤해 따라간다.
+    // (window 는 건드리지 않음. block:'nearest' scrollIntoView 대신 scrollTop 직접 보정으로 부작용 차단.)
+    useEffect(() => {
+        if (!mounted) return;
+        const stage = stageRef.current;
+        if (!stage) return;
+        const caretEl = stage.querySelector<HTMLElement>(".poc-caret");
+        if (!caretEl) return;
+        const cr = caretEl.getBoundingClientRect();
+        const sr = stage.getBoundingClientRect();
+        const margin = 24;
+        if (cr.top < sr.top + margin) stage.scrollTop -= sr.top + margin - cr.top;
+        else if (cr.bottom > sr.bottom - margin) stage.scrollTop += cr.bottom - (sr.bottom - margin);
+    }, [sel.focus, sel.anchor, view, mounted]);
 
     useEffect(() => setMounted(true), []);
 
@@ -604,7 +673,9 @@ export function CustomEditor({
         if (!el) return null;
         const pageIndex = Number(el.getAttribute("data-poc-page"));
         const r = el.getBoundingClientRect();
-        return screenToCaret(pageIndex, clientX - r.left, clientY - r.top, viewRef.current, geoRef.current);
+        // zoom 축소 시 getBoundingClientRect 는 축소된 시각 좌표 → 내부(미축소) 콘텐츠 좌표로 환산(/scale).
+        const s = scaleRef.current;
+        return screenToCaret(pageIndex, (clientX - r.left) / s, (clientY - r.top) / s, viewRef.current, geoRef.current);
     };
 
     // 드래그 선택 — mousedown=anchor, move=focus, up=종료. preventDefault 로 네이티브 선택 억제 + 수동 focus.
@@ -629,22 +700,87 @@ export function CustomEditor({
         window.addEventListener("mouseup", onUp);
     };
 
-    return (
-        <div
-            ref={stageRef}
-            tabIndex={0}
-            onMouseDown={onStageMouseDown}
-            style={{ flex: 1, overflow: "auto", outline: "none", caretColor: "transparent" }}
+    // 툴바 — 현재 블록 attr 만 토글(buffer 불변 → EditContext 텍스트 동기 불필요, 선택도 불변).
+    // level 지정 = toggleHeading(같은 level 이면 paragraph 해제). 본문 = heading 일 때만 그 level 로 해제.
+    const applyHeading = (level: 1 | 2 | 3) => {
+        const idx = blockIndexAt(modelRef.current, selStateRef.current.focus);
+        onModelChangeRef.current(toggleHeading(modelRef.current, idx, level));
+        stageRef.current?.focus();
+    };
+    const applyParagraph = () => {
+        const idx = blockIndexAt(modelRef.current, selStateRef.current.focus);
+        const attr = modelRef.current.blockAttrs[idx];
+        if (attr?.type === "heading") onModelChangeRef.current(toggleHeading(modelRef.current, idx, attr.level));
+        stageRef.current?.focus();
+    };
+
+    const toolbarBtn = (label: string, isActive: boolean, onClick: () => void) => (
+        <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={onClick}
+            style={{
+                padding: "4px 10px",
+                fontSize: 13,
+                border: "1px solid #d1d5db",
+                borderRadius: 6,
+                background: isActive ? "#e0e7ff" : "#fff",
+                color: isActive ? "#3730a3" : "#374151",
+                cursor: "pointer",
+            }}
         >
+            {label}
+        </button>
+    );
+
+    return (
+        <>
+            <div style={{ display: "flex", gap: 6, padding: "8px 12px", borderBottom: "1px solid #e5e7eb", flex: "none" }}>
+                {toolbarBtn("본문", activeAttr.type === "paragraph", applyParagraph)}
+                {toolbarBtn("제목1", activeAttr.type === "heading" && activeAttr.level === 1, () => applyHeading(1))}
+                {toolbarBtn("제목2", activeAttr.type === "heading" && activeAttr.level === 2, () => applyHeading(2))}
+                {toolbarBtn("제목3", activeAttr.type === "heading" && activeAttr.level === 3, () => applyHeading(3))}
+                {/* 확대/축소 — fit-to-width(scale) 위의 사용자 배수(userZoom). 표시는 실제 배율(effectiveScale). */}
+                <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
+                    <button
+                        type="button"
+                        aria-label="축소"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setUserZoom((z) => Math.max(0.5, Math.round((z - 0.1) * 10) / 10))}
+                        style={{ width: 26, height: 26, fontSize: 15, border: "1px solid #d1d5db", borderRadius: 6, background: "#fff", color: "#374151", cursor: "pointer", lineHeight: 1 }}
+                    >
+                        −
+                    </button>
+                    <span style={{ fontSize: 12, minWidth: 42, textAlign: "center", color: "#374151" }}>{Math.round(userZoom * 100)}%</span>
+                    <button
+                        type="button"
+                        aria-label="확대"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setUserZoom((z) => Math.min(2, Math.round((z + 0.1) * 10) / 10))}
+                        style={{ width: 26, height: 26, fontSize: 15, border: "1px solid #d1d5db", borderRadius: 6, background: "#fff", color: "#374151", cursor: "pointer", lineHeight: 1 }}
+                    >
+                        +
+                    </button>
+                </div>
+            </div>
+            <div
+                ref={stageRef}
+                tabIndex={0}
+                onMouseDown={onStageMouseDown}
+                className="custom-editor-scroll"
+                // 은은한 배경 — 흰 페이지가 "책상 위 종이"처럼 떠 보이게(흰-on-흰 답답함 해소).
+                style={{ flex: 1, overflow: "auto", outline: "none", caretColor: "transparent", background: "#eceae4" }}
+            >
             <style>{"@keyframes pocBlink{0%,49%{opacity:1}50%,100%{opacity:0}} .poc-caret{animation:pocBlink 1s step-end infinite}"}</style>
             {/* width:max-content + margin:0 auto — 페이지가 뷰포트보다 넓어도 왼쪽 클리핑 없이 가로 스크롤,
                 좁지 않으면 중앙 정렬. (flexbox alignItems:center 의 중앙정렬 오버플로 클리핑 회피.) */}
-            <div style={{ width: "max-content", margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 24, padding: 24 }}>
+            <div style={{ width: "max-content", margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 28, padding: "40px 48px", zoom: effectiveScale }}>
                 {view.pages.map((pg) => (
                     <PageBox key={pg.index} page={pg} geo={geo} blocks={view.blocks} caret={caretPos} selRects={selRects.filter((r) => r.pageIndex === pg.index)} />
                 ))}
             </div>
-        </div>
+            </div>
+        </>
     );
 }
 

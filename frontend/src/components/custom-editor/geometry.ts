@@ -5,6 +5,8 @@
  * 줄높이는 fontSize×ratio 로 분수 허용(레이아웃 엔진이 px 로 다루므로 정수 강제 불필요 = 폰트 크기 자유).
  */
 
+import type { BlockAttr } from "./model";
+
 /** 지원 용지 — portrait. */
 export type PaperSize = "A5" | "A4" | "B4" | "A3" | "A2";
 
@@ -61,3 +63,39 @@ export function paperLabel(size: PaperSize): string {
 }
 
 export const PAPER_SIZES: readonly PaperSize[] = ["A5", "A4", "B4", "A3", "A2"] as const;
+
+// ─────────────────────────────────────────
+// blockFont
+// ─────────────────────────────────────────
+
+/**
+ * heading level 별 fontSizePx 배수 — dogfooding 튜닝 대상.
+ * level 1 = 1.8×, level 2 = 1.5×, level 3 = 1.25×.
+ */
+const HEADING_FONT_MULTIPLIERS: Record<1 | 2 | 3, number> = {
+    1: 1.8,
+    2: 1.5,
+    3: 1.25,
+} as const;
+
+/** 본문 줄높이 비율(heading 줄높이 계산에도 재사용). */
+const LINE_HEIGHT_RATIO = 1.8;
+
+/**
+ * blockAttr 와 base PageGeometry 로부터 블록의 폰트 크기·줄높이(px)를 반환한다(순수).
+ *
+ * - paragraph: base.fontSizePx / base.lineHeightPx 그대로
+ * - heading level 1/2/3: fontSizePx = round(base.fontSizePx × 배수), lineHeightPx = fontSizePx × 1.8
+ */
+export function blockFont(
+    attr: BlockAttr,
+    base: PageGeometry,
+): { fontSizePx: number; lineHeightPx: number } {
+    if (attr.type === "paragraph") {
+        return { fontSizePx: base.fontSizePx, lineHeightPx: base.lineHeightPx };
+    }
+    const multiplier = HEADING_FONT_MULTIPLIERS[attr.level];
+    const fontSizePx = Math.round(base.fontSizePx * multiplier);
+    const lineHeightPx = fontSizePx * LINE_HEIGHT_RATIO;
+    return { fontSizePx, lineHeightPx };
+}

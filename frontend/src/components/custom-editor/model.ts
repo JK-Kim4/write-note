@@ -220,6 +220,34 @@ export function mergeWithNext(model: DocModel, blockIdx: number): DocModel {
 }
 
 // ─────────────────────────────────────────
+// toggleHeading
+// ─────────────────────────────────────────
+
+/**
+ * blockIdx 블록의 attr 를 heading(level) 으로 토글한다(순수, buffer 불변).
+ *
+ * - 이미 같은 level heading 이면 → { type: 'paragraph' } 로 해제
+ * - paragraph 이거나 다른 level heading 이면 → { type: 'heading', level }
+ * - blockIdx 범위 밖(음수 포함)이면 model 그대로 반환
+ */
+export function toggleHeading(model: DocModel, blockIdx: number, level: 1 | 2 | 3): DocModel {
+  const { buffer, blockAttrs } = model;
+  if (blockIdx < 0 || blockIdx >= blockAttrs.length) return model;
+
+  const current = blockAttrs[blockIdx];
+  const isSameLevel = current.type === "heading" && current.level === level;
+  const newAttr: BlockAttr = isSameLevel ? { type: "paragraph" } : { type: "heading", level };
+
+  const newAttrs = [
+    ...blockAttrs.slice(0, blockIdx),
+    newAttr,
+    ...blockAttrs.slice(blockIdx + 1),
+  ];
+
+  return { buffer, blockAttrs: newAttrs };
+}
+
+// ─────────────────────────────────────────
 // reconcileAttrs
 // ─────────────────────────────────────────
 
