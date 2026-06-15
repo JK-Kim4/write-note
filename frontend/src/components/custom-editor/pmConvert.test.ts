@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DocModel, MarkRun } from "./model";
-import { MARK } from "./model";
+import { MARK, SOFT_BREAK } from "./model";
 import { pmJsonToModel, modelToPmJson } from "./pmConvert";
 
 // ─── 헬퍼 ───────────────────────────────────────────────────────────────────
@@ -128,7 +128,7 @@ describe("pmJsonToModel", () => {
 
   // ── 평탄화(lossy) ──
 
-  it("bulletList → listItem 별 paragraph 블록으로 평탄화", () => {
+  it("bulletList → listItem{bullet,depth:0} 블록들로 변환 (R3: 구조 보존)", () => {
     const json = makePmDoc([
       {
         type: "bulletList",
@@ -139,13 +139,13 @@ describe("pmJsonToModel", () => {
       },
     ]);
     const m = pmJsonToModel(json);
-    // 텍스트 보존, 구조 소실 (리스트 → 여러 paragraph)
+    // R3: 텍스트 보존 + listItem attr 보존
     expect(m.buffer).toContain("항목A");
     expect(m.buffer).toContain("항목B");
-    expect(m.blockAttrs.every((a) => a.type === "paragraph")).toBe(true);
+    expect(m.blockAttrs.every((a) => a.type === "listItem")).toBe(true);
   });
 
-  it("blockquote → paragraph 블록으로 평탄화 (텍스트 보존)", () => {
+  it("blockquote → blockquote 블록으로 변환 (R3: 구조 보존, 텍스트 보존)", () => {
     const json = makePmDoc([
       {
         type: "blockquote",
@@ -154,7 +154,7 @@ describe("pmJsonToModel", () => {
     ]);
     const m = pmJsonToModel(json);
     expect(m.buffer).toContain("인용문");
-    expect(m.blockAttrs.every((a) => a.type === "paragraph")).toBe(true);
+    expect(m.blockAttrs).toEqual([{ type: "blockquote" }]);
   });
 
   it("marks(bold) 무시 — 텍스트는 보존, markRuns 에 반영", () => {
@@ -454,5 +454,324 @@ describe("T015: pmConvert 마크 왕복", () => {
         }
       }
     }
+  });
+});
+
+// ─── T023: 신규 노드 왕복 의미보존 ────────────────────────────────────────────
+
+describe("T023: 신규 노드 왕복 의미보존", () => {
+  // ── blockquote ──
+
+  it("blockquote PM→모델: blockquote 블록 attr + 텍스트 보존", () => {
+    const json = makePmDoc([
+      {
+        type: "blockquote",
+        content: [{ type: "paragraph", content: [{ type: "text", text: "인용문" }] }],
+      },
+    ]);
+    const m = pmJsonToModel(json);
+    expect(m.blockAttrs).toEqual([{ type: "blockquote" }]);
+    expect(m.buffer).toBe("인용문");
+  });
+
+  it("blockquote 모델→PM: blockquote 블록 → PM blockquote 노드", () => {
+    const m = makeModel("인용문", [{ type: "blockquote" }]);
+    const doc = JSON.parse(modelToPmJson(m));
+    expect(doc.content[0].type).toBe("blockquote");
+    expect(doc.content[0].content[0].type).toBe("paragraph");
+    expect(doc.content[0].content[0].content[0].text).toBe("인용문");
+  });
+
+  it("blockquote 왕복 무손실", () => {
+    const m = makeModel("인용문", [{ type: "blockquote" }]);
+    const roundTripped = pmJsonToModel(modelToPmJson(m));
+    expect(roundTripped).toEqual(m);
+  });
+
+  it("빈 blockquote 왕복", () => {
+    const m = makeModel("", [{ type: "blockquote" }]);
+    const roundTripped = pmJsonToModel(modelToPmJson(m));
+    expect(roundTripped.blockAttrs).toEqual([{ type: "blockquote" }]);
+    expect(roundTripped.buffer).toBe("");
+  });
+
+  // ── bulletList / listItem ──
+
+  it("bulletList PM→모델: listItem{bullet,depth:0} 블록들로 변환", () => {
+    const json = makePmDoc([
+      {
+        type: "bulletList",
+        content: [
+          { type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "항목A" }] }] },
+          { type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "항목B" }] }] },
+        ],
+      },
+    ]);
+    const m = pmJsonToModel(json);
+    expect(m.blockAttrs).toEqual([
+      { type: "listItem", listKind: "bullet", depth: 0 },
+      { type: "listItem", listKind: "bullet", depth: 0 },
+    ]);
+    expect(m.buffer).toBe("항목A\n항목B");
+  });
+
+  it("orderedList PM→모델: listItem{ordered,depth:0} 블록들로 변환", () => {
+    const json = makePmDoc([
+      {
+        type: "orderedList",
+        content: [
+          { type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "일" }] }] },
+          { type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "이" }] }] },
+        ],
+      },
+    ]);
+    const m = pmJsonToModel(json);
+    expect(m.blockAttrs).toEqual([
+      { type: "listItem", listKind: "ordered", depth: 0 },
+      { type: "listItem", listKind: "ordered", depth: 0 },
+    ]);
+    expect(m.buffer).toBe("일\n이");
+  });
+
+  it("중첩 bulletList PM→모델: depth:1 로 변환", () => {
+    const json = makePmDoc([
+      {
+        type: "bulletList",
+        content: [
+          {
+            type: "listItem",
+            content: [
+              { type: "paragraph", content: [{ type: "text", text: "상위" }] },
+              {
+                type: "bulletList",
+                content: [
+                  { type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "하위" }] }] },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+    const m = pmJsonToModel(json);
+    expect(m.blockAttrs[0]).toEqual({ type: "listItem", listKind: "bullet", depth: 0 });
+    expect(m.blockAttrs[1]).toEqual({ type: "listItem", listKind: "bullet", depth: 1 });
+    expect(m.buffer).toBe("상위\n하위");
+  });
+
+  it("bulletList 모델→PM: 연속 동일 listKind·depth → bulletList 노드로 재그룹", () => {
+    const m = makeModel("가\n나", [
+      { type: "listItem", listKind: "bullet", depth: 0 },
+      { type: "listItem", listKind: "bullet", depth: 0 },
+    ]);
+    const doc = JSON.parse(modelToPmJson(m));
+    expect(doc.content).toHaveLength(1);
+    expect(doc.content[0].type).toBe("bulletList");
+    expect(doc.content[0].content).toHaveLength(2);
+    expect(doc.content[0].content[0].type).toBe("listItem");
+    expect(doc.content[0].content[0].content[0].content[0].text).toBe("가");
+  });
+
+  it("orderedList 모델→PM: 연속 ordered → orderedList 노드", () => {
+    const m = makeModel("일\n이", [
+      { type: "listItem", listKind: "ordered", depth: 0 },
+      { type: "listItem", listKind: "ordered", depth: 0 },
+    ]);
+    const doc = JSON.parse(modelToPmJson(m));
+    expect(doc.content[0].type).toBe("orderedList");
+  });
+
+  it("bulletList 왕복 무손실", () => {
+    const m = makeModel("가\n나\n다", [
+      { type: "listItem", listKind: "bullet", depth: 0 },
+      { type: "listItem", listKind: "bullet", depth: 0 },
+      { type: "listItem", listKind: "bullet", depth: 0 },
+    ]);
+    const roundTripped = pmJsonToModel(modelToPmJson(m));
+    expect(roundTripped).toEqual(m);
+  });
+
+  it("orderedList 왕복 무손실", () => {
+    const m = makeModel("일\n이\n삼", [
+      { type: "listItem", listKind: "ordered", depth: 0 },
+      { type: "listItem", listKind: "ordered", depth: 0 },
+      { type: "listItem", listKind: "ordered", depth: 0 },
+    ]);
+    const roundTripped = pmJsonToModel(modelToPmJson(m));
+    expect(roundTripped).toEqual(m);
+  });
+
+  it("다른 listKind 가 섞이면 별개 목록으로 분리", () => {
+    const m = makeModel("가\n나", [
+      { type: "listItem", listKind: "bullet", depth: 0 },
+      { type: "listItem", listKind: "ordered", depth: 0 },
+    ]);
+    const doc = JSON.parse(modelToPmJson(m));
+    // bullet과 ordered는 별개 노드
+    expect(doc.content).toHaveLength(2);
+    expect(doc.content[0].type).toBe("bulletList");
+    expect(doc.content[1].type).toBe("orderedList");
+  });
+
+  // ── horizontalRule ──
+
+  it("horizontalRule PM→모델: hr 블록 attr", () => {
+    const json = makePmDoc([{ type: "horizontalRule" }]);
+    const m = pmJsonToModel(json);
+    expect(m.blockAttrs).toEqual([{ type: "hr" }]);
+    expect(m.buffer).toBe("");
+  });
+
+  it("hr 모델→PM: hr 블록 → horizontalRule 노드", () => {
+    const m: DocModel = {
+      buffer: "",
+      blockAttrs: [{ type: "hr" }],
+      markRuns: [[]],
+    };
+    const doc = JSON.parse(modelToPmJson(m));
+    expect(doc.content[0].type).toBe("horizontalRule");
+    expect(doc.content[0].content).toBeUndefined();
+  });
+
+  it("hr 왕복 무손실", () => {
+    const m: DocModel = {
+      buffer: "",
+      blockAttrs: [{ type: "hr" }],
+      markRuns: [[]],
+    };
+    const roundTripped = pmJsonToModel(modelToPmJson(m));
+    expect(roundTripped.blockAttrs).toEqual([{ type: "hr" }]);
+    expect(roundTripped.buffer).toBe("");
+  });
+
+  // ── hardBreak / SOFT_BREAK ──
+
+  it("hardBreak PM→모델: U+2028(SOFT_BREAK) 삽입", () => {
+    const json = makePmDoc([
+      {
+        type: "paragraph",
+        content: [
+          { type: "text", text: "앞" },
+          { type: "hardBreak" },
+          { type: "text", text: "뒤" },
+        ],
+      },
+    ]);
+    const m = pmJsonToModel(json);
+    expect(m.buffer).toBe("앞 뒤");
+    expect(m.blockAttrs).toEqual([{ type: "paragraph" }]);
+  });
+
+  it("SOFT_BREAK 모델→PM: U+2028 → hardBreak 노드로 복원", () => {
+    const m = makeModel("앞 뒤", [{ type: "paragraph" }]);
+    const doc = JSON.parse(modelToPmJson(m));
+    const content = doc.content[0].content;
+    // 텍스트 "앞", hardBreak, 텍스트 "뒤" 순
+    expect(content[0]).toMatchObject({ type: "text", text: "앞" });
+    expect(content[1]).toMatchObject({ type: "hardBreak" });
+    expect(content[2]).toMatchObject({ type: "text", text: "뒤" });
+  });
+
+  it("SOFT_BREAK 왕복 무손실", () => {
+    const m = makeModel("앞 뒤", [{ type: "paragraph" }]);
+    const roundTripped = pmJsonToModel(modelToPmJson(m));
+    expect(roundTripped).toEqual(m);
+  });
+
+  it("연속 SOFT_BREAK 왕복", () => {
+    const m = makeModel("a b c", [{ type: "paragraph" }]);
+    const roundTripped = pmJsonToModel(modelToPmJson(m));
+    expect(roundTripped).toEqual(m);
+  });
+});
+
+// ─── T026: 결정론 idempotence (SC-002) ──────────────────────────────────────
+
+describe("T026: idempotence 결정론 — 대표 문서 집합", () => {
+  const normalize = (x: string) => modelToPmJson(pmJsonToModel(x));
+
+  const representativeDocs = [
+    // 빈 문서
+    JSON.stringify({ type: "doc", content: [] }),
+    // 단일 문단
+    JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "안녕" }] }] }),
+    // 제목
+    JSON.stringify({ type: "doc", content: [{ type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "제목" }] }] }),
+    // 마크(bold)
+    JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "일반" }, { type: "text", text: "굵게", marks: [{ type: "bold" }] }] }] }),
+    // blockquote
+    JSON.stringify({ type: "doc", content: [{ type: "blockquote", content: [{ type: "paragraph", content: [{ type: "text", text: "인용" }] }] }] }),
+    // bulletList
+    JSON.stringify({ type: "doc", content: [{ type: "bulletList", content: [{ type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "항목" }] }] }] }] }),
+    // orderedList
+    JSON.stringify({ type: "doc", content: [{ type: "orderedList", content: [{ type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "일" }] }] }] }] }),
+    // horizontalRule
+    JSON.stringify({ type: "doc", content: [{ type: "horizontalRule" }] }),
+    // hardBreak
+    JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "앞" }, { type: "hardBreak" }, { type: "text", text: "뒤" }] }] }),
+    // 혼합(문단+제목+인용+목록+hr)
+    JSON.stringify({
+      type: "doc",
+      content: [
+        { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "장" }] },
+        { type: "paragraph", content: [{ type: "text", text: "본문" }] },
+        { type: "blockquote", content: [{ type: "paragraph", content: [{ type: "text", text: "인용" }] }] },
+        { type: "bulletList", content: [{ type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "항목" }] }] }] },
+        { type: "horizontalRule" },
+        { type: "paragraph", content: [{ type: "text", text: "끝" }] },
+      ],
+    }),
+  ];
+
+  for (const input of representativeDocs) {
+    it(`고정점(idempotent): ${input.slice(0, 60)}`, () => {
+      const once = normalize(input);
+      const twice = normalize(once);
+      expect(twice).toBe(once);
+    });
+  }
+});
+
+// ─── T027: 무회귀 (SC-004) — 마크/신규블록 없는 입력은 R1/R2 출력과 바이트 동일 ──
+
+describe("T027: 무회귀 — paragraph/heading/마크는 기존 출력과 바이트 동일", () => {
+  it("단일 paragraph 무회귀", () => {
+    const m = makeModel("안녕", [{ type: "paragraph" }]);
+    const expected = JSON.stringify({
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text: "안녕" }] }],
+    });
+    expect(modelToPmJson(m)).toBe(expected);
+  });
+
+  it("빈 paragraph 무회귀", () => {
+    const m = makeModel("", [{ type: "paragraph" }]);
+    const expected = JSON.stringify({
+      type: "doc",
+      content: [{ type: "paragraph" }],
+    });
+    expect(modelToPmJson(m)).toBe(expected);
+  });
+
+  it("heading 무회귀", () => {
+    const m = makeModel("제목", [{ type: "heading", level: 1 }]);
+    const expected = JSON.stringify({
+      type: "doc",
+      content: [{ type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "제목" }] }],
+    });
+    expect(modelToPmJson(m)).toBe(expected);
+  });
+
+  it("마크(bold) paragraph 무회귀", () => {
+    const m: DocModel = {
+      buffer: "일반굵게",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 2, mask: 0 }, { len: 2, mask: MARK.bold }]],
+    };
+    const doc = JSON.parse(modelToPmJson(m));
+    expect(doc.content[0].content[0].text).toBe("일반");
+    expect(doc.content[0].content[0].marks).toBeUndefined();
+    expect(doc.content[0].content[1].text).toBe("굵게");
+    expect(doc.content[0].content[1].marks).toEqual([{ type: "bold" }]);
   });
 });

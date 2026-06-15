@@ -14,7 +14,19 @@
  *   즉, 오프셋 k 가 '\n' 이면 그 블록 인덱스 = '\n' 앞 블록.
  */
 
-export type BlockAttr = { type: "paragraph" } | { type: "heading"; level: 1 | 2 | 3 };
+export type BlockAttr =
+  | { type: "paragraph" }
+  | { type: "heading"; level: 1 | 2 | 3 }
+  | { type: "blockquote" }
+  | { type: "listItem"; listKind: "bullet" | "ordered"; depth: number } // depth ≥ 0
+  | { type: "hr" };
+
+/**
+ * 블록 내 소프트 줄바꿈 마커 (U+2028 LINE SEPARATOR).
+ * 블록 경계('\n')와 구분 — blockRanges 는 '\n' 으로만 블록을 나눈다.
+ * Shift+Enter 입력·hardBreak 노드 왕복에 쓰인다.
+ */
+export const SOFT_BREAK = "\u2028";
 
 // ─────────────────────────────────────────
 // 마크 타입 (T002)
@@ -645,10 +657,42 @@ export function deleteRange(model: DocModel, lo: number, hi: number): DocModel {
 // ─────────────────────────────────────────
 
 /**
- * caret 위치에 '\n' 삽입. 새 블록은 { type: 'paragraph' }.
- * 앞 블록의 attr 는 보존. markRuns 추종.
+ * caret 위치에 '\n' 삽입.
+ * - listItem 블록에서 분할 시 새 블록도 같은 listKind·depth listItem.
+ * - 빈 listItem 에서 분할 시 해당 블록을 paragraph로 강등 (목록 종료 동작).
+ * - 그 외 새 블록은 { type: 'paragraph' }. 앞 블록의 attr 는 보존.
+ * markRuns 추종.
  */
 export function splitBlock(model: DocModel, caret: number): DocModel {
+  const bi = blockIndexAt(model, caret);
+  const attr = model.blockAttrs[bi];
+
+  // 빈 listItem 에서 분할 → paragraph 강등
+  if (attr && attr.type === "listItem") {
+    const parts = model.buffer.split("\n");
+    const blockText = parts[bi] ?? "";
+    if (blockText.length === 0) {
+      // 빈 listItem → paragraph로 강등, 블록 분할 없음
+      const newAttrs = [
+        ...model.blockAttrs.slice(0, bi),
+        { type: "paragraph" as const },
+        ...model.blockAttrs.slice(bi + 1),
+      ];
+      return { buffer: model.buffer, blockAttrs: newAttrs, markRuns: model.markRuns };
+    }
+
+    // 비어있지 않은 listItem → 새 블록도 같은 listKind·depth
+    const after = insertText(model, caret, caret, "\n", 0);
+    // insertText가 새 블록을 paragraph로 만들었으니 listItem으로 교체
+    const newAttrs = after.blockAttrs.map((a, i) => {
+      if (i === bi + 1) {
+        return { type: "listItem" as const, listKind: attr.listKind, depth: attr.depth };
+      }
+      return a;
+    });
+    return { ...after, blockAttrs: newAttrs };
+  }
+
   return insertText(model, caret, caret, "\n", 0);
 }
 
@@ -733,6 +777,243 @@ export function toggleHeading(model: DocModel, blockIdx: number, level: 1 | 2 | 
   ];
 
   return { buffer, blockAttrs: newAttrs, markRuns };
+}
+
+// ─────────────────────────────────────────
+// insertHr (T006/T007)
+// ─────────────────────────────────────────
+
+/**
+ * offset 위치에 hr 블록 삽입. offset에서 현재 블록을 앞/뒤로 분리하고
+ * 사이에 빈 hr 블록을 끼워넣는다. INV-6 보장.
+ *
+ * 결과 블록 순서: [앞 블록들] [앞 텍스트 블록] [hr 블록] [뒤 텍스트 블록] [뒤 블록들]
+ * offset=블록 시작이면 앞 텍스트 블록이 비어 hr이 먼저 보임.
+ * offset=블록 끝이면 뒤 텍스트 블록이 비어 hr이 마지막.
+ */
+export function insertHr(model: DocModel, offset: number): DocModel {
+  const bi = blockIndexAt(model, offset);
+  const ranges = blockRanges(model.buffer);
+  const range = ranges[bi];
+
+  // 블록 내 텍스트 끝 (개행 제외)
+  const textEnd = bi < ranges.length - 1 ? range.end - 1 : range.end;
+  const clampedOffset = Math.min(Math.max(offset, range.start), textEnd);
+  const localOffset = clampedOffset - range.start;
+
+  // 현재 블록의 run-list를 앞/뒤로 분리
+  const prevRuns = blockRuns(model, bi);
+  let pos = 0;
+  const frontRuns: MarkRun[] = [];
+  const backRuns: MarkRun[] = [];
+  for (const run of prevRuns) {
+    const runEnd = pos + run.len;
+    if (runEnd <= localOffset) {
+      frontRuns.push({ ...run });
+    } else if (pos >= localOffset) {
+      backRuns.push({ ...run });
+    } else {
+      frontRuns.push({ len: localOffset - pos, mask: run.mask });
+      backRuns.push({ len: runEnd - localOffset, mask: run.mask });
+    }
+    pos = runEnd;
+  }
+
+  // buffer: 앞 텍스트 + \n + "" + \n + 뒤 텍스트
+  const before = model.buffer.slice(0, clampedOffset);
+  const after = model.buffer.slice(clampedOffset);
+  const newBuffer = before + "\n\n" + after;
+
+  // attrs: [앞 블록들] [앞 블록(현재 attr)] [hr] [뒤 블록(paragraph)] [뒤 블록들]
+  const newAttrs: BlockAttr[] = [
+    ...model.blockAttrs.slice(0, bi),
+    model.blockAttrs[bi]!,   // 앞 분리 블록 — 현재 attr 유지
+    { type: "hr" },
+    { type: "paragraph" },   // 뒤 분리 블록
+    ...model.blockAttrs.slice(bi + 1),
+  ];
+
+  const newMarkRuns: MarkRun[][] = [
+    ...model.markRuns.slice(0, bi),
+    normalizeRuns(frontRuns), // 앞 블록 runs
+    [],                        // hr 블록 (INV-6)
+    normalizeRuns(backRuns),  // 뒤 블록 runs
+    ...model.markRuns.slice(bi + 1),
+  ];
+
+  return reconcileAttrs({ buffer: newBuffer, blockAttrs: newAttrs, markRuns: newMarkRuns });
+}
+
+// ─────────────────────────────────────────
+// deleteAtomicAt (T006/T007)
+// ─────────────────────────────────────────
+
+/**
+ * blockIndex 위치의 hr 블록을 제거. hr이 아니면 무변경.
+ * hr 블록의 \n 경계 하나만 제거하여 앞/뒤 블록이 독립 유지되도록 한다.
+ * - blockIndex > 0: 앞 블록의 \n(=range.start-1) + hr 빈 세그먼트(없음) 제거.
+ *   즉 [range.start-1, range.end-1) 범위를 제거(hr의 \n 제외, 앞 \n만 제거).
+ * - blockIndex === 0: 뒤 \n(=range.end-1)만 제거.
+ * INV-1/4/5/6 유지.
+ */
+export function deleteAtomicAt(model: DocModel, blockIndex: number): DocModel {
+  const attr = model.blockAttrs[blockIndex];
+  if (!attr || !isAtomic(attr)) return model;
+
+  const ranges = blockRanges(model.buffer);
+  const range = ranges[blockIndex];
+
+  let delStart: number;
+  let delEnd: number;
+
+  if (blockIndex === 0) {
+    // 첫 블록: 뒤 \n(range.end-1) 제거 → [range.start, range.end)
+    // hr 빈 세그먼트("") + 뒤 \n 제거
+    delStart = range.start;
+    delEnd = range.end;
+  } else {
+    // 앞 블록의 \n(range.start-1) 제거 → hr 빈 세그먼트는 없으므로
+    // 제거 범위: [range.start-1, range.end-1) — hr의 \n은 이전 블록 끝으로 유지됨
+    // 단, hr이 중간 블록이면 [range.start-1, range.end-1) = [앞\n 위치, hr\n 위치)
+    // hr이 마지막 블록이면 앞\n만 제거: [range.start-1, range.start)
+    delStart = range.start - 1;
+    delEnd = range.end - (blockIndex < ranges.length - 1 ? 1 : 0);
+    // 마지막 블록이면 end=buffer.length(개행 없음), 제거 = [start-1, start)
+    if (blockIndex === ranges.length - 1) {
+      delEnd = range.start;
+    }
+  }
+
+  return deleteRange(model, delStart, delEnd);
+}
+
+// ─────────────────────────────────────────
+// nextCaretSkippingAtomic (T006/T007)
+// ─────────────────────────────────────────
+
+/**
+ * dir 방향으로 한 칸 이동한 캐럿 위치를 반환. hr 블록은 건너뜀.
+ * dir=+1: offset + 1 방향(오른쪽), dir=-1: offset - 1 방향(왼쪽).
+ * 경계를 벗어나면 현재 offset 반환.
+ */
+export function nextCaretSkippingAtomic(model: DocModel, offset: number, dir: -1 | 1): number {
+  const bufLen = model.buffer.length;
+  let next = offset + dir;
+
+  if (next < 0) return 0;
+  if (next > bufLen) return bufLen;
+
+  // next가 hr 블록 안인지 확인 (hr 세그먼트는 빈 문자열이므로 \n 위치가 hr 범위)
+  const bi = blockIndexAt(model, next);
+  const attr = model.blockAttrs[bi];
+
+  if (attr && isAtomic(attr)) {
+    // hr 블록을 건너뜀 → 그 방향의 끝으로
+    const ranges = blockRanges(model.buffer);
+    const hrRange = ranges[bi];
+    if (dir === 1) {
+      // hr 다음 블록 시작
+      if (bi < ranges.length - 1) {
+        return ranges[bi + 1]!.start;
+      }
+      return bufLen;
+    } else {
+      // hr 이전 블록 끝 (텍스트 끝, 개행 제외)
+      if (bi > 0) {
+        const prevRange = ranges[bi - 1]!;
+        // 이전 블록 텍스트 끝 = prevRange.end - 1 (개행 제외), 마지막 블록이면 그냥 end
+        return bi - 1 < ranges.length - 1 ? prevRange.end - 1 : prevRange.end;
+      }
+      return 0;
+    }
+  }
+
+  return next;
+}
+
+// ─────────────────────────────────────────
+// toggleBlockType (T004/T005)
+// ─────────────────────────────────────────
+
+/**
+ * blockIndex 블록의 type을 전환. buffer/markRuns 불변.
+ * listItem 전환 시 depth=0.
+ */
+export function toggleBlockType(
+  model: DocModel,
+  blockIndex: number,
+  next: "paragraph" | "blockquote" | { listKind: "bullet" | "ordered" },
+): DocModel {
+  if (blockIndex < 0 || blockIndex >= model.blockAttrs.length) return model;
+
+  let newAttr: BlockAttr;
+  if (next === "paragraph") {
+    newAttr = { type: "paragraph" };
+  } else if (next === "blockquote") {
+    newAttr = { type: "blockquote" };
+  } else {
+    newAttr = { type: "listItem", listKind: next.listKind, depth: 0 };
+  }
+
+  const newAttrs = [
+    ...model.blockAttrs.slice(0, blockIndex),
+    newAttr,
+    ...model.blockAttrs.slice(blockIndex + 1),
+  ];
+
+  return { buffer: model.buffer, blockAttrs: newAttrs, markRuns: model.markRuns };
+}
+
+// ─────────────────────────────────────────
+// listNumberAt (T008/T009)
+// ─────────────────────────────────────────
+
+/**
+ * blockIndex 블록이 ordered listItem이면 1-based 파생 번호를 반환.
+ * 위로 연속된 같은 (ordered, depth) 블록 수 + 1.
+ * 중간에 다른 type/listKind/depth가 끼면 재시작.
+ * ordered listItem이 아니면 null.
+ */
+export function listNumberAt(model: DocModel, blockIndex: number): number | null {
+  const attr = model.blockAttrs[blockIndex];
+  if (!attr || attr.type !== "listItem" || attr.listKind !== "ordered") return null;
+
+  const depth = attr.depth;
+  let count = 1;
+  for (let i = blockIndex - 1; i >= 0; i--) {
+    const a = model.blockAttrs[i];
+    if (a && a.type === "listItem" && a.listKind === "ordered" && a.depth === depth) {
+      count++;
+    } else {
+      break;
+    }
+  }
+  return count;
+}
+
+// ─────────────────────────────────────────
+// isAtomic (T003/T007)
+// ─────────────────────────────────────────
+
+/**
+ * attr 가 원자 블록(편집 불가, 캐럿 진입 불가)이면 true.
+ * 현재 hr 만 원자.
+ */
+export function isAtomic(attr: BlockAttr): boolean {
+  return attr.type === "hr";
+}
+
+// ─────────────────────────────────────────
+// insertSoftBreak (T016/T017)
+// ─────────────────────────────────────────
+
+/**
+ * offset 위치에 SOFT_BREAK(U+2028) 삽입.
+ * U+2028 은 블록 내 문자로 취급 — blockRanges('\n' 기준) 불변.
+ * markRuns 정합: 삽입 위치 run len +1. INV-4 (U+2028 1글자 카운트) 보장.
+ */
+export function insertSoftBreak(model: DocModel, offset: number): DocModel {
+  return insertText(model, offset, offset, SOFT_BREAK, 0);
 }
 
 // reconcileAttrs 는 위에서 이미 export 됨 (공개 API)

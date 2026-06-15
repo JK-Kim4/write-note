@@ -10,7 +10,16 @@
  */
 
 import type { MeasuredLine } from "./layoutEngine";
-import type { MarkRun } from "./model";
+import type { BlockAttr, MarkRun } from "./model";
+import { SOFT_BREAK } from "./model";
+
+// ─── 블록 타입별 폭 조정 상수 ────────────────────────────────────────────────
+/** 인용(blockquote) 좌측 들여쓰기 px */
+export const QUOTE_INDENT_PX = 32;
+/** 글머리/번호 마커 폭 px */
+export const MARKER_W_PX = 24;
+/** 목록 depth 당 들여쓰기 px */
+export const INDENT_STEP_PX = 20;
 
 // ─── 스타일 헬퍼 ────────────────────────────────────────────────────────────
 
@@ -120,14 +129,35 @@ function setRangeAt(
 // ─── measureParagraphLines ────────────────────────────────────────────────────
 
 /**
+ * blockAttr 에 따라 실제 측정에 쓸 콘텐츠 폭을 계산.
+ */
+function effectiveWidth(contentWidthPx: number, blockAttr: BlockAttr): number {
+  return contentWidthPx - blockIndentPx(blockAttr);
+}
+
+/**
+ * 블록의 좌측 들여쓰기(px) — 텍스트가 콘텐츠 좌단에서 얼마나 밀리는가.
+ * 렌더(좌측 패딩)·캐럿/선택 x 보정·줄나눔 폭(effectiveWidth)이 공유하는 단일 출처.
+ * - blockquote: 인용선+들여쓰기
+ * - listItem: 마커 폭 + depth 단계 들여쓰기
+ * - 그 외: 0
+ */
+export function blockIndentPx(blockAttr: BlockAttr): number {
+  if (blockAttr.type === "blockquote") return QUOTE_INDENT_PX;
+  if (blockAttr.type === "listItem") return MARKER_W_PX + blockAttr.depth * INDENT_STEP_PX;
+  return 0;
+}
+
+/**
  * 문단 텍스트를 목표 폭으로 줄 분해한다. 각 줄 = {height, start, end(문자 인덱스)}.
  *
- * @param text     문단 평문(개행 없음)
- * @param marks    run-list (2라운드 추가 — 빈 배열 또는 단일 mask-0 run 이면 1라운드 동일)
+ * @param text       문단 평문(개행 없음, U+2028 소프트 줄바꿈 포함 가능)
+ * @param marks      run-list (2라운드 추가 — 빈 배열 또는 단일 mask-0 run 이면 1라운드 동일)
  * @param contentWidthPx 줄바꿈 기준 폭
  * @param lineHeightPx   줄높이(px)
  * @param fontSizePx     폰트 px
  * @param fontFamily     렌더와 동일해야 하는 폰트 패밀리 문자열
+ * @param blockAttr  블록 속성 (3라운드 추가 — 생략 시 paragraph 동일)
  */
 export function measureParagraphLines(
   text: string,
@@ -136,13 +166,21 @@ export function measureParagraphLines(
   lineHeightPx: number,
   fontSizePx: number,
   fontFamily: string,
+  blockAttr: BlockAttr = { type: "paragraph" },
 ): MeasuredLine[] {
+  // hr: 줄 1개(텍스트 0)
+  if (blockAttr.type === "hr") {
+    return [{ height: lineHeightPx, start: 0, end: 0 }];
+  }
+
   if (text.length === 0) return [{ height: lineHeightPx, start: 0, end: 0 }];
+
+  const usableWidth = effectiveWidth(contentWidthPx, blockAttr);
 
   const { el, spans } = buildOffscreenDiv(
     text,
     marks,
-    contentWidthPx,
+    usableWidth,
     lineHeightPx,
     fontSizePx,
     fontFamily,
@@ -155,18 +193,32 @@ export function measureParagraphLines(
   let lineStart = 0;
 
   for (let i = 0; i < text.length; i++) {
+    // U+2028: 해당 offset에서 강제 줄 종료
+    if (text[i] === SOFT_BREAK) {
+      // 현재 줄 종료 (U+2028 직전까지)
+      if (curTop === null) {
+        curTop = 0;
+      }
+      lines.push({ height: lineHeightPx, start: lineStart, end: i });
+      lineStart = i + 1; // 다음 줄은 U+2028 다음 문자부터
+      curTop = null; // 다음 문자에서 top 재설정
+      continue;
+    }
+
     setRangeAt(range, spans, i, i + 1);
     const top = Math.round(range.getBoundingClientRect().top);
     if (curTop === null) {
       curTop = top;
-      lineStart = 0;
     } else if (top !== curTop) {
       lines.push({ height: lineHeightPx, start: lineStart, end: i });
       curTop = top;
       lineStart = i;
     }
   }
-  lines.push({ height: lineHeightPx, start: lineStart, end: text.length });
+  // 마지막 줄 (lineStart > text.length 이면 U+2028 이 마지막 문자인 경우 — 빈 줄 추가)
+  if (lineStart <= text.length) {
+    lines.push({ height: lineHeightPx, start: lineStart, end: text.length });
+  }
 
   document.body.removeChild(el);
   return lines;

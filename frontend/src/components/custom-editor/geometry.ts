@@ -91,7 +91,8 @@ export function blockFont(
     attr: BlockAttr,
     base: PageGeometry,
 ): { fontSizePx: number; lineHeightPx: number } {
-    if (attr.type === "paragraph") {
+    // heading 만 폰트 배수 적용. paragraph·blockquote·listItem·hr 은 base 그대로.
+    if (attr.type !== "heading") {
         return { fontSizePx: base.fontSizePx, lineHeightPx: base.lineHeightPx };
     }
     const multiplier = HEADING_FONT_MULTIPLIERS[attr.level];

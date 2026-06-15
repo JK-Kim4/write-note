@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import type { DocModel, BlockAttr, MarkRun, Mask } from "./model";
 import {
   MARK,
+  SOFT_BREAK,
   blockIndexAt,
   blockRuns,
   insertText,
@@ -14,6 +15,13 @@ import {
   toggleMark,
   marksAt,
   lineIndexFor,
+  isAtomic,
+  listNumberAt,
+  toggleBlockType,
+  insertHr,
+  deleteAtomicAt,
+  nextCaretSkippingAtomic,
+  insertSoftBreak,
 } from "./model";
 
 // INV-1 보조: blockAttrs.length === buffer.split('\n').length
@@ -844,5 +852,365 @@ describe("lineIndexFor — affinity 기반 시각 줄 선택", () => {
   it("빈 lines 는 -1", () => {
     expect(lineIndexFor([], 0, 1)).toBe(-1);
     expect(lineIndexFor([], 0, -1)).toBe(-1);
+  });
+});
+
+// ─────────────────────────────────────────
+// T003/T007: isAtomic
+// ─────────────────────────────────────────
+describe("isAtomic", () => {
+  it("hr → true", () => {
+    expect(isAtomic({ type: "hr" })).toBe(true);
+  });
+
+  it("paragraph → false", () => {
+    expect(isAtomic({ type: "paragraph" })).toBe(false);
+  });
+
+  it("heading → false", () => {
+    expect(isAtomic({ type: "heading", level: 1 })).toBe(false);
+  });
+
+  it("blockquote → false", () => {
+    expect(isAtomic({ type: "blockquote" })).toBe(false);
+  });
+
+  it("listItem → false", () => {
+    expect(isAtomic({ type: "listItem", listKind: "bullet", depth: 0 })).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────
+// T008/T009: listNumberAt
+// ─────────────────────────────────────────
+describe("listNumberAt", () => {
+  it("ordered listItem 첫 번째 → 1", () => {
+    const m = makeModel("항목1", [{ type: "listItem", listKind: "ordered", depth: 0 }]);
+    expect(listNumberAt(m, 0)).toBe(1);
+  });
+
+  it("연속 ordered listItem → 2-based 번호", () => {
+    const m = makeModel("항목1\n항목2\n항목3", [
+      { type: "listItem", listKind: "ordered", depth: 0 },
+      { type: "listItem", listKind: "ordered", depth: 0 },
+      { type: "listItem", listKind: "ordered", depth: 0 },
+    ]);
+    expect(listNumberAt(m, 0)).toBe(1);
+    expect(listNumberAt(m, 1)).toBe(2);
+    expect(listNumberAt(m, 2)).toBe(3);
+  });
+
+  it("중간에 paragraph 끼면 재시작", () => {
+    const m = makeModel("a\nb\nc", [
+      { type: "listItem", listKind: "ordered", depth: 0 },
+      { type: "paragraph" },
+      { type: "listItem", listKind: "ordered", depth: 0 },
+    ]);
+    expect(listNumberAt(m, 0)).toBe(1);
+    expect(listNumberAt(m, 2)).toBe(1);
+  });
+
+  it("다른 depth 끼면 재시작", () => {
+    const m = makeModel("a\nb\nc", [
+      { type: "listItem", listKind: "ordered", depth: 0 },
+      { type: "listItem", listKind: "ordered", depth: 1 },
+      { type: "listItem", listKind: "ordered", depth: 0 },
+    ]);
+    expect(listNumberAt(m, 0)).toBe(1);
+    expect(listNumberAt(m, 2)).toBe(1); // depth 1이 끼어 재시작
+  });
+
+  it("bullet listItem → null", () => {
+    const m = makeModel("항목", [{ type: "listItem", listKind: "bullet", depth: 0 }]);
+    expect(listNumberAt(m, 0)).toBeNull();
+  });
+
+  it("paragraph → null", () => {
+    const m = makeModel("본문");
+    expect(listNumberAt(m, 0)).toBeNull();
+  });
+});
+
+// ─────────────────────────────────────────
+// T004/T005: toggleBlockType
+// ─────────────────────────────────────────
+describe("toggleBlockType", () => {
+  it("paragraph → blockquote: 텍스트 보존, type 변경", () => {
+    const m = makeModel("안녕");
+    const result = toggleBlockType(m, 0, "blockquote");
+    expect(result.blockAttrs[0]).toEqual({ type: "blockquote" });
+    expect(result.buffer).toBe("안녕");
+    assertINV1(result, "paragraph→blockquote");
+    assertINV4(result, "paragraph→blockquote");
+  });
+
+  it("blockquote → paragraph", () => {
+    const m = makeModel("인용", [{ type: "blockquote" }]);
+    const result = toggleBlockType(m, 0, "paragraph");
+    expect(result.blockAttrs[0]).toEqual({ type: "paragraph" });
+    expect(result.buffer).toBe("인용");
+  });
+
+  it("paragraph → bullet listItem: depth=0", () => {
+    const m = makeModel("항목");
+    const result = toggleBlockType(m, 0, { listKind: "bullet" });
+    expect(result.blockAttrs[0]).toEqual({ type: "listItem", listKind: "bullet", depth: 0 });
+    expect(result.buffer).toBe("항목");
+  });
+
+  it("paragraph → ordered listItem: depth=0", () => {
+    const m = makeModel("항목");
+    const result = toggleBlockType(m, 0, { listKind: "ordered" });
+    expect(result.blockAttrs[0]).toEqual({ type: "listItem", listKind: "ordered", depth: 0 });
+  });
+
+  it("listItem → paragraph: depth 제거", () => {
+    const m = makeModel("항목", [{ type: "listItem", listKind: "bullet", depth: 2 }]);
+    const result = toggleBlockType(m, 0, "paragraph");
+    expect(result.blockAttrs[0]).toEqual({ type: "paragraph" });
+  });
+
+  it("markRuns 보존", () => {
+    const m: DocModel = {
+      buffer: "abc",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 2, mask: MARK.bold }, { len: 1, mask: 0 }]],
+    };
+    const result = toggleBlockType(m, 0, "blockquote");
+    expect(result.markRuns[0]).toEqual([{ len: 2, mask: MARK.bold }, { len: 1, mask: 0 }]);
+  });
+
+  it("INV-1/4/5 유지", () => {
+    const m = makeModel("안녕\n세계");
+    const result = toggleBlockType(m, 1, { listKind: "ordered" });
+    assertINV1(result, "toggleBlockType INV-1");
+    assertINV4(result, "toggleBlockType INV-4");
+    assertINV5(result, "toggleBlockType INV-5");
+  });
+});
+
+// ─────────────────────────────────────────
+// T006/T007: insertHr / deleteAtomicAt / nextCaretSkippingAtomic
+// ─────────────────────────────────────────
+describe("insertHr", () => {
+  it("단일 블록 중간에 hr 삽입 → 3블록(앞/hr/뒤), INV-6", () => {
+    const m = makeModel("앞뒤");
+    const result = insertHr(m, 1); // "앞" 다음에 hr 삽입
+    // buffer: "앞\n\n뒤" (앞 블록 분리 + hr 빈 세그먼트 + 뒤 블록)
+    const parts = result.buffer.split("\n");
+    expect(parts).toHaveLength(3);
+    expect(result.blockAttrs[1]).toEqual({ type: "hr" });
+    // INV-6: hr 블록 세그먼트 = ""
+    expect(parts[1]).toBe("");
+    // INV-6: hr markRuns = []
+    expect(result.markRuns[1]).toEqual([]);
+    assertINV1(result, "insertHr 3블록");
+    assertINV4(result, "insertHr INV-4");
+  });
+
+  it("버퍼 시작(offset=0)에 hr 삽입 → 앞 빈 블록+hr+뒤 블록 3개", () => {
+    const m = makeModel("본문");
+    const result = insertHr(m, 0);
+    // buffer: "\n\n본문" → ["", "", "본문"]
+    expect(result.blockAttrs[0]).toEqual({ type: "paragraph" }); // 빈 앞 블록
+    expect(result.blockAttrs[1]).toEqual({ type: "hr" });
+    expect(result.blockAttrs[2]).toEqual({ type: "paragraph" });
+    assertINV1(result, "insertHr 시작");
+  });
+
+  it("버퍼 끝(offset=len)에 hr 삽입 → 앞 블록+hr+빈 뒤 블록", () => {
+    const m = makeModel("본문");
+    const result = insertHr(m, 2);
+    // buffer: "본문\n\n" → ["본문", "", ""]
+    expect(result.blockAttrs[0]).toEqual({ type: "paragraph" });
+    expect(result.blockAttrs[1]).toEqual({ type: "hr" });
+    expect(result.blockAttrs[2]).toEqual({ type: "paragraph" }); // 빈 뒤 블록
+    assertINV1(result, "insertHr 끝");
+  });
+});
+
+describe("deleteAtomicAt", () => {
+  it("hr 블록 삭제 → 인접 블록 잔존, 블록 수 감소", () => {
+    const m = makeModel("앞\n\n뒤", [
+      { type: "paragraph" },
+      { type: "hr" },
+      { type: "paragraph" },
+    ]);
+    const result = deleteAtomicAt(m, 1);
+    expect(result.blockAttrs).toHaveLength(2);
+    expect(result.blockAttrs[0]).toEqual({ type: "paragraph" });
+    expect(result.blockAttrs[1]).toEqual({ type: "paragraph" });
+    assertINV1(result, "deleteAtomicAt");
+    assertINV4(result, "deleteAtomicAt INV-4");
+  });
+
+  it("hr이 아닌 블록 삭제 시도 → 무변경", () => {
+    const m = makeModel("본문");
+    const result = deleteAtomicAt(m, 0);
+    expect(result).toBe(m);
+  });
+});
+
+describe("nextCaretSkippingAtomic", () => {
+  // buffer: "앞\n\n뒤" (블록0=paragraph, 블록1=hr, 블록2=paragraph)
+  // blockRanges: [{start:0,end:2}, {start:2,end:3}, {start:3,end:4}]
+  // offset 매핑: 0="앞"시작, 1="앞"끝(블록0 텍스트 끝), 2=블록1(hr)시작/끝(빈), 3="뒤"시작
+  const m = makeModel("앞\n\n뒤", [
+    { type: "paragraph" },
+    { type: "hr" },
+    { type: "paragraph" },
+  ]);
+
+  it("dir=+1: hr 직전에서 hr 건너뜀 → 다음 블록 시작", () => {
+    // 블록0 끝(offset=1) → dir=+1 → next=2(hr 블록) → hr 건너뜀 → 블록2 시작 = 3
+    const result = nextCaretSkippingAtomic(m, 1, 1);
+    expect(result).toBe(3);
+  });
+
+  it("dir=-1: hr 직후에서 hr 건너뜀 → 이전 블록 끝", () => {
+    // 블록2 시작(offset=3) → dir=-1 → next=2(hr 블록) → hr 건너뜀 → 블록0 텍스트 끝 = 1
+    const result = nextCaretSkippingAtomic(m, 3, -1);
+    expect(result).toBe(1);
+  });
+
+  it("hr 없을 때는 일반 인접 offset 반환", () => {
+    const m2 = makeModel("abc");
+    expect(nextCaretSkippingAtomic(m2, 1, 1)).toBe(2);
+    expect(nextCaretSkippingAtomic(m2, 2, -1)).toBe(1);
+  });
+
+  it("이미 첫 위치에서 dir=-1 → 0", () => {
+    const m2 = makeModel("abc");
+    expect(nextCaretSkippingAtomic(m2, 0, -1)).toBe(0);
+  });
+
+  it("이미 마지막 위치에서 dir=+1 → 유지", () => {
+    const m2 = makeModel("abc");
+    expect(nextCaretSkippingAtomic(m2, 3, 1)).toBe(3);
+  });
+});
+
+// ─────────────────────────────────────────
+// T010: splitBlock 확장 — 목록 항목
+// ─────────────────────────────────────────
+describe("splitBlock — 목록 항목 확장", () => {
+  it("bullet listItem 분할 → 새 블록도 같은 listKind·depth", () => {
+    const m = makeModel("항목", [{ type: "listItem", listKind: "bullet", depth: 0 }]);
+    const result = splitBlock(m, 2); // "항목" 뒤에서 분리
+    expect(result.blockAttrs[0]).toEqual({ type: "listItem", listKind: "bullet", depth: 0 });
+    expect(result.blockAttrs[1]).toEqual({ type: "listItem", listKind: "bullet", depth: 0 });
+    assertINV1(result, "bullet listItem 분할");
+  });
+
+  it("ordered listItem 분할 → 새 블록도 같은 listKind·depth", () => {
+    const m = makeModel("항목", [{ type: "listItem", listKind: "ordered", depth: 1 }]);
+    const result = splitBlock(m, 2);
+    expect(result.blockAttrs[0]).toEqual({ type: "listItem", listKind: "ordered", depth: 1 });
+    expect(result.blockAttrs[1]).toEqual({ type: "listItem", listKind: "ordered", depth: 1 });
+  });
+
+  it("빈 bullet listItem 에서 splitBlock → paragraph 강등", () => {
+    const m = makeModel("", [{ type: "listItem", listKind: "bullet", depth: 0 }]);
+    const result = splitBlock(m, 0);
+    // 빈 listItem에서 Enter → paragraph로 강등(빈 목록 항목 종료)
+    // 결과: 빈 paragraph 블록
+    expect(result.blockAttrs[0]).toEqual({ type: "paragraph" });
+    assertINV1(result, "빈 listItem 강등");
+  });
+
+  it("빈 ordered listItem 에서 splitBlock → paragraph 강등", () => {
+    const m2 = makeModel("", [{ type: "listItem", listKind: "ordered", depth: 0 }]);
+    const r2 = splitBlock(m2, 0);
+    expect(r2.blockAttrs[0]).toEqual({ type: "paragraph" });
+  });
+});
+
+// ─────────────────────────────────────────
+// T016/T017: insertSoftBreak
+// ─────────────────────────────────────────
+describe("insertSoftBreak", () => {
+  it("U+2028 삽입 후 블록 수 불변", () => {
+    const m = makeModel("hello");
+    const result = insertSoftBreak(m, 2);
+    // buffer에 U+2028이 삽입되어도 개행이 생기지 않아 블록 1개 유지
+    expect(result.buffer.split("\n")).toHaveLength(1);
+    expect(result.blockAttrs).toHaveLength(1);
+    assertINV1(result, "insertSoftBreak 블록 수 불변");
+  });
+
+  it("U+2028이 buffer에 삽입됨", () => {
+    const m = makeModel("hello");
+    const result = insertSoftBreak(m, 2);
+    expect(result.buffer).toBe("he" + SOFT_BREAK + "llo");
+  });
+
+  it("INV-4 유지 — U+2028 1글자 카운트", () => {
+    const m = makeModel("abc");
+    const result = insertSoftBreak(m, 1);
+    // U+2028 삽입 후 블록0 글자 수 = 4
+    assertINV4(result, "insertSoftBreak INV-4");
+    const totalLen = (result.markRuns[0] ?? []).reduce((s, r) => s + r.len, 0);
+    expect(totalLen).toBe(4);
+  });
+
+  it("markRuns 정합 — 삽입 위치 run len +1", () => {
+    const m: DocModel = {
+      buffer: "abcd",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 2, mask: MARK.bold }, { len: 2, mask: 0 }]],
+    };
+    const result = insertSoftBreak(m, 2); // "ab" 뒤에 삽입
+    // U+2028 삽입 후 블록0 글자 수 = 4
+    // 실제로는 삽입 위치가 bold run 끝 = mask0으로 삽입
+    assertINV4(result, "insertSoftBreak markRuns");
+    assertINV5(result, "insertSoftBreak markRuns INV-5");
+  });
+
+  it("다중 블록에서 U+2028 삽입 시 해당 블록만 변경", () => {
+    const m = makeModel("안녕\n세계");
+    const result = insertSoftBreak(m, 0); // 블록0 시작에 삽입
+    expect(result.buffer.split("\n")).toHaveLength(2);
+    assertINV1(result, "다중 블록 softBreak");
+    assertINV4(result, "다중 블록 softBreak INV-4");
+  });
+});
+
+// ─────────────────────────────────────────
+// T018/T019: U+2028 인접 Backspace 삭제·캐럿 이동
+// ─────────────────────────────────────────
+describe("U+2028 인접 Backspace 삭제·캐럿 이동", () => {
+  it("U+2028 오른쪽에서 Backspace(deleteRange) → U+2028 제거, 블록 수 불변", () => {
+    // "a U+2028 b" 에서 U+2028 오른쪽(offset=2)에서 backspace → [1,2) 제거
+    const SOFT = SOFT_BREAK;
+    const m = makeModel("a" + SOFT + "b");
+    // buffer: "aSb" (S=U+2028), 길이 3, 블록 1개
+    const result = deleteRange(m, 1, 2); // U+2028 삭제
+    expect(result.buffer).toBe("ab");
+    expect(result.buffer.split("\n")).toHaveLength(1);
+    assertINV1(result, "softBreak backspace");
+    assertINV4(result, "softBreak backspace INV-4");
+  });
+
+  it("U+2028 왼쪽에서 Delete(deleteRange) → U+2028 제거", () => {
+    const SOFT = SOFT_BREAK;
+    const m = makeModel("a" + SOFT + "b");
+    const result = deleteRange(m, 1, 2);
+    expect(result.buffer).toBe("ab");
+  });
+
+  it("U+2028 삽입 후 삭제 왕복 → 원본 복원", () => {
+    const m = makeModel("hello world");
+    const withSoft = insertSoftBreak(m, 5);
+    const restored = deleteRange(withSoft, 5, 6);
+    expect(restored.buffer).toBe("hello world");
+    assertINV4(restored, "softBreak 삽입→삭제 왕복");
+  });
+
+  it("nextCaretSkippingAtomic은 U+2028을 건너뜀 없이 정상 이동 (U+2028은 비원자)", () => {
+    const SOFT = SOFT_BREAK;
+    const m = makeModel("a" + SOFT + "b");
+    // U+2028이 원자 블록 아님 → nextCaretSkippingAtomic이 그냥 통과
+    const result = nextCaretSkippingAtomic(m, 0, 1);
+    expect(result).toBe(1); // offset+1 = 1 (U+2028 위치)
   });
 });

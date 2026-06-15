@@ -18,18 +18,25 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEve
 import { blockFont, pageGeometry, type PageGeometry, type PaperSize } from "./geometry";
 import { emptyHistory, pushSnapshot, redo, undo, type Snapshot } from "./history";
 import { layout, type LaidOutPage, type MeasuredBlock, type MeasuredLine } from "./layoutEngine";
-import { measureLineXs, measureParagraphLines } from "./measure";
+import { blockIndentPx, measureLineXs, measureParagraphLines } from "./measure";
 import {
     blockIndexAt,
     blockRuns,
+    deleteAtomicAt,
     deleteRange,
+    insertHr,
+    insertSoftBreak,
     insertText,
+    isAtomic,
     lineIndexFor,
+    listNumberAt,
     MARK,
     marksAt,
     mergeWithNext,
     mergeWithPrev,
+    nextCaretSkippingAtomic,
     splitBlock,
+    toggleBlockType,
     toggleHeading,
     toggleMark,
     type Affinity,
@@ -68,6 +75,12 @@ type ParsedBlock =
           lineHeightPx: number;
           /** heading 블록이면 레벨(1·2·3), paragraph 이면 undefined. 아웃라인 data 속성 태깅에 사용. */
           headingLevel?: 1 | 2 | 3;
+          /** 블록 속성 — 인용/목록/구분선 렌더·캐럿 보정에 사용. */
+          attr: BlockAttr;
+          /** 좌측 들여쓰기(px) — measure.blockIndentPx. 캐럿/선택 x 에 더하고 렌더 좌패딩에 쓴다. */
+          indentPx: number;
+          /** 번호목록이면 렌더 시 파생한 번호(1-based), 아니면 null. */
+          listNumber: number | null;
       }
     | { id: string; kind: "image"; height: number; bufStart: number; bufEnd: number };
 
@@ -92,9 +105,11 @@ function relayout(model: DocModel, geo: PageGeometry): View {
             const attr: BlockAttr = model.blockAttrs[i] ?? { type: "paragraph" };
             const font = blockFont(attr, geo);
             const marks = blockRuns(model, i);
-            const lines = measureParagraphLines(seg, marks, geo.contentWidthPx, font.lineHeightPx, font.fontSizePx, FONT_FAMILY);
+            const lines = measureParagraphLines(seg, marks, geo.contentWidthPx, font.lineHeightPx, font.fontSizePx, FONT_FAMILY, attr);
             const headingLevel: 1 | 2 | 3 | undefined = attr.type === "heading" ? attr.level : undefined;
-            blocks.push({ id, kind: "paragraph", text: seg, lines, marks, bufStart, bufEnd, fontSizePx: font.fontSizePx, lineHeightPx: font.lineHeightPx, headingLevel });
+            const indentPx = blockIndentPx(attr);
+            const listNumber = listNumberAt(model, i);
+            blocks.push({ id, kind: "paragraph", text: seg, lines, marks, bufStart, bufEnd, fontSizePx: font.fontSizePx, lineHeightPx: font.lineHeightPx, headingLevel, attr, indentPx, listNumber });
         }
         off = bufEnd + 1; // '\n' 구분자 1칸
     });
@@ -145,7 +160,7 @@ function caretToScreen(caret: number, blocks: ParsedBlock[], pages: LaidOutPage[
     const xs = measureLineXs(blk.text, blk.marks, line.start, line.end, geo.contentWidthPx, blk.lineHeightPx, blk.fontSizePx, FONT_FAMILY);
     return {
         pageIndex: fr.pageIndex,
-        x: xs[within - line.start] ?? 0,
+        x: (xs[within - line.start] ?? 0) + blk.indentPx,
         y: fr.offsetY + (lineIdx - fr.startLine) * blk.lineHeightPx,
         height: blk.lineHeightPx,
     };
@@ -164,15 +179,25 @@ function screenToCaret(pageIndex: number, x: number, y: number, view: View, geo:
     const block = view.blocks.find((b) => b.id === frag!.blockId);
     if (!block) return null;
     if (frag.kind === "image" || block.kind === "image") return { offset: block.bufStart, affinity: 1 };
+    // 구분선(원자)은 캐럿 진입 불가 — 가까운 이웃 블록 가장자리로 보낸다.
+    if (block.attr.type === "hr") {
+        const bi = view.blocks.indexOf(block);
+        const prev = view.blocks[bi - 1];
+        const nx = view.blocks[bi + 1];
+        if (prev) return { offset: prev.bufEnd, affinity: 1 };
+        if (nx) return { offset: nx.bufStart, affinity: 1 };
+        return { offset: block.bufStart, affinity: 1 };
+    }
     const lineWithin = Math.min(frag.endLine - frag.startLine, Math.max(0, Math.floor((y - frag.offsetY) / block.lineHeightPx)));
     const lineIdx = frag.startLine + lineWithin;
     const line = block.lines[lineIdx];
     if (!line) return { offset: block.bufEnd, affinity: 1 };
     const xs = measureLineXs(block.text, block.marks, line.start, line.end, geo.contentWidthPx, block.lineHeightPx, block.fontSizePx, FONT_FAMILY);
+    const localX = x - block.indentPx; // 들여쓰기만큼 좌측 보정 후 글자 매칭
     let best = 0;
     let bestDist = Infinity;
     for (let i = 0; i < xs.length; i++) {
-        const d = Math.abs(xs[i] - x);
+        const d = Math.abs(xs[i] - localX);
         if (d < bestDist) {
             bestDist = d;
             best = i;
@@ -211,12 +236,12 @@ function selectionRects(s: number, e: number, view: View, geo: PageGeometry): Se
                 if (os >= oe) {
                     // 빈 줄이 통째로 선택됐거나, 줄 끝 개행만 걸친 경우 작은 sliver 표시
                     if (lo <= lineLo && lineLo < hi)
-                        rects.push({ pageIndex: pg.index, x: 0, y, width: 8, height: block.lineHeightPx });
+                        rects.push({ pageIndex: pg.index, x: block.indentPx, y, width: 8, height: block.lineHeightPx });
                     continue;
                 }
                 const xs = measureLineXs(block.text, block.marks, line.start, line.end, geo.contentWidthPx, block.lineHeightPx, block.fontSizePx, FONT_FAMILY);
-                const xStart = xs[os - block.bufStart - line.start];
-                const xEnd = xs[oe - block.bufStart - line.start];
+                const xStart = xs[os - block.bufStart - line.start] + block.indentPx;
+                const xEnd = xs[oe - block.bufStart - line.start] + block.indentPx;
                 const tail = hi > lineHi ? 8 : 0; // 개행까지 선택되면 줄 끝에 sliver
                 rects.push({ pageIndex: pg.index, x: xStart, y, width: xEnd - xStart + tail, height: block.lineHeightPx });
             }
@@ -349,18 +374,52 @@ function PageBox({
                         return <img key={idx} src={IMG_SRC} alt="" style={{ position: "absolute", top: f.offsetY, left: 0, height: f.height, width: "auto", maxWidth: geo.contentWidthPx }} />;
                     }
                     if (f.kind === "paragraph" && b?.kind === "paragraph") {
+                        // 구분선(hr) — 텍스트 대신 가로선.
+                        if (b.attr.type === "hr") {
+                            return (
+                                <div key={idx} style={{ position: "absolute", top: f.offsetY, left: 0, width: geo.contentWidthPx, height: f.height, display: "flex", alignItems: "center" }}>
+                                    <div style={{ width: "100%", borderTop: "2px solid #d4d4d8" }} />
+                                </div>
+                            );
+                        }
                         // heading 의 첫 fragment(startLine===0)에만 data-heading-level 태깅.
                         // 다페이지 heading 중복 방지 — fragment 가 여러 페이지에 걸쳐도 인덱스는 1개.
                         const headingDataAttr =
                             b.headingLevel != null && f.startLine === 0
                                 ? { "data-heading-level": b.headingLevel }
                                 : {};
+                        const isQuote = b.attr.type === "blockquote";
+                        const isList = b.attr.type === "listItem";
+                        // 목록 마커는 첫 시각 줄(startLine===0 fragment)에만, 들여쓰기 거터 안에 그린다.
+                        const marker = isList && f.startLine === 0 ? (b.listNumber != null ? `${b.listNumber}.` : "•") : null;
                         return (
                             <div key={idx} style={{ position: "absolute", top: f.offsetY, left: 0, width: geo.contentWidthPx, height: f.height, overflow: "hidden" }} {...headingDataAttr}>
+                                {isQuote && <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: "#a1a1aa" }} />}
+                                {marker != null && (
+                                    <div
+                                        style={{
+                                            position: "absolute",
+                                            left: 0,
+                                            top: 0,
+                                            width: b.indentPx,
+                                            fontSize: b.fontSizePx,
+                                            lineHeight: `${b.lineHeightPx}px`,
+                                            fontFamily: FONT_FAMILY,
+                                            color: "#6b7280",
+                                            boxSizing: "border-box",
+                                            textAlign: b.listNumber != null ? "right" : "center",
+                                            paddingRight: b.listNumber != null ? 6 : 0,
+                                        }}
+                                    >
+                                        {marker}
+                                    </div>
+                                )}
                                 <div
                                     style={{
                                         transform: `translateY(${-(f.startLine * b.lineHeightPx)}px)`,
                                         width: geo.contentWidthPx,
+                                        paddingLeft: b.indentPx,
+                                        boxSizing: "border-box",
                                         fontSize: b.fontSizePx,
                                         lineHeight: `${b.lineHeightPx}px`,
                                         fontFamily: FONT_FAMILY,
@@ -409,6 +468,8 @@ export function CustomEditor({
     // 마크 토글(선택 구간) — 단축키(effect 안 keydown)와 툴바 버튼(render)이 공유. effect 안에서 ec 동기까지
     // 처리하는 실제 구현을 ref 에 담아 양쪽이 호출. 선택 없으면(US2 보류 마크 전) 무동작.
     const toggleMarkRef = useRef<(mark: Mask) => void>(() => {});
+    // 구분선 삽입 — buffer 변경 + undo + EC 동기가 effect 안에서만 가능하므로 ref 로 노출(toggleMarkRef 패턴).
+    const applyHrRef = useRef<() => void>(() => {});
     // undo/redo 스택 + 타이핑 런 경계(연속 타이핑은 undo 1회). 마운트 1회 effect 안 핸들러가 참조.
     const historyRef = useRef(emptyHistory());
     const typingRunRef = useRef(false);
@@ -596,6 +657,24 @@ export function CustomEditor({
         };
         toggleMarkRef.current = applyToggleMark;
 
+        // 구분선(hr) 삽입 — 선택 있으면 먼저 삭제 후 caret 위치에 hr 블록 삽입. EC 텍스트 동기 + undo.
+        const applyHr = () => {
+            const cur = selStateRef.current;
+            const lo = Math.min(cur.anchor, cur.focus);
+            const hi = Math.max(cur.anchor, cur.focus);
+            recordBeforeStructural();
+            const base = lo < hi ? deleteRange(modelRef.current, lo, hi) : modelRef.current;
+            const bi = blockIndexAt(base, lo);
+            const next = insertHr(base, lo);
+            ec.updateText(0, ec.text.length, next.buffer);
+            // hr 다음 블록(bi+2 = 뒤 분리 블록) 시작으로 캐럿(원자 블록 건너뜀).
+            const after = blockBufRanges(next.buffer)[bi + 2]?.start ?? next.buffer.length;
+            ec.updateSelection(after, after);
+            onModelChangeRef.current(next);
+            setSel({ anchor: after, focus: after, affinity: 1 });
+        };
+        applyHrRef.current = applyHr;
+
         // Enter·블록경계병합·선택삭제·화살표 — keydown 직접 처리(EditContext 는 시각 레이아웃/blockAttrs 를 모름).
         const onKey = (e: KeyboardEvent) => {
             // IME 조합 중(한글 등)에는 커스텀 키 처리를 건너뛴다 — 조합 중 Enter/Backspace/화살표는
@@ -665,6 +744,18 @@ export function CustomEditor({
                 setSel({ anchor: lo, focus: lo, affinity: 1 });
                 return;
             }
+            // ③-0 Shift+Enter = 소프트 줄바꿈(U+2028) — 같은 블록·목록 번호 유지, 줄만 추가.
+            if (e.key === "Enter" && e.shiftKey) {
+                e.preventDefault();
+                recordBeforeStructural();
+                const caret = lo;
+                const next = insertSoftBreak(deleteRange(m, lo, hi), caret);
+                ec.updateText(0, ec.text.length, next.buffer);
+                ec.updateSelection(caret + 1, caret + 1);
+                onModelChangeRef.current(next);
+                setSel({ anchor: caret + 1, focus: caret + 1, affinity: 1 });
+                return;
+            }
             // ③ Enter = splitBlock(model, caret) — model 연산으로 라우팅 + EditContext 동기.
             if (e.key === "Enter") {
                 e.preventDefault();
@@ -708,8 +799,10 @@ export function CustomEditor({
                 if (atBlockStart && blockIdx > 0) {
                     e.preventDefault();
                     recordBeforeStructural();
-                    const newCaret = ranges[blockIdx].start - 1; // 병합 후 캐럿 = 제거된 '\n' 위치
-                    const next = mergeWithPrev(m, blockIdx);
+                    const newCaret = ranges[blockIdx].start - 1; // 병합/hr삭제 후 캐럿 = 제거된 '\n' 위치
+                    // 앞 블록이 구분선(원자)이면 병합 대신 그 블록만 삭제.
+                    const prevAtomic = isAtomic(m.blockAttrs[blockIdx - 1] ?? { type: "paragraph" });
+                    const next = prevAtomic ? deleteAtomicAt(m, blockIdx - 1) : mergeWithPrev(m, blockIdx);
                     ec.updateText(0, ec.text.length, next.buffer);
                     ec.updateSelection(newCaret, newCaret);
                     onModelChangeRef.current(next);
@@ -728,7 +821,9 @@ export function CustomEditor({
                 if (!isLastBlock && cur.focus === contentEnd) {
                     e.preventDefault();
                     recordBeforeStructural();
-                    const next = mergeWithNext(m, blockIdx);
+                    // 다음 블록이 구분선(원자)이면 병합 대신 그 블록만 삭제.
+                    const nextAtomic = isAtomic(m.blockAttrs[blockIdx + 1] ?? { type: "paragraph" });
+                    const next = nextAtomic ? deleteAtomicAt(m, blockIdx + 1) : mergeWithNext(m, blockIdx);
                     ec.updateText(0, ec.text.length, next.buffer);
                     ec.updateSelection(cur.focus, cur.focus);
                     onModelChangeRef.current(next);
@@ -768,7 +863,8 @@ export function CustomEditor({
                     setSelLocal(newFocus, newFocus, isWrapBoundary(newFocus, blocks) ? -1 : 1);
                     return;
                 }
-                newFocus = Math.max(0, Math.min(len, cur.focus + horiz));
+                // ±1 이동하되 구분선(원자) 블록은 건너뛴다(진입 안 함).
+                newFocus = nextCaretSkippingAtomic(m, cur.focus, horiz);
                 // 좌/우 화살표가 wrap 경계에 멈추면 upstream(앞 줄 끝). 좌(이전 줄 끝으로 올라옴)·우(현재 줄 끝 도달) 둘 다.
                 newAffinity = isWrapBoundary(newFocus, blocks) ? -1 : 1;
             } else {
@@ -892,6 +988,17 @@ export function CustomEditor({
         if (attr?.type === "heading") onModelChangeRef.current(toggleHeading(modelRef.current, idx, attr.level));
         stageRef.current?.focus();
     };
+    // 블록 타입 토글(인용/목록) — 같은 타입이면 본문으로 해제. buffer 불변(blockAttrs 만) → EC 동기 불필요.
+    const applyBlockType = (target: "blockquote" | { listKind: "bullet" | "ordered" }) => {
+        const idx = blockIndexAt(modelRef.current, selStateRef.current.focus);
+        const cur = modelRef.current.blockAttrs[idx];
+        const isSame =
+            typeof target === "string"
+                ? cur?.type === target
+                : cur?.type === "listItem" && cur.listKind === target.listKind;
+        onModelChangeRef.current(toggleBlockType(modelRef.current, idx, isSame ? "paragraph" : target));
+        stageRef.current?.focus();
+    };
     // 마크 토글 버튼 — 선택 있으면 구간 토글, collapsed 이면 보류 마크 토글(T025). 포커스 복귀.
     const applyMark = (mark: Mask) => {
         const cur = selStateRef.current;
@@ -937,6 +1044,11 @@ export function CustomEditor({
                 {toolbarBtn("I", (activeMask & MARK.italic) !== 0, () => applyMark(MARK.italic))}
                 {toolbarBtn("U", (activeMask & MARK.underline) !== 0, () => applyMark(MARK.underline))}
                 {toolbarBtn("S", (activeMask & MARK.strike) !== 0, () => applyMark(MARK.strike))}
+                {/* 블록 — 인용·글머리표·번호목록·구분선. 활성 = 현재 블록 attr. */}
+                {toolbarBtn("인용", activeAttr.type === "blockquote", () => applyBlockType("blockquote"))}
+                {toolbarBtn("• 목록", activeAttr.type === "listItem" && activeAttr.listKind === "bullet", () => applyBlockType({ listKind: "bullet" }))}
+                {toolbarBtn("1. 목록", activeAttr.type === "listItem" && activeAttr.listKind === "ordered", () => applyBlockType({ listKind: "ordered" }))}
+                {toolbarBtn("구분선", false, () => applyHrRef.current())}
                 {/* 확대/축소 — fit-to-width(scale) 위의 사용자 배수(userZoom). 표시는 실제 배율(effectiveScale). */}
                 <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
                     <button
