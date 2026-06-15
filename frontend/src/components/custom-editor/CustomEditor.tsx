@@ -16,11 +16,13 @@
 
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { pageGeometry, type PageGeometry, type PaperSize } from "./geometry";
+import { emptyHistory, pushSnapshot, redo, undo, type Snapshot } from "./history";
 import { layout, type LaidOutPage, type MeasuredBlock, type MeasuredLine } from "./layoutEngine";
 import { measureLineXs, measureParagraphLines } from "./measure";
 import {
     blockIndexAt,
     deleteRange,
+    insertText,
     mergeWithNext,
     mergeWithPrev,
     reconcileAttrs,
@@ -295,6 +297,9 @@ export function CustomEditor({
     const dragAnchorRef = useRef<number | null>(null);
     // IME 조합 상태 — EditContext 의 compositionstart/end 로 추적(keydown e.isComposing 은 EditContext 에서 미설정).
     const composingRef = useRef(false);
+    // undo/redo 스택 + 타이핑 런 경계(연속 타이핑은 undo 1회). 마운트 1회 effect 안 핸들러가 참조.
+    const historyRef = useRef(emptyHistory());
+    const typingRunRef = useRef(false);
 
     const geo = useMemo(() => pageGeometry(paperSize, fontSizePx), [paperSize, fontSizePx]);
     const view = useMemo<View>(() => (mounted ? relayout(buffer, geo) : { blocks: [], pages: [] }), [mounted, buffer, geo]);
@@ -334,9 +339,35 @@ export function CustomEditor({
         /** ec.text 로부터 새 DocModel 구성 — blockAttrs 는 길이 일치 시 기존 유지, 아니면 reconcile 보정. */
         const modelFromEc = (): DocModel => reconcileAttrs({ buffer: ec.text, blockAttrs: modelRef.current.blockAttrs });
 
+        // ── undo/redo 헬퍼(effect 안 = ec 직접 접근). ──
+        /** 현재 편집 직전 상태 스냅샷(modelRef 는 아직 이전 모델 → pre-edit 캡처). */
+        const snapshotOf = (): Snapshot => ({
+            buffer: modelRef.current.buffer,
+            blockAttrs: modelRef.current.blockAttrs,
+            selection: selStateRef.current,
+        });
+        /** 구조편집(Enter/선택삭제/병합/paste) 직전 스냅샷 push + 타이핑 런 종료(coalesce 없음). */
+        const recordBeforeStructural = () => {
+            historyRef.current = pushSnapshot(historyRef.current, snapshotOf(), { coalesce: false });
+            typingRunRef.current = false;
+        };
+        /** 스냅샷 복원 — EditContext 텍스트·선택 + model + sel 동기. */
+        const applySnapshot = (s: Snapshot) => {
+            const nextModel: DocModel = { buffer: s.buffer, blockAttrs: s.blockAttrs };
+            ec.updateText(0, ec.text.length, s.buffer);
+            ec.updateSelection(Math.min(s.selection.anchor, s.selection.focus), Math.max(s.selection.anchor, s.selection.focus));
+            onModelChangeRef.current(nextModel);
+            setSel(s.selection);
+        };
+
         // 타이핑/IME/블록내부 collapsed Backspace·Delete = EditContext 자동 → model 보정 후 올림.
         const onText = (e: Event) => {
             const te = e as TextUpdateEvent;
+            // 타이핑 런 시작 시 1회 pre-edit 스냅샷(modelRef 는 아직 이전 모델). 런 = undo 1회 경계.
+            if (!typingRunRef.current) {
+                historyRef.current = pushSnapshot(historyRef.current, snapshotOf(), { coalesce: false });
+                typingRunRef.current = true;
+            }
             const next = modelFromEc();
             onModelChangeRef.current(next);
             setSel({ anchor: te.selectionStart, focus: te.selectionEnd }); // 편집 후 collapse
@@ -352,6 +383,26 @@ export function CustomEditor({
         };
         ec.addEventListener("compositionstart", onCompositionStart);
         ec.addEventListener("compositionend", onCompositionEnd);
+
+        // 평문 붙여넣기 — 서식 무시(text/plain만). 개행 정규화 후 insertText(블록 분할 처리).
+        const onPaste = (e: ClipboardEvent) => {
+            if (composingRef.current) return;
+            e.preventDefault();
+            const raw = e.clipboardData?.getData("text/plain") ?? "";
+            if (!raw) return;
+            const text = raw.replace(/\r\n?/g, "\n");
+            recordBeforeStructural();
+            const cur = selStateRef.current;
+            const lo = Math.min(cur.anchor, cur.focus);
+            const hi = Math.max(cur.anchor, cur.focus);
+            const next = insertText(modelRef.current, lo, hi, text);
+            ec.updateText(0, ec.text.length, next.buffer);
+            const caret = lo + text.length;
+            ec.updateSelection(caret, caret);
+            onModelChangeRef.current(next);
+            setSel({ anchor: caret, focus: caret });
+        };
+        host.addEventListener("paste", onPaste);
 
         const updateCB = () => {
             if (stageRef.current) ec.updateControlBounds(stageRef.current.getBoundingClientRect());
@@ -377,9 +428,46 @@ export function CustomEditor({
             const len = ec.text.length;
             const m = modelRef.current;
 
-            // ① Enter = splitBlock(model, caret) — model 연산으로 라우팅 + EditContext 동기.
+            // ⓪ Cmd/Ctrl+Z = undo, +Shift = redo. 'z'·'a' 다른 키라 Cmd+A 분기와 충돌 없음.
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
+                e.preventDefault();
+                const r = e.shiftKey
+                    ? redo(historyRef.current, snapshotOf())
+                    : undo(historyRef.current, snapshotOf());
+                if (r.snapshot) {
+                    historyRef.current = r.history;
+                    applySnapshot(r.snapshot);
+                }
+                typingRunRef.current = false;
+                return;
+            }
+
+            // ① 복사(Cmd+C) — 선택 텍스트를 클립보드에 쓴다. collapse 이면 무시.
+            if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === "c") {
+                if (collapsed) return;
+                e.preventDefault();
+                const text = ec.text.slice(lo, hi);
+                if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(() => {});
+                return;
+            }
+            // ② 잘라내기(Cmd+X) — 복사 후 선택 범위 삭제(deleteRange + undo 스냅샷). collapse 이면 무시.
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "x") {
+                if (collapsed) return;
+                e.preventDefault();
+                const text = ec.text.slice(lo, hi);
+                if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(() => {});
+                recordBeforeStructural();
+                const next = deleteRange(modelRef.current, lo, hi);
+                ec.updateText(0, ec.text.length, next.buffer);
+                ec.updateSelection(lo, lo);
+                onModelChangeRef.current(next);
+                setSel({ anchor: lo, focus: lo });
+                return;
+            }
+            // ③ Enter = splitBlock(model, caret) — model 연산으로 라우팅 + EditContext 동기.
             if (e.key === "Enter") {
                 e.preventDefault();
+                recordBeforeStructural();
                 // 선택이 있으면 먼저 삭제 후 split(EditContext 텍스트도 함께 정합).
                 const caret = lo;
                 const next = splitBlock(deleteRange(m, lo, hi), caret);
@@ -392,12 +480,14 @@ export function CustomEditor({
             // 전체 선택
             if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
                 e.preventDefault();
+                typingRunRef.current = false; // 선택만 변경 → 다음 타이핑이 새 undo 경계
                 setSelLocal(0, len);
                 return;
             }
             // ② 선택이 있을 때 Backspace/Delete = deleteRange(model, lo, hi).
             if ((e.key === "Backspace" || e.key === "Delete") && !collapsed) {
                 e.preventDefault();
+                recordBeforeStructural();
                 const next = deleteRange(m, lo, hi);
                 ec.updateText(0, ec.text.length, next.buffer);
                 ec.updateSelection(lo, lo);
@@ -412,6 +502,7 @@ export function CustomEditor({
                 const atBlockStart = cur.focus === ranges[blockIdx].start;
                 if (atBlockStart && blockIdx > 0) {
                     e.preventDefault();
+                    recordBeforeStructural();
                     const newCaret = ranges[blockIdx].start - 1; // 병합 후 캐럿 = 제거된 '\n' 위치
                     const next = mergeWithPrev(m, blockIdx);
                     ec.updateText(0, ec.text.length, next.buffer);
@@ -431,6 +522,7 @@ export function CustomEditor({
                 const contentEnd = isLastBlock ? ranges[blockIdx].end : ranges[blockIdx].end - 1;
                 if (!isLastBlock && cur.focus === contentEnd) {
                     e.preventDefault();
+                    recordBeforeStructural();
                     const next = mergeWithNext(m, blockIdx);
                     ec.updateText(0, ec.text.length, next.buffer);
                     ec.updateSelection(cur.focus, cur.focus);
@@ -444,6 +536,7 @@ export function CustomEditor({
             const isArrow = e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown";
             if (!isArrow) return;
             e.preventDefault();
+            typingRunRef.current = false; // 캐럿/선택만 변경 → 다음 타이핑이 새 undo 경계
             let newFocus = cur.focus;
             const horiz = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
 
@@ -495,6 +588,7 @@ export function CustomEditor({
             ec.removeEventListener("textupdate", onText);
             ec.removeEventListener("compositionstart", onCompositionStart);
             ec.removeEventListener("compositionend", onCompositionEnd);
+            host.removeEventListener("paste", onPaste);
             host.removeEventListener("keydown", onKey);
             window.removeEventListener("resize", updateCB);
             host.editContext = null;
@@ -519,6 +613,7 @@ export function CustomEditor({
         stageRef.current?.focus();
         const off = pointToCaret(e.clientX, e.clientY);
         if (off == null) return;
+        typingRunRef.current = false; // 클릭/드래그 = 캐럿 이동 → 다음 타이핑이 새 undo 경계
         dragAnchorRef.current = off;
         applySel(off, off);
         const onMove = (me: MouseEvent) => {
