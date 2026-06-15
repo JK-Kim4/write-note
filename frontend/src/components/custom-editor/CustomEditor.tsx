@@ -765,6 +765,33 @@ export function CustomEditor({
         return screenToCaret(pageIndex, (clientX - r.left) / s, (clientY - r.top) / s, viewRef.current, geoRef.current);
     };
 
+    // 드래그용 — 커서가 page 콘텐츠 박스 밖(여백·페이지 사이·텍스트 아래)이면 가장 가까운 page 로 clamp.
+    // data-poc-page 는 콘텐츠 영역만 덮으므로(여백 제외), 빠른 드래그가 여백을 지날 때 pointToCaret 가
+    // null 을 반환해 선택이 끊기는 회귀를 막는다(2026-06-15 dogfooding). 클릭(mousedown)은 정밀 유지.
+    const pointToCaretClamped = (clientX: number, clientY: number): number | null => {
+        const direct = pointToCaret(clientX, clientY);
+        if (direct != null) return direct;
+        const pages = stageRef.current?.querySelectorAll<HTMLElement>("[data-poc-page]");
+        if (!pages || pages.length === 0) return null;
+        let nearest: HTMLElement | null = null;
+        let nearestDist = Infinity;
+        for (const p of pages) {
+            const pr = p.getBoundingClientRect();
+            const dy = clientY < pr.top ? pr.top - clientY : clientY > pr.bottom ? clientY - pr.bottom : 0;
+            if (dy < nearestDist) {
+                nearestDist = dy;
+                nearest = p;
+            }
+        }
+        if (!nearest) return null;
+        const pr = nearest.getBoundingClientRect();
+        const s = scaleRef.current;
+        const geo = geoRef.current;
+        const lx = Math.min(Math.max((clientX - pr.left) / s, 0), geo.contentWidthPx);
+        const ly = Math.min(Math.max((clientY - pr.top) / s, 0), geo.contentHeightPx);
+        return screenToCaret(Number(nearest.getAttribute("data-poc-page")), lx, ly, viewRef.current, geo);
+    };
+
     // 드래그 선택 — mousedown=anchor, move=focus, up=종료. preventDefault 로 네이티브 선택 억제 + 수동 focus.
     const onStageMouseDown = (e: ReactMouseEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -775,7 +802,7 @@ export function CustomEditor({
         dragAnchorRef.current = off;
         applySel(off, off);
         const onMove = (me: MouseEvent) => {
-            const f = pointToCaret(me.clientX, me.clientY);
+            const f = pointToCaretClamped(me.clientX, me.clientY);
             if (f != null && dragAnchorRef.current != null) applySel(dragAnchorRef.current, f);
         };
         const onUp = () => {
