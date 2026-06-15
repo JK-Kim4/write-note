@@ -30,7 +30,37 @@ export type DocModel = {
   markRuns: MarkRun[][]; // 블록별 run-list. 길이 = 블록 수.
 };
 
-export type Selection = { anchor: number; focus: number };
+// ─────────────────────────────────────────
+// 캐럿 affinity (T029)
+//   soft-wrap 경계 offset(line[K].start === line[K-1].end)은 "앞 줄 끝"·"다음 줄 시작" 두
+//   시각 위치를 가진다. affinity 로 정식 구분:
+//     -1 = upstream  (앞 줄 끝)
+//     +1 = downstream(다음 줄 시작) — 기본값. 1라운드 동작 = +1 이라 기본 +1 이 무회귀.
+// ─────────────────────────────────────────
+export type Affinity = -1 | 1;
+export type Selection = { anchor: number; focus: number; affinity: Affinity };
+
+/**
+ * wrap 경계 offset 의 affinity 를 적용해 캐럿이 속할 시각 줄 인덱스를 고른다(순수).
+ * - lines: 블록의 시각 줄들(각 {start, end}, end exclusive·다음 줄 start 와 동일).
+ * - within: 블록 시작 기준 offset.
+ * 규칙:
+ *   +1(downstream): `within < l.end` 인 첫 줄(경계 offset 은 다음 줄 머리). 1라운드 동작 그대로.
+ *   -1(upstream):   `within <= l.end` 인 첫 줄(경계 offset 은 앞 줄 끝).
+ * 둘 다 매칭 실패(맨 끝) → 마지막 줄. lines 비면 -1(호출부가 처리).
+ */
+export function lineIndexFor(
+  lines: ReadonlyArray<{ start: number; end: number }>,
+  within: number,
+  affinity: Affinity,
+): number {
+  if (lines.length === 0) return -1;
+  const idx =
+    affinity === -1
+      ? lines.findIndex((l) => within <= l.end)
+      : lines.findIndex((l) => within < l.end);
+  return idx < 0 ? lines.length - 1 : idx;
+}
 
 // ─────────────────────────────────────────
 // 내부 헬퍼

@@ -13,6 +13,7 @@ import {
   toggleHeading,
   toggleMark,
   marksAt,
+  lineIndexFor,
 } from "./model";
 
 // INV-1 보조: blockAttrs.length === buffer.split('\n').length
@@ -802,5 +803,46 @@ describe("INV-4/5 — 전체 연산 불변식", () => {
     const r = mergeWithNext(base, 0);
     assertINV4(r, "mergeWithNext INV-4");
     assertINV5(r, "mergeWithNext INV-5");
+  });
+});
+
+// ─────────────────────────────────────────
+// lineIndexFor (T029/T030) — wrap 경계 affinity 줄 선택 산술
+//   2줄 블록: line[0]={start:0,end:5}, line[1]={start:5,end:10}. 경계 offset = 5.
+// ─────────────────────────────────────────
+describe("lineIndexFor — affinity 기반 시각 줄 선택", () => {
+  const lines = [
+    { start: 0, end: 5 },
+    { start: 5, end: 10 },
+  ];
+
+  it("downstream(+1)은 경계 offset 을 다음 줄 머리로 — 1라운드 동작 보존", () => {
+    expect(lineIndexFor(lines, 5, 1)).toBe(1);
+  });
+
+  it("upstream(-1)은 경계 offset 을 앞 줄 끝으로", () => {
+    expect(lineIndexFor(lines, 5, -1)).toBe(0);
+  });
+
+  it("경계가 아닌 offset 은 affinity 무관 같은 줄", () => {
+    expect(lineIndexFor(lines, 3, 1)).toBe(0);
+    expect(lineIndexFor(lines, 3, -1)).toBe(0);
+    expect(lineIndexFor(lines, 7, 1)).toBe(1);
+    expect(lineIndexFor(lines, 7, -1)).toBe(1);
+  });
+
+  it("줄 시작(0) offset 은 두 affinity 모두 첫 줄", () => {
+    expect(lineIndexFor(lines, 0, 1)).toBe(0);
+    expect(lineIndexFor(lines, 0, -1)).toBe(0);
+  });
+
+  it("맨 끝 offset(=마지막 줄 end)은 downstream 도 마지막 줄 fallback", () => {
+    expect(lineIndexFor(lines, 10, 1)).toBe(1);
+    expect(lineIndexFor(lines, 10, -1)).toBe(1);
+  });
+
+  it("빈 lines 는 -1", () => {
+    expect(lineIndexFor([], 0, 1)).toBe(-1);
+    expect(lineIndexFor([], 0, -1)).toBe(-1);
   });
 });

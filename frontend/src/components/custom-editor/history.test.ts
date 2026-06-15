@@ -19,7 +19,7 @@ function snap(buffer: string, anchor = 0, markRuns?: MarkRun[][]): Snapshot {
     buffer,
     blockAttrs: [{ type: 'paragraph' }],
     markRuns: runs,
-    selection: { anchor, focus: anchor },
+    selection: { anchor, focus: anchor, affinity: 1 },
   }
 }
 

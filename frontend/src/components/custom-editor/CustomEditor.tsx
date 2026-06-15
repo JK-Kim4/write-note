@@ -24,6 +24,7 @@ import {
     blockRuns,
     deleteRange,
     insertText,
+    lineIndexFor,
     MARK,
     marksAt,
     mergeWithNext,
@@ -31,6 +32,7 @@ import {
     splitBlock,
     toggleHeading,
     toggleMark,
+    type Affinity,
     type BlockAttr,
     type DocModel,
     type MarkRun,
@@ -105,8 +107,11 @@ function relayout(model: DocModel, geo: PageGeometry): View {
 type CaretPos = { pageIndex: number; x: number; y: number; height: number };
 type SelRect = { pageIndex: number; x: number; y: number; width: number; height: number };
 
-/** 버퍼 오프셋 캐럿 → 화면 위치. 측정·레이아웃에서 줄·페이지·x 를 역추적(measureLineXs = 렌더와 동일 메트릭). */
-function caretToScreen(caret: number, blocks: ParsedBlock[], pages: LaidOutPage[], geo: PageGeometry): CaretPos | null {
+/**
+ * 버퍼 오프셋 캐럿 → 화면 위치. 측정·레이아웃에서 줄·페이지·x 를 역추적(measureLineXs = 렌더와 동일 메트릭).
+ * affinity: wrap 경계 offset 의 시각 줄 선택 — +1(기본)=다음 줄 머리(1라운드 동작), -1=앞 줄 끝.
+ */
+function caretToScreen(caret: number, blocks: ParsedBlock[], pages: LaidOutPage[], geo: PageGeometry, affinity: Affinity = 1): CaretPos | null {
     if (blocks.length === 0) return null;
     let blk = blocks.find((b) => caret >= b.bufStart && caret <= b.bufEnd);
     let c = caret;
@@ -129,10 +134,11 @@ function caretToScreen(caret: number, blocks: ParsedBlock[], pages: LaidOutPage[
         return fr ? { pageIndex: fr.pageIndex, x: 0, y: fr.offsetY, height: geo.lineHeightPx } : null;
     }
     const within = c - blk.bufStart;
-    // within < end (≤ 아님) — wrap 경계 offset(line[K].start==line[K-1].end)을 다음 줄 시작에 렌더(downstream
-    // affinity). ≤ 면 이전 줄 끝에 렌더돼 Cmd+Left/타이핑 줄바꿈 캐럿이 어긋난다. 맨끝은 findIndex -1 → fallback.
-    let lineIdx = blk.lines.findIndex((l) => within < l.end);
-    if (lineIdx < 0) lineIdx = blk.lines.length - 1;
+    // wrap 경계 offset(line[K].start==line[K-1].end)의 시각 줄을 affinity 로 선택(lineIndexFor):
+    //   +1(기본·downstream) = `within < l.end` → 다음 줄 머리. 1라운드 동작 그대로(무회귀).
+    //   -1(upstream)        = `within <= l.end` → 앞 줄 끝.
+    // 맨끝은 findIndex -1 → 마지막 줄 fallback(lineIndexFor 내부 처리).
+    const lineIdx = lineIndexFor(blk.lines, within, affinity);
     const line = blk.lines[lineIdx];
     const fr = findFrag(lineIdx);
     if (!fr) return null;
@@ -145,18 +151,23 @@ function caretToScreen(caret: number, blocks: ParsedBlock[], pages: LaidOutPage[
     };
 }
 
-/** 화면 좌표(페이지·콘텐츠 상대 x/y) → 버퍼 캐럿 오프셋. caretToScreen 의 역 — 클릭·드래그·세로이동. */
-function screenToCaret(pageIndex: number, x: number, y: number, view: View, geo: PageGeometry): number | null {
+/**
+ * 화면 좌표(페이지·콘텐츠 상대 x/y) → 버퍼 캐럿. caretToScreen 의 역 — 클릭·드래그·세로이동.
+ * affinity: 클릭 offset 이 wrap 으로 접힌 줄(다음 시각 줄이 같은 블록에 이어짐)의 끝에 떨어지면 -1(앞 줄 끝),
+ * 그 외는 +1(downstream). 줄 끝을 정확히 클릭한 의도를 보존 — 그래야 캐럿이 클릭한 줄에 그려진다.
+ */
+function screenToCaret(pageIndex: number, x: number, y: number, view: View, geo: PageGeometry): { offset: number; affinity: Affinity } | null {
     const page = view.pages[pageIndex];
     if (!page || page.fragments.length === 0) return null;
     let frag = page.fragments.find((f) => y >= f.offsetY && y < f.offsetY + f.height);
     if (!frag) frag = y < page.fragments[0].offsetY ? page.fragments[0] : page.fragments[page.fragments.length - 1];
     const block = view.blocks.find((b) => b.id === frag!.blockId);
     if (!block) return null;
-    if (frag.kind === "image" || block.kind === "image") return block.bufStart;
+    if (frag.kind === "image" || block.kind === "image") return { offset: block.bufStart, affinity: 1 };
     const lineWithin = Math.min(frag.endLine - frag.startLine, Math.max(0, Math.floor((y - frag.offsetY) / block.lineHeightPx)));
-    const line = block.lines[frag.startLine + lineWithin];
-    if (!line) return block.bufEnd;
+    const lineIdx = frag.startLine + lineWithin;
+    const line = block.lines[lineIdx];
+    if (!line) return { offset: block.bufEnd, affinity: 1 };
     const xs = measureLineXs(block.text, block.marks, line.start, line.end, geo.contentWidthPx, block.lineHeightPx, block.fontSizePx, FONT_FAMILY);
     let best = 0;
     let bestDist = Infinity;
@@ -167,7 +178,12 @@ function screenToCaret(pageIndex: number, x: number, y: number, view: View, geo:
             best = i;
         }
     }
-    return block.bufStart + line.start + best;
+    // 클릭이 이 줄의 끝(line.end)에 떨어졌고, 같은 블록에 다음 시각 줄이 이어지면(soft-wrap) upstream(-1).
+    // 그래야 캐럿이 클릭한 줄 끝에 렌더된다(없으면 +1=다음 줄 머리로 가버림). 마지막 줄이면 +1(개행/블록 끝).
+    const atLineEnd = line.start + best === line.end;
+    const hasNextWrappedLine = lineIdx < block.lines.length - 1;
+    const affinity: Affinity = atLineEnd && hasNextWrappedLine ? -1 : 1;
+    return { offset: block.bufStart + line.start + best, affinity };
 }
 
 /** 선택 범위 [s,e) 를 페이지·줄별 하이라이트 사각형들로. */
@@ -207,6 +223,21 @@ function selectionRects(s: number, e: number, view: View, geo: PageGeometry): Se
         }
     }
     return rects;
+}
+
+/**
+ * offset 이 soft-wrap 경계인가 — 어떤 시각 줄의 end 와 같고, 같은 블록에 다음 시각 줄이 이어지는가
+ * (즉 진짜 '\n' 블록 끝이 아니라 줄바꿈으로 접힌 경계). 경계면 캐럿이 "앞 줄 끝"(upstream)에 그려질 수 있다.
+ * 캐럿 이동 시 affinity 결정에 사용 — 경계가 아니면 항상 downstream(+1) = 1라운드 동작.
+ */
+function isWrapBoundary(offset: number, blocks: ParsedBlock[]): boolean {
+    const blk = blocks.find((b) => offset >= b.bufStart && offset <= b.bufEnd);
+    if (!blk || blk.kind === "image") return false;
+    const within = offset - blk.bufStart;
+    for (let i = 0; i < blk.lines.length - 1; i++) {
+        if (within === blk.lines[i].end) return true;
+    }
+    return false;
 }
 
 /** offset 이 속한 시각 줄의 버퍼 시작/끝(Cmd+화살표 줄 끝 이동용). */
@@ -366,7 +397,8 @@ export function CustomEditor({
     fontSizePx?: number;
 }) {
     const buffer = model.buffer;
-    const [sel, setSel] = useState({ anchor: buffer.length, focus: buffer.length });
+    // sel.affinity = focus 캐럿의 wrap 경계 시각 위치(-1=앞 줄 끝, +1=다음 줄 시작). 기본 +1 = 1라운드 동작.
+    const [sel, setSel] = useState<{ anchor: number; focus: number; affinity: Affinity }>({ anchor: buffer.length, focus: buffer.length, affinity: 1 });
     const [pendingMarks, setPendingMarks] = useState<Mask | null>(null);
     const [mounted, setMounted] = useState(false);
     const stageRef = useRef<HTMLDivElement>(null);
@@ -389,7 +421,7 @@ export function CustomEditor({
     const geo = useMemo(() => pageGeometry(paperSize, fontSizePx), [paperSize, fontSizePx]);
     // 버퍼뿐 아니라 blockAttrs(heading 토글) 변경도 리플로우 — 블록별 폰트가 측정·렌더에 관통.
     const view = useMemo<View>(() => (mounted ? relayout(model, geo) : { blocks: [], pages: [] }), [mounted, model, geo]);
-    const caretPos = mounted ? caretToScreen(sel.focus, view.blocks, view.pages, geo) : null;
+    const caretPos = mounted ? caretToScreen(sel.focus, view.blocks, view.pages, geo, sel.affinity) : null;
     const selRects = mounted ? selectionRects(sel.anchor, sel.focus, view, geo) : [];
 
     // 툴바 활성 표시 — 현재 캐럿이 속한 블록의 attr.
@@ -450,11 +482,11 @@ export function CustomEditor({
 
     useEffect(() => setMounted(true), []);
 
-    /** 선택 적용 — EditContext 선택 동기(min,max) + 상태(anchor/focus). 타이핑/Backspace 가 선택을 교체/삭제하게. */
-    const applySel = (anchor: number, focus: number) => {
+    /** 선택 적용 — EditContext 선택 동기(min,max) + 상태(anchor/focus/affinity). 타이핑/Backspace 가 선택을 교체/삭제하게. */
+    const applySel = (anchor: number, focus: number, affinity: Affinity = 1) => {
         const ec = ecRef.current;
         if (ec) ec.updateSelection(Math.min(anchor, focus), Math.max(anchor, focus));
-        setSel({ anchor, focus });
+        setSel({ anchor, focus, affinity });
     };
 
     // EditContext 부착 + 입력 루프(마운트 1회).
@@ -506,7 +538,7 @@ export function CustomEditor({
             onModelChangeRef.current(next);
             // 보류 마크 소비 — 입력이 들어오면 폐기.
             if (pending !== null) setPendingMarks(null);
-            setSel({ anchor: te.selectionStart, focus: te.selectionEnd }); // 편집 후 collapse
+            setSel({ anchor: te.selectionStart, focus: te.selectionEnd, affinity: 1 }); // 편집 후 collapse(downstream)
         };
         ec.addEventListener("textupdate", onText);
 
@@ -536,7 +568,7 @@ export function CustomEditor({
             const caret = lo + text.length;
             ec.updateSelection(caret, caret);
             onModelChangeRef.current(next);
-            setSel({ anchor: caret, focus: caret });
+            setSel({ anchor: caret, focus: caret, affinity: 1 });
         };
         host.addEventListener("paste", onPaste);
 
@@ -546,9 +578,9 @@ export function CustomEditor({
         updateCB();
         window.addEventListener("resize", updateCB);
 
-        const setSelLocal = (a: number, f: number) => {
+        const setSelLocal = (a: number, f: number, affinity: Affinity = 1) => {
             ec.updateSelection(Math.min(a, f), Math.max(a, f));
-            setSel({ anchor: a, focus: f });
+            setSel({ anchor: a, focus: f, affinity });
         };
 
         // 선택 구간 마크 토글(T021) — buffer/선택 불변(EC 텍스트 동기 불필요), markRuns 만 변경 + undo 스냅샷.
@@ -630,7 +662,7 @@ export function CustomEditor({
                 ec.updateText(0, ec.text.length, next.buffer);
                 ec.updateSelection(lo, lo);
                 onModelChangeRef.current(next);
-                setSel({ anchor: lo, focus: lo });
+                setSel({ anchor: lo, focus: lo, affinity: 1 });
                 return;
             }
             // ③ Enter = splitBlock(model, caret) — model 연산으로 라우팅 + EditContext 동기.
@@ -646,7 +678,7 @@ export function CustomEditor({
                 ec.updateText(0, ec.text.length, next.buffer);
                 ec.updateSelection(caret + 1, caret + 1);
                 onModelChangeRef.current(next);
-                setSel({ anchor: caret + 1, focus: caret + 1 });
+                setSel({ anchor: caret + 1, focus: caret + 1, affinity: 1 });
                 setPendingMarks(carry !== 0 ? carry : null);
                 return;
             }
@@ -665,7 +697,7 @@ export function CustomEditor({
                 ec.updateText(0, ec.text.length, next.buffer);
                 ec.updateSelection(lo, lo);
                 onModelChangeRef.current(next);
-                setSel({ anchor: lo, focus: lo });
+                setSel({ anchor: lo, focus: lo, affinity: 1 });
                 return;
             }
             // ③ 블록 시작에서 collapsed Backspace = mergeWithPrev(model, blockIdx).
@@ -681,7 +713,7 @@ export function CustomEditor({
                     ec.updateText(0, ec.text.length, next.buffer);
                     ec.updateSelection(newCaret, newCaret);
                     onModelChangeRef.current(next);
-                    setSel({ anchor: newCaret, focus: newCaret });
+                    setSel({ anchor: newCaret, focus: newCaret, affinity: 1 });
                     return;
                 }
                 // 그 외(블록 내부) collapsed Backspace 는 EditContext 자동 처리 → textupdate.
@@ -700,7 +732,7 @@ export function CustomEditor({
                     ec.updateText(0, ec.text.length, next.buffer);
                     ec.updateSelection(cur.focus, cur.focus);
                     onModelChangeRef.current(next);
-                    setSel({ anchor: cur.focus, focus: cur.focus });
+                    setSel({ anchor: cur.focus, focus: cur.focus, affinity: 1 });
                     return;
                 }
                 // 그 외(블록 내부) collapsed Delete 는 EditContext 자동 처리 → textupdate.
@@ -713,23 +745,32 @@ export function CustomEditor({
             // 캐럿 이동 시 보류 마크 폐기 — 화살표로 다른 위치로 가면 토글 컨텍스트가 무효화됨.
             if (pendingMarksRef.current !== null) setPendingMarks(null);
             let newFocus = cur.focus;
+            // affinity 갱신(T031): 기본 +1(downstream) = 1라운드 동작. wrap 경계에 멈출 때만 -1(upstream).
+            //   좌/우 화살표·End·단어경계 가 wrap 경계 offset 에 멈추면 그 줄 끝(앞 줄 끝)에 캐럿을 그린다.
+            //   Home(줄 맨앞)·상/하(screenToCaret 결정)·블록 경계는 따로 처리. 애매하면 +1.
+            let newAffinity: Affinity = 1;
             const horiz = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
+            const blocks = viewRef.current.blocks;
 
             if (horiz !== 0 && (e.metaKey || e.ctrlKey)) {
-                // Cmd+좌/우 = 줄 맨앞/맨뒤
-                const lb = lineBoundsOf(cur.focus, viewRef.current.blocks);
+                // Cmd+좌/우 = 줄 맨앞(Home)/맨뒤(End). End 가 wrap 경계면 그 줄 끝(upstream).
+                const lb = lineBoundsOf(cur.focus, blocks);
                 newFocus = horiz < 0 ? lb.start : lb.end;
+                newAffinity = horiz < 0 ? 1 : isWrapBoundary(newFocus, blocks) ? -1 : 1;
             } else if (horiz !== 0 && e.altKey) {
-                // Option+좌/우 = 단어 경계
+                // Option+좌/우 = 단어 경계. wrap 경계에 멈추면 upstream.
                 newFocus = wordBoundary(ec.text, cur.focus, horiz);
+                newAffinity = isWrapBoundary(newFocus, blocks) ? -1 : 1;
             } else if (horiz !== 0) {
                 // 화살표 좌/우 — 선택 있으면(비shift) 가장자리로 collapse, 아니면 ±1
                 if (!collapsed && !e.shiftKey) {
                     newFocus = horiz < 0 ? lo : hi;
-                    setSelLocal(newFocus, newFocus);
+                    setSelLocal(newFocus, newFocus, isWrapBoundary(newFocus, blocks) ? -1 : 1);
                     return;
                 }
                 newFocus = Math.max(0, Math.min(len, cur.focus + horiz));
+                // 좌/우 화살표가 wrap 경계에 멈추면 upstream(앞 줄 끝). 좌(이전 줄 끝으로 올라옴)·우(현재 줄 끝 도달) 둘 다.
+                newAffinity = isWrapBoundary(newFocus, blocks) ? -1 : 1;
             } else {
                 // 상/하
                 if (e.metaKey || e.ctrlKey) {
@@ -737,7 +778,7 @@ export function CustomEditor({
                 } else {
                     const v = viewRef.current;
                     const g = geoRef.current;
-                    const cs = caretToScreen(cur.focus, v.blocks, v.pages, g);
+                    const cs = caretToScreen(cur.focus, v.blocks, v.pages, g, cur.affinity);
                     if (cs) {
                         let pageIndex = cs.pageIndex;
                         let ty = cs.y + (e.key === "ArrowDown" ? 1.5 : -0.5) * g.lineHeightPx;
@@ -748,13 +789,16 @@ export function CustomEditor({
                             pageIndex += 1;
                             ty -= g.contentHeightPx;
                         }
-                        const off = screenToCaret(pageIndex, cs.x, ty, v, g);
-                        if (off != null) newFocus = off;
+                        const hit = screenToCaret(pageIndex, cs.x, ty, v, g);
+                        if (hit != null) {
+                            newFocus = hit.offset;
+                            newAffinity = hit.affinity;
+                        }
                     }
                 }
             }
-            if (e.shiftKey) setSelLocal(cur.anchor, newFocus);
-            else setSelLocal(newFocus, newFocus);
+            if (e.shiftKey) setSelLocal(cur.anchor, newFocus, newAffinity);
+            else setSelLocal(newFocus, newFocus, newAffinity);
         };
         host.addEventListener("keydown", onKey);
         host.focus();
@@ -773,8 +817,8 @@ export function CustomEditor({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // 포인터 좌표 → 버퍼 오프셋(어느 페이지든). data-poc-page + elementFromPoint 로 페이지·로컬좌표 산출.
-    const pointToCaret = (clientX: number, clientY: number): number | null => {
+    // 포인터 좌표 → 버퍼 캐럿({offset, affinity}, 어느 페이지든). data-poc-page + elementFromPoint 로 페이지·로컬좌표 산출.
+    const pointToCaret = (clientX: number, clientY: number): { offset: number; affinity: Affinity } | null => {
         const el = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>("[data-poc-page]");
         if (!el) return null;
         const pageIndex = Number(el.getAttribute("data-poc-page"));
@@ -787,7 +831,7 @@ export function CustomEditor({
     // 드래그용 — 커서가 page 콘텐츠 박스 밖(여백·페이지 사이·텍스트 아래)이면 가장 가까운 page 로 clamp.
     // data-poc-page 는 콘텐츠 영역만 덮으므로(여백 제외), 빠른 드래그가 여백을 지날 때 pointToCaret 가
     // null 을 반환해 선택이 끊기는 회귀를 막는다(2026-06-15 dogfooding). 클릭(mousedown)은 정밀 유지.
-    const pointToCaretClamped = (clientX: number, clientY: number): number | null => {
+    const pointToCaretClamped = (clientX: number, clientY: number): { offset: number; affinity: Affinity } | null => {
         const direct = pointToCaret(clientX, clientY);
         if (direct != null) return direct;
         const pages = stageRef.current?.querySelectorAll<HTMLElement>("[data-poc-page]");
@@ -815,16 +859,16 @@ export function CustomEditor({
     const onStageMouseDown = (e: ReactMouseEvent<HTMLDivElement>) => {
         e.preventDefault();
         stageRef.current?.focus();
-        const off = pointToCaret(e.clientX, e.clientY);
-        if (off == null) return;
+        const hit = pointToCaret(e.clientX, e.clientY);
+        if (hit == null) return;
         typingRunRef.current = false; // 클릭/드래그 = 캐럿 이동 → 다음 타이핑이 새 undo 경계
         // 클릭/드래그 시작 = 캐럿 이동 → 보류 마크 폐기.
         if (pendingMarks !== null) setPendingMarks(null);
-        dragAnchorRef.current = off;
-        applySel(off, off);
+        dragAnchorRef.current = hit.offset;
+        applySel(hit.offset, hit.offset, hit.affinity);
         const onMove = (me: MouseEvent) => {
             const f = pointToCaretClamped(me.clientX, me.clientY);
-            if (f != null && dragAnchorRef.current != null) applySel(dragAnchorRef.current, f);
+            if (f != null && dragAnchorRef.current != null) applySel(dragAnchorRef.current, f.offset, f.affinity);
         };
         const onUp = () => {
             dragAnchorRef.current = null;
