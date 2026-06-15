@@ -19,17 +19,20 @@ import { blockFont, pageGeometry, type PageGeometry, type PaperSize } from "./ge
 import { emptyHistory, pushSnapshot, redo, undo, type Snapshot } from "./history";
 import { layout, type LaidOutPage, type MeasuredBlock, type MeasuredLine } from "./layoutEngine";
 import { blockIndentPx, measureLineXs, measureParagraphLines } from "./measure";
+import { modelToPmJson, pmJsonToModel } from "./pmConvert";
 import {
     blockIndexAt,
     blockRuns,
     deleteAtomicAt,
     deleteRange,
     insertHr,
+    insertModel,
     insertSoftBreak,
     insertText,
     isAtomic,
     lineIndexFor,
     listNumberAt,
+    sliceModel,
     MARK,
     marksAt,
     mergeWithNext,
@@ -617,17 +620,71 @@ export function CustomEditor({
         ec.addEventListener("compositionstart", onCompositionStart);
         ec.addEventListener("compositionend", onCompositionEnd);
 
-        // 평문 붙여넣기 — 서식 무시(text/plain만). 개행 정규화 후 insertText(블록 분할 처리).
+        // 내부 리치 클립보드 MIME — 복사 시 선택 부분문서를 PM JSON 으로 병기, 붙여넣기 시 복원.
+        const PM_MIME = "application/x-writenote-pm";
+
+        // 복사 — text/plain(U+2028→\n) + PM JSON 병기. 동기 copy 이벤트라야 커스텀 MIME 가능(Chromium).
+        const onCopy = (e: ClipboardEvent) => {
+            const cur = selStateRef.current;
+            const lo = Math.min(cur.anchor, cur.focus);
+            const hi = Math.max(cur.anchor, cur.focus);
+            if (lo >= hi) return;
+            e.preventDefault();
+            const sub = sliceModel(modelRef.current, lo, hi);
+            e.clipboardData?.setData("text/plain", ec.text.slice(lo, hi).split(SOFT_BREAK).join("\n"));
+            e.clipboardData?.setData(PM_MIME, modelToPmJson(sub));
+        };
+        host.addEventListener("copy", onCopy);
+
+        // 잘라내기 — 복사 후 선택 삭제.
+        const onCut = (e: ClipboardEvent) => {
+            const cur = selStateRef.current;
+            const lo = Math.min(cur.anchor, cur.focus);
+            const hi = Math.max(cur.anchor, cur.focus);
+            if (lo >= hi) return;
+            e.preventDefault();
+            const sub = sliceModel(modelRef.current, lo, hi);
+            e.clipboardData?.setData("text/plain", ec.text.slice(lo, hi).split(SOFT_BREAK).join("\n"));
+            e.clipboardData?.setData(PM_MIME, modelToPmJson(sub));
+            recordBeforeStructural();
+            const next = deleteRange(modelRef.current, lo, hi);
+            ec.updateText(0, ec.text.length, next.buffer);
+            ec.updateSelection(lo, lo);
+            onModelChangeRef.current(next);
+            setSel({ anchor: lo, focus: lo, affinity: 1 });
+        };
+        host.addEventListener("cut", onCut);
+
+        // 붙여넣기 — 내부 PM JSON 있으면 서식·블록 보존 복원, 없으면 평문(블록 분할).
         const onPaste = (e: ClipboardEvent) => {
             if (composingRef.current) return;
             e.preventDefault();
+            const cur = selStateRef.current;
+            const lo = Math.min(cur.anchor, cur.focus);
+            const hi = Math.max(cur.anchor, cur.focus);
+            const pm = e.clipboardData?.getData(PM_MIME);
+            if (pm) {
+                let sub: DocModel | null = null;
+                try {
+                    sub = pmJsonToModel(pm);
+                } catch {
+                    sub = null;
+                }
+                if (sub) {
+                    recordBeforeStructural();
+                    const next = insertModel(modelRef.current, lo, hi, sub);
+                    ec.updateText(0, ec.text.length, next.buffer);
+                    const caret = lo + sub.buffer.length;
+                    ec.updateSelection(caret, caret);
+                    onModelChangeRef.current(next);
+                    setSel({ anchor: caret, focus: caret, affinity: 1 });
+                    return;
+                }
+            }
             const raw = e.clipboardData?.getData("text/plain") ?? "";
             if (!raw) return;
             const text = raw.replace(/\r\n?/g, "\n");
             recordBeforeStructural();
-            const cur = selStateRef.current;
-            const lo = Math.min(cur.anchor, cur.focus);
-            const hi = Math.max(cur.anchor, cur.focus);
             const next = insertText(modelRef.current, lo, hi, text);
             ec.updateText(0, ec.text.length, next.buffer);
             const caret = lo + text.length;
@@ -726,28 +783,8 @@ export function CustomEditor({
                 return;
             }
 
-            // ① 복사(Cmd+C) — 선택 텍스트를 클립보드에 쓴다. collapse 이면 무시.
-            if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === "c") {
-                if (collapsed) return;
-                e.preventDefault();
-                const text = ec.text.slice(lo, hi);
-                if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(() => {});
-                return;
-            }
-            // ② 잘라내기(Cmd+X) — 복사 후 선택 범위 삭제(deleteRange + undo 스냅샷). collapse 이면 무시.
-            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "x") {
-                if (collapsed) return;
-                e.preventDefault();
-                const text = ec.text.slice(lo, hi);
-                if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(() => {});
-                recordBeforeStructural();
-                const next = deleteRange(modelRef.current, lo, hi);
-                ec.updateText(0, ec.text.length, next.buffer);
-                ec.updateSelection(lo, lo);
-                onModelChangeRef.current(next);
-                setSel({ anchor: lo, focus: lo, affinity: 1 });
-                return;
-            }
+            // 복사(Cmd+C)·잘라내기(Cmd+X) 는 네이티브 copy/cut 이벤트(onCopy/onCut)에서 처리 —
+            // 서식 보존(PM JSON) 위해 동기 clipboardData 필요. 여기서 가로채지 않는다(preventDefault 금지).
             // ③-0 Shift+Enter = 소프트 줄바꿈(U+2028) — 같은 블록·목록 번호 유지, 줄만 추가.
             if (e.key === "Enter" && e.shiftKey) {
                 e.preventDefault();
@@ -907,6 +944,8 @@ export function CustomEditor({
             ec.removeEventListener("textupdate", onText);
             ec.removeEventListener("compositionstart", onCompositionStart);
             ec.removeEventListener("compositionend", onCompositionEnd);
+            host.removeEventListener("copy", onCopy);
+            host.removeEventListener("cut", onCut);
             host.removeEventListener("paste", onPaste);
             host.removeEventListener("keydown", onKey);
             window.removeEventListener("resize", updateCB);

@@ -22,6 +22,8 @@ import {
   deleteAtomicAt,
   nextCaretSkippingAtomic,
   insertSoftBreak,
+  sliceModel,
+  insertModel,
 } from "./model";
 
 // INV-1 보조: blockAttrs.length === buffer.split('\n').length
@@ -1212,5 +1214,237 @@ describe("U+2028 인접 Backspace 삭제·캐럿 이동", () => {
     // U+2028이 원자 블록 아님 → nextCaretSkippingAtomic이 그냥 통과
     const result = nextCaretSkippingAtomic(m, 0, 1);
     expect(result).toBe(1); // offset+1 = 1 (U+2028 위치)
+  });
+});
+
+// ─────────────────────────────────────────
+// sliceModel (R3 - 복사용 부분 문서 추출)
+// ─────────────────────────────────────────
+describe("sliceModel", () => {
+  it("lo>=hi 이면 빈 모델 반환 — INV-3", () => {
+    const m = makeModel("hello");
+    const result = sliceModel(m, 3, 3);
+    expect(result.buffer).toBe("");
+    expect(result.blockAttrs).toEqual([{ type: "paragraph" }]);
+    expect(result.markRuns).toEqual([[]]);
+  });
+
+  it("단일 블록 중 일부 추출 — buffer/attr/markRuns 정합", () => {
+    const m = makeModel("hello world");
+    const result = sliceModel(m, 6, 11);
+    expect(result.buffer).toBe("world");
+    expect(result.blockAttrs).toHaveLength(1);
+    expect(result.blockAttrs[0]).toEqual({ type: "paragraph" });
+    assertINV4(result, "단일 블록 slice");
+    assertINV5(result, "단일 블록 slice");
+  });
+
+  it("두 블록 걸침 — '\\'n' 보존, 각 블록 attr 유지", () => {
+    // "ab\ncd" 에서 [1,4) → "b\nc"
+    const m = makeModel("ab\ncd", [
+      { type: "heading", level: 1 },
+      { type: "paragraph" },
+    ]);
+    const result = sliceModel(m, 1, 4);
+    expect(result.buffer).toBe("b\nc");
+    expect(result.blockAttrs).toHaveLength(2);
+    expect(result.blockAttrs[0]).toEqual({ type: "heading", level: 1 });
+    expect(result.blockAttrs[1]).toEqual({ type: "paragraph" });
+    assertINV1(result, "두 블록 slice");
+    assertINV4(result, "두 블록 slice");
+  });
+
+  it("markRuns 마크 포함 추출 — 범위 내 run 만 슬라이스", () => {
+    // "abcde" bold(2)+mask0(3) 에서 [1,4) → "bcd" bold(1)+mask0(2)
+    const m: DocModel = {
+      buffer: "abcde",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 2, mask: MARK.bold }, { len: 3, mask: 0 }]],
+    };
+    const result = sliceModel(m, 1, 4);
+    expect(result.buffer).toBe("bcd");
+    expect(blockRuns(result, 0)).toEqual([
+      { len: 1, mask: MARK.bold },
+      { len: 2, mask: 0 },
+    ]);
+    assertINV4(result, "markRuns slice");
+    assertINV5(result, "markRuns slice");
+  });
+
+  it("전체 범위 복사 — 원본과 동일한 buffer", () => {
+    const m = makeModel("가나다\n라마바");
+    const result = sliceModel(m, 0, m.buffer.length);
+    expect(result.buffer).toBe(m.buffer);
+    expect(result.blockAttrs).toEqual(m.blockAttrs);
+    assertINV4(result, "전체 복사");
+  });
+
+  it("U+2028 포함 블록 추출 — SOFT_BREAK 보존", () => {
+    const m = makeModel("a" + SOFT_BREAK + "b");
+    const result = sliceModel(m, 0, 3);
+    expect(result.buffer).toBe("a" + SOFT_BREAK + "b");
+    assertINV4(result, "SOFT_BREAK 보존");
+  });
+});
+
+// ─────────────────────────────────────────
+// insertModel (R3 - 리치 붙여넣기)
+// ─────────────────────────────────────────
+describe("insertModel", () => {
+  it("단일 블록 sub 인라인 삽입 — 삽입 지점에 텍스트 끼워넣음", () => {
+    // "hello world" 에 [6,6) 위치에 sub "X" 삽입 → "hello Xworld"
+    const m = makeModel("hello world");
+    const sub = makeModel("X");
+    const result = insertModel(m, 6, 6, sub);
+    expect(result.buffer).toBe("hello Xworld");
+    expect(result.blockAttrs).toHaveLength(1);
+    assertINV1(result, "인라인 삽입");
+    assertINV4(result, "인라인 삽입");
+  });
+
+  it("[lo,hi) 삭제 후 sub 삽입 — 치환", () => {
+    // "hello world" 에서 [6,11) 삭제 후 sub "there" 삽입 → "hello there"
+    const m = makeModel("hello world");
+    const sub = makeModel("there");
+    const result = insertModel(m, 6, 11, sub);
+    expect(result.buffer).toBe("hello there");
+    assertINV1(result, "치환");
+    assertINV4(result, "치환");
+  });
+
+  it("2블록 sub 삽입 — firstNew/lastNew 분리, 블록 증가", () => {
+    // "AB" 에 [1,1) 위치에 sub "X\nY" 삽입
+    // left="A", right="B"
+    // firstNew = "A"+"X" = "AX" (attr=paragraph, attr of original block)
+    // lastNew  = "Y"+"B" = "YB" (attr=sub.lastAttr=paragraph)
+    // result = "AX\nYB"
+    const m = makeModel("AB");
+    const sub = makeModel("X\nY");
+    const result = insertModel(m, 1, 1, sub);
+    expect(result.buffer).toBe("AX\nYB");
+    expect(result.blockAttrs).toHaveLength(2);
+    expect(result.blockAttrs[0]).toEqual({ type: "paragraph" });
+    expect(result.blockAttrs[1]).toEqual({ type: "paragraph" });
+    assertINV1(result, "2블록 sub");
+    assertINV4(result, "2블록 sub");
+  });
+
+  it("3블록 sub 삽입 — middle 블록의 attr·markRuns 보존", () => {
+    // "AB" 에 [1,1) 위치에 sub "X\nM\nY" 삽입 (M=heading)
+    // firstNew="AX"(paragraph), middle="M"(heading), lastNew="YB"(paragraph)
+    const m = makeModel("AB");
+    const sub = makeModel("X\nM\nY", [
+      { type: "paragraph" },
+      { type: "heading", level: 2 },
+      { type: "paragraph" },
+    ]);
+    const result = insertModel(m, 1, 1, sub);
+    expect(result.buffer).toBe("AX\nM\nYB");
+    expect(result.blockAttrs).toHaveLength(3);
+    expect(result.blockAttrs[0]).toEqual({ type: "paragraph" });
+    expect(result.blockAttrs[1]).toEqual({ type: "heading", level: 2 });
+    expect(result.blockAttrs[2]).toEqual({ type: "paragraph" });
+    assertINV1(result, "3블록 sub");
+    assertINV4(result, "3블록 sub");
+    assertINV5(result, "3블록 sub");
+  });
+
+  it("markRuns 보존 — bold sub 삽입 시 인접 run 병합", () => {
+    // "ac" (mask0,2) 에 [1,1) 위치에 sub bold "b" 삽입
+    // firstNew="a"(mask0,1) + sub[0] bold(1) + right="c"(mask0,1)
+    // runs = [mask0:1, bold:1, mask0:1] → 정규화
+    const m: DocModel = {
+      buffer: "ac",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 2, mask: 0 }]],
+    };
+    const sub: DocModel = {
+      buffer: "b",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 1, mask: MARK.bold }]],
+    };
+    const result = insertModel(m, 1, 1, sub);
+    expect(result.buffer).toBe("abc");
+    expect(blockRuns(result, 0)).toEqual([
+      { len: 1, mask: 0 },
+      { len: 1, mask: MARK.bold },
+      { len: 1, mask: 0 },
+    ]);
+    assertINV4(result, "bold sub 삽입");
+    assertINV5(result, "bold sub 삽입");
+  });
+});
+
+// ─────────────────────────────────────────
+// 라운드트립 성질:
+//   sliceModel(m, lo, hi) 를 insertModel(m, lo, hi, sub) 로 같은 자리에 도로 넣으면 원본과 동일
+// ─────────────────────────────────────────
+describe("sliceModel + insertModel 라운드트립", () => {
+  it("단일 블록: slice → insertModel 도로 넣기 → 원본 복원", () => {
+    const m = makeModel("hello world");
+    const lo = 3;
+    const hi = 8;
+    const sub = sliceModel(m, lo, hi);
+    const restored = insertModel(m, lo, hi, sub);
+    expect(restored.buffer).toBe(m.buffer);
+    expect(restored.blockAttrs).toEqual(m.blockAttrs);
+    assertINV4(restored, "단일 블록 라운드트립");
+    assertINV5(restored, "단일 블록 라운드트립");
+  });
+
+  it("다블록: slice → insertModel 도로 넣기 → 원본 복원", () => {
+    // "가나다\n라마바\n사아자" 에서 [2, 9) 슬라이스 후 도로 삽입
+    const m = makeModel("가나다\n라마바\n사아자");
+    const lo = 2;
+    const hi = 9;
+    const sub = sliceModel(m, lo, hi);
+    const restored = insertModel(m, lo, hi, sub);
+    expect(restored.buffer).toBe(m.buffer);
+    assertINV1(restored, "다블록 라운드트립");
+    assertINV4(restored, "다블록 라운드트립");
+  });
+
+  it("markRuns 포함 라운드트립 — 마크 정합 보존", () => {
+    const m: DocModel = {
+      buffer: "abcde",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 2, mask: MARK.bold }, { len: 3, mask: 0 }]],
+    };
+    const lo = 1;
+    const hi = 4;
+    const sub = sliceModel(m, lo, hi);
+    const restored = insertModel(m, lo, hi, sub);
+    expect(restored.buffer).toBe(m.buffer);
+    expect(blockRuns(restored, 0)).toEqual(blockRuns(m, 0));
+    assertINV4(restored, "markRuns 라운드트립");
+    assertINV5(restored, "markRuns 라운드트립");
+  });
+
+  it("전체 범위 라운드트립 — 완전 복원", () => {
+    const m = makeModel("첫째\n둘째\n셋째", [
+      { type: "heading", level: 1 },
+      { type: "paragraph" },
+      { type: "blockquote" },
+    ]);
+    const lo = 0;
+    const hi = m.buffer.length;
+    const sub = sliceModel(m, lo, hi);
+    const restored = insertModel(m, lo, hi, sub);
+    expect(restored.buffer).toBe(m.buffer);
+    assertINV1(restored, "전체 범위 라운드트립");
+    assertINV4(restored, "전체 범위 라운드트립");
+  });
+
+  it("다블록 base 에 2블록 sub 삽입 — 블록 수 확인", () => {
+    // "A\nB" 에 [0,0) 위치(블록0 시작)에 sub "X\nY" 삽입
+    // firstNew=""+"X"="X"(attr=paragraph), lastNew="Y"+"A"="YA"(attr=paragraph)
+    // suffix = "B" → result = "X\nYA\nB"
+    const m = makeModel("A\nB");
+    const sub = makeModel("X\nY");
+    const result = insertModel(m, 0, 0, sub);
+    expect(result.buffer).toBe("X\nYA\nB");
+    expect(result.blockAttrs).toHaveLength(3);
+    assertINV1(result, "다블록 base 2블록 sub");
+    assertINV4(result, "다블록 base 2블록 sub");
   });
 });

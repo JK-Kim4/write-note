@@ -1016,4 +1016,236 @@ export function insertSoftBreak(model: DocModel, offset: number): DocModel {
   return insertText(model, offset, offset, SOFT_BREAK, 0);
 }
 
+// ─────────────────────────────────────────
+// sliceModel (R3 - 복사용 부분 문서 추출)
+// ─────────────────────────────────────────
+
+/**
+ * [lo, hi) 범위의 부분 문서를 새 DocModel 로 추출 (복사용).
+ *
+ * - 범위가 걸친 블록들: 각 블록에서 [lo,hi) 와 겹치는 텍스트 부분 + markRuns 부분만.
+ * - 부분적으로 걸친 첫/끝 블록은 그 블록의 attr 유지.
+ * - 결과 buffer = 범위 내 텍스트(블록 경계 '\n' 보존, 블록 내 U+2028 보존).
+ * - lo >= hi 이면 빈 모델 반환 (INV-3).
+ * - INV-1,4,5,6,7 만족.
+ */
+export function sliceModel(model: DocModel, lo: number, hi: number): DocModel {
+  const EMPTY: DocModel = {
+    buffer: "",
+    blockAttrs: [{ type: "paragraph" }],
+    markRuns: [[]],
+  };
+  if (lo >= hi) return EMPTY;
+
+  const { buffer, blockAttrs, markRuns } = model;
+  const parts = buffer.split("\n");
+
+  // 각 블록의 [start, end) 계산 (end = 개행 포함)
+  const ranges: Array<{ start: number; end: number }> = [];
+  let pos = 0;
+  for (let i = 0; i < parts.length; i++) {
+    const segLen = parts[i]!.length;
+    const end = i < parts.length - 1 ? pos + segLen + 1 : pos + segLen; // +1 for '\n'
+    ranges.push({ start: pos, end });
+    pos = end;
+  }
+
+  const clampedLo = Math.max(0, lo);
+  const clampedHi = Math.min(buffer.length, hi);
+
+  if (clampedLo >= clampedHi) return EMPTY;
+
+  const newParts: string[] = [];
+  const newAttrs: BlockAttr[] = [];
+  const newRuns: MarkRun[][] = [];
+
+  for (let bi = 0; bi < ranges.length; bi++) {
+    const { start, end } = ranges[bi]!;
+    // 블록 텍스트 영역: start ~ (end - (마지막 아닌 경우 1)) — 개행 제외
+    const textStart = start;
+    const textEnd = bi < ranges.length - 1 ? end - 1 : end;
+
+    // [lo, hi) 와 겹치는 텍스트 범위
+    const overlapLo = Math.max(clampedLo, textStart);
+    const overlapHi = Math.min(clampedHi, textEnd);
+
+    // 개행('\n')도 범위에 포함 여부: 이 블록의 '\n'이 lo~hi 안에 있는가
+    const hasNewline = bi < ranges.length - 1 && clampedHi > textEnd;
+
+    if (overlapLo > overlapHi) {
+      // 이 블록의 텍스트는 전혀 겹치지 않음. 개행이 범위에 걸쳐있는지 확인.
+      // 개행은 textEnd 위치(= end-1). clampedLo <= textEnd < clampedHi 이면 개행 포함.
+      if (bi < ranges.length - 1 && clampedLo <= textEnd && textEnd < clampedHi) {
+        // 빈 블록으로 포함 (개행만 걸쳐있음)
+        newParts.push("");
+        newAttrs.push(blockAttrs[bi] ?? { type: "paragraph" });
+        newRuns.push([]);
+      }
+      continue;
+    }
+
+    // 이 블록의 텍스트 중 [overlapLo, overlapHi) 추출
+    const segText = buffer.slice(overlapLo, overlapHi);
+    newParts.push(segText);
+    newAttrs.push(blockAttrs[bi] ?? { type: "paragraph" });
+
+    // markRuns 의 해당 범위 추출
+    const localLo = overlapLo - textStart;
+    const localHi = overlapHi - textStart;
+    const blockRunList = normalizeRuns(markRuns[bi] ?? []);
+    const slicedRuns = _sliceRuns(blockRunList, localLo, localHi);
+    newRuns.push(slicedRuns);
+
+    // 이 블록 뒤에 '\n' 이 범위 내에 있으면 — 다음 반복에서 처리될 블록이 있어야 함
+    // (개행은 텍스트 사이 구분자로 자동 복원)
+  }
+
+  if (newParts.length === 0) return EMPTY;
+
+  const newBuffer = newParts.join("\n");
+  return reconcileAttrs({ buffer: newBuffer, blockAttrs: newAttrs, markRuns: newRuns });
+}
+
+/**
+ * run-list 에서 [lo, hi) 범위만 추출 (슬라이스).
+ */
+function _sliceRuns(runs: MarkRun[], lo: number, hi: number): MarkRun[] {
+  if (lo >= hi) return [];
+  const result: MarkRun[] = [];
+  let pos = 0;
+
+  for (const run of runs) {
+    const runEnd = pos + run.len;
+    if (runEnd <= lo) { pos = runEnd; continue; }
+    if (pos >= hi) break;
+
+    const oLo = Math.max(pos, lo);
+    const oHi = Math.min(runEnd, hi);
+    if (oLo < oHi) {
+      result.push({ len: oHi - oLo, mask: run.mask });
+    }
+    pos = runEnd;
+  }
+
+  return normalizeRuns(result);
+}
+
+// ─────────────────────────────────────────
+// insertModel (R3 - 리치 붙여넣기)
+// ─────────────────────────────────────────
+
+/**
+ * [lo, hi) 를 먼저 삭제한 뒤 lo 에 sub 를 삽입.
+ *
+ * sub 가 1블록: 인라인 삽입 → 삽입 지점의 블록 안에 텍스트를 끼워넣음.
+ * sub 가 2블록 이상:
+ *   firstNew = left.text + sub[0].text (attr=A, marks left++sub[0])
+ *   middle   = sub[1..n-2] 블록 그대로
+ *   lastNew  = sub[last].text + right.text (attr=sub[last].attr, marks sub[last]++right)
+ * reconcileAttrs 로 마무리. INV 만족.
+ */
+export function insertModel(
+  model: DocModel,
+  lo: number,
+  hi: number,
+  sub: DocModel,
+): DocModel {
+  // 1. [lo, hi) 삭제
+  const deleted = deleteRange(model, lo, hi);
+
+  // 2. lo 가 속한 블록을 left / right 로 분리
+  const { buffer, blockAttrs, markRuns } = deleted;
+  const parts = buffer.split("\n");
+
+  // lo 가 속한 블록 인덱스 계산 (deleteRange 후 lo 위치 재계산)
+  // lo 는 deleteRange 에 의해 변경 안 됨 (삽입 지점 = 삭제 시작 = lo, clamp)
+  const clampedLo = Math.max(0, Math.min(lo, buffer.length));
+
+  const ranges: Array<{ start: number; end: number }> = [];
+  let pos = 0;
+  for (let i = 0; i < parts.length; i++) {
+    const segLen = parts[i]!.length;
+    const end = i < parts.length - 1 ? pos + segLen + 1 : pos + segLen;
+    ranges.push({ start: pos, end });
+    pos = end;
+  }
+
+  // clampedLo 가 속한 블록 인덱스 (blockIndexAt 와 동일 로직)
+  let bi = 0;
+  for (let i = 0; i < ranges.length; i++) {
+    const { start, end } = ranges[i]!;
+    if (i === ranges.length - 1) {
+      if (clampedLo >= start) { bi = i; break; }
+    } else {
+      if (clampedLo >= start && clampedLo < end) { bi = i; break; }
+    }
+  }
+
+  const biRange = ranges[bi]!;
+  const textStart = biRange.start;
+  const textEnd = bi < ranges.length - 1 ? biRange.end - 1 : biRange.end;
+
+  const localLo = clampedLo - textStart;
+  const blockText = parts[bi] ?? "";
+  const blockAttr = blockAttrs[bi] ?? { type: "paragraph" as const };
+  const blockRunList = normalizeRuns(markRuns[bi] ?? []);
+
+  // left = 블록 시작 ~ localLo
+  const leftText = blockText.slice(0, localLo);
+  const leftRuns = _sliceRuns(blockRunList, 0, localLo);
+  // right = localLo ~ 블록 끝
+  const rightText = blockText.slice(localLo);
+  const rightRuns = _sliceRuns(blockRunList, localLo, blockText.length);
+
+  // sub 블록 정보
+  const subParts = sub.buffer.split("\n");
+  const subCount = subParts.length;
+
+  let newParts: string[];
+  let newAttrs: BlockAttr[];
+  let newRuns: MarkRun[][];
+
+  const prefixParts = parts.slice(0, bi);
+  const prefixAttrs = blockAttrs.slice(0, bi);
+  const prefixRuns = markRuns.slice(0, bi);
+  const suffixParts = parts.slice(bi + 1);
+  const suffixAttrs = blockAttrs.slice(bi + 1);
+  const suffixRuns = markRuns.slice(bi + 1);
+
+  if (subCount === 1) {
+    // 인라인 삽입
+    const subText = subParts[0] ?? "";
+    const subRunList = normalizeRuns(sub.markRuns[0] ?? []);
+    const mergedText = leftText + subText + rightText;
+    const mergedRuns = normalizeRuns([...leftRuns, ...subRunList, ...rightRuns]);
+
+    newParts = [...prefixParts, mergedText, ...suffixParts];
+    newAttrs = [...prefixAttrs, blockAttr, ...suffixAttrs];
+    newRuns = [...prefixRuns, mergedRuns, ...suffixRuns];
+  } else {
+    // 2블록 이상
+    // firstNew: left.text + sub[0].text, attr=A
+    const firstText = leftText + (subParts[0] ?? "");
+    const firstRunList = normalizeRuns([...leftRuns, ...normalizeRuns(sub.markRuns[0] ?? [])]);
+
+    // lastNew: sub[last].text + right.text, attr=sub[last].attr
+    const lastIdx = subCount - 1;
+    const lastText = (subParts[lastIdx] ?? "") + rightText;
+    const lastAttr = sub.blockAttrs[lastIdx] ?? { type: "paragraph" as const };
+    const lastRunList = normalizeRuns([...normalizeRuns(sub.markRuns[lastIdx] ?? []), ...rightRuns]);
+
+    // middle: sub[1..n-2]
+    const middleParts = subParts.slice(1, lastIdx);
+    const middleAttrs = sub.blockAttrs.slice(1, lastIdx);
+    const middleRuns = sub.markRuns.slice(1, lastIdx);
+
+    newParts = [...prefixParts, firstText, ...middleParts, lastText, ...suffixParts];
+    newAttrs = [...prefixAttrs, blockAttr, ...middleAttrs, lastAttr, ...suffixAttrs];
+    newRuns = [...prefixRuns, firstRunList, ...middleRuns, lastRunList, ...suffixRuns];
+  }
+
+  const newBuffer = newParts.join("\n");
+  return reconcileAttrs({ buffer: newBuffer, blockAttrs: newAttrs, markRuns: newRuns });
+}
+
 // reconcileAttrs 는 위에서 이미 export 됨 (공개 API)
