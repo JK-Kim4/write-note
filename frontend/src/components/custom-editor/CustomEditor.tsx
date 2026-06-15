@@ -35,6 +35,7 @@ import {
     mergeWithNext,
     mergeWithPrev,
     nextCaretSkippingAtomic,
+    SOFT_BREAK,
     splitBlock,
     toggleBlockType,
     toggleHeading,
@@ -297,8 +298,11 @@ function wordBoundary(text: string, offset: number, dir: number): number {
  */
 function renderRuns(text: string, marks: MarkRun[]): ReactNode {
     if (text.length === 0) return text;
+    // 소프트 줄바꿈 U+2028 → '\n' 로 표시(길이 보존). 브라우저는 U+2028 을 white-space:pre-wrap
+    // 에서 신뢰성 있게 줄바꿈하지 않으나(measure 는 코드로 강제 분리) '\n' 은 확실히 줄바꿈한다.
+    const disp = (s: string) => s.split(SOFT_BREAK).join("\n");
     const allZero = marks.length === 0 || marks.every((r) => r.mask === 0);
-    if (allZero) return text;
+    if (allZero) return disp(text);
 
     const nodes: ReactNode[] = [];
     let pos = 0;
@@ -311,11 +315,11 @@ function renderRuns(text: string, marks: MarkRun[]): ReactNode {
             continue;
         }
         const style = maskToReactStyle(run.mask);
-        if (style) nodes.push(<span key={key++} style={style}>{runText}</span>);
-        else nodes.push(runText);
+        if (style) nodes.push(<span key={key++} style={style}>{disp(runText)}</span>);
+        else nodes.push(disp(runText));
         pos += run.len;
     }
-    if (pos < text.length) nodes.push(text.slice(pos));
+    if (pos < text.length) nodes.push(disp(text.slice(pos)));
     return nodes;
 }
 
