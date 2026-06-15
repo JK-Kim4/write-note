@@ -135,6 +135,7 @@ timeout / cap 룰은 글로벌 [`~/.claude/rules/shared/long-running-bash.md`](f
 <!-- SPECKIT START -->
 Current implementation plan:
 
+- [024 자체 에디터 엔진 1라운드 — B형 집필실 수직 슬라이스(구조). TipTap(CSS column-wrap)→자체 EditContext 엔진 교체의 첫 라운드. 신규 전용 라우트에 자체 엔진을 꽂아 프레시 테스트 챕터에 문단·제목(H1~3) 쓰기→자동저장→재로드+줄단위 페이지분할을 실환경 검증. 디스크는 PM JSON(bodyJson) 유지·경계 양방향 변환(자동저장016/버전토큰/충돌 무수정 재사용). PoC 순수 자산(geometry/layoutEngine/measure) 승격 + 블록속성(heading) 동기 + undo/plain paste. B형 셸(BStudioShell 추출)·ChapterList·BWorkSidePanel 재사용, 아웃라인은 TipTap 인스턴스 탈피 엔진 파생. 마크/리스트/완전대체/Safari=후속 라운드. 백엔드 변경 0](specs/024-custom-editor-r1/plan.md)
 - [022 챕터 (Chapter) — 작품 1:N 본문 구조. 기존 documents 테이블 1:N 확장(project_id UNIQUE 제거 + sort_order·deleted_at, V14 마이그레이션, 기존 본문 무손실 1번 챕터). 챕터 목록/생성/순서/soft-delete/복구 5 endpoint + 마지막 챕터 가드(409 LAST_CHAPTER_UNDELETABLE) + 카드 합산 집계. FE A형·B형 집필실 좌패널 챕터 목록·전환(?chapter, 016 세션 재사용). Round 2.5, export(Round 3) 선행](specs/022-chapters/plan.md)
 - [019 Round 1 스키마 확장 — 곁쪽지 삭제/되돌리기(soft-delete deleted_at·restore·연결행 보존) + 설정 서버 영속(user_settings key-value·테마/작성모드/원고지크기) + 등장인물 확장(age·gender·traits·Rail 진입). 마이그레이션 V9~V11 로컬 dev 한정](specs/019-round1-schema-extensions/plan.md)
 - [017 집필실 3단 (Studio 3-panel) — [아웃라인 | 원고 | 인물+곁쪽지] 3열. 아웃라인=heading 클라이언트 파생 TOC(점프+하이라이트), 인물=기존 API 보기+빠른추가, 곁쪽지=MemoPanel 불변. 백엔드 변경 0](specs/017-studio-three-panel/plan.md)
