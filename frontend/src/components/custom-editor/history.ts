@@ -8,11 +8,12 @@
  *   - pushSnapshot 은 어느 경우든 redo 스택을 비운다(새 편집 = redo 무효).
  */
 
-import type { DocModel, Selection } from './model'
+import type { DocModel, Selection, MarkRun } from './model'
 
 export type Snapshot = {
   buffer: string
   blockAttrs: DocModel['blockAttrs']
+  markRuns: MarkRun[][]    // ★ 2라운드: markRuns 포함 (pendingMarks 제외)
   selection: Selection
 }
 

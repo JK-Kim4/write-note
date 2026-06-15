@@ -4,7 +4,9 @@ import { outlineFromModel, headingBlockIndices } from "./outline";
 
 // 모델 생성 헬퍼
 function makeModel(buffer: string, attrs: BlockAttr[]): DocModel {
-  return { buffer, blockAttrs: attrs };
+  const parts = buffer.split("\n");
+  const markRuns = parts.map((seg) => (seg.length === 0 ? [] : [{ len: seg.length, mask: 0 }]));
+  return { buffer, blockAttrs: attrs, markRuns };
 }
 
 describe("outlineFromModel — T018/T024", () => {

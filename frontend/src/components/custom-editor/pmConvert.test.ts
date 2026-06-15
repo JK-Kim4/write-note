@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { DocModel } from "./model";
+import type { DocModel, MarkRun } from "./model";
+import { MARK } from "./model";
 import { pmJsonToModel, modelToPmJson } from "./pmConvert";
 
 // ─── 헬퍼 ───────────────────────────────────────────────────────────────────
@@ -20,6 +21,15 @@ function heading(level: 1 | 2 | 3, text: string) {
     attrs: { level },
     content: [{ type: "text", text }],
   };
+}
+
+// DocModel 생성 헬퍼 (markRuns 포함)
+function makeModel(buffer: string, blockAttrs: DocModel["blockAttrs"], markRuns?: MarkRun[][]): DocModel {
+  const parts = buffer.split("\n");
+  const runs: MarkRun[][] =
+    markRuns ??
+    parts.map((seg) => (seg.length === 0 ? [] : [{ len: seg.length, mask: 0 }]));
+  return { buffer, blockAttrs, markRuns: runs };
 }
 
 // ─── pmJsonToModel ───────────────────────────────────────────────────────────
@@ -147,7 +157,7 @@ describe("pmJsonToModel", () => {
     expect(m.blockAttrs.every((a) => a.type === "paragraph")).toBe(true);
   });
 
-  it("marks(bold) 무시 → 평문 텍스트만", () => {
+  it("marks(bold) 무시 — 텍스트는 보존, markRuns 에 반영", () => {
     const json = makePmDoc([
       {
         type: "paragraph",
@@ -161,6 +171,12 @@ describe("pmJsonToModel", () => {
     const m = pmJsonToModel(json);
     expect(m.buffer).toBe("일반굵게또일반");
     expect(m.blockAttrs).toEqual([{ type: "paragraph" }]);
+    // markRuns: "일반"(mask0,2) + "굵게"(bold,2) + "또일반"(mask0,3) 정규화
+    expect(m.markRuns[0]).toEqual([
+      { len: 2, mask: 0 },
+      { len: 2, mask: MARK.bold },
+      { len: 3, mask: 0 },
+    ]);
   });
 
   it("U+FFFC(이미지 마커) 세그먼트 → 빈 paragraph", () => {
@@ -179,7 +195,7 @@ describe("pmJsonToModel", () => {
 
 describe("modelToPmJson", () => {
   it("단일 paragraph → PM paragraph 노드", () => {
-    const m: DocModel = { buffer: "안녕", blockAttrs: [{ type: "paragraph" }] };
+    const m = makeModel("안녕", [{ type: "paragraph" }]);
     const doc = JSON.parse(modelToPmJson(m));
     expect(doc.type).toBe("doc");
     expect(doc.content).toHaveLength(1);
@@ -188,7 +204,7 @@ describe("modelToPmJson", () => {
   });
 
   it("빈 paragraph → content 생략(빈 paragraph 노드)", () => {
-    const m: DocModel = { buffer: "", blockAttrs: [{ type: "paragraph" }] };
+    const m = makeModel("", [{ type: "paragraph" }]);
     const doc = JSON.parse(modelToPmJson(m));
     expect(doc.content).toHaveLength(1);
     expect(doc.content[0].type).toBe("paragraph");
@@ -196,14 +212,11 @@ describe("modelToPmJson", () => {
   });
 
   it("heading level 1·2·3 → PM heading 노드 attrs.level", () => {
-    const m: DocModel = {
-      buffer: "제목1\n제목2\n제목3",
-      blockAttrs: [
-        { type: "heading", level: 1 },
-        { type: "heading", level: 2 },
-        { type: "heading", level: 3 },
-      ],
-    };
+    const m = makeModel("제목1\n제목2\n제목3", [
+      { type: "heading", level: 1 },
+      { type: "heading", level: 2 },
+      { type: "heading", level: 3 },
+    ]);
     const doc = JSON.parse(modelToPmJson(m));
     expect(doc.content[0]).toMatchObject({ type: "heading", attrs: { level: 1 } });
     expect(doc.content[1]).toMatchObject({ type: "heading", attrs: { level: 2 } });
@@ -211,14 +224,11 @@ describe("modelToPmJson", () => {
   });
 
   it("다문단 → PM content 배열 순서 보존", () => {
-    const m: DocModel = {
-      buffer: "가\n나\n다",
-      blockAttrs: [
-        { type: "paragraph" },
-        { type: "paragraph" },
-        { type: "paragraph" },
-      ],
-    };
+    const m = makeModel("가\n나\n다", [
+      { type: "paragraph" },
+      { type: "paragraph" },
+      { type: "paragraph" },
+    ]);
     const doc = JSON.parse(modelToPmJson(m));
     expect(doc.content).toHaveLength(3);
     expect(doc.content[0].content[0].text).toBe("가");
@@ -226,10 +236,7 @@ describe("modelToPmJson", () => {
   });
 
   it("U+FFFC 세그먼트 → 빈 paragraph (content 생략)", () => {
-    const m: DocModel = {
-      buffer: "￼",
-      blockAttrs: [{ type: "paragraph" }],
-    };
+    const m = makeModel("￼", [{ type: "paragraph" }]);
     const doc = JSON.parse(modelToPmJson(m));
     expect(doc.content[0].type).toBe("paragraph");
     // U+FFFC 는 빈 paragraph 로 — content 없어야 함
@@ -245,61 +252,49 @@ describe("왕복 무손실 (pmJsonToModel ∘ modelToPmJson)", () => {
   }
 
   it("단일 paragraph 왕복", () => {
-    const m: DocModel = { buffer: "안녕하세요", blockAttrs: [{ type: "paragraph" }] };
+    const m = makeModel("안녕하세요", [{ type: "paragraph" }]);
     expect(roundTrip(m)).toEqual(m);
   });
 
   it("다문단 왕복", () => {
-    const m: DocModel = {
-      buffer: "첫째\n둘째\n셋째",
-      blockAttrs: [
-        { type: "paragraph" },
-        { type: "paragraph" },
-        { type: "paragraph" },
-      ],
-    };
+    const m = makeModel("첫째\n둘째\n셋째", [
+      { type: "paragraph" },
+      { type: "paragraph" },
+      { type: "paragraph" },
+    ]);
     expect(roundTrip(m)).toEqual(m);
   });
 
   it("heading 1·2·3 혼합 왕복", () => {
-    const m: DocModel = {
-      buffer: "챕터\n소제목\n소소제목\n본문",
-      blockAttrs: [
-        { type: "heading", level: 1 },
-        { type: "heading", level: 2 },
-        { type: "heading", level: 3 },
-        { type: "paragraph" },
-      ],
-    };
+    const m = makeModel("챕터\n소제목\n소소제목\n본문", [
+      { type: "heading", level: 1 },
+      { type: "heading", level: 2 },
+      { type: "heading", level: 3 },
+      { type: "paragraph" },
+    ]);
     expect(roundTrip(m)).toEqual(m);
   });
 
   it("빈 블록 포함 왕복", () => {
-    const m: DocModel = {
-      buffer: "앞\n\n뒤",
-      blockAttrs: [
-        { type: "paragraph" },
-        { type: "paragraph" },
-        { type: "paragraph" },
-      ],
-    };
+    const m = makeModel("앞\n\n뒤", [
+      { type: "paragraph" },
+      { type: "paragraph" },
+      { type: "paragraph" },
+    ]);
     expect(roundTrip(m)).toEqual(m);
   });
 
   it("heading 과 빈 paragraph 혼합 왕복", () => {
-    const m: DocModel = {
-      buffer: "제목\n\n내용",
-      blockAttrs: [
-        { type: "heading", level: 1 },
-        { type: "paragraph" },
-        { type: "paragraph" },
-      ],
-    };
+    const m = makeModel("제목\n\n내용", [
+      { type: "heading", level: 1 },
+      { type: "paragraph" },
+      { type: "paragraph" },
+    ]);
     expect(roundTrip(m)).toEqual(m);
   });
 
   it("단일 빈 모델 왕복 (INV-3)", () => {
-    const m: DocModel = { buffer: "", blockAttrs: [{ type: "paragraph" }] };
+    const m = makeModel("", [{ type: "paragraph" }]);
     expect(roundTrip(m)).toEqual(m);
   });
 });
@@ -321,4 +316,143 @@ describe("정규화 고정점 — 유실 회귀 가드(BCustomChapterEditor serv
             expect(twice).toBe(once); // 두 번째 적용은 불변 → 로드 시 body===정규화 serverBody
         });
     }
+});
+
+// ─── T015: 마크 왕복 무손실 ────────────────────────────────────────────────
+
+describe("T015: pmConvert 마크 왕복", () => {
+  it("bold 마크 왕복 무손실", () => {
+    const json = makePmDoc([
+      {
+        type: "paragraph",
+        content: [
+          { type: "text", text: "일반" },
+          { type: "text", text: "굵게", marks: [{ type: "bold" }] },
+        ],
+      },
+    ]);
+    const m = pmJsonToModel(json);
+    expect(m.markRuns[0]).toEqual([
+      { len: 2, mask: 0 },
+      { len: 2, mask: MARK.bold },
+    ]);
+    // 역변환
+    const roundTripped = pmJsonToModel(modelToPmJson(m));
+    expect(roundTripped).toEqual(m);
+  });
+
+  it("italic 마크 왕복 무손실", () => {
+    const json = makePmDoc([
+      {
+        type: "paragraph",
+        content: [{ type: "text", text: "기울임", marks: [{ type: "italic" }] }],
+      },
+    ]);
+    const m = pmJsonToModel(json);
+    expect(m.markRuns[0]).toEqual([{ len: 3, mask: MARK.italic }]);
+    expect(pmJsonToModel(modelToPmJson(m))).toEqual(m);
+  });
+
+  it("underline 마크 왕복 무손실", () => {
+    const json = makePmDoc([
+      {
+        type: "paragraph",
+        content: [{ type: "text", text: "밑줄", marks: [{ type: "underline" }] }],
+      },
+    ]);
+    const m = pmJsonToModel(json);
+    expect(m.markRuns[0]).toEqual([{ len: 2, mask: MARK.underline }]);
+    expect(pmJsonToModel(modelToPmJson(m))).toEqual(m);
+  });
+
+  it("strike 마크 왕복 무손실", () => {
+    const json = makePmDoc([
+      {
+        type: "paragraph",
+        content: [{ type: "text", text: "취소", marks: [{ type: "strike" }] }],
+      },
+    ]);
+    const m = pmJsonToModel(json);
+    expect(m.markRuns[0]).toEqual([{ len: 2, mask: MARK.strike }]);
+    expect(pmJsonToModel(modelToPmJson(m))).toEqual(m);
+  });
+
+  it("bold + italic 복합 마크 왕복 무손실", () => {
+    const json = makePmDoc([
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "복합",
+            marks: [{ type: "bold" }, { type: "italic" }],
+          },
+        ],
+      },
+    ]);
+    const m = pmJsonToModel(json);
+    expect(m.markRuns[0]).toEqual([{ len: 2, mask: MARK.bold | MARK.italic }]);
+    expect(pmJsonToModel(modelToPmJson(m))).toEqual(m);
+  });
+
+  it("인접 동일 마스크 병합 — 정규화", () => {
+    const json = makePmDoc([
+      {
+        type: "paragraph",
+        content: [
+          { type: "text", text: "A", marks: [{ type: "bold" }] },
+          { type: "text", text: "B", marks: [{ type: "bold" }] },
+        ],
+      },
+    ]);
+    const m = pmJsonToModel(json);
+    // 인접 bold → 병합
+    expect(m.markRuns[0]).toEqual([{ len: 2, mask: MARK.bold }]);
+  });
+
+  it("idempotence: 2회 왕복 동일", () => {
+    const json = makePmDoc([
+      {
+        type: "paragraph",
+        content: [
+          { type: "text", text: "hi" },
+          { type: "text", text: "bold", marks: [{ type: "bold" }] },
+        ],
+      },
+    ]);
+    const m1 = pmJsonToModel(json);
+    const m2 = pmJsonToModel(modelToPmJson(m1));
+    const m3 = pmJsonToModel(modelToPmJson(m2));
+    expect(m3).toEqual(m2);
+  });
+
+  it("미지원 마크(link 등) 평탄화 — 비트마스크에 없음", () => {
+    const json = makePmDoc([
+      {
+        type: "paragraph",
+        content: [
+          { type: "text", text: "링크", marks: [{ type: "link", attrs: { href: "http://x" } }] },
+        ],
+      },
+    ]);
+    const m = pmJsonToModel(json);
+    // 미지원 마크 → mask 0
+    expect(m.markRuns[0]).toEqual([{ len: 2, mask: 0 }]);
+  });
+
+  it("마크 없는 모델 → 1라운드 출력과 바이트 동일 (하위호환, 거짓 dirty 차단)", () => {
+    // 마크 없는 모델 (maskRuns 전부 mask 0)
+    const m = makeModel("안녕\n세계", [{ type: "paragraph" }, { type: "paragraph" }]);
+    const output = modelToPmJson(m);
+    // 1라운드 기대 출력: 단순 text node (marks 없음)
+    const doc = JSON.parse(output);
+    // paragraph 노드의 text node 에 marks 필드 없어야 함
+    for (const block of doc.content) {
+      if (block.content) {
+        for (const node of block.content) {
+          expect(node.marks).toBeUndefined();
+        }
+      }
+    }
+  });
 });

@@ -53,7 +53,7 @@ function relayout(buffer: string, geo: PageGeometry): View {
             const scale = Math.min(1, geo.contentWidthPx / IMG_NW, geo.contentHeightPx / IMG_NH);
             blocks.push({ id, kind: "image", height: IMG_NH * scale, bufStart, bufEnd });
         } else {
-            const lines = measureParagraphLines(seg, geo.contentWidthPx, geo.lineHeightPx, geo.fontSizePx, FONT_FAMILY);
+            const lines = measureParagraphLines(seg, [], geo.contentWidthPx, geo.lineHeightPx, geo.fontSizePx, FONT_FAMILY);
             blocks.push({ id, kind: "paragraph", text: seg, lines, bufStart, bufEnd });
         }
         off = bufEnd + 1; // '\n' 구분자 1칸
@@ -98,7 +98,7 @@ function caretToScreen(caret: number, blocks: ParsedBlock[], pages: LaidOutPage[
     const line = blk.lines[lineIdx];
     const fr = findFrag(lineIdx);
     if (!fr) return null;
-    const xs = measureLineXs(blk.text, line.start, line.end, geo.contentWidthPx, geo.lineHeightPx, geo.fontSizePx, FONT_FAMILY);
+    const xs = measureLineXs(blk.text, [], line.start, line.end, geo.contentWidthPx, geo.lineHeightPx, geo.fontSizePx, FONT_FAMILY);
     return {
         pageIndex: fr.pageIndex,
         x: xs[within - line.start] ?? 0,
@@ -119,7 +119,7 @@ function screenToCaret(pageIndex: number, x: number, y: number, view: View, geo:
     const lineWithin = Math.min(frag.endLine - frag.startLine, Math.max(0, Math.floor((y - frag.offsetY) / geo.lineHeightPx)));
     const line = block.lines[frag.startLine + lineWithin];
     if (!line) return block.bufEnd;
-    const xs = measureLineXs(block.text, line.start, line.end, geo.contentWidthPx, geo.lineHeightPx, geo.fontSizePx, FONT_FAMILY);
+    const xs = measureLineXs(block.text, [], line.start, line.end, geo.contentWidthPx, geo.lineHeightPx, geo.fontSizePx, FONT_FAMILY);
     let best = 0;
     let bestDist = Infinity;
     for (let i = 0; i < xs.length; i++) {
@@ -160,7 +160,7 @@ function selectionRects(s: number, e: number, view: View, geo: PageGeometry): Se
                         rects.push({ pageIndex: pg.index, x: 0, y, width: 8, height: geo.lineHeightPx });
                     continue;
                 }
-                const xs = measureLineXs(block.text, line.start, line.end, geo.contentWidthPx, geo.lineHeightPx, geo.fontSizePx, FONT_FAMILY);
+                const xs = measureLineXs(block.text, [], line.start, line.end, geo.contentWidthPx, geo.lineHeightPx, geo.fontSizePx, FONT_FAMILY);
                 const xStart = xs[os - block.bufStart - line.start];
                 const xEnd = xs[oe - block.bufStart - line.start];
                 const tail = hi > lineHi ? 8 : 0; // 개행까지 선택되면 줄 끝에 sliver

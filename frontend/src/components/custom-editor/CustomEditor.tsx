@@ -82,7 +82,7 @@ function relayout(model: DocModel, geo: PageGeometry): View {
         } else {
             const attr: BlockAttr = model.blockAttrs[i] ?? { type: "paragraph" };
             const font = blockFont(attr, geo);
-            const lines = measureParagraphLines(seg, geo.contentWidthPx, font.lineHeightPx, font.fontSizePx, FONT_FAMILY);
+            const lines = measureParagraphLines(seg, [], geo.contentWidthPx, font.lineHeightPx, font.fontSizePx, FONT_FAMILY);
             const headingLevel: 1 | 2 | 3 | undefined = attr.type === "heading" ? attr.level : undefined;
             blocks.push({ id, kind: "paragraph", text: seg, lines, bufStart, bufEnd, fontSizePx: font.fontSizePx, lineHeightPx: font.lineHeightPx, headingLevel });
         }
@@ -128,7 +128,7 @@ function caretToScreen(caret: number, blocks: ParsedBlock[], pages: LaidOutPage[
     const line = blk.lines[lineIdx];
     const fr = findFrag(lineIdx);
     if (!fr) return null;
-    const xs = measureLineXs(blk.text, line.start, line.end, geo.contentWidthPx, blk.lineHeightPx, blk.fontSizePx, FONT_FAMILY);
+    const xs = measureLineXs(blk.text, [], line.start, line.end, geo.contentWidthPx, blk.lineHeightPx, blk.fontSizePx, FONT_FAMILY);
     return {
         pageIndex: fr.pageIndex,
         x: xs[within - line.start] ?? 0,
@@ -149,7 +149,7 @@ function screenToCaret(pageIndex: number, x: number, y: number, view: View, geo:
     const lineWithin = Math.min(frag.endLine - frag.startLine, Math.max(0, Math.floor((y - frag.offsetY) / block.lineHeightPx)));
     const line = block.lines[frag.startLine + lineWithin];
     if (!line) return block.bufEnd;
-    const xs = measureLineXs(block.text, line.start, line.end, geo.contentWidthPx, block.lineHeightPx, block.fontSizePx, FONT_FAMILY);
+    const xs = measureLineXs(block.text, [], line.start, line.end, geo.contentWidthPx, block.lineHeightPx, block.fontSizePx, FONT_FAMILY);
     let best = 0;
     let bestDist = Infinity;
     for (let i = 0; i < xs.length; i++) {
@@ -190,7 +190,7 @@ function selectionRects(s: number, e: number, view: View, geo: PageGeometry): Se
                         rects.push({ pageIndex: pg.index, x: 0, y, width: 8, height: block.lineHeightPx });
                     continue;
                 }
-                const xs = measureLineXs(block.text, line.start, line.end, geo.contentWidthPx, block.lineHeightPx, block.fontSizePx, FONT_FAMILY);
+                const xs = measureLineXs(block.text, [], line.start, line.end, geo.contentWidthPx, block.lineHeightPx, block.fontSizePx, FONT_FAMILY);
                 const xStart = xs[os - block.bufStart - line.start];
                 const xEnd = xs[oe - block.bufStart - line.start];
                 const tail = hi > lineHi ? 8 : 0; // 개행까지 선택되면 줄 끝에 sliver
@@ -406,13 +406,14 @@ export function CustomEditor({
         host.editContext = ec;
 
         /** ec.text 로부터 새 DocModel 구성 — blockAttrs 는 길이 일치 시 기존 유지, 아니면 reconcile 보정. */
-        const modelFromEc = (): DocModel => reconcileAttrs({ buffer: ec.text, blockAttrs: modelRef.current.blockAttrs });
+        const modelFromEc = (): DocModel => reconcileAttrs({ buffer: ec.text, blockAttrs: modelRef.current.blockAttrs, markRuns: modelRef.current.markRuns });
 
         // ── undo/redo 헬퍼(effect 안 = ec 직접 접근). ──
         /** 현재 편집 직전 상태 스냅샷(modelRef 는 아직 이전 모델 → pre-edit 캡처). */
         const snapshotOf = (): Snapshot => ({
             buffer: modelRef.current.buffer,
             blockAttrs: modelRef.current.blockAttrs,
+            markRuns: modelRef.current.markRuns,
             selection: selStateRef.current,
         });
         /** 구조편집(Enter/선택삭제/병합/paste) 직전 스냅샷 push + 타이핑 런 종료(coalesce 없음). */
@@ -422,7 +423,7 @@ export function CustomEditor({
         };
         /** 스냅샷 복원 — EditContext 텍스트·선택 + model + sel 동기. */
         const applySnapshot = (s: Snapshot) => {
-            const nextModel: DocModel = { buffer: s.buffer, blockAttrs: s.blockAttrs };
+            const nextModel: DocModel = { buffer: s.buffer, blockAttrs: s.blockAttrs, markRuns: s.markRuns };
             ec.updateText(0, ec.text.length, s.buffer);
             ec.updateSelection(Math.min(s.selection.anchor, s.selection.focus), Math.max(s.selection.anchor, s.selection.focus));
             onModelChangeRef.current(nextModel);

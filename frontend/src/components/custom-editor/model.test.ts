@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
-import type { DocModel, BlockAttr } from "./model";
+import type { DocModel, BlockAttr, MarkRun, Mask } from "./model";
 import {
+  MARK,
   blockIndexAt,
+  blockRuns,
   insertText,
   deleteRange,
   splitBlock,
@@ -9,6 +11,8 @@ import {
   mergeWithNext,
   reconcileAttrs,
   toggleHeading,
+  toggleMark,
+  marksAt,
 } from "./model";
 
 // INV-1 보조: blockAttrs.length === buffer.split('\n').length
@@ -17,11 +21,40 @@ function assertINV1(model: DocModel, label: string) {
   expect(model.blockAttrs.length, `INV-1 위반 [${label}]`).toBe(blocks.length);
 }
 
-// 초기 모델 생성 헬퍼
-function makeModel(buffer: string, attrs?: BlockAttr[]): DocModel {
+// INV-4 보조: markRuns.length === 블록 수, 각 블록 run.len 합 === 블록 글자 수
+function assertINV4(model: DocModel, label: string) {
+  const parts = model.buffer.split("\n");
+  expect(model.markRuns.length, `INV-4 길이 위반 [${label}]`).toBe(parts.length);
+  for (let i = 0; i < parts.length; i++) {
+    const expected = parts[i]?.length ?? 0;
+    const actual = (model.markRuns[i] ?? []).reduce((s, r) => s + r.len, 0);
+    expect(actual, `INV-4 블록${i} len 합 위반 [${label}]`).toBe(expected);
+  }
+}
+
+// INV-5 보조: 모든 블록 run-list 가 정규형
+function assertINV5(model: DocModel, label: string) {
+  for (let i = 0; i < model.markRuns.length; i++) {
+    const runs = model.markRuns[i] ?? [];
+    for (const r of runs) {
+      expect(r.len, `INV-5 len>0 위반 블록${i} [${label}]`).toBeGreaterThan(0);
+    }
+    for (let j = 1; j < runs.length; j++) {
+      expect(runs[j - 1]!.mask, `INV-5 인접 동일 mask 위반 블록${i} [${label}]`).not.toBe(
+        runs[j]!.mask,
+      );
+    }
+  }
+}
+
+// 초기 모델 생성 헬퍼 (markRuns 포함)
+function makeModel(buffer: string, attrs?: BlockAttr[], markRuns?: MarkRun[][]): DocModel {
   const blocks = buffer.split("\n");
   const blockAttrs: BlockAttr[] = attrs ?? blocks.map(() => ({ type: "paragraph" as const }));
-  return { buffer, blockAttrs };
+  const runs: MarkRun[][] =
+    markRuns ??
+    blocks.map((seg) => (seg.length === 0 ? [] : [{ len: seg.length, mask: 0 }]));
+  return { buffer, blockAttrs, markRuns: runs };
 }
 
 // ─────────────────────────────────────────
@@ -287,6 +320,7 @@ describe("reconcileAttrs", () => {
     const m: DocModel = {
       buffer: "a\nb\nc",
       blockAttrs: [{ type: "paragraph" }], // 1개만 (3개 필요)
+      markRuns: [[{ len: 1, mask: 0 }]],
     };
     const result = reconcileAttrs(m);
     expect(result.blockAttrs).toHaveLength(3);
@@ -303,6 +337,12 @@ describe("reconcileAttrs", () => {
         { type: "paragraph" },
         { type: "paragraph" }, // 초과
         { type: "paragraph" }, // 초과
+      ],
+      markRuns: [
+        [{ len: 1, mask: 0 }],
+        [{ len: 1, mask: 0 }],
+        [],
+        [],
       ],
     };
     const result = reconcileAttrs(m);
@@ -405,5 +445,362 @@ describe("INV-2: heading level", () => {
       expect([1, 2, 3]).toContain(attr.level);
       expect(attr.level).toBe(3);
     }
+  });
+});
+
+// ─────────────────────────────────────────
+// T003: blockRuns
+// ─────────────────────────────────────────
+describe("blockRuns — 정규형 run-list", () => {
+  it("빈 블록 → []", () => {
+    const m = makeModel("");
+    expect(blockRuns(m, 0)).toEqual([]);
+  });
+
+  it("마크 없는 블록 → [{ len: 텍스트길이, mask: 0 }]", () => {
+    const m = makeModel("hello");
+    expect(blockRuns(m, 0)).toEqual([{ len: 5, mask: 0 }]);
+  });
+
+  it("인접 동일 mask 병합", () => {
+    const m: DocModel = {
+      buffer: "abc",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 1, mask: 1 }, { len: 2, mask: 1 }]], // 인접 동일 → 병합
+    };
+    expect(blockRuns(m, 0)).toEqual([{ len: 3, mask: 1 }]);
+  });
+
+  it("0길이 run 제거", () => {
+    const m: DocModel = {
+      buffer: "ab",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 0, mask: 1 }, { len: 2, mask: 0 }]],
+    };
+    expect(blockRuns(m, 0)).toEqual([{ len: 2, mask: 0 }]);
+  });
+
+  it("여러 다른 mask run — 그대로 반환", () => {
+    const m: DocModel = {
+      buffer: "abcde",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 2, mask: MARK.bold }, { len: 3, mask: 0 }]],
+    };
+    expect(blockRuns(m, 0)).toEqual([{ len: 2, mask: MARK.bold }, { len: 3, mask: 0 }]);
+  });
+});
+
+// ─────────────────────────────────────────
+// T005: toggleMark
+// ─────────────────────────────────────────
+describe("toggleMark", () => {
+  it("마크 없는 구간에 bold 적용 → 전체 bold", () => {
+    const m = makeModel("hello");
+    const result = toggleMark(m, 0, 5, MARK.bold);
+    expect(blockRuns(result, 0)).toEqual([{ len: 5, mask: MARK.bold }]);
+    assertINV4(result, "bold 적용");
+    assertINV5(result, "bold 적용");
+  });
+
+  it("전부 bold 구간에 toggle → bold 해제(mask 0)", () => {
+    const m: DocModel = {
+      buffer: "hello",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 5, mask: MARK.bold }]],
+    };
+    const result = toggleMark(m, 0, 5, MARK.bold);
+    expect(blockRuns(result, 0)).toEqual([{ len: 5, mask: 0 }]);
+  });
+
+  it("부분 bold 구간에 toggle → 전체 bold 적용 (일부 없으면 SET)", () => {
+    const m: DocModel = {
+      buffer: "hello",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 2, mask: MARK.bold }, { len: 3, mask: 0 }]],
+    };
+    const result = toggleMark(m, 0, 5, MARK.bold);
+    expect(blockRuns(result, 0)).toEqual([{ len: 5, mask: MARK.bold }]);
+  });
+
+  it("구간 경계: 중간 일부만 bold", () => {
+    const m = makeModel("hello world");
+    const result = toggleMark(m, 6, 11, MARK.bold);
+    // "hello "(0~5 mask0) + "world"(6~11 bold)
+    expect(blockRuns(result, 0)).toEqual([
+      { len: 6, mask: 0 },
+      { len: 5, mask: MARK.bold },
+    ]);
+  });
+
+  it("여러 run 횡단 toggle — 정규화 확인", () => {
+    const m: DocModel = {
+      buffer: "abcde",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 2, mask: MARK.bold }, { len: 1, mask: 0 }, { len: 2, mask: MARK.bold }]],
+    };
+    // 전부 bold 있음? 아니(중간 mask0) → bold 적용
+    const result = toggleMark(m, 0, 5, MARK.bold);
+    expect(blockRuns(result, 0)).toEqual([{ len: 5, mask: MARK.bold }]);
+  });
+
+  it("전부 bold 인 여러 run → toggle 해제 후 정규화", () => {
+    const m: DocModel = {
+      buffer: "abc",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 1, mask: MARK.bold }, { len: 2, mask: MARK.bold }]],
+    };
+    const result = toggleMark(m, 0, 3, MARK.bold);
+    // bold 해제 → [{ len:3, mask:0 }] (병합)
+    expect(blockRuns(result, 0)).toEqual([{ len: 3, mask: 0 }]);
+  });
+
+  it("bold + italic 복합 — italic toggle 시 bold 보존", () => {
+    const m: DocModel = {
+      buffer: "hi",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 2, mask: MARK.bold | MARK.italic }]],
+    };
+    const result = toggleMark(m, 0, 2, MARK.italic);
+    // italic 해제, bold 보존
+    expect(blockRuns(result, 0)).toEqual([{ len: 2, mask: MARK.bold }]);
+  });
+
+  it("lo >= hi 이면 무변경", () => {
+    const m = makeModel("abc");
+    const result = toggleMark(m, 2, 2, MARK.bold);
+    expect(result).toBe(m);
+  });
+
+  it("INV-4/5 유지", () => {
+    const m = makeModel("안녕하세요");
+    const result = toggleMark(m, 1, 4, MARK.underline);
+    assertINV4(result, "toggleMark INV-4");
+    assertINV5(result, "toggleMark INV-5");
+  });
+});
+
+// ─────────────────────────────────────────
+// T007: marksAt
+// ─────────────────────────────────────────
+describe("marksAt", () => {
+  it("offset 0 → 블록 첫 글자(우측) mask", () => {
+    const m: DocModel = {
+      buffer: "abc",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 3, mask: MARK.bold }]],
+    };
+    expect(marksAt(m, 0)).toBe(MARK.bold);
+  });
+
+  it("중간 offset → 좌측 글자 mask", () => {
+    const m: DocModel = {
+      buffer: "abcde",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 2, mask: MARK.bold }, { len: 3, mask: 0 }]],
+    };
+    // offset 2 = 좌측이 'b'(bold run 안) → MARK.bold
+    expect(marksAt(m, 2)).toBe(MARK.bold);
+    // offset 3 = 좌측이 'c'(mask0 run 안) → 0
+    expect(marksAt(m, 3)).toBe(0);
+  });
+
+  it("블록 경계 시작 offset → 우측(다음 글자) mask", () => {
+    const m: DocModel = {
+      buffer: "ab\ncd",
+      blockAttrs: [{ type: "paragraph" }, { type: "paragraph" }],
+      markRuns: [
+        [{ len: 2, mask: MARK.italic }],
+        [{ len: 2, mask: MARK.bold }],
+      ],
+    };
+    // offset 3 = 블록1 시작 → 우측 = bold
+    expect(marksAt(m, 3)).toBe(MARK.bold);
+  });
+
+  it("빈 블록 → 0", () => {
+    const m = makeModel("");
+    expect(marksAt(m, 0)).toBe(0);
+  });
+});
+
+// ─────────────────────────────────────────
+// T009: insertText markRuns 동기
+// ─────────────────────────────────────────
+describe("insertText — markRuns 동기", () => {
+  it("마크 없는 삽입 — INV-4/5 유지", () => {
+    const m = makeModel("hello");
+    const result = insertText(m, 2, 2, "XY", 0);
+    expect(result.buffer).toBe("heXYllo");
+    assertINV4(result, "삽입 INV-4");
+    assertINV5(result, "삽입 INV-5");
+  });
+
+  it("bold mask 로 삽입 — 삽입분이 bold run", () => {
+    const m = makeModel("ac"); // [mask0: len2]
+    const result = insertText(m, 1, 1, "b", MARK.bold);
+    // "abc" = a(mask0,1) + b(bold,1) + c(mask0,1) → 정규형 3 run
+    expect(result.buffer).toBe("abc");
+    const runs = blockRuns(result, 0);
+    expect(runs).toEqual([
+      { len: 1, mask: 0 },
+      { len: 1, mask: MARK.bold },
+      { len: 1, mask: 0 },
+    ]);
+  });
+
+  it("삭제 후 markRuns 경계 병합 — 정규화", () => {
+    const m: DocModel = {
+      buffer: "abcde",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 2, mask: MARK.bold }, { len: 1, mask: 0 }, { len: 2, mask: MARK.bold }]],
+    };
+    // 중간 mask0 글자 삭제 → bold 인접 → 병합
+    const result = deleteRange(m, 2, 3);
+    expect(result.buffer).toBe("abde");
+    expect(blockRuns(result, 0)).toEqual([{ len: 4, mask: MARK.bold }]);
+  });
+
+  it("개행 포함 삽입 — 블록 분리 후 markRuns 분리", () => {
+    const m: DocModel = {
+      buffer: "abcd",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 2, mask: MARK.bold }, { len: 2, mask: 0 }]],
+    };
+    // "ab|cd" → "ab\ncd"
+    const result = insertText(m, 2, 2, "\n", 0);
+    expect(result.buffer).toBe("ab\ncd");
+    // 블록0: "ab" bold, 블록1: "cd" mask0
+    expect(blockRuns(result, 0)).toEqual([{ len: 2, mask: MARK.bold }]);
+    expect(blockRuns(result, 1)).toEqual([{ len: 2, mask: 0 }]);
+    assertINV4(result, "개행 삽입 분리");
+    assertINV5(result, "개행 삽입 분리");
+  });
+
+  it("다블록 걸친 삭제 — markRuns 병합 후 정규화", () => {
+    const m: DocModel = {
+      buffer: "ab\ncd",
+      blockAttrs: [{ type: "paragraph" }, { type: "paragraph" }],
+      markRuns: [
+        [{ len: 2, mask: MARK.bold }],
+        [{ len: 2, mask: MARK.bold }],
+      ],
+    };
+    // 개행 삭제 → 단일 블록
+    const result = deleteRange(m, 2, 3);
+    expect(result.buffer).toBe("abcd");
+    expect(blockRuns(result, 0)).toEqual([{ len: 4, mask: MARK.bold }]);
+  });
+});
+
+// ─────────────────────────────────────────
+// T011: splitBlock/mergeWithPrev/mergeWithNext markRuns 추종
+// ─────────────────────────────────────────
+describe("splitBlock — markRuns 분할", () => {
+  it("중간 분할 — 앞/뒤 블록 run-list 분리", () => {
+    const m: DocModel = {
+      buffer: "abcde",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 2, mask: MARK.bold }, { len: 3, mask: 0 }]],
+    };
+    const result = splitBlock(m, 2);
+    // 블록0: "ab" bold, 블록1: "cde" mask0
+    expect(blockRuns(result, 0)).toEqual([{ len: 2, mask: MARK.bold }]);
+    expect(blockRuns(result, 1)).toEqual([{ len: 3, mask: 0 }]);
+    assertINV4(result, "splitBlock INV-4");
+    assertINV5(result, "splitBlock INV-5");
+  });
+
+  it("run 중간 분할 — run 쪼개짐", () => {
+    const m: DocModel = {
+      buffer: "abcde",
+      blockAttrs: [{ type: "paragraph" }],
+      markRuns: [[{ len: 5, mask: MARK.bold }]],
+    };
+    const result = splitBlock(m, 3);
+    expect(blockRuns(result, 0)).toEqual([{ len: 3, mask: MARK.bold }]);
+    expect(blockRuns(result, 1)).toEqual([{ len: 2, mask: MARK.bold }]);
+  });
+});
+
+describe("mergeWithPrev — markRuns 이어붙임", () => {
+  it("두 블록 병합 — run-list 이어붙임 후 정규화", () => {
+    const m: DocModel = {
+      buffer: "ab\ncd",
+      blockAttrs: [{ type: "paragraph" }, { type: "paragraph" }],
+      markRuns: [
+        [{ len: 2, mask: MARK.bold }],
+        [{ len: 2, mask: 0 }],
+      ],
+    };
+    const result = mergeWithPrev(m, 1);
+    expect(result.buffer).toBe("abcd");
+    // bold(2) + mask0(2) → 다른 mask → 정규형 2 run
+    expect(blockRuns(result, 0)).toEqual([
+      { len: 2, mask: MARK.bold },
+      { len: 2, mask: 0 },
+    ]);
+  });
+
+  it("같은 mask 이어붙임 → 병합", () => {
+    const m: DocModel = {
+      buffer: "ab\ncd",
+      blockAttrs: [{ type: "paragraph" }, { type: "paragraph" }],
+      markRuns: [
+        [{ len: 2, mask: MARK.bold }],
+        [{ len: 2, mask: MARK.bold }],
+      ],
+    };
+    const result = mergeWithPrev(m, 1);
+    expect(blockRuns(result, 0)).toEqual([{ len: 4, mask: MARK.bold }]);
+  });
+});
+
+// ─────────────────────────────────────────
+// INV-4/5 가드 (전체 연산)
+// ─────────────────────────────────────────
+describe("INV-4/5 — 전체 연산 불변식", () => {
+  const base: DocModel = {
+    buffer: "hello\nworld",
+    blockAttrs: [{ type: "paragraph" }, { type: "paragraph" }],
+    markRuns: [
+      [{ len: 3, mask: MARK.bold }, { len: 2, mask: 0 }],
+      [{ len: 5, mask: MARK.italic }],
+    ],
+  };
+
+  it("toggleMark — INV-4/5", () => {
+    const r = toggleMark(base, 0, 5, MARK.bold);
+    assertINV4(r, "toggleMark INV-4");
+    assertINV5(r, "toggleMark INV-5");
+  });
+
+  it("insertText — INV-4/5", () => {
+    const r = insertText(base, 3, 3, "X", MARK.bold);
+    assertINV4(r, "insertText INV-4");
+    assertINV5(r, "insertText INV-5");
+  });
+
+  it("deleteRange — INV-4/5", () => {
+    const r = deleteRange(base, 2, 7);
+    assertINV4(r, "deleteRange INV-4");
+    assertINV5(r, "deleteRange INV-5");
+  });
+
+  it("splitBlock — INV-4/5", () => {
+    const r = splitBlock(base, 3);
+    assertINV4(r, "splitBlock INV-4");
+    assertINV5(r, "splitBlock INV-5");
+  });
+
+  it("mergeWithPrev — INV-4/5", () => {
+    const r = mergeWithPrev(base, 1);
+    assertINV4(r, "mergeWithPrev INV-4");
+    assertINV5(r, "mergeWithPrev INV-5");
+  });
+
+  it("mergeWithNext — INV-4/5", () => {
+    const r = mergeWithNext(base, 0);
+    assertINV4(r, "mergeWithNext INV-4");
+    assertINV5(r, "mergeWithNext INV-5");
   });
 });

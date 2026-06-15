@@ -6,12 +6,19 @@ import {
   redo,
 } from './history'
 import type { History, Snapshot } from './history'
+import { MARK } from './model'
+import type { MarkRun } from './model'
 
-// 테스트용 스냅샷 팩토리
-function snap(buffer: string, anchor = 0): Snapshot {
+// 테스트용 스냅샷 팩토리 (markRuns 포함)
+function snap(buffer: string, anchor = 0, markRuns?: MarkRun[][]): Snapshot {
+  const blocks = buffer.split('\n')
+  const runs: MarkRun[][] =
+    markRuns ??
+    blocks.map((seg) => (seg.length === 0 ? [] : [{ len: seg.length, mask: 0 }]))
   return {
     buffer,
     blockAttrs: [{ type: 'paragraph' }],
+    markRuns: runs,
     selection: { anchor, focus: anchor },
   }
 }
@@ -193,5 +200,48 @@ describe('순수성 (불변성)', () => {
     const before = JSON.stringify(h2)
     redo(h2, snap('a'))
     expect(JSON.stringify(h2)).toBe(before)
+  })
+})
+
+// ─────────────────────────────────────────
+// T017: markRuns 포함 스냅샷 undo/redo
+// ─────────────────────────────────────────
+describe('T017: markRuns undo/redo 복원', () => {
+  it('마크 적용 후 undo → 마크 사라짐', () => {
+    // 초기: 마크 없는 "hello"
+    const initial = snap('hello', 0, [[{ len: 5, mask: 0 }]])
+    // 마크 적용 후: bold
+    const withMark = snap('hello', 5, [[{ len: 5, mask: MARK.bold }]])
+
+    let h = emptyHistory()
+    h = pushSnapshot(h, initial, { coalesce: false })
+
+    // withMark 상태에서 undo → initial 복원
+    const { snapshot } = undo(h, withMark)
+    expect(snapshot?.markRuns).toEqual([[{ len: 5, mask: 0 }]])
+    expect(snapshot?.buffer).toBe('hello')
+  })
+
+  it('undo 후 redo → 마크 복원', () => {
+    const initial = snap('hi', 0, [[{ len: 2, mask: 0 }]])
+    const withMark = snap('hi', 2, [[{ len: 2, mask: MARK.italic }]])
+
+    let h = emptyHistory()
+    h = pushSnapshot(h, initial, { coalesce: false })
+
+    // withMark 에서 undo
+    const { history: h2, snapshot: undone } = undo(h, withMark)
+    expect(undone?.markRuns).toEqual([[{ len: 2, mask: 0 }]])
+
+    // initial 에서 redo → withMark 복원
+    const { snapshot: redone } = redo(h2, initial)
+    expect(redone?.markRuns).toEqual([[{ len: 2, mask: MARK.italic }]])
+  })
+
+  it('스냅샷에 markRuns 가 포함됨 (pendingMarks 미포함)', () => {
+    const s = snap('abc', 0, [[{ len: 3, mask: MARK.bold | MARK.underline }]])
+    expect(s.markRuns).toBeDefined()
+    // pendingMarks 필드 없음
+    expect((s as Record<string, unknown>)['pendingMarks']).toBeUndefined()
   })
 })

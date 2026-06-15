@@ -116,7 +116,7 @@ export function PocEditor() {
     useEffect(() => {
         const measured: MeasuredBlock[] = SAMPLE.map((b) => {
             if (b.kind === "paragraph") {
-                return { kind: "paragraph", id: b.id, lines: measureParagraphLines(b.text, geo.contentWidthPx, geo.lineHeightPx, geo.fontSizePx, FONT_FAMILY) };
+                return { kind: "paragraph", id: b.id, lines: measureParagraphLines(b.text, [], geo.contentWidthPx, geo.lineHeightPx, geo.fontSizePx, FONT_FAMILY) };
             }
             const scale = Math.min(1, geo.contentWidthPx / b.naturalWidth, geo.contentHeightPx / b.naturalHeight);
             return { kind: "image", id: b.id, height: b.naturalHeight * scale };
