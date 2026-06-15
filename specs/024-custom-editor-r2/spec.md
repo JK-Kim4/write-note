@@ -140,6 +140,7 @@
 ## Assumptions
 
 - **마크 범위**: 본 라운드 마크는 정확히 bold/italic/underline/strike 4종이다. 임의 글꼴(font-family)·글자 크기의 구간별 선택은 범위 밖(후속). "혼합폰트"는 bold/italic이 한 줄 안에서 서로 다른 글리프 폭으로 렌더되어 혼합 측정이 필요하다는 뜻이지, 임의 글꼴 선택이 아니다.
+- **마크 클립보드 비범위**: 마크가 적용된 텍스트의 복사/붙여넣기에서 **서식 전달은 본 라운드 범위 밖**이다 — 1라운드와 동일하게 붙여넣기는 평문(마스크 0)으로만 삽입한다(복사도 평문). 에디터 내부 서식 복붙은 후속 라운드 결정 대상(핸드오프 §5.6).
 - **데이터 구조(리서치 근거)**: production 에디터(Lexical 비트마스크 per-run·ProseMirror 마크 가진 text node 시퀀스·Slate leaf·Quill Delta ops) 전부 run/span 리스트를 쓴다. 우리는 EditContext의 offset API 정합을 위해 **평문 buffer를 텍스트·offset SoT로 유지**하고, 마크는 **블록별 연속 run-list(정규형 비트마스크 run)** 로 얹는다. dense per-char 배열은 채택하지 않는다(production 선례 없음).
 - **측정 기법(리서치 근거)**: 혼합 스타일 줄 측정은 실제 CSS(weight/style)가 적용된 오프스크린 DOM에 Range를 거는 방식이 표준(canvas는 CJK 커닝·CSS 셰이핑 오차). 1라운드 measure를 run 인지로 일반화한다.
 - **캐럿 affinity(리서치 근거)**: 표준 모델은 `(offset, affinity)` 튜플(upstream/downstream — AppKit·Blink·Flutter, ProseMirror bias, CodeMirror assoc). 앞=줄끝, 뒤=줄시작.
