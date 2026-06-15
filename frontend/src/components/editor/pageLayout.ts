@@ -5,8 +5,17 @@
  * 분할/렌더는 브라우저(CSS column-wrap)가 하지만, "몇 장인가"는 순수 계산이다.
  */
 
-/** 본문 줄 높이(px) — CSS line-height(18px*1.92)와 일치. 용지 무관, 불변. */
-export const LINE_PX = 18 * 1.92;
+/**
+ * 본문 줄 높이(px) — CSS line-height 와 일치. 용지 무관, 불변. **정수여야 한다.**
+ *
+ * 비정수(과거 18*1.92=34.56)면 브라우저가 줄박스를 device-pixel 로 스냅하며 키워, multicol
+ * column-height(=N*LINE_PX)에 N 줄이 안 들어간다(예: 26→24). 단, 정수만으로는 부족하다 —
+ * CSS `orphans`/`widows` 기본값(2)이 문단의 마지막 1~2줄을 다음 장으로 통째 밀어내므로
+ * .ProseMirror 에 `orphans:1; widows:1` 도 함께 둔다(paper-editor.css/b.css). 둘이 합쳐져야
+ * "페이지가 26줄 꽉 참 + 문단이 줄 단위로 갈림(통째 점프 없음)"이 성립한다.
+ * CSS(`--page-line`/`--b-page-line`)와 반드시 같은 정수값.
+ */
+export const LINE_PX = 35;
 
 /** 지원 용지 크기 식별자. */
 export type PaperSize = "A4" | "A3" | "A2" | "B4";

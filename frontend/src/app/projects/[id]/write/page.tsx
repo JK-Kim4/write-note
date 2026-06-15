@@ -59,7 +59,7 @@ export default function ProjectWritePage() {
         return chapters.reduce((latest, c) => (c.updatedAt > latest.updatedAt ? c : latest)).id;
     }, [chapterIdFromUrl, chapters]);
 
-    const [lined, setLined] = useState(true);
+    const [lined, setLined] = useState(false); // 기본 백지 — 워드프로세서 기본, 괘선은 줄노트 체크박스로 옵션
     const [zoom, setZoom] = useState(1);
     const [leftOpen, setLeftOpen] = useState(true);
     const [rightOpen, setRightOpen] = useState(false);

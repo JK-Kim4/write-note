@@ -4,7 +4,7 @@
  * 토큰은 PoC 자립용 최소 세트(라이트/다크). 본문 폰트는 frontend 변수 + 한글 시스템 fallback.
  */
 .paper-editor {
-    --page-line: 34.56px; /* 18px 본문 × line-height 1.92 */
+    --page-line: 35px; /* 정수여야 multicol column-height 에 26줄 정확히 (pageLayout.LINE_PX 와 동일) */
     --page-h: calc(var(--page-line) * 26); /* 한 장 본문 26줄 (column-height) */
     --page-stride: calc(var(--page-line) * 30); /* 종이 28줄 + 책상 2줄 = 보폭 30줄 */
     --zoom: 1;
@@ -124,12 +124,15 @@ html.dark .paper-editor {
     font-family: var(--pe-serif);
     font-size: 18px;
     font-weight: 400;
-    line-height: 1.92;
+    line-height: var(--page-line); /* 정수 px — 괘선/column-height 정렬(1.92 비정수 금지) */
     color: var(--pe-ink);
     letter-spacing: 0.002em;
     outline: none;
     text-wrap: pretty;
     word-break: normal;
+    /* 문단이 페이지 마지막 줄까지 채우고 줄 단위로 갈리게 — 기본값 2 면 마지막 1~2줄을 통째로 다음 장에 밀어냄. */
+    orphans: 1;
+    widows: 1;
     /* 페이지 분할 — 한 장(26줄)을 채우면 아래 장으로. 분할=브라우저 레이아웃. */
     column-width: 160mm; /* 한 장 본문 폭(210 − 25×2) */
     column-height: var(--page-h); /* 26줄; 채우면 다음 장 (비표준 — 브라우저 지원 검증 대상) */

@@ -97,6 +97,7 @@ function BPagedBody({
     pages,
     geometry,
     zoom,
+    lined,
     onMouseDown,
 }: {
     editor: Editor | null;
@@ -104,42 +105,55 @@ function BPagedBody({
     pages: number;
     geometry: PaperGeometry;
     zoom: number;
+    lined: boolean;
     onMouseDown: (e: ReactMouseEvent<HTMLElement>) => void;
 }) {
+    // 미축소 종이 높이(px). transform: scale 은 레이아웃 박스를 축소하지 않으므로(시각만),
+    // 래퍼(.b-paged-fit)에 *축소된* 폭·높이를 예약해 가운데 정렬·스크롤 높이를 맞춘다.
+    const unscaledH = (pages - 1) * geometry.stridePx + geometry.sheetHpx;
     return (
-        <article
-            ref={pagedRef}
-            className="b-paged-paper"
-            style={
-                {
-                    minHeight: `${(pages - 1) * geometry.stridePx + geometry.sheetHpx}px`,
-                    // 용지 기하를 CSS 로 주입 — b.css 의 A4 하드코딩(폭·열폭·줄수·보폭)을 용지별 값으로 치환.
-                    "--b-page-h": `${geometry.pageHpx}px`,
-                    "--b-page-stride": `${geometry.stridePx}px`,
-                    "--b-page-max-width": `${geometry.maxWidthMm}mm`,
-                    "--b-page-col-width": `${geometry.colWidthMm}mm`,
-                    // fit-zoom — A4 가 가용 폭에 들어오도록 다운스케일(≤1). 큰 용지는 같은 줌에서 비례 확대 → 가로 스크롤.
-                    "--b-page-zoom": zoom,
-                } as React.CSSProperties
-            }
-            onMouseDown={onMouseDown}
+        <div
+            className="b-paged-fit"
+            style={{
+                width: `calc(${geometry.maxWidthMm}mm * ${zoom})`,
+                height: `${unscaledH * zoom}px`,
+            }}
         >
-            <div className="b-paged-sheets" aria-hidden="true">
+            <article
+                ref={pagedRef}
+                className="b-paged-paper"
+                style={
+                    {
+                        minHeight: `${unscaledH}px`,
+                        // 용지 기하를 CSS 로 주입 — b.css 의 A4 하드코딩(폭·열폭·줄수·보폭)을 용지별 값으로 치환.
+                        "--b-page-h": `${geometry.pageHpx}px`,
+                        "--b-page-stride": `${geometry.stridePx}px`,
+                        "--b-page-max-width": `${geometry.maxWidthMm}mm`,
+                        "--b-page-col-width": `${geometry.colWidthMm}mm`,
+                        // fit — transform: scale 로 다운스케일(b.css). zoom 과 달리 .ProseMirror 레이아웃(줄높이 정수)을
+                        // 보존해 column-height 에 26줄이 그대로 들어간다(zoom 은 정수를 깨 under-fill 유발).
+                        "--b-page-zoom": zoom,
+                    } as React.CSSProperties
+                }
+                onMouseDown={onMouseDown}
+            >
+                <div className="b-paged-sheets" aria-hidden="true">
                 {Array.from({ length: pages }, (_, i) => (
                     <div
                         key={i}
-                        className="b-sheet b-sheet--lined"
+                        className={lined ? "b-sheet b-sheet--lined" : "b-sheet"}
                         style={{ top: `${i * geometry.stridePx}px`, height: `${geometry.sheetHpx}px` }}
                     />
                 ))}
             </div>
             <EditorContent editor={editor} className="b-paged-prose" />
-            {pageNumberTopsPx(pages, geometry.stridePx, geometry.sheetHpx).map((top, i) => (
-                <div key={i} className="b-page-num" style={{ top: `${top}px` }} aria-label={`${i + 1}쪽`}>
-                    {i + 1}
-                </div>
-            ))}
-        </article>
+                {pageNumberTopsPx(pages, geometry.stridePx, geometry.sheetHpx).map((top, i) => (
+                    <div key={i} className="b-page-num" style={{ top: `${top}px` }} aria-label={`${i + 1}쪽`}>
+                        {i + 1}
+                    </div>
+                ))}
+            </article>
+        </div>
     );
 }
 
@@ -158,6 +172,8 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
     // fit-zoom — A4 가 가용 폭에 들어오도록 다운스케일(≤1). A4 항상 한 화면, 큰 용지는 같은 줌에서 비례 확대→가로 스크롤.
     const [fitZoom, setFitZoom] = useState(1);
     const stageRef = useRef<HTMLDivElement>(null);
+    // 줄노트(괘선) 토글 — 기본 백지(false). 워드프로세서 기본 = 백지, 괘선은 옵션(향후 글씨크기·목차 등에 유연).
+    const [lined, setLined] = useState(false);
 
     const onChangeRef = useRef(onChange);
     const onDraftUpdateRef = useRef(onDraftUpdate);
@@ -344,6 +360,10 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
                         <ToolbarButton label="구분선" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
                             ―
                         </ToolbarButton>
+                        <ToolbarDivider />
+                        <ToolbarButton label="줄노트" isActive={lined} onClick={() => setLined((v) => !v)}>
+                            ☰
+                        </ToolbarButton>
                     </>
                 )}
             </div>
@@ -372,6 +392,7 @@ export function BEditor({ initialBodyJson, onChange, onDraftUpdate, onEditorRead
                         pages={pages}
                         geometry={geometry}
                         zoom={fitZoom}
+                        lined={lined}
                         onMouseDown={handlePagedMouseDown}
                     />
                 </div>
