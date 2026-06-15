@@ -1,19 +1,32 @@
 "use client";
 
 /**
- * PoC 자체 에디터 — EditContext 라이브 입력 + 기본 선택(selection). Chromium 121+ 전용.
+ * 자체 에디터 — EditContext 라이브 입력 + 선택. PocEditorLive 승격(버퍼를 props DocModel 로 구동).
  *
- * 입력 모델: 문서 버퍼는 EditContext.text(문단 '\n' 구분, 이미지 U+FFFC). 선택은 {anchor, focus}.
- * - textupdate(IME·타이핑·Backspace 자동) → 버퍼 재파싱·재측정·재분할·재렌더, 선택 collapse.
- * - 드래그/Shift·Cmd·Option+화살표로 선택, 선택 위 타이핑/Backspace = EditContext 가 교체/삭제.
- * - 캐럿·선택 하이라이트는 직접 그림(측정은 measure.measureLineXs = 줄바꿈·렌더와 동일 메트릭).
- * 미구현(본 구축): 서식·저장 결선·복붙·undo·문단 간 여백·Safari.
+ * 입력 모델: 문서는 props.model(DocModel — buffer '\n' 구분 + blockAttrs). 선택은 {anchor, focus}.
+ * - 타이핑/IME/블록 내부 collapsed Backspace·Delete → EditContext 자동 처리 → textupdate 에서
+ *   model.ts 로 보정(reconcileAttrs)한 새 DocModel 을 onModelChange 로 올린다.
+ * - Enter·블록경계 병합·선택삭제 → keydown 에서 model.ts 연산(splitBlock/mergeWithPrev/mergeWithNext/
+ *   deleteRange)으로 라우팅 + EditContext(updateText/updateSelection) 동기.
+ * - 캐럿·선택 하이라이트는 직접 그림(measureLineXs = 줄바꿈·렌더와 동일 메트릭).
+ *
+ * 본 단계 단순화: 전부 단일 폰트(heading 폰트 분기·blockAttrs 정확보존 검증은 US2). toolbar 없음
+ * (용지는 props, 폰트 고정, 이미지삽입 보류) — CustomEditor 는 편집 표면만.
  */
 
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { pageGeometry, paperLabel, PAPER_SIZES, type PageGeometry, type PaperSize } from "../custom-editor/geometry";
-import { layout, type LaidOutPage, type MeasuredBlock, type MeasuredLine } from "../custom-editor/layoutEngine";
-import { measureLineXs, measureParagraphLines } from "../custom-editor/measure";
+import { pageGeometry, type PageGeometry, type PaperSize } from "./geometry";
+import { layout, type LaidOutPage, type MeasuredBlock, type MeasuredLine } from "./layoutEngine";
+import { measureLineXs, measureParagraphLines } from "./measure";
+import {
+    blockIndexAt,
+    deleteRange,
+    mergeWithNext,
+    mergeWithPrev,
+    reconcileAttrs,
+    splitBlock,
+    type DocModel,
+} from "./model";
 
 const FONT_FAMILY = "'Apple SD Gothic Neo', 'Noto Serif KR', serif";
 const OBJ = "￼"; // 이미지 마커
@@ -29,10 +42,6 @@ const IMG_SRC =
             "<text x='300' y='208' font-size='30' fill='#4338ca' text-anchor='middle' font-family='sans-serif'>이미지 · 가변 높이 블록</text>" +
             "</svg>",
     );
-
-const KO = (n: number) =>
-    Array.from({ length: n }, () => "그날 밤의 공기는 유난히 차고 맑아서 멀리 가로등 아래 그림자마저 또렷하게 보였다. ").join("");
-const INITIAL = "여기를 클릭하고 한글을 입력해 보세요. 빠르게 타자를 쳐도 조합이 깨지지 않습니다. " + KO(30) + "\n" + OBJ + "\n" + KO(16);
 
 type ParsedBlock =
     | { id: string; kind: "paragraph"; text: string; lines: MeasuredLine[]; bufStart: number; bufEnd: number }
@@ -267,17 +276,27 @@ function PageBox({
     );
 }
 
-export function PocEditorLive() {
-    const [paper, setPaper] = useState<PaperSize>("A4");
-    const [fontSize, setFontSize] = useState(18);
-    const [buffer, setBuffer] = useState(INITIAL);
-    const [sel, setSel] = useState({ anchor: INITIAL.length, focus: INITIAL.length });
+export function CustomEditor({
+    model,
+    onModelChange,
+    paperSize,
+    fontSizePx = 18,
+}: {
+    model: DocModel;
+    onModelChange: (next: DocModel) => void;
+    paperSize: PaperSize;
+    fontSizePx?: number;
+}) {
+    const buffer = model.buffer;
+    const [sel, setSel] = useState({ anchor: buffer.length, focus: buffer.length });
     const [mounted, setMounted] = useState(false);
     const stageRef = useRef<HTMLDivElement>(null);
     const ecRef = useRef<EditContext | null>(null);
     const dragAnchorRef = useRef<number | null>(null);
+    // IME 조합 상태 — EditContext 의 compositionstart/end 로 추적(keydown e.isComposing 은 EditContext 에서 미설정).
+    const composingRef = useRef(false);
 
-    const geo = useMemo(() => pageGeometry(paper, fontSize), [paper, fontSize]);
+    const geo = useMemo(() => pageGeometry(paperSize, fontSizePx), [paperSize, fontSizePx]);
     const view = useMemo<View>(() => (mounted ? relayout(buffer, geo) : { blocks: [], pages: [] }), [mounted, buffer, geo]);
     const caretPos = mounted ? caretToScreen(sel.focus, view.blocks, view.pages, geo) : null;
     const selRects = mounted ? selectionRects(sel.anchor, sel.focus, view, geo) : [];
@@ -286,9 +305,13 @@ export function PocEditorLive() {
     const viewRef = useRef(view);
     const geoRef = useRef(geo);
     const selStateRef = useRef(sel);
+    const modelRef = useRef(model);
+    const onModelChangeRef = useRef(onModelChange);
     viewRef.current = view;
     geoRef.current = geo;
     selStateRef.current = sel;
+    modelRef.current = model;
+    onModelChangeRef.current = onModelChange;
 
     useEffect(() => setMounted(true), []);
 
@@ -303,16 +326,32 @@ export function PocEditorLive() {
     useEffect(() => {
         const host = stageRef.current;
         if (!host || typeof EditContext === "undefined") return;
-        const ec = new EditContext({ text: INITIAL, selectionStart: INITIAL.length, selectionEnd: INITIAL.length });
+        const initial = modelRef.current.buffer;
+        const ec = new EditContext({ text: initial, selectionStart: initial.length, selectionEnd: initial.length });
         ecRef.current = ec;
         host.editContext = ec;
 
+        /** ec.text 로부터 새 DocModel 구성 — blockAttrs 는 길이 일치 시 기존 유지, 아니면 reconcile 보정. */
+        const modelFromEc = (): DocModel => reconcileAttrs({ buffer: ec.text, blockAttrs: modelRef.current.blockAttrs });
+
+        // 타이핑/IME/블록내부 collapsed Backspace·Delete = EditContext 자동 → model 보정 후 올림.
         const onText = (e: Event) => {
             const te = e as TextUpdateEvent;
-            setBuffer(ec.text);
+            const next = modelFromEc();
+            onModelChangeRef.current(next);
             setSel({ anchor: te.selectionStart, focus: te.selectionEnd }); // 편집 후 collapse
         };
         ec.addEventListener("textupdate", onText);
+
+        // 조합 상태 추적 — keydown 가드가 조합 중 Enter 이중삽입을 막는 데 쓴다.
+        const onCompositionStart = () => {
+            composingRef.current = true;
+        };
+        const onCompositionEnd = () => {
+            composingRef.current = false;
+        };
+        ec.addEventListener("compositionstart", onCompositionStart);
+        ec.addEventListener("compositionend", onCompositionEnd);
 
         const updateCB = () => {
             if (stageRef.current) ec.updateControlBounds(stageRef.current.getBoundingClientRect());
@@ -324,20 +363,30 @@ export function PocEditorLive() {
             ec.updateSelection(Math.min(a, f), Math.max(a, f));
             setSel({ anchor: a, focus: f });
         };
-        // Enter·화살표·선택삭제 — keydown 직접 처리(EditContext 는 시각 레이아웃을 모름).
+        // Enter·블록경계병합·선택삭제·화살표 — keydown 직접 처리(EditContext 는 시각 레이아웃/blockAttrs 를 모름).
         const onKey = (e: KeyboardEvent) => {
+            // IME 조합 중(한글 등)에는 커스텀 키 처리를 건너뛴다 — 조합 중 Enter/Backspace/화살표는
+            // IME·EditContext 가 처리한다. 이 가드가 없으면 조합 중 Enter 가 우리 splitBlock(\n 1개) +
+            // IME 자체 개행(\n 1개)으로 이중 삽입돼 빈 블록(\n\n)이 생긴다(2026-06-15 dogfooding 회귀).
+            // EditContext 는 keydown e.isComposing 을 미설정 → 자체 compositionstart/end 로 추적한 composingRef 사용.
+            if (e.isComposing || composingRef.current) return;
             const cur = selStateRef.current;
             const lo = Math.min(cur.anchor, cur.focus);
             const hi = Math.max(cur.anchor, cur.focus);
             const collapsed = cur.anchor === cur.focus;
             const len = ec.text.length;
+            const m = modelRef.current;
 
+            // ① Enter = splitBlock(model, caret) — model 연산으로 라우팅 + EditContext 동기.
             if (e.key === "Enter") {
                 e.preventDefault();
-                ec.updateText(lo, hi, "\n");
-                ec.updateSelection(lo + 1, lo + 1);
-                setBuffer(ec.text);
-                setSel({ anchor: lo + 1, focus: lo + 1 });
+                // 선택이 있으면 먼저 삭제 후 split(EditContext 텍스트도 함께 정합).
+                const caret = lo;
+                const next = splitBlock(deleteRange(m, lo, hi), caret);
+                ec.updateText(0, ec.text.length, next.buffer);
+                ec.updateSelection(caret + 1, caret + 1);
+                onModelChangeRef.current(next);
+                setSel({ anchor: caret + 1, focus: caret + 1 });
                 return;
             }
             // 전체 선택
@@ -346,16 +395,51 @@ export function PocEditorLive() {
                 setSelLocal(0, len);
                 return;
             }
-            // 선택이 있을 때 Backspace/Delete = 선택 삭제
+            // ② 선택이 있을 때 Backspace/Delete = deleteRange(model, lo, hi).
             if ((e.key === "Backspace" || e.key === "Delete") && !collapsed) {
                 e.preventDefault();
-                ec.updateText(lo, hi, "");
+                const next = deleteRange(m, lo, hi);
+                ec.updateText(0, ec.text.length, next.buffer);
                 ec.updateSelection(lo, lo);
-                setBuffer(ec.text);
+                onModelChangeRef.current(next);
                 setSel({ anchor: lo, focus: lo });
                 return;
             }
-            // collapsed Backspace/Delete 는 EditContext 자동 처리(여기서 손대지 않음)
+            // ③ 블록 시작에서 collapsed Backspace = mergeWithPrev(model, blockIdx).
+            if (e.key === "Backspace" && collapsed) {
+                const blockIdx = blockIndexAt(m, cur.focus);
+                const ranges = blockBufRanges(m.buffer);
+                const atBlockStart = cur.focus === ranges[blockIdx].start;
+                if (atBlockStart && blockIdx > 0) {
+                    e.preventDefault();
+                    const newCaret = ranges[blockIdx].start - 1; // 병합 후 캐럿 = 제거된 '\n' 위치
+                    const next = mergeWithPrev(m, blockIdx);
+                    ec.updateText(0, ec.text.length, next.buffer);
+                    ec.updateSelection(newCaret, newCaret);
+                    onModelChangeRef.current(next);
+                    setSel({ anchor: newCaret, focus: newCaret });
+                    return;
+                }
+                // 그 외(블록 내부) collapsed Backspace 는 EditContext 자동 처리 → textupdate.
+            }
+            // ④ 블록 끝에서 collapsed Delete = mergeWithNext(model, blockIdx).
+            if (e.key === "Delete" && collapsed) {
+                const blockIdx = blockIndexAt(m, cur.focus);
+                const ranges = blockBufRanges(m.buffer);
+                const isLastBlock = blockIdx >= ranges.length - 1;
+                // 블록의 시각 끝 = '\n' 직전(마지막 블록은 buffer 끝). end 는 '\n' 포함이므로 콘텐츠 끝 = end-(개행유무).
+                const contentEnd = isLastBlock ? ranges[blockIdx].end : ranges[blockIdx].end - 1;
+                if (!isLastBlock && cur.focus === contentEnd) {
+                    e.preventDefault();
+                    const next = mergeWithNext(m, blockIdx);
+                    ec.updateText(0, ec.text.length, next.buffer);
+                    ec.updateSelection(cur.focus, cur.focus);
+                    onModelChangeRef.current(next);
+                    setSel({ anchor: cur.focus, focus: cur.focus });
+                    return;
+                }
+                // 그 외(블록 내부) collapsed Delete 는 EditContext 자동 처리 → textupdate.
+            }
 
             const isArrow = e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown";
             if (!isArrow) return;
@@ -409,11 +493,15 @@ export function PocEditorLive() {
 
         return () => {
             ec.removeEventListener("textupdate", onText);
+            ec.removeEventListener("compositionstart", onCompositionStart);
+            ec.removeEventListener("compositionend", onCompositionEnd);
             host.removeEventListener("keydown", onKey);
             window.removeEventListener("resize", updateCB);
             host.editContext = null;
             ecRef.current = null;
         };
+        // 마운트 1회 — 최신 값은 ref(modelRef/onModelChangeRef/selStateRef/viewRef/geoRef)로 참조.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // 포인터 좌표 → 버퍼 오프셋(어느 페이지든). data-poc-page + elementFromPoint 로 페이지·로컬좌표 산출.
@@ -446,64 +534,35 @@ export function PocEditorLive() {
         window.addEventListener("mouseup", onUp);
     };
 
-    const insertImage = () => {
-        const ec = ecRef.current;
-        if (!ec) return;
-        const lo = Math.min(sel.anchor, sel.focus);
-        const hi = Math.max(sel.anchor, sel.focus);
-        ec.updateText(lo, hi, "\n" + OBJ + "\n");
-        ec.updateSelection(lo + 3, lo + 3);
-        setBuffer(ec.text);
-        setSel({ anchor: lo + 3, focus: lo + 3 });
-        stageRef.current?.focus();
-    };
-
     return (
-        <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#ece7df" }}>
+        <div
+            ref={stageRef}
+            tabIndex={0}
+            onMouseDown={onStageMouseDown}
+            style={{ flex: 1, overflow: "auto", outline: "none", caretColor: "transparent" }}
+        >
             <style>{"@keyframes pocBlink{0%,49%{opacity:1}50%,100%{opacity:0}} .poc-caret{animation:pocBlink 1s step-end infinite}"}</style>
-            <div style={{ display: "flex", gap: 14, alignItems: "center", padding: "10px 16px", background: "#fff", borderBottom: "1px solid #e5e7eb", flexWrap: "wrap" }}>
-                <strong style={{ fontSize: 14 }}>자체 에디터 PoC — EditContext + 선택</strong>
-                <label style={{ fontSize: 13 }}>
-                    용지{" "}
-                    <select value={paper} onChange={(e) => setPaper(e.target.value as PaperSize)}>
-                        {PAPER_SIZES.map((s) => (
-                            <option key={s} value={s}>
-                                {paperLabel(s)}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <label style={{ fontSize: 13 }}>
-                    폰트{" "}
-                    <select value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))}>
-                        {[14, 16, 18, 22, 28].map((s) => (
-                            <option key={s} value={s}>
-                                {s}px
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={insertImage}
-                    style={{ fontSize: 13, padding: "4px 10px", borderRadius: 6, border: "1px solid #c7d2fe", background: "#eef2ff", color: "#4338ca", cursor: "pointer" }}
-                >
-                    이미지 삽입
-                </button>
-                <span style={{ fontSize: 13, color: "#6b7280" }}>{view.pages.length}장 · {buffer.length}자</span>
-                <span style={{ fontSize: 12, color: "#9ca3af" }}>드래그 선택 · Shift/Cmd/Option+화살표 · Cmd+A · Enter · Backspace</span>
-            </div>
-            <div
-                ref={stageRef}
-                tabIndex={0}
-                onMouseDown={onStageMouseDown}
-                style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 24, padding: 24, outline: "none", caretColor: "transparent" }}
-            >
+            {/* width:max-content + margin:0 auto — 페이지가 뷰포트보다 넓어도 왼쪽 클리핑 없이 가로 스크롤,
+                좁지 않으면 중앙 정렬. (flexbox alignItems:center 의 중앙정렬 오버플로 클리핑 회피.) */}
+            <div style={{ width: "max-content", margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 24, padding: 24 }}>
                 {view.pages.map((pg) => (
                     <PageBox key={pg.index} page={pg} geo={geo} blocks={view.blocks} caret={caretPos} selRects={selRects.filter((r) => r.pageIndex === pg.index)} />
                 ))}
             </div>
         </div>
     );
+}
+
+/** buffer 의 각 블록 [start, end) — '\n' 은 이전 블록 end 에 포함(model.ts blockRanges 와 동일 규약). */
+function blockBufRanges(buffer: string): Array<{ start: number; end: number }> {
+    const ranges: Array<{ start: number; end: number }> = [];
+    let start = 0;
+    for (let i = 0; i <= buffer.length; i++) {
+        if (i === buffer.length || buffer[i] === "\n") {
+            ranges.push({ start, end: i === buffer.length ? i : i + 1 });
+            start = i + 1;
+        }
+    }
+    if (ranges.length === 0) ranges.push({ start: 0, end: 0 });
+    return ranges;
 }

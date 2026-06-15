@@ -6,7 +6,7 @@
  */
 
 /** 지원 용지 — portrait. */
-export type PaperSize = "A5" | "A4" | "B4" | "A3";
+export type PaperSize = "A5" | "A4" | "B4" | "A3" | "A2";
 
 /** 용지 실측 mm (가로×세로, portrait). */
 const PAPER_MM: Record<PaperSize, { widthMm: number; heightMm: number }> = {
@@ -14,6 +14,7 @@ const PAPER_MM: Record<PaperSize, { widthMm: number; heightMm: number }> = {
     A4: { widthMm: 210, heightMm: 297 },
     B4: { widthMm: 257, heightMm: 364 }, // JIS B4
     A3: { widthMm: 297, heightMm: 420 },
+    A2: { widthMm: 420, heightMm: 594 },
 };
 
 /** CSS mm → px (96dpi 기준). */
@@ -59,4 +60,4 @@ export function paperLabel(size: PaperSize): string {
     return `${size} · ${widthMm}×${heightMm}mm`;
 }
 
-export const PAPER_SIZES: readonly PaperSize[] = ["A5", "A4", "B4", "A3"] as const;
+export const PAPER_SIZES: readonly PaperSize[] = ["A5", "A4", "B4", "A3", "A2"] as const;

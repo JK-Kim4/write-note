@@ -9,9 +9,9 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { pageGeometry, paperLabel, PAPER_SIZES, type PaperSize, type PageGeometry } from "./geometry";
-import { layout, type LaidOutPage, type MeasuredBlock } from "./layoutEngine";
-import { measureParagraphLines } from "./measure";
+import { pageGeometry, paperLabel, PAPER_SIZES, type PaperSize, type PageGeometry } from "../custom-editor/geometry";
+import { layout, type LaidOutPage, type MeasuredBlock } from "../custom-editor/layoutEngine";
+import { measureParagraphLines } from "../custom-editor/measure";
 
 /** 측정·렌더가 반드시 동일해야 하는 폰트 패밀리. */
 const FONT_FAMILY = "'Apple SD Gothic Neo', 'Noto Serif KR', serif";
