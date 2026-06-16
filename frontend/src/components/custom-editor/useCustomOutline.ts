@@ -46,9 +46,8 @@ export function useCustomOutline(scrollSelector: string): {
 
         let timer: ReturnType<typeof setTimeout> | undefined;
         const debounced = () => {
-            // ① leading: 챕터 전환(에디터 리마운트) 같은 큰 변경을 즉시 1회 반영(목차 늦은 렌더 해소)
-            //    + trailing: 연속 변경(타자 중 heading 편집)은 200ms 로 수렴.
-            scan();
+            // trailing-only 디바운스 — leading(즉시) scan 은 setItems→리렌더→목차 DOM 변경→
+            // 본 MutationObserver(body subtree) 재트리거 → 무한 루프(2026-06-16 crash 회귀)라 금지.
             if (timer) clearTimeout(timer);
             timer = setTimeout(scan, 200);
         };
