@@ -23,6 +23,8 @@ import { BCustomChapterEditor } from "@/components/custom-editor/BCustomChapterE
 import { useCustomOutline } from "@/components/custom-editor/useCustomOutline";
 import type { PaperSize } from "@/components/editor/pageLayout";
 import { ExportDialog } from "@/components/export/ExportDialog";
+import { PrintOverlay } from "@/components/export/PrintOverlay";
+import { usePdfExport } from "@/lib/export/usePdfExport";
 
 /**
  * 집필실 (A형 3단: [좌:ChapterList+StudioOutline | 원고 | 우]) — 024 R5 에서 TipTap → 자체 엔진 교체.
@@ -66,6 +68,7 @@ export default function ProjectWritePage() {
     const [endWorkBody, setEndWorkBody] = useState("");
     const [endingWork, setEndingWork] = useState(false);
     const [exportOpen, setExportOpen] = useState(false);
+    const { printModels, lined, exportPdf, clearPrint } = usePdfExport();
 
     // BCustomChapterEditor 로부터 받은 저장 상태 / flushDraft / 충돌 핸들러
     const [syncStatus, setSyncStatus] = useState<BChapterEditorSyncStatus["syncStatus"]>("idle");
@@ -321,11 +324,12 @@ export default function ProjectWritePage() {
                     open
                     chapters={chapters}
                     paperSize={paperSize}
-                    onExportPdf={() => { /* R7: PDF 생성 — placeholder */ }}
+                    onExportPdf={(req) => { setExportOpen(false); exportPdf(req); }}
                     onExportWord={() => {}}
                     onClose={() => setExportOpen(false)}
                 />
             )}
+            {printModels && <PrintOverlay models={printModels} paperSize={paperSize} lined={lined} onDone={clearPrint} />}
             {endWorkOpen && (
                 <div className="modal-backdrop" onClick={() => !endingWork && setEndWorkOpen(false)}>
                     <div className="modal capture" role="dialog" aria-modal="true" aria-label="작업 종료" onClick={(e) => e.stopPropagation()}>

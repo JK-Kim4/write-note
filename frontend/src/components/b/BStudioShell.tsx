@@ -15,6 +15,8 @@ import { Toast } from "@/components/ui/Toast";
 import { BWorkSidePanel } from "@/components/b/BWorkSidePanel";
 import { ChapterList } from "@/components/editor/ChapterList";
 import { ExportDialog } from "@/components/export/ExportDialog";
+import { PrintOverlay } from "@/components/export/PrintOverlay";
+import { usePdfExport } from "@/lib/export/usePdfExport";
 import type { BChapterEditorConflictHandlers, BChapterEditorSyncStatus } from "@/components/custom-editor/types";
 
 /**
@@ -104,8 +106,9 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
     // 보조 패널 접기·탭 상태
     const [panelOpen, setPanelOpen] = useState(true);
     const [panelTab, setPanelTab] = useState<"memos" | "characters">("memos");
-    // 내보내기 다이얼로그(023 Round 3 진입점) — 실제 PDF 생성은 R7, 현재 placeholder.
+    // 내보내기 다이얼로그(023 Round 3 진입점).
     const [exportOpen, setExportOpen] = useState(false);
+    const { printModels, lined, exportPdf, clearPrint } = usePdfExport();
 
     // 에디터 코어로부터 받은 저장 상태 / flushDraft / 충돌 핸들러
     const flushDraftRef = useRef<((body: string) => void) | null>(null);
@@ -537,11 +540,13 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                     open
                     chapters={chapters}
                     paperSize={paperSize}
-                    onExportPdf={() => { /* R7: PDF 생성 — 현재 placeholder */ }}
+                    onExportPdf={(req) => { setExportOpen(false); exportPdf(req); }}
                     onExportWord={() => {}}
                     onClose={() => setExportOpen(false)}
                 />
             )}
+
+            {printModels && <PrintOverlay models={printModels} paperSize={paperSize} lined={lined} onDone={clearPrint} />}
 
             {/* 충돌 다이얼로그 — 에디터 슬롯이 콜백으로 올린 conflict / 해결 핸들러 사용 */}
             {conflictHandlers.conflict != null && (
