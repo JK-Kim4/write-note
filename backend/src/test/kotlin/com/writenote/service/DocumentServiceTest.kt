@@ -234,12 +234,16 @@ class DocumentServiceTest {
         every { documentRepository.findByIdAndDeletedAtIsNull(eq(100L)) } returns Optional.of(document)
         // ownership 검증을 위해 project 조회
         every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns newProject()
+        // 024: 제목은 dirty-check 가 아닌 JPQL bulk update 로 갱신(@Version 미증가) → updateTitleById 사용
+        every { documentRepository.updateTitleById(eq(100L), eq("새 제목")) } returns 1
 
         val request = UpdateDocumentTitleRequest(title = "새 제목")
         val response = service.updateDocumentTitle(userId = 1L, documentId = 100L, request = request)
 
         assertThat(response.title).isEqualTo("새 제목")
         assertThat(response.id).isEqualTo(100L)
+        // 제목 변경은 본문 version 토큰(updatedAt)을 안 바꾼다는 새 계약 — 조회 시점 토큰 그대로 응답
+        assertThat(response.updatedAt).isEqualTo(document.updatedAt)
     }
 
     @Test
