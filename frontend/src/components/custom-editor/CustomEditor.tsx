@@ -622,11 +622,7 @@ export function CustomEditor({
             // IME·EditContext 가 처리한다. 이 가드가 없으면 조합 중 Enter 가 우리 splitBlock(\n 1개) +
             // IME 자체 개행(\n 1개)으로 이중 삽입돼 빈 블록(\n\n)이 생긴다(2026-06-15 dogfooding 회귀).
             // EditContext 는 keydown e.isComposing 을 미설정 → 자체 compositionstart/end 로 추적한 composingRef 사용.
-            // 예외: Cmd/Ctrl+A(전체선택)는 텍스트를 바꾸지 않는 선택 전용 명령 → 조합 중에도 통과시켜
-            // 한 번에 전체선택(조합 글자는 ec.text 에 반영돼 있어 0..len 선택에 포함). 조합 중 가드로 두면
-            // 첫 Cmd+A 가 조합 확정에만 쓰이고 전체선택은 두 번째에야 되는 버그가 난다.
-            const isSelectAll = (e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === "a";
-            if ((e.isComposing || composingRef.current) && !isSelectAll) return;
+            if (e.isComposing || composingRef.current) return;
             const cur = selStateRef.current;
             const lo = Math.min(cur.anchor, cur.focus);
             const hi = Math.max(cur.anchor, cur.focus);
