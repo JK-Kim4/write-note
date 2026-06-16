@@ -92,8 +92,8 @@ export function ExportDialog({ open, chapters, paperSize, onExportPdf, onExportW
                         );
                     })}
                 </ul>
-                <label className="export-dialog__option">
-                    합본 방식
+                <label className="export-dialog__field">
+                    <span className="export-dialog__field-label">합본 방식</span>
                     <select aria-label="합본 방식" value={joinMode} onChange={(e) => setJoinMode(e.target.value as JoinMode)}>
                         {JOIN_MODES.map((m) => (
                             <option key={m.value} value={m.value}>{m.label}</option>

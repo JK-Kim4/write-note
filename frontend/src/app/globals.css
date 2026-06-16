@@ -67,6 +67,9 @@
 .export-dialog__chapters li { display: flex; align-items: center; gap: 8px; }
 .export-dialog__chapters li label { flex: 1; display: flex; align-items: center; gap: 6px; }
 .export-dialog__option { display: flex; align-items: center; gap: 8px; }
+.export-dialog__field { display: flex; flex-direction: column; gap: 4px; }
+.export-dialog__field-label { font-size: 13px; font-weight: 600; color: #6b7280; }
+.export-dialog__field select { padding: 6px 8px; border: 1px solid #d4d4d8; border-radius: 8px; font-size: 14px; background: #fff; }
 .export-dialog__actions { display: flex; gap: 8px; justify-content: flex-end; }
 .export-dialog__paper { color: #6b7280; font-size: 13px; margin: 0; }
 
