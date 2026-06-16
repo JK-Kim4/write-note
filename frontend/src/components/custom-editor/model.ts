@@ -964,6 +964,30 @@ export function toggleBlockType(
   return { buffer: model.buffer, blockAttrs: newAttrs, markRuns: model.markRuns };
 }
 
+/**
+ * caret 이 속한 블록이 "빈 비-본문 블록"(heading/blockquote/listItem 이며 텍스트 길이 0)이면
+ * 그 블록을 paragraph 로 강등한 새 모델을 반환하고 demoted=true. 아니면 원본 + demoted=false.
+ * hr(원자)·이미 paragraph·텍스트 있는 블록은 대상 아님.
+ *
+ * 빈 listItem 의 Enter 강등(splitBlock)과 일관된 Backspace 강등 — buffer/markRuns 불변, attr 만 교체.
+ */
+export function demoteEmptyBlockAtCaret(
+  model: DocModel,
+  caret: number,
+): { model: DocModel; demoted: boolean } {
+  const blockIdx = blockIndexAt(model, caret);
+  const attr = model.blockAttrs[blockIdx];
+  if (!attr) return { model, demoted: false };
+
+  const isDemotable =
+    attr.type === "heading" || attr.type === "blockquote" || attr.type === "listItem";
+  if (!isDemotable) return { model, demoted: false };
+
+  if (blockTextLen(model.buffer, blockIdx) !== 0) return { model, demoted: false };
+
+  return { model: toggleBlockType(model, blockIdx, "paragraph"), demoted: true };
+}
+
 // ─────────────────────────────────────────
 // listNumberAt (T008/T009)
 // ─────────────────────────────────────────

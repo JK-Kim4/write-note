@@ -24,6 +24,7 @@ import {
   insertSoftBreak,
   sliceModel,
   insertModel,
+  demoteEmptyBlockAtCaret,
 } from "./model";
 
 // INV-1 보조: blockAttrs.length === buffer.split('\n').length
@@ -1446,5 +1447,68 @@ describe("sliceModel + insertModel 라운드트립", () => {
     expect(result.blockAttrs).toHaveLength(3);
     assertINV1(result, "다블록 base 2블록 sub");
     assertINV4(result, "다블록 base 2블록 sub");
+  });
+});
+
+// ─────────────────────────────────────────
+// demoteEmptyBlockAtCaret — 빈 비-본문 블록 Backspace 강등 (R3 갭)
+// ─────────────────────────────────────────
+describe("demoteEmptyBlockAtCaret", () => {
+  it("빈 blockquote(첫 블록) → demoted=true, paragraph, buffer 불변", () => {
+    const m = makeModel("", [{ type: "blockquote" }]);
+    const { model, demoted } = demoteEmptyBlockAtCaret(m, 0);
+    expect(demoted).toBe(true);
+    expect(model.blockAttrs[0]).toEqual({ type: "paragraph" });
+    expect(model.buffer).toBe("");
+    assertINV1(model, "빈 blockquote 강등");
+    assertINV4(model, "빈 blockquote 강등");
+  });
+
+  it("빈 listItem → demoted=true, paragraph", () => {
+    const m = makeModel("", [{ type: "listItem", listKind: "bullet", depth: 0 }]);
+    const { model, demoted } = demoteEmptyBlockAtCaret(m, 0);
+    expect(demoted).toBe(true);
+    expect(model.blockAttrs[0]).toEqual({ type: "paragraph" });
+  });
+
+  it("빈 heading → demoted=true, paragraph", () => {
+    const m = makeModel("", [{ type: "heading", level: 2 }]);
+    const { model, demoted } = demoteEmptyBlockAtCaret(m, 0);
+    expect(demoted).toBe(true);
+    expect(model.blockAttrs[0]).toEqual({ type: "paragraph" });
+  });
+
+  it("중간 빈 blockquote 블록 → 해당 블록만 paragraph 강등", () => {
+    const m = makeModel("앞\n\n뒤", [
+      { type: "paragraph" },
+      { type: "blockquote" },
+      { type: "paragraph" },
+    ]);
+    // "앞\n\n뒤": 앞(0)\n(1)\n(2)뒤(3). 빈 블록1 = [2,3) → 시작 offset 2.
+    const caret = 2;
+    expect(blockIndexAt(m, caret)).toBe(1);
+    const { model, demoted } = demoteEmptyBlockAtCaret(m, caret);
+    expect(demoted).toBe(true);
+    expect(model.blockAttrs[1]).toEqual({ type: "paragraph" });
+    expect(model.buffer).toBe("앞\n\n뒤");
+  });
+
+  it("텍스트 있는 blockquote → demoted=false", () => {
+    const m = makeModel("내용", [{ type: "blockquote" }]);
+    const { model, demoted } = demoteEmptyBlockAtCaret(m, 0);
+    expect(demoted).toBe(false);
+    expect(model).toBe(m);
+  });
+
+  it("이미 paragraph 빈 블록 → demoted=false", () => {
+    const m = makeModel("", [{ type: "paragraph" }]);
+    const { demoted } = demoteEmptyBlockAtCaret(m, 0);
+    expect(demoted).toBe(false);
+  });
+
+  it("hr 블록 → demoted=false", () => {
+    const m = makeModel("", [{ type: "hr" }]);
+    const { demoted } = demoteEmptyBlockAtCaret(m, 0);
+    expect(demoted).toBe(false);
   });
 });

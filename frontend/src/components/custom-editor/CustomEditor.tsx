@@ -23,6 +23,7 @@ import { modelToPmJson, pmJsonToModel } from "./pmConvert";
 import { FONT_FAMILY, IMG_SRC, relayout, renderRuns, type ParsedBlock, type View } from "./printLayout";
 import {
     blockIndexAt,
+    demoteEmptyBlockAtCaret,
     deleteAtomicAt,
     deleteRange,
     insertHr,
@@ -716,6 +717,19 @@ export function CustomEditor({
                 const blockIdx = blockIndexAt(m, cur.focus);
                 const ranges = blockBufRanges(m.buffer);
                 const atBlockStart = cur.focus === ranges[blockIdx].start;
+                // 빈 비-본문 블록(heading/blockquote/listItem) 시작에서 Backspace → paragraph 강등.
+                // mergeWithPrev 보다 먼저 — blockIdx 0(앞 블록 없음)에서도 강등되어야 한다.
+                if (atBlockStart) {
+                    const demote = demoteEmptyBlockAtCaret(m, cur.focus);
+                    if (demote.demoted) {
+                        e.preventDefault();
+                        recordBeforeStructural();
+                        // buffer 불변(attr 만 교체) → ec.updateText 불필요, 캐럿 유지.
+                        onModelChangeRef.current(demote.model);
+                        setSel({ anchor: cur.focus, focus: cur.focus, affinity: 1 });
+                        return;
+                    }
+                }
                 if (atBlockStart && blockIdx > 0) {
                     e.preventDefault();
                     recordBeforeStructural();
