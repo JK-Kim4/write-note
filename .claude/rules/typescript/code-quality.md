@@ -92,6 +92,17 @@
 - fix: 409 분기를 `error.code === "DOCUMENT_VERSION_CONFLICT"` 일 때만 ConflictError, 그 외는 기존 `ApiError(code, message)` 흐름 복원
 - 회피 가능했던 시점: 409 분기 작성 시 03-backend 에러 매트릭스의 409 행(3개 코드) grep
 
+### 자동저장 dirty 판정 — 직렬화 왕복 idempotence (HARD-GATE)
+
+에디터 모델 ↔ 저장 포맷(예: ProseMirror JSON) **양방향 변환**을 자동저장의 dirty 판정(`body !== serverBody`)에 쓸 때, **왕복이 비정규화면 로드 즉시 거짓 dirty** 가 난다 — 사용자가 타자 치기 전부터 baseline 이 이탈해 거짓 저장이 나가고, 다른 결함(stale flush 등)과 겹치면 작성분 유실로 번진다. 변환을 **idempotent** 하게 만들거나, baseline(`serverBody`)을 **현재 body 와 동일한 변환으로 정규화**해 맞춘다.
+
+#### 회귀 사례 — 2026-06-15 024 자체 에디터 저장 유실
+
+- `pmJsonToModel(modelToPmJson(...))` 왕복이 **빈 문서 `{"content":[]}` 를 `{"content":[{"paragraph"}]}` 로 비정규화** → 프레시 챕터 로드 즉시 `body !== serverBody` 거짓 dirty → 자동저장이 baseline 을 빈 문서에서 밀어냄.
+- 거기에 셸의 stale 빈본문 flush(전환 시)가 겹쳐 작성분이 빈 draft 로 덮임 → 복귀 시 유실.
+- fix: `serverBody` 를 `modelToPmJson(pmJsonToModel(doc.bodyJson))` 로 정규화해 baseline 과 body 를 같은 형태로 → 로드 시 not-dirty.
+- 회피 가능했던 시점: BCustomChapterEditor 결선 시 "왕복이 idempotent 인가 / baseline 을 같은 변환으로 정규화했는가" 점검(결정론적 왕복 테스트 1회).
+
 ## 도구 / 검증
 
 - ESLint (룰) + Prettier (포매팅), `eslint-config-prettier` extends 마지막

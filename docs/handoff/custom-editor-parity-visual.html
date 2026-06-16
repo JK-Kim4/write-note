@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>자체 엔진 블록 패리티 — 무엇이 보존되고 무엇이 달라지나</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+    margin: 0; padding: 32px; background: #f4f4f5; color: #18181b; line-height: 1.6;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #71717a; font-size: 14px; margin: 0 0 28px; }
+  h2 { font-size: 16px; margin: 32px 0 12px; padding-bottom: 6px; border-bottom: 2px solid #e4e4e7; }
+  .row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 8px;
+  }
+  .card {
+    background: #fff; border: 1px solid #e4e4e7; border-radius: 10px; padding: 18px 20px;
+  }
+  .card.same { border-color: #bbf7d0; }
+  .card.diff-before { border-color: #fecaca; }
+  .card.diff-after { border-color: #fed7aa; }
+  .tag {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px;
+    border-radius: 999px; margin-bottom: 10px; letter-spacing: 0.02em;
+  }
+  .tag.before { background: #fee2e2; color: #b91c1c; }
+  .tag.after  { background: #ffedd5; color: #c2410c; }
+  .tag.tiptap { background: #ede9fe; color: #6d28d9; }
+  .tag.custom { background: #dcfce7; color: #15803d; }
+  .verdict {
+    grid-column: 1 / -1; text-align: center; font-size: 13px; font-weight: 600;
+    padding: 6px; border-radius: 8px; margin: 2px 0 22px;
+  }
+  .verdict.ok { background: #f0fdf4; color: #15803d; }
+  .verdict.warn { background: #fff7ed; color: #c2410c; }
+  /* 본문 서식 렌더 */
+  .doc p { margin: 0 0 8px; }
+  .doc .h1 { font-size: 20px; font-weight: 800; margin: 0 0 8px; }
+  .doc .h2 { font-size: 17px; font-weight: 700; margin: 0 0 8px; }
+  .doc blockquote {
+    margin: 0 0 8px; padding: 4px 0 4px 14px; border-left: 3px solid #a1a1aa;
+    color: #52525b;
+  }
+  .doc ul, .doc ol { margin: 0 0 8px; padding-left: 22px; }
+  .doc li { margin: 2px 0; }
+  .doc hr { border: none; border-top: 2px solid #d4d4d8; margin: 14px 0; }
+  b { font-weight: 800; }
+  u { text-decoration: underline; }
+  s { text-decoration: line-through; }
+  .note { font-size: 12px; color: #a1a1aa; margin-top: 4px; }
+  .legend {
+    display: flex; gap: 20px; font-size: 13px; margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+</style>
+</head>
+<body>
+  <h1>자체 엔진으로 바꾸면 본문이 어떻게 보이나</h1>
+  <p class="sub">왼쪽 = 지금(TipTap) / 오른쪽 = 자체 엔진. 거의 다 똑같고, 맨 아래 <b>딱 한 가지</b>만 달라집니다.</p>
+
+  <div class="legend">
+    <span><i class="dot" style="background:#bbf7d0"></i> 초록 = 똑같이 보존됨</span>
+    <span><i class="dot" style="background:#fecaca"></i> 빨강 = 바뀌기 전(기존)</span>
+    <span><i class="dot" style="background:#fed7aa"></i> 주황 = 자체 엔진에서 이렇게 됨</span>
+  </div>
+
+  <!-- ───────── 보존되는 것들 ───────── -->
+  <h2>① 글자 서식 4종 — 그대로 보존</h2>
+  <div class="row">
+    <div class="card same"><span class="tag tiptap">지금 (TipTap)</span>
+      <div class="doc"><p>평범한 글에 <b>굵게</b>, <i>기울임</i>, <u>밑줄</u>, <s>취소선</s>을 섞어 씁니다.</p></div>
+    </div>
+    <div class="card same"><span class="tag custom">자체 엔진</span>
+      <div class="doc"><p>평범한 글에 <b>굵게</b>, <i>기울임</i>, <u>밑줄</u>, <s>취소선</s>을 섞어 씁니다.</p></div>
+    </div>
+  </div>
+  <div class="verdict ok">✓ 완전히 동일 (R2에서 이미 구현 완료)</div>
+
+  <h2>② 제목 (H1~H3) — 그대로 보존</h2>
+  <div class="row">
+    <div class="card same"><span class="tag tiptap">지금 (TipTap)</span>
+      <div class="doc"><div class="h1">1장. 시작</div><div class="h2">첫 번째 절</div><p>본문…</p></div>
+    </div>
+    <div class="card same"><span class="tag custom">자체 엔진</span>
+      <div class="doc"><div class="h1">1장. 시작</div><div class="h2">첫 번째 절</div><p>본문…</p></div>
+    </div>
+  </div>
+  <div class="verdict ok">✓ 완전히 동일 (R1에서 이미 구현 완료)</div>
+
+  <h2>③ 인용 · 글머리표 · 번호목록 · 구분선 — R3에서 새로 구현해 보존</h2>
+  <div class="row">
+    <div class="card same"><span class="tag tiptap">지금 (TipTap)</span>
+      <div class="doc">
+        <blockquote>인용문은 이렇게 들여쓰기와 세로선으로 보입니다.</blockquote>
+        <ul><li>글머리표 항목 하나</li><li>글머리표 항목 둘</li></ul>
+        <ol><li>번호 항목 하나</li><li>번호 항목 둘</li></ol>
+        <hr>
+        <p>구분선 아래 새 문단.</p>
+      </div>
+    </div>
+    <div class="card same"><span class="tag custom">자체 엔진</span>
+      <div class="doc">
+        <blockquote>인용문은 이렇게 들여쓰기와 세로선으로 보입니다.</blockquote>
+        <ul><li>글머리표 항목 하나</li><li>글머리표 항목 둘</li></ul>
+        <ol><li>번호 항목 하나</li><li>번호 항목 둘</li></ol>
+        <hr>
+        <p>구분선 아래 새 문단.</p>
+      </div>
+    </div>
+  </div>
+  <div class="verdict ok">✓ R3에서 구현하면 보기에 동일 (번호 1·2·3은 자체 엔진이 자동으로 매겨줌)</div>
+
+  <!-- ───────── 소프트 줄바꿈 (수정됨) ───────── -->
+  <h2>④ 목록 항목 안에서 Shift+Enter (줄만 추가, 번호 증가 X) — R3에서 추가해 보존</h2>
+  <p class="sub" style="margin-top:-4px">지적해 주신 케이스입니다. 보통 에디터처럼 <b>Shift+Enter = 같은 항목에 줄만 추가(번호 그대로)</b>, Enter = 새 항목(번호 증가)으로 동작하게 만듭니다.</p>
+  <div class="row">
+    <div class="card same"><span class="tag tiptap">지금 (TipTap)</span>
+      <div class="doc">
+        <ol>
+          <li>첫 번째 항목입니다.<br><span style="color:#52525b">↳ Shift+Enter로 같은 항목에 이어 쓴 줄 (번호 안 늘어남)</span></li>
+          <li>두 번째 항목입니다.</li>
+        </ol>
+      </div>
+      <p class="note">1번 항목 안에서 줄바꿈 → 번호는 1·2 그대로</p>
+    </div>
+    <div class="card same"><span class="tag custom">자체 엔진 (R3 후)</span>
+      <div class="doc">
+        <ol>
+          <li>첫 번째 항목입니다.<br><span style="color:#52525b">↳ Shift+Enter로 같은 항목에 이어 쓴 줄 (번호 안 늘어남)</span></li>
+          <li>두 번째 항목입니다.</li>
+        </ol>
+      </div>
+      <p class="note">소프트 줄바꿈(hardBreak)을 모델에 추가 → 동일하게 보존</p>
+    </div>
+  </div>
+  <div class="verdict ok">✓ Shift+Enter = 같은 번호·줄만 추가, Enter = 새 번호. 보기 동일 (R3에서 소프트 줄바꿈 구현)</div>
+
+  <p style="font-size:13px; color:#52525b; background:#fff; border:1px solid #e4e4e7; border-radius:10px; padding:16px 20px;">
+    <b>요약:</b> ①②③④ 전부 똑같이 보이게 만듭니다(글자·서식·번호 손실 0). 자체 엔진엔 지금 소프트 줄바꿈(Shift+Enter / <br> 태그)이 빠져 있어서 R3에서 1급 기능으로 넣고, 이때 기존 본문의 줄바꿈도 함께 보존됩니다.
+    <br><br>※ 정말 드물게 "한 목록 항목이 <b>독립 문단 여러 개</b>를 품은" 구조(Shift+Enter 줄바꿈이 아니라 진짜 문단 노드 2개)는 거의 안 쓰이는 형태라, 그건 각 문단이 항목으로 분해됩니다(글자 손실은 여전히 0). 이런 걸 쓰신 적 있으면 알려주세요.
+  </p>
+</body>
+</html>

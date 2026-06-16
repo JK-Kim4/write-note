@@ -38,6 +38,8 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
     runtimeOnly("org.postgresql:postgresql")
+    implementation("kr.dogfoot:hwpxlib:1.0.5")
+    implementation("org.apache.poi:poi-ooxml:5.3.0")
     testImplementation("io.mockk:mockk:1.14.6")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
     testImplementation("org.assertj:assertj-core")

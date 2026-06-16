@@ -204,10 +204,12 @@ class DocumentService(
                 .findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow { ResourceNotFoundException("Document not found: $documentId") }
         projectService.requireOwnedProject(userId, document.projectId)
-        document.title = request.title
+        // title 은 @Version(본문 version 토큰)을 올리지 않는다 → JPQL bulk update 로 분리(024 거짓 409 방지).
+        documentRepository.updateTitleById(documentId, request.title)
+        // updatedAt(토큰)은 불변이라 조회 시점 값 그대로 응답. clearAutomatically 로 detached 여도 로드된 값은 접근 가능.
         return DocumentTitleResponse(
             id = requireNotNull(document.id),
-            title = document.title,
+            title = request.title,
             updatedAt = requireNotNull(document.updatedAt),
         )
     }

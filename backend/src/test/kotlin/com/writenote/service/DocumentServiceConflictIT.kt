@@ -4,6 +4,7 @@ import com.writenote.entity.User
 import com.writenote.error.DocumentConflictException
 import com.writenote.model.request.CreateProjectRequest
 import com.writenote.model.request.SaveDocumentRequest
+import com.writenote.model.request.UpdateDocumentTitleRequest
 import com.writenote.repository.DocumentRepository
 import com.writenote.repository.UserRepository
 import jakarta.persistence.EntityManager
@@ -183,6 +184,78 @@ class DocumentServiceConflictIT
                 )
 
             assertThat(second.version).isNotEqualTo(first.version)
+        }
+
+        @Test
+        @DisplayName("updateDocumentTitle — 제목 변경은 본문 @Version(updatedAt 토큰)을 올리지 않는다 (024 거짓 409 방지)")
+        fun `updateDocumentTitle does not bump version token`() {
+            val user = savedUser()
+            val userId = requireNotNull(user.id)
+
+            val projectResponse = projectService.createProject(userId, CreateProjectRequest(title = "제목 토큰 불변"))
+            entityManager.flush()
+            entityManager.clear()
+
+            val document =
+                documentRepository
+                    .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectResponse.id)
+                    .first()
+            val documentId = requireNotNull(document.id)
+            val tokenBefore = requireNotNull(document.updatedAt)
+
+            documentService.updateDocumentTitle(
+                userId = userId,
+                documentId = documentId,
+                request = UpdateDocumentTitleRequest(title = "변경된 제목"),
+            )
+            entityManager.flush()
+            entityManager.clear()
+
+            val reloaded = documentRepository.findById(documentId).orElseThrow()
+            // title 은 본문 낙관적 잠금과 무관한 메타 — version 토큰(updatedAt)이 변하면 안 된다.
+            assertThat(reloaded.title).isEqualTo("변경된 제목")
+            assertThat(reloaded.updatedAt).isEqualTo(tokenBefore)
+        }
+
+        @Test
+        @DisplayName("거짓 409 방지 — 제목 변경 후 옛 version 으로 본문 저장이 충돌 없이 성공 (024)")
+        fun `saveDocument with original version succeeds after title change`() {
+            val user = savedUser()
+            val userId = requireNotNull(user.id)
+
+            val projectResponse = projectService.createProject(userId, CreateProjectRequest(title = "거짓 409 방지"))
+            entityManager.flush()
+            entityManager.clear()
+
+            val document =
+                documentRepository
+                    .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectResponse.id)
+                    .first()
+            val projectId = projectResponse.id
+            val documentId = requireNotNull(document.id)
+            val token0 = requireNotNull(document.updatedAt)
+
+            // 본문 세션이 token0 을 소유한 채 제목만 변경됨 → 제목이 토큰을 올리면 안 됨
+            documentService.updateDocumentTitle(
+                userId = userId,
+                documentId = documentId,
+                request = UpdateDocumentTitleRequest(title = "리네임"),
+            )
+            entityManager.flush()
+            entityManager.clear()
+
+            // 본문 세션이 여전히 가진 원래 token0 으로 자동저장 → 거짓 충돌 없이 성공해야 한다
+            val body = """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"본문"}]}]}"""
+            val saved =
+                documentService.saveDocument(
+                    userId = userId,
+                    projectId = projectId,
+                    documentId = documentId,
+                    request = SaveDocumentRequest(body = body, version = token0),
+                )
+
+            assertThat(saved.body).contains("본문")
+            assertThat(saved.version).isNotEqualTo(token0)
         }
 
         @Test

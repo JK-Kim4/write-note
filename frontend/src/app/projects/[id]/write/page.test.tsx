@@ -7,42 +7,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { server } from "@/test/msw/server";
 import ProjectWritePage from "./page";
 
-// PaperEditor 는 jsdom 에서 ResizeObserver 미지원으로 crash → 외부 경계(HTTP) 가 아닌 내부 컴포넌트이므로 mock 처리.
-// onChange / onDraftUpdate / chapterTitle / onChapterRename 을 받아 테스트 가능하게 노출.
-vi.mock("@/components/editor/PaperEditor", () => ({
-    PaperEditor: ({
-        onChange,
-        onDraftUpdate,
-        chapterTitle,
-        onChapterRename,
-    }: {
-        onChange?: (c: { bodyJson: string; plainText: string; wordCount: number }) => void;
-        onDraftUpdate?: (body: string) => void;
-        chapterTitle?: string;
-        onChapterRename?: (title: string) => void;
-    }) => (
-        <div data-testid="paper-editor">
-            {chapterTitle != null && (
-                <span
-                    data-testid="paper-editor-chapter-title"
-                    onDoubleClick={() => onChapterRename?.("본문에서 변경된 제목")}
-                >
-                    {chapterTitle || "새 챕터"}
-                </span>
-            )}
-            <button
-                type="button"
-                data-testid="paper-editor-change"
-                onClick={() => {
-                    const body = JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "편집됨" }] }] });
-                    onDraftUpdate?.(body);
-                    onChange?.({ bodyJson: body, plainText: "편집됨", wordCount: 3 });
-                }}
-            >
-                에디터 변경
-            </button>
-        </div>
-    ),
+// 024 R5: A형 에디터가 TipTap(ChapterEditor/PaperEditor) → 자체엔진(BCustomChapterEditor)로 교체됨.
+// CustomEditor 는 jsdom 미지원 EditContext 사용 → 내부 컴포넌트이므로 mock(렌더만).
+vi.mock("@/components/custom-editor/BCustomChapterEditor", () => ({
+    BCustomChapterEditor: () => <div data-testid="custom-editor" />,
+}));
+vi.mock("@/components/custom-editor/useCustomOutline", () => ({
+    useCustomOutline: () => ({ items: [], activeIndex: -1, selectItem: vi.fn() }),
 }));
 // StudioOutline, ConflictDialog, StudioRightStack 도 동일 이유로 mock.
 vi.mock("@/components/editor/StudioOutline", () => ({
@@ -430,134 +401,6 @@ describe("ProjectWritePage — 챕터 전환 draft 격리", () => {
     });
 });
 
-describe("ProjectWritePage — 챕터 전환 거짓 409 버그 (T015 방안 A)", () => {
-    /**
-     * 버그: 챕터 A 에서 편집·저장(A 버전 전진) 후 챕터 B 로 전환하면,
-     * useDocumentSession 의 initRef 가드로 인해 versionRef 가 A 의 전진된 토큰으로 남아
-     * B 저장 시 거짓 409 "저장 충돌"이 뜬다.
-     *
-     * 방안 A 검증: ChapterEditor key={currentChapterId} 리마운트로 챕터 전환 시
-     * 새 세션 인스턴스가 생성되어 B 의 serverVersion 으로 올바르게 초기화됨.
-     * → B 저장 PUT 의 version 이 B 의 토큰이어야 한다.
-     */
-    beforeEach(() => {
-        localStorage.clear();
-        replaceMock.mockClear();
-    });
-    afterEach(() => {
-        localStorage.clear();
-    });
-
-    it("챕터 B 로 전환 후 편집 저장 시 B 의 version 토큰으로 PUT 한다(거짓 409 없음)", async () => {
-        // 챕터 A: version = "vA", 챕터 B: version = "vB"
-        const VERSION_A = "2026-06-01T00:00:00Z";
-        const VERSION_B = "2026-06-02T00:00:00Z";
-        // 챕터 A/B 단건 문서 — version 구분
-        const DOC_A_FULL = { ...CHAPTER_A, version: VERSION_A };
-        const DOC_B_FULL = { ...CHAPTER_B, version: VERSION_B };
-
-        // 챕터 A 저장 — version 추적 (A 저장 후 토큰 전진)
-        let tokenA = VERSION_A;
-        // 챕터 B 저장 — version 캡처
-        const bPutVersions: string[] = [];
-        let tokenB = VERSION_B;
-
-        server.use(
-            http.get(`${ORIGIN}/api/auth/me`, () =>
-                HttpResponse.json({ success: true, data: { userId: 1, email: "a@b.com" }, error: null }),
-            ),
-            http.get(`${ORIGIN}/api/projects/1`, () =>
-                HttpResponse.json({ success: true, data: { id: 1, title: "테스트 작품", genre: null, targetLength: null, toneNotes: null, synopsis: null, worldNotes: null, nextScene: "", paperSize: "A4", archivedAt: null, createdAt: VERSION_A, updatedAt: VERSION_A }, error: null }),
-            ),
-            http.get(`${ORIGIN}/api/projects/1/documents`, () =>
-                HttpResponse.json({ success: true, data: [CHAPTER_A_META, CHAPTER_B_META], error: null }),
-            ),
-            http.get(`${ORIGIN}/api/documents/10`, () =>
-                HttpResponse.json({ success: true, data: DOC_A_FULL, error: null }),
-            ),
-            http.get(`${ORIGIN}/api/documents/20`, () =>
-                HttpResponse.json({ success: true, data: DOC_B_FULL, error: null }),
-            ),
-            http.get(`${ORIGIN}/api/projects/1/memos`, () =>
-                HttpResponse.json({ success: true, data: [], error: null }),
-            ),
-            http.get(`${ORIGIN}/api/projects/1/characters`, () =>
-                HttpResponse.json({ success: true, data: [], error: null }),
-            ),
-            http.post(`${ORIGIN}/api/projects/1/work-sessions/start`, () =>
-                HttpResponse.json({ success: true, data: { id: 1, projectId: 1, startedAt: VERSION_A, endedAt: null }, error: null }),
-            ),
-            http.post(`${ORIGIN}/api/projects/1/work-sessions/end`, () =>
-                HttpResponse.json({ success: true, data: null, error: null }),
-            ),
-            // 챕터 A 저장 핸들러 — 토큰 전진
-            http.put(`${ORIGIN}/api/documents/10`, async ({ request }) => {
-                const { body, version } = (await request.json()) as { body: string; version: string };
-                if (version !== tokenA) {
-                    return HttpResponse.json(
-                        { success: false, data: { code: "DOCUMENT_VERSION_CONFLICT", currentVersion: tokenA, currentBody: DOC_A_FULL.body }, error: { code: "DOCUMENT_VERSION_CONFLICT", message: "충돌" } },
-                        { status: 409 },
-                    );
-                }
-                tokenA = "tA-saved";
-                return HttpResponse.json({ success: true, data: { id: 10, body, wordCount: 3, version: tokenA, updatedAt: tokenA }, error: null });
-            }),
-            // 챕터 B 저장 핸들러 — version 캡처 + 토큰 검증
-            http.put(`${ORIGIN}/api/documents/20`, async ({ request }) => {
-                const { body, version } = (await request.json()) as { body: string; version: string };
-                bPutVersions.push(version);
-                if (version !== tokenB) {
-                    return HttpResponse.json(
-                        { success: false, data: { code: "DOCUMENT_VERSION_CONFLICT", currentVersion: tokenB, currentBody: DOC_B_FULL.body }, error: { code: "DOCUMENT_VERSION_CONFLICT", message: "충돌" } },
-                        { status: 409 },
-                    );
-                }
-                tokenB = "tB-saved";
-                return HttpResponse.json({ success: true, data: { id: 20, body, wordCount: 3, version: tokenB, updatedAt: tokenB }, error: null });
-            }),
-        );
-
-        // Step 1: 챕터 A 로 진입
-        searchParamsStore = new URLSearchParams("chapter=10");
-        const { rerender } = renderPage();
-
-        // 챕터 A 에디터가 로드될 때까지 대기
-        await screen.findByTestId("paper-editor");
-
-        // Step 2: 챕터 A 에서 편집 → PUT 10 트리거(debounce 1500ms)
-        await userEvent.click(screen.getByTestId("paper-editor-change"));
-        // 편집 후 debounce 대기 — useDocumentSession 기본 debounceMs = 1500ms
-        await waitFor(() => expect(tokenA).toBe("tA-saved"), { timeout: 3000 });
-
-        // Step 3: 챕터 B 로 전환 (URL 쿼리 변경 + ChapterEditor 리마운트 시뮬레이션)
-        // page 에서 ChapterEditor key={currentChapterId} 로 감싸면 searchParams 변경 시 리마운트됨.
-        searchParamsStore = new URLSearchParams("chapter=20");
-        // useSearchParams 변경을 React 가 감지하도록 rerender
-        rerender(
-            <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-                <ProjectWritePage />
-            </QueryClientProvider> as ReactNode,
-        );
-
-        // 챕터 B 에디터가 새로 마운트될 때까지 대기
-        await screen.findByTestId("paper-editor");
-
-        // Step 4: 챕터 B 에서 편집 → PUT 20 트리거
-        await userEvent.click(screen.getByTestId("paper-editor-change"));
-
-        // Step 5: B 저장 PUT 발생 대기 + version 검증
-        await waitFor(() => expect(bPutVersions.length).toBeGreaterThan(0), { timeout: 3000 });
-
-        // 핵심 검증: B 저장 시 version 이 VERSION_B 여야 한다.
-        // 버그 시(방안 A 이전): "tA-saved"(A 의 전진된 토큰)가 나와 서버 409 → 거짓 충돌.
-        // 방안 A 구현 후: ChapterEditor 가 리마운트되어 새 세션이 VERSION_B 로 초기화됨.
-        expect(bPutVersions[0]).toBe(VERSION_B);
-        // 덤: conflict 다이얼로그가 없어야 한다 (저장 충돌 없음)
-        expect(screen.queryByText("저장 충돌")).toBeNull();
-        expect(screen.queryByText("충돌")).toBeNull();
-    });
-});
-
 describe("ProjectWritePage — 챕터 제목 rename (T-RENAME)", () => {
     beforeEach(() => {
         localStorage.clear();
@@ -600,64 +443,6 @@ describe("ProjectWritePage — 챕터 제목 rename (T-RENAME)", () => {
         await waitFor(() => {
             expect(patchedId).toBe(10);
             expect(patchedTitle).toBe("새 제목");
-        });
-    });
-});
-
-describe("ProjectWritePage — 본문 상단 챕터 제목 인라인 편집 (T-BODY-RENAME)", () => {
-    /**
-     * PaperEditor mock 에 chapterTitle / onChapterRename 을 노출하므로,
-     * 본문 상단 제목 영역의 더블클릭 → onChapterRename 콜백 → PATCH 호출 흐름을 검증.
-     * 좌측 ChapterList rename 과 동일한 mutation(useUpdateChapterTitle)을 사용하므로
-     * 같은 PATCH /api/documents/{id}/title 엔드포인트를 호출한다.
-     */
-    beforeEach(() => {
-        localStorage.clear();
-        searchParamsStore = new URLSearchParams("chapter=10");
-    });
-    afterEach(() => {
-        localStorage.clear();
-    });
-
-    it("본문 상단 챕터 제목이 표시된다", async () => {
-        stubWith([CHAPTER_A_META, CHAPTER_B_META]);
-        renderPage();
-
-        // PaperEditor mock 의 chapterTitle span 이 표시되어야 함
-        await waitFor(() => {
-            expect(screen.getByTestId("paper-editor-chapter-title")).toBeInTheDocument();
-        });
-        expect(screen.getByTestId("paper-editor-chapter-title")).toHaveTextContent("1챕터");
-    });
-
-    it("본문 상단 챕터 제목 더블클릭 시 onChapterRename 이 호출되고 PATCH /api/documents/{id}/title 를 호출한다", async () => {
-        let patchedId: number | undefined;
-        let patchedTitle: string | undefined;
-
-        server.use(
-            http.patch(`${ORIGIN}/api/documents/:id/title`, async ({ params, request }) => {
-                patchedId = Number(params["id"]);
-                const body = await request.json() as { title: string };
-                patchedTitle = body.title;
-                return HttpResponse.json({
-                    success: true,
-                    data: { id: patchedId, title: patchedTitle, updatedAt: "2026-06-14T00:00:00Z" },
-                    error: null,
-                });
-            }),
-        );
-        stubWith([CHAPTER_A_META, CHAPTER_B_META]);
-        renderPage();
-
-        // 본문 상단 챕터 제목 영역 더블클릭 → mock 이 onChapterRename("본문에서 변경된 제목") 호출
-        const titleEl = await screen.findByTestId("paper-editor-chapter-title");
-        await userEvent.dblClick(titleEl);
-
-        // onChapterRename → handleRenameChapter(currentChapterId=10, "본문에서 변경된 제목") →
-        // updateChapterTitle.mutate → PATCH /api/documents/10/title
-        await waitFor(() => {
-            expect(patchedId).toBe(10);
-            expect(patchedTitle).toBe("본문에서 변경된 제목");
         });
     });
 });

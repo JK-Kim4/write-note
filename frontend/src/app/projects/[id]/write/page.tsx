@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
@@ -11,24 +11,34 @@ import { logKeys } from "@/lib/query/useLogs";
 import { toDrawerMemoView } from "@/lib/memoView";
 import { useWorkSession } from "@/hooks/useWorkSession";
 import { rememberLastProject } from "@/lib/lastProject";
-import type { Editor } from "@tiptap/react";
 import { Toast } from "@/components/ui/Toast";
 import { Rail } from "@/components/workspace/Rail";
 import { Titlebar } from "@/components/workspace/Titlebar";
 import { StudioRightStack } from "@/components/workspace/StudioRightStack";
 import { StudioOutline } from "@/components/editor/StudioOutline";
 import { ChapterList } from "@/components/editor/ChapterList";
-import { ChapterEditor, type ChapterEditorSyncStatus } from "@/components/editor/ChapterEditor";
-import { useEditorOutline } from "@/components/editor/useEditorOutline";
+import { ConflictDialog } from "@/components/editor/ConflictDialog";
+import type { BChapterEditorConflictHandlers, BChapterEditorSyncStatus } from "@/components/custom-editor/types";
+import { BCustomChapterEditor } from "@/components/custom-editor/BCustomChapterEditor";
+import type { CustomEditorRef } from "@/components/custom-editor/CustomEditor";
+import { useCustomOutline } from "@/components/custom-editor/useCustomOutline";
+import type { OutlineItem } from "@/lib/editor/outline";
+import type { PaperSize } from "@/components/editor/pageLayout";
+import { ExportDialog } from "@/components/export/ExportDialog";
+import { PrintOverlay } from "@/components/export/PrintOverlay";
+import { usePdfExport } from "@/lib/export/usePdfExport";
+import { useWordExport } from "@/lib/export/useWordExport";
 
 /**
- * 집필실 (015 US1 / 016 / 022 US1 T015) — A형 3단: [좌:ChapterList+StudioOutline | 원고 | 우].
- * 챕터 전환 = URL 쿼리 ?chapter={documentId}. 없으면 목록에서 가장 최근 수정 챕터로 진입.
+ * 집필실 (A형 3단: [좌:ChapterList+StudioOutline | 원고 | 우]) — 024 R5 에서 TipTap → 자체 엔진 교체.
+ * 챕터 전환 = URL 쿼리 ?chapter={documentId}. 없으면 가장 최근 수정 챕터로 진입.
  *
- * 방안 A (022 거짓 409 수정):
- * 에디터·세션을 ChapterEditor 로 분리하고 `key={currentChapterId}` 로 리마운트.
- * 챕터 전환 시 새 useDocumentSession 인스턴스가 생성 → versionRef 가 새 챕터 토큰으로 초기화.
- * 전환 직전 현재 챕터 본문을 flushDraft 로 flush 해 IME 조합 중 작성분 보존 (016).
+ * 에디터 코어는 B형과 동일한 BCustomChapterEditor(자체 엔진 + useDocumentSession)를 재사용.
+ * - 아웃라인: useCustomOutline(DOM 파생, .custom-editor-scroll).
+ * - 충돌(409): BCustomChapterEditor 가 onConflict 로 올린 핸들러로 ConflictDialog 를 렌더.
+ * - 챕터 전환 시 key={currentChapterId} 리마운트 → 새 세션 → 거짓 409 제거(022 방안 A).
+ *
+ * 줄노트(괘선)·페이지 줌은 자체 엔진 내장 기능으로 이관 — A형 상단 컨트롤에서는 제거.
  */
 
 export default function ProjectWritePage() {
@@ -45,39 +55,37 @@ export default function ProjectWritePage() {
     const chaptersQuery = useProjectChapters(projectId);
     const chapters = useMemo(() => chaptersQuery.data ?? [], [chaptersQuery.data]);
 
-    // URL ?chapter 쿼리에서 현재 챕터 ID 결정.
-    // 없으면 가장 최근 수정(updatedAt 최대) 챕터를 선택.
+    // URL ?chapter 쿼리에서 현재 챕터 ID 결정. 없으면 가장 최근 수정 챕터.
     const chapterIdFromUrl = Number(searchParams.get("chapter") ?? "") || null;
     const currentChapterId = useMemo<number | null>(() => {
         if (chapterIdFromUrl != null && chapters.some((c) => c.id === chapterIdFromUrl)) {
             return chapterIdFromUrl;
         }
         if (chapters.length === 0) return null;
-        // 가장 최근 수정 챕터
         return chapters.reduce((latest, c) => (c.updatedAt > latest.updatedAt ? c : latest)).id;
     }, [chapterIdFromUrl, chapters]);
 
-    const [lined, setLined] = useState(true);
-    const [zoom, setZoom] = useState(1);
     const [leftOpen, setLeftOpen] = useState(true);
     const [rightOpen, setRightOpen] = useState(false);
-    const [editor, setEditor] = useState<Editor | null>(null);
     const [endWorkOpen, setEndWorkOpen] = useState(false);
     const [endWorkBody, setEndWorkBody] = useState("");
     const [endingWork, setEndingWork] = useState(false);
+    const [exportOpen, setExportOpen] = useState(false);
+    const { printModels, lined, exportPdf, clearPrint } = usePdfExport();
 
-    // ChapterEditor 로부터 받은 저장 상태 / flushDraft 참조
-    const [syncStatus, setSyncStatus] = useState<ChapterEditorSyncStatus["syncStatus"]>("idle");
+    // BCustomChapterEditor 로부터 받은 저장 상태 / flushDraft / 충돌 핸들러
+    const [syncStatus, setSyncStatus] = useState<BChapterEditorSyncStatus["syncStatus"]>("idle");
     const flushDraftRef = useRef<((body: string) => void) | null>(null);
-    // 최신 본문 ref — flushDraft 호출 시 전달할 현재 본문.
-    // ChapterEditor 의 onDraftUpdate 로 갱신되지만, page 레벨에서는 별도 추적이 어려우므로
-    // ChapterEditor 의 언마운트 cleanup(pagehide) 와 handleChapterSelect 의 flushDraftRef 콜백으로 처리.
-    // latestBodyRef 는 ChapterEditor 가 마지막으로 전달한 body 를 보존하는 용도.
     const latestBodyForFlushRef = useRef<string>(JSON.stringify({ type: "doc", content: [] }));
+    const [conflictHandlers, setConflictHandlers] = useState<BChapterEditorConflictHandlers>({ conflict: null, reload: () => {}, overwrite: () => {} });
 
-    const handleSyncStatus = useCallback(({ syncStatus: s, flushDraft }: ChapterEditorSyncStatus) => {
+    const handleSyncStatus = useCallback(({ syncStatus: s, flushDraft }: BChapterEditorSyncStatus) => {
         setSyncStatus(s);
         flushDraftRef.current = flushDraft;
+    }, []);
+
+    const handleConflict = useCallback((handlers: BChapterEditorConflictHandlers) => {
+        setConflictHandlers(handlers);
     }, []);
 
     // 메모 서랍
@@ -88,52 +96,34 @@ export default function ProjectWritePage() {
     const drawerMemos = (projectMemosQuery.data ?? []).map((m) => toDrawerMemoView(m, now));
 
     const { endWithLog } = useWorkSession(projectId);
-
-    // 챕터 생성 mutation
     const createChapter = useCreateChapter(projectId);
-
-    // 챕터 순서 이동 mutation (022 US2)
     const reorderChapters = useReorderChapters(projectId);
-
-    // 챕터 삭제·복구 mutation (022 US3 T030)
     const deleteChapter = useDeleteChapter(projectId);
     const restoreChapter = useRestoreChapter(projectId);
-
-    // 챕터 제목 변경 mutation (022 dogfooding T-RENAME)
     const updateChapterTitle = useUpdateChapterTitle(projectId);
 
-    // 되돌리기 토스트 상태 — memos 패턴 (key=seq 로 Toast remount → 타이머 재시작)
     const [pendingDelete, setPendingDelete] = useState<{ ids: number[]; seq: number } | null>(null);
 
     useEffect(() => {
         if (Number.isFinite(projectId)) rememberLastProject(projectId);
     }, [projectId]);
 
-    // 챕터 전환 핸들러 — 전환 직전 현재 초안 flush + URL 변경.
-    // ChapterEditor 리마운트(key={currentChapterId})가 새 세션을 생성하므로 editorKey 증가 불필요.
+    // 챕터 전환 — 전환 직전 현재 초안 flush + URL 변경. key 리마운트로 새 세션(거짓 409 제거).
     const handleChapterSelect = useCallback(
         (nextId: number) => {
             if (nextId === currentChapterId) return;
-            // 전환 직전 현재 챕터 초안 즉시 기록 (IME 조합 중 작성분 보존 — 016).
-            // ChapterEditor 가 flushDraft 콜백을 onSyncStatus 로 전달해 flushDraftRef 에 보관됨.
             flushDraftRef.current?.(latestBodyForFlushRef.current);
-            // URL 쿼리 교체로 챕터 전환 → currentChapterId 변경 → ChapterEditor key 변경 → 리마운트.
-            const url = `/projects/${projectId}/write?chapter=${nextId}`;
-            router.replace(url, { scroll: false });
+            router.replace(`/projects/${projectId}/write?chapter=${nextId}`, { scroll: false });
         },
         [currentChapterId, projectId, router],
     );
 
-    // 챕터 삭제 핸들러 (022 US3 T030)
     const handleDeleteChapter = useCallback(
         (deletedId: number) => {
-            // 현재 챕터 삭제 시 전환 대상 결정 (낙관적 제거 전 현재 chapters 기준)
             if (deletedId === currentChapterId && chapters.length > 1) {
                 const idx = chapters.findIndex((c) => c.id === deletedId);
                 const nextChapter = idx > 0 ? chapters[idx - 1] : chapters[idx + 1];
-                if (nextChapter != null) {
-                    handleChapterSelect(nextChapter.id);
-                }
+                if (nextChapter != null) handleChapterSelect(nextChapter.id);
             }
             setPendingDelete((prev) => ({ ids: [...(prev?.ids ?? []), deletedId], seq: (prev?.seq ?? 0) + 1 }));
             deleteChapter.mutate(deletedId);
@@ -149,17 +139,15 @@ export default function ProjectWritePage() {
 
     const dismissDeleteToast = useCallback(() => setPendingDelete(null), []);
 
-    // 새 챕터 생성 핸들러
     const handleCreateChapter = useCallback(async () => {
         try {
             const newDoc = await createChapter.mutateAsync(undefined);
             handleChapterSelect(newDoc.id);
         } catch {
-            // 생성 실패 — 사용자에게 별도 알림 없이 조용히 처리(목록은 그대로).
+            // 생성 실패 — 조용히 처리
         }
     }, [createChapter, handleChapterSelect]);
 
-    // 챕터 순서 이동 핸들러 (022 US2)
     const handleMoveChapter = useCallback(
         (id: number, direction: "up" | "down") => {
             const idx = chapters.findIndex((c) => c.id === id);
@@ -168,14 +156,12 @@ export default function ProjectWritePage() {
             if (direction === "down" && idx === chapters.length - 1) return;
             const swapIdx = direction === "up" ? idx - 1 : idx + 1;
             const newIds = chapters.map((c) => c.id);
-            // 인접 항목과 교체
             [newIds[idx], newIds[swapIdx]] = [newIds[swapIdx], newIds[idx]];
             reorderChapters.mutate(newIds);
         },
         [chapters, reorderChapters],
     );
 
-    // 챕터 제목 변경 핸들러 (022 dogfooding T-RENAME)
     const handleRenameChapter = useCallback(
         (documentId: number, title: string) => {
             updateChapterTitle.mutate({ documentId, title });
@@ -183,7 +169,17 @@ export default function ProjectWritePage() {
         [updateChapterTitle],
     );
 
-    const outline = useEditorOutline(editor);
+    // DOM 파생 아웃라인 — CustomEditor 스크롤 컨테이너의 [data-heading-level] 스캔.
+    const outline = useCustomOutline(".custom-editor-scroll");
+    // 목차 클릭 → 에디터 caret 점프(heading 끝). selectItem 은 activeIndex 만 갱신(스크롤·포커스는 에디터 주도).
+    const editorRef = useRef<CustomEditorRef>(null);
+    const handleOutlineSelect = useCallback(
+        (item: OutlineItem) => {
+            editorRef.current?.jumpToHeading(item.index);
+            outline.selectItem(item);
+        },
+        [outline],
+    );
 
     const handleEndWork = async () => {
         const trimmed = endWorkBody.trim();
@@ -203,6 +199,8 @@ export default function ProjectWritePage() {
     };
 
     const projectTitle = projectQuery.data?.title ?? "";
+    const paperSize: PaperSize = projectQuery.data?.paperSize ?? "A4";
+    const exportWord = useWordExport(projectId, paperSize);
     const saveStateClass =
         syncStatus === "syncing" ? "saving" : syncStatus === "synced" ? "saved" : syncStatus;
     const saveLabel =
@@ -219,16 +217,6 @@ export default function ProjectWritePage() {
             <span className={`savestate savestate--${saveStateClass}`} role="status" aria-live="polite">
                 {saveLabel}
             </span>
-            <label className="view-menu__row" style={{ fontSize: 12 }}>
-                <input type="checkbox" checked={lined} onChange={(e) => setLined(e.target.checked)} /> 줄노트
-            </label>
-            <button type="button" className="btn btn--secondary btn--compact" onClick={() => setZoom((z) => Math.max(0.5, Math.round((z - 0.1) * 10) / 10))}>
-                −
-            </button>
-            <span style={{ fontSize: 12, minWidth: 38, textAlign: "center" }}>{Math.round(zoom * 100)}%</span>
-            <button type="button" className="btn btn--secondary btn--compact" onClick={() => setZoom((z) => Math.min(2, Math.round((z + 0.1) * 10) / 10))}>
-                +
-            </button>
             <button
                 type="button"
                 className="btn btn--secondary btn--compact"
@@ -271,11 +259,9 @@ export default function ProjectWritePage() {
     return (
         <div className="app">
             <Rail />
-            <div className="main" style={{ ["--zoom"]: zoom } as CSSProperties}>
+            <div className="main">
                 <Titlebar title={projectTitle ? `${projectTitle} — 집필` : "집필"} right={right} />
-                <div
-                    className={`screen-body screen-body--studio${leftOpen ? "" : " no-left"}${rightOpen ? "" : " no-right"}`}
-                >
+                <div className={`screen-body screen-body--studio${leftOpen ? "" : " no-left"}${rightOpen ? "" : " no-right"}`}>
                     {leftOpen && (
                         <div className="studio-left-panel">
                             <ChapterList
@@ -286,35 +272,36 @@ export default function ProjectWritePage() {
                                 onMove={handleMoveChapter}
                                 onDelete={handleDeleteChapter}
                                 onRename={handleRenameChapter}
+                                onExport={() => setExportOpen(true)}
                             />
                             <StudioOutline
                                 items={outline.items}
                                 activeIndex={outline.activeIndex}
-                                onSelect={outline.selectItem}
+                                onSelect={handleOutlineSelect}
                             />
                         </div>
                     )}
                     <div className="studio">
                         {Number.isNaN(projectId) ? (
                             <p style={{ padding: "2rem" }}>잘못된 작품입니다.</p>
-                        ) : chaptersQuery.isLoading ? (
+                        ) : projectQuery.isLoading || chaptersQuery.isLoading ? (
                             <p style={{ padding: "2rem", opacity: 0.5 }}>문서 불러오는 중…</p>
+                        ) : projectQuery.isError || projectQuery.data == null ? (
+                            <p style={{ padding: "2rem", opacity: 0.5 }}>작품을 찾을 수 없습니다.</p>
                         ) : currentChapterId == null ? (
                             <p style={{ padding: "2rem", opacity: 0.5 }}>챕터를 선택하거나 생성해 주세요.</p>
                         ) : (
-                            // key={currentChapterId} — 챕터 전환 시 ChapterEditor 리마운트.
-                            // 새 useDocumentSession 인스턴스가 새 챕터의 version 으로 초기화 → 거짓 409 제거.
-                            <ChapterEditor
+                            // key={currentChapterId} — 챕터 전환 시 리마운트(새 세션 → 거짓 409 제거).
+                            <BCustomChapterEditor
                                 key={currentChapterId}
-                                documentId={currentChapterId}
+                                ref={editorRef}
+                                currentChapterId={currentChapterId}
                                 projectId={projectId}
-                                projectTitle={projectTitle}
+                                paperSize={paperSize}
                                 chapterTitle={chapters.find((c) => c.id === currentChapterId)?.title}
-                                onChapterRename={currentChapterId != null ? (title) => handleRenameChapter(currentChapterId, title) : undefined}
-                                lined={lined}
-                                zoom={zoom}
-                                onEditorReady={setEditor}
+                                onChapterRename={(title) => handleRenameChapter(currentChapterId, title)}
                                 onSyncStatus={handleSyncStatus}
+                                onConflict={handleConflict}
                             />
                         )}
                     </div>
@@ -339,6 +326,24 @@ export default function ProjectWritePage() {
                     onDismiss={dismissDeleteToast}
                 />
             )}
+            {conflictHandlers.conflict != null && (
+                <ConflictDialog
+                    conflict={conflictHandlers.conflict}
+                    onReload={() => conflictHandlers.reload()}
+                    onOverwrite={() => conflictHandlers.overwrite()}
+                />
+            )}
+            {exportOpen && (
+                <ExportDialog
+                    open
+                    chapters={chapters}
+                    paperSize={paperSize}
+                    onExportPdf={(req) => { setExportOpen(false); exportPdf(req); }}
+                    onExportWord={(format, req) => { setExportOpen(false); exportWord(format, req); }}
+                    onClose={() => setExportOpen(false)}
+                />
+            )}
+            {printModels && <PrintOverlay models={printModels} paperSize={paperSize} lined={lined} onDone={clearPrint} />}
             {endWorkOpen && (
                 <div className="modal-backdrop" onClick={() => !endingWork && setEndWorkOpen(false)}>
                     <div className="modal capture" role="dialog" aria-modal="true" aria-label="작업 종료" onClick={(e) => e.stopPropagation()}>
