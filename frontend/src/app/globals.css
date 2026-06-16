@@ -47,3 +47,31 @@
     transform: scale(var(--w-active-scale));
   }
 }
+
+/* Export 다이얼로그 — 모달 오버레이 */
+.export-dialog {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+}
+.export-dialog__panel {
+  background: #fff; border-radius: 12px; padding: 24px;
+  width: min(440px, 92vw); max-height: 86vh; overflow: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  display: flex; flex-direction: column; gap: 16px;
+}
+.export-dialog__formats { display: flex; gap: 8px; }
+.export-dialog__formats button { flex: 1; padding: 8px; border: 1px solid #d4d4d8; border-radius: 8px; background: #fff; }
+.export-dialog__formats button[aria-pressed="true"] { border-color: #4f46e5; color: #4f46e5; font-weight: 600; }
+.export-dialog__chapters { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.export-dialog__chapters li { display: flex; align-items: center; gap: 8px; }
+.export-dialog__chapters li label { flex: 1; display: flex; align-items: center; gap: 6px; }
+.export-dialog__option { display: flex; align-items: center; gap: 8px; }
+.export-dialog__actions { display: flex; gap: 8px; justify-content: flex-end; }
+.export-dialog__paper { color: #6b7280; font-size: 13px; margin: 0; }
+
+/* 인쇄 — PrintOverlay(.print-root) 만 보이게 (후속 Task 5·6) */
+@media print {
+  body > *:not(.print-root) { display: none !important; }
+  .print-root { display: block !important; }
+}
