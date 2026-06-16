@@ -55,7 +55,7 @@
 - **인쇄 전용 렌더** — 각 `LaidOutPage` 를 고정 크기(`pageWidthPx × pageHeightPx`) 컨테이너 div 로 렌더, 페이지 사이 `break-after: page`, `@page { size: <paperSize> portrait; margin: 0 }` (마진은 geometry 가 이미 contentHeight 에 반영). 챕터 합본 모드(§5)에 따라 챕터 경계에 page-break/제목 삽입.
 - `lined=true` 면 괘선(가로 줄) 배경을 페이지에 그림(에디터 줄노트와 동일 stride).
 - `window.print()` 호출 → 사용자가 인쇄 대화상자에서 "PDF 로 저장".
-- **geometry 출처 통일 (정합 이슈)**: 현재 `ExportDialog` 는 `@/components/editor/pageLayout` 의 `PaperSize`(A4/A3/A2/B4)를 import 하나, 자체 엔진은 `custom-editor/geometry` 의 `PaperSize`(A5 포함)를 쓴다. PDF 경로는 **`custom-editor/geometry` 로 단일화**하고 `ExportDialog` import 도 그쪽으로 변경한다. (`editor/pageLayout` 은 TipTap 폐기 후 잔존 모듈 — 본 작업에서 PDF 가 의존을 끊고, 완전 제거는 별도 정리 트랙.)
+- **geometry 출처 (정정)**: 자체 엔진 결선(`BCustomChapterEditor.tsx:31-35`)에 이미 `toGeoPaperSize(size: LayoutPaperSize): GeoPaperSize` 매핑이 있다(A4/A3/A2/B4 동일 문자열, 타입만 다름). 프로덕션 자체 엔진은 `editor/pageLayout.PaperSize` 를 받아 이 매핑으로 `custom-editor/geometry.pageGeometry` 에 넘긴다. **PDF export 는 이 기존 매핑·geometry 를 그대로 재사용** — PaperSize 통일 작업은 불필요. (`custom-editor/geometry.PaperSize` 의 A5 는 PoC 전용 잔재로 프로덕션 미사용. 이전 초안의 "통일" 방향은 실제 코드와 어긋나 폐기.)
 
 ### 4-3. HWPX/DOCX — 백엔드 경로
 
