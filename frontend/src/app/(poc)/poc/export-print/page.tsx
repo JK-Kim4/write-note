@@ -14,7 +14,7 @@
  *   - A4 용지 기하(25mm 여백, 본문 26줄)를 @page + explicit break-after: page 로 재현.
  *   - 각 "장"을 별도 div 로 분리해 인쇄 시 정확히 페이지 구분.
  *
- * generateHTML: @tiptap/core 미설치 → 정적 한국어 더미 본문(3장 분량)으로 대체.
+ * 본문은 정적 한국어 더미(3장 분량) — 에디터 비의존 PoC 인쇄 정합 검증용.
  * 시각적 정합은 사용자 직접 dogfooding 필요 — 자동 검증 불가.
  */
 

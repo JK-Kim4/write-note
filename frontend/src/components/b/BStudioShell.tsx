@@ -15,7 +15,7 @@ import { Toast } from "@/components/ui/Toast";
 import { BWorkSidePanel } from "@/components/b/BWorkSidePanel";
 import { ChapterList } from "@/components/editor/ChapterList";
 import { ExportDialog } from "@/components/export/ExportDialog";
-import type { BChapterEditorConflictHandlers, BChapterEditorSyncStatus } from "@/components/b/BChapterEditor";
+import type { BChapterEditorConflictHandlers, BChapterEditorSyncStatus } from "@/components/custom-editor/types";
 
 /**
  * B형 집필실 셸 (024 US1) — 챕터 관리 / 세션 / drawer / 충돌·종료 모달 / 3패널 레이아웃을

@@ -19,7 +19,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { PaperSize as LayoutPaperSize } from "@/components/editor/pageLayout";
-import type { BChapterEditorConflictHandlers, BChapterEditorSyncStatus } from "@/components/b/BChapterEditor";
+import type { BChapterEditorConflictHandlers, BChapterEditorSyncStatus } from "./types";
 import { documentKeys, useChapterDocument } from "@/lib/query/useDocument";
 import type { ProjectDocument } from "@/lib/types/domain";
 import { useDocumentSession } from "@/hooks/useDocumentSession";

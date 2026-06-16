@@ -18,7 +18,7 @@ import { StudioRightStack } from "@/components/workspace/StudioRightStack";
 import { StudioOutline } from "@/components/editor/StudioOutline";
 import { ChapterList } from "@/components/editor/ChapterList";
 import { ConflictDialog } from "@/components/editor/ConflictDialog";
-import type { BChapterEditorConflictHandlers, BChapterEditorSyncStatus } from "@/components/b/BChapterEditor";
+import type { BChapterEditorConflictHandlers, BChapterEditorSyncStatus } from "@/components/custom-editor/types";
 import { BCustomChapterEditor } from "@/components/custom-editor/BCustomChapterEditor";
 import { useCustomOutline } from "@/components/custom-editor/useCustomOutline";
 import type { PaperSize } from "@/components/editor/pageLayout";
