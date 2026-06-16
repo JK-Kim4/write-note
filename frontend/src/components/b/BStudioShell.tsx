@@ -14,6 +14,7 @@ import type { OutlineItem } from "@/lib/editor/outline";
 import { Toast } from "@/components/ui/Toast";
 import { BWorkSidePanel } from "@/components/b/BWorkSidePanel";
 import { ChapterList } from "@/components/editor/ChapterList";
+import { ExportDialog } from "@/components/export/ExportDialog";
 import type { BChapterEditorConflictHandlers, BChapterEditorSyncStatus } from "@/components/b/BChapterEditor";
 
 /**
@@ -103,6 +104,8 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
     // 보조 패널 접기·탭 상태
     const [panelOpen, setPanelOpen] = useState(true);
     const [panelTab, setPanelTab] = useState<"memos" | "characters">("memos");
+    // 내보내기 다이얼로그(023 Round 3 진입점) — 실제 PDF 생성은 R7, 현재 placeholder.
+    const [exportOpen, setExportOpen] = useState(false);
 
     // 에디터 코어로부터 받은 저장 상태 / flushDraft / 충돌 핸들러
     const flushDraftRef = useRef<((body: string) => void) | null>(null);
@@ -326,6 +329,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                     onMove={handleMoveChapter}
                     onDelete={handleDeleteChapter}
                     onRename={handleRenameChapter}
+                    onExport={() => setExportOpen(true)}
                 />
             </div>
             <div className="flex-1 overflow-y-auto p-2">
@@ -517,6 +521,16 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                     actionLabel="되돌리기"
                     onAction={handleRestoreChapter}
                     onDismiss={dismissDeleteToast}
+                />
+            )}
+
+            {exportOpen && (
+                <ExportDialog
+                    open
+                    chapters={chapters}
+                    paperSize={paperSize}
+                    onExportPdf={() => { /* R7: PDF 생성 — 현재 placeholder */ }}
+                    onClose={() => setExportOpen(false)}
                 />
             )}
 

@@ -31,10 +31,11 @@ vi.mock("next/navigation", () => ({
     useParams: () => ({ id: "1" }),
 }));
 
-// BEditor, BWorkSidePanel 은 jsdom 미지원 API(ResizeObserver 등) 사용 → 내부 컴포넌트이므로 mock.
+// BCustomChapterEditor(자체엔진 — EditContext/DOM 측정), BWorkSidePanel 은 jsdom 미지원 API 사용 → mock.
+// 024 R4: 기본 라우트가 TipTap BEditor → 자체엔진 BCustomChapterEditor 로 교체됨.
 // chapterTitle / onChapterRename 을 노출해 본문 상단 제목 편집 흐름 검증 가능.
-vi.mock("@/components/b/BEditor", () => ({
-    BEditor: ({
+vi.mock("@/components/custom-editor/BCustomChapterEditor", () => ({
+    BCustomChapterEditor: ({
         chapterTitle,
         onChapterRename,
     }: {
@@ -56,8 +57,8 @@ vi.mock("@/components/b/BEditor", () => ({
 vi.mock("@/components/b/BWorkSidePanel", () => ({
     BWorkSidePanel: () => <div data-testid="b-work-side-panel" />,
 }));
-vi.mock("@/components/editor/useEditorOutline", () => ({
-    useEditorOutline: () => ({ items: [], activeIndex: -1, selectItem: vi.fn() }),
+vi.mock("@/components/custom-editor/useCustomOutline", () => ({
+    useCustomOutline: () => ({ items: [], activeIndex: -1, selectItem: vi.fn() }),
 }));
 
 const ORIGIN = "http://localhost:3000";
