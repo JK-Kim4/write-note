@@ -46,6 +46,9 @@ export function useCustomOutline(scrollSelector: string): {
 
         let timer: ReturnType<typeof setTimeout> | undefined;
         const debounced = () => {
+            // ① leading: 챕터 전환(에디터 리마운트) 같은 큰 변경을 즉시 1회 반영(목차 늦은 렌더 해소)
+            //    + trailing: 연속 변경(타자 중 heading 편집)은 200ms 로 수렴.
+            scan();
             if (timer) clearTimeout(timer);
             timer = setTimeout(scan, 200);
         };
@@ -102,13 +105,18 @@ export function useCustomOutline(scrollSelector: string): {
     // useCallback 으로 안정화(매 렌더 새 인스턴스 → deps 불안정 → 무한루프 위험 회피).
     const selectItem = useCallback(
         (item: OutlineItem) => {
-            const container = document.querySelector(scrollSelector);
+            const container = document.querySelector<HTMLElement>(scrollSelector);
             if (!container) return;
             const els = Array.from(container.querySelectorAll<HTMLElement>("[data-heading-level]"));
             const el = els[item.index];
             if (!el) return;
             const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
             el.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
+            // ② 클릭 즉시 패널 하이라이트 — smooth scroll 이벤트(measure)에만 의존하면 불안정/지연되므로 직접 설정.
+            setActiveIndex(item.index);
+            // ③ 점프 후 에디터로 포커스 복귀(scrollSelector 컨테이너 = stage, tabIndex=0). 없으면 포커스가
+            // 목차 버튼에 남아 마우스로 본문을 클릭하기 전까지 키 입력이 안 된다. preventScroll 로 방금 점프 위치 보존.
+            container.focus({ preventScroll: true });
         },
         [scrollSelector],
     );
