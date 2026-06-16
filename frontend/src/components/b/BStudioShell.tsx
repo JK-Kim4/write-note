@@ -480,9 +480,17 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                 <div className="flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white">
                     <p className="text-sm text-gray-500">잘못된 작품입니다.</p>
                 </div>
-            ) : chaptersQuery.isLoading ? (
+            ) : projectQuery.isLoading || chaptersQuery.isLoading ? (
                 <div className="flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white">
                     <p className="text-sm text-gray-400">문서 불러오는 중…</p>
+                </div>
+            ) : projectQuery.isError || projectQuery.data == null ? (
+                // 작품 자체가 없음(잘못된 URL/삭제됨) — 챕터 빈 상태와 구분해 명확히 안내.
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white">
+                    <p className="text-sm text-gray-500">작품을 찾을 수 없습니다.</p>
+                    <Link href="/b/library" className="text-sm font-medium text-indigo-600 hover:underline">
+                        작품 목록으로
+                    </Link>
                 </div>
             ) : currentChapterId == null ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white">
