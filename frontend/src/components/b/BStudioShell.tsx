@@ -17,6 +17,7 @@ import { ChapterList } from "@/components/editor/ChapterList";
 import { ExportDialog } from "@/components/export/ExportDialog";
 import { PrintOverlay } from "@/components/export/PrintOverlay";
 import { usePdfExport } from "@/lib/export/usePdfExport";
+import { useWordExport } from "@/lib/export/useWordExport";
 import type { BChapterEditorConflictHandlers, BChapterEditorSyncStatus } from "@/components/custom-editor/types";
 
 /**
@@ -140,6 +141,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
 
     // 용지 크기는 작품 속성 — 변경 시 PATCH → 비율 즉시 반영.
     const paperSize: PaperSize = projectQuery.data?.paperSize ?? "A4";
+    const exportWord = useWordExport(projectId, paperSize);
     const handlePaperSizeChange = (next: PaperSize) => {
         if (next === paperSize) return;
         updateProject.mutate({ id: projectId, patch: { paperSize: next } });
@@ -541,7 +543,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                     chapters={chapters}
                     paperSize={paperSize}
                     onExportPdf={(req) => { setExportOpen(false); exportPdf(req); }}
-                    onExportWord={() => {}}
+                    onExportWord={(format, req) => { setExportOpen(false); exportWord(format, req); }}
                     onClose={() => setExportOpen(false)}
                 />
             )}

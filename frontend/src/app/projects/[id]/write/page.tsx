@@ -25,6 +25,7 @@ import type { PaperSize } from "@/components/editor/pageLayout";
 import { ExportDialog } from "@/components/export/ExportDialog";
 import { PrintOverlay } from "@/components/export/PrintOverlay";
 import { usePdfExport } from "@/lib/export/usePdfExport";
+import { useWordExport } from "@/lib/export/useWordExport";
 
 /**
  * 집필실 (A형 3단: [좌:ChapterList+StudioOutline | 원고 | 우]) — 024 R5 에서 TipTap → 자체 엔진 교체.
@@ -188,6 +189,7 @@ export default function ProjectWritePage() {
 
     const projectTitle = projectQuery.data?.title ?? "";
     const paperSize: PaperSize = projectQuery.data?.paperSize ?? "A4";
+    const exportWord = useWordExport(projectId, paperSize);
     const saveStateClass =
         syncStatus === "syncing" ? "saving" : syncStatus === "synced" ? "saved" : syncStatus;
     const saveLabel =
@@ -325,7 +327,7 @@ export default function ProjectWritePage() {
                     chapters={chapters}
                     paperSize={paperSize}
                     onExportPdf={(req) => { setExportOpen(false); exportPdf(req); }}
-                    onExportWord={() => {}}
+                    onExportWord={(format, req) => { setExportOpen(false); exportWord(format, req); }}
                     onClose={() => setExportOpen(false)}
                 />
             )}
