@@ -100,25 +100,13 @@ export function useCustomOutline(scrollSelector: string): {
         };
     }, [scrollSelector, items.length]);
 
-    // selectItem — item.index 번째 [data-heading-level] 요소로 scrollIntoView.
+    // selectItem — 패널 하이라이트(activeIndex)만 갱신한다. 스크롤·포커스·caret 점프는 CustomEditor 가
+    // jumpToHeading(caret collapse → sel.focus effect 의 즉시 scrollTop 보정)로 주도한다 — smooth
+    // scrollIntoView 이벤트가 activeIndex measure 와 경합해 하이라이트가 튀던 문제를 제거.
     // useCallback 으로 안정화(매 렌더 새 인스턴스 → deps 불안정 → 무한루프 위험 회피).
-    const selectItem = useCallback(
-        (item: OutlineItem) => {
-            const container = document.querySelector<HTMLElement>(scrollSelector);
-            if (!container) return;
-            const els = Array.from(container.querySelectorAll<HTMLElement>("[data-heading-level]"));
-            const el = els[item.index];
-            if (!el) return;
-            const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-            el.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
-            // ② 클릭 즉시 패널 하이라이트 — smooth scroll 이벤트(measure)에만 의존하면 불안정/지연되므로 직접 설정.
-            setActiveIndex(item.index);
-            // ③ 점프 후 에디터로 포커스 복귀(scrollSelector 컨테이너 = stage, tabIndex=0). 없으면 포커스가
-            // 목차 버튼에 남아 마우스로 본문을 클릭하기 전까지 키 입력이 안 된다. preventScroll 로 방금 점프 위치 보존.
-            container.focus({ preventScroll: true });
-        },
-        [scrollSelector],
-    );
+    const selectItem = useCallback((item: OutlineItem) => {
+        setActiveIndex(item.index);
+    }, []);
 
     return { items, activeIndex, selectItem };
 }

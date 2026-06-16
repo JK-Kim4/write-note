@@ -16,14 +16,14 @@
  * - 본 컴포넌트 내부에서도 editorKey state 로 reload/overwrite 시 CustomEditor 강제 리마운트.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { PaperSize as LayoutPaperSize } from "@/components/editor/pageLayout";
 import type { BChapterEditorConflictHandlers, BChapterEditorSyncStatus } from "./types";
 import { documentKeys, useChapterDocument } from "@/lib/query/useDocument";
 import type { ProjectDocument } from "@/lib/types/domain";
 import { useDocumentSession } from "@/hooks/useDocumentSession";
-import { CustomEditor } from "./CustomEditor";
+import { CustomEditor, type CustomEditorRef } from "./CustomEditor";
 import { pmJsonToModel, modelToPmJson } from "./pmConvert";
 import type { DocModel } from "./model";
 import type { PaperSize as GeoPaperSize } from "./geometry";
@@ -50,13 +50,10 @@ interface BCustomChapterEditorProps {
     onConflict: (handlers: BChapterEditorConflictHandlers) => void;
 }
 
-export function BCustomChapterEditor({
-    currentChapterId,
-    projectId,
-    paperSize,
-    onSyncStatus,
-    onConflict,
-}: BCustomChapterEditorProps) {
+export const BCustomChapterEditor = forwardRef<CustomEditorRef, BCustomChapterEditorProps>(function BCustomChapterEditor(
+    { currentChapterId, projectId, paperSize, onSyncStatus, onConflict },
+    editorRef,
+) {
     const documentId = currentChapterId;
     const queryClient = useQueryClient();
     const { data: doc, isLoading, isError } = useChapterDocument(documentId);
@@ -198,6 +195,7 @@ export function BCustomChapterEditor({
         <div className="flex min-w-0 flex-1 flex-col pt-11 min-[880px]:pt-0">
             <CustomEditor
                 key={editorKey}
+                ref={editorRef}
                 model={currentModel}
                 onModelChange={handleModelChange}
                 paperSize={toGeoPaperSize(paperSize)}
@@ -205,4 +203,6 @@ export function BCustomChapterEditor({
             />
         </div>
     );
-}
+});
+
+BCustomChapterEditor.displayName = "BCustomChapterEditor";

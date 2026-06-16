@@ -20,7 +20,9 @@ import { ChapterList } from "@/components/editor/ChapterList";
 import { ConflictDialog } from "@/components/editor/ConflictDialog";
 import type { BChapterEditorConflictHandlers, BChapterEditorSyncStatus } from "@/components/custom-editor/types";
 import { BCustomChapterEditor } from "@/components/custom-editor/BCustomChapterEditor";
+import type { CustomEditorRef } from "@/components/custom-editor/CustomEditor";
 import { useCustomOutline } from "@/components/custom-editor/useCustomOutline";
+import type { OutlineItem } from "@/lib/editor/outline";
 import type { PaperSize } from "@/components/editor/pageLayout";
 import { ExportDialog } from "@/components/export/ExportDialog";
 import { PrintOverlay } from "@/components/export/PrintOverlay";
@@ -169,6 +171,15 @@ export default function ProjectWritePage() {
 
     // DOM 파생 아웃라인 — CustomEditor 스크롤 컨테이너의 [data-heading-level] 스캔.
     const outline = useCustomOutline(".custom-editor-scroll");
+    // 목차 클릭 → 에디터 caret 점프(heading 끝). selectItem 은 activeIndex 만 갱신(스크롤·포커스는 에디터 주도).
+    const editorRef = useRef<CustomEditorRef>(null);
+    const handleOutlineSelect = useCallback(
+        (item: OutlineItem) => {
+            editorRef.current?.jumpToHeading(item.index);
+            outline.selectItem(item);
+        },
+        [outline],
+    );
 
     const handleEndWork = async () => {
         const trimmed = endWorkBody.trim();
@@ -266,7 +277,7 @@ export default function ProjectWritePage() {
                             <StudioOutline
                                 items={outline.items}
                                 activeIndex={outline.activeIndex}
-                                onSelect={outline.selectItem}
+                                onSelect={handleOutlineSelect}
                             />
                         </div>
                     )}
@@ -283,6 +294,7 @@ export default function ProjectWritePage() {
                             // key={currentChapterId} — 챕터 전환 시 리마운트(새 세션 → 거짓 409 제거).
                             <BCustomChapterEditor
                                 key={currentChapterId}
+                                ref={editorRef}
                                 currentChapterId={currentChapterId}
                                 projectId={projectId}
                                 paperSize={paperSize}

@@ -12,21 +12,37 @@
  * (022 거짓 409 제거).
  */
 
+import { useMemo, useRef } from "react";
 import { BStudioShell } from "@/components/b/BStudioShell";
 import { BCustomChapterEditor } from "@/components/custom-editor/BCustomChapterEditor";
+import type { CustomEditorRef } from "@/components/custom-editor/CustomEditor";
 import { useCustomOutline } from "@/components/custom-editor/useCustomOutline";
 
 export default function BWorkDetailPage() {
     // DOM 파생 아웃라인 — CustomEditor 스크롤 컨테이너(.custom-editor-scroll)의
     // [data-heading-level] 요소를 스캔해 items / activeIndex / selectItem 을 제공한다.
     const outline = useCustomOutline(".custom-editor-scroll");
+    // 목차 클릭 → 에디터 caret 점프(heading 끝). 셸(BStudioShell)은 outline.selectItem 을 클릭에서
+    // 호출하므로, selectItem 을 래핑해 jumpToHeading 도 함께 부른다(스크롤·포커스는 에디터가 주도).
+    const editorRef = useRef<CustomEditorRef>(null);
+    const outlineWithJump = useMemo(
+        () => ({
+            ...outline,
+            selectItem: (item: Parameters<typeof outline.selectItem>[0]) => {
+                editorRef.current?.jumpToHeading(item.index);
+                outline.selectItem(item);
+            },
+        }),
+        [outline],
+    );
 
     return (
         <BStudioShell
-            outline={outline}
+            outline={outlineWithJump}
             renderEditor={({ currentChapterId, projectId, paperSize, chapterTitle, onChapterRename, onSyncStatus, onConflict }) => (
                 <BCustomChapterEditor
                     key={currentChapterId}
+                    ref={editorRef}
                     currentChapterId={currentChapterId}
                     projectId={projectId}
                     paperSize={paperSize}

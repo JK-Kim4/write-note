@@ -14,7 +14,7 @@
  * (용지는 props, 폰트 고정, 이미지삽입 보류) — CustomEditor 는 편집 표면만.
  */
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { pageGeometry, type PageGeometry, type PaperSize } from "./geometry";
 import { emptyHistory, pushSnapshot, redo, undo, type Snapshot } from "./history";
 import { type LaidOutPage } from "./layoutEngine";
@@ -331,17 +331,21 @@ function PageBox({
     );
 }
 
-export function CustomEditor({
-    model,
-    onModelChange,
-    paperSize,
-    fontSizePx = 18,
-}: {
-    model: DocModel;
-    onModelChange: (next: DocModel) => void;
-    paperSize: PaperSize;
-    fontSizePx?: number;
-}) {
+/** 외부(목차 클릭 등)에서 에디터 캐럿을 제어하는 명령형 핸들. */
+export type CustomEditorRef = {
+    /** headingIndex(문서 순서상 N번째 heading)의 텍스트 끝으로 캐럿 점프 + 스크롤·포커스. */
+    jumpToHeading: (headingIndex: number) => void;
+};
+
+export const CustomEditor = forwardRef<
+    CustomEditorRef,
+    {
+        model: DocModel;
+        onModelChange: (next: DocModel) => void;
+        paperSize: PaperSize;
+        fontSizePx?: number;
+    }
+>(function CustomEditor({ model, onModelChange, paperSize, fontSizePx = 18 }, ref) {
     const buffer = model.buffer;
     // sel.affinity = focus 캐럿의 wrap 경계 시각 위치(-1=앞 줄 끝, +1=다음 줄 시작). 기본 +1 = 1라운드 동작.
     const [sel, setSel] = useState<{ anchor: number; focus: number; affinity: Affinity }>({ anchor: buffer.length, focus: buffer.length, affinity: 1 });
@@ -436,6 +440,23 @@ export function CustomEditor({
         if (ec) ec.updateSelection(Math.min(anchor, focus), Math.max(anchor, focus));
         setSel({ anchor, focus, affinity });
     };
+
+    // 목차 클릭 점프 — heading 텍스트 끝으로 캐럿 collapse(sel.focus effect 가 즉시 scrollTop 보정 →
+    // smooth scroll 없음 → activeIndex measure 경합 없음) + stage 포커스 복귀(키 입력 가능).
+    // view 가 useMemo 이므로 deps 에 포함해 최신 blocks 클로저 보장.
+    useImperativeHandle(
+        ref,
+        () => ({
+            jumpToHeading: (headingIndex: number) => {
+                const headings = view.blocks.filter((b) => b.kind === "paragraph" && b.headingLevel != null);
+                const target = headings[headingIndex];
+                if (!target) return;
+                applySel(target.bufEnd, target.bufEnd, 1);
+                stageRef.current?.focus({ preventScroll: true });
+            },
+        }),
+        [view],
+    );
 
     // EditContext 부착 + 입력 루프(마운트 1회).
     useEffect(() => {
@@ -1027,7 +1048,9 @@ export function CustomEditor({
             </div>
         </>
     );
-}
+});
+
+CustomEditor.displayName = "CustomEditor";
 
 /** buffer 의 각 블록 [start, end) — '\n' 은 이전 블록 end 에 포함(model.ts blockRanges 와 동일 규약). */
 function blockBufRanges(buffer: string): Array<{ start: number; end: number }> {
