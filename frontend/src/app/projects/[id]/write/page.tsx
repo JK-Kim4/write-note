@@ -322,6 +322,7 @@ export default function ProjectWritePage() {
                     chapters={chapters}
                     paperSize={paperSize}
                     onExportPdf={() => { /* R7: PDF 생성 — placeholder */ }}
+                    onExportWord={() => {}}
                     onClose={() => setExportOpen(false)}
                 />
             )}

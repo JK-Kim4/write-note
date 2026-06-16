@@ -538,6 +538,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                     chapters={chapters}
                     paperSize={paperSize}
                     onExportPdf={() => { /* R7: PDF 생성 — 현재 placeholder */ }}
+                    onExportWord={() => {}}
                     onClose={() => setExportOpen(false)}
                 />
             )}
