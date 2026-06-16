@@ -56,6 +56,12 @@ class DocxExportService {
             p.style = "Heading${block.level}"
         }
         if (block.type == "blockquote") p.indentationLeft = 720
+        if (block.type == "listItem") {
+            val depth = block.depth ?: 0
+            p.indentationLeft = 720 * (depth + 1) // 720 twips ≈ 1.27 cm, 1 depth 당 한 단계 들여쓰기
+            // TODO(R7-dogfooding): ordered 번호 — 프론트가 listNumber 전달 후 정확 번호로 교체
+            p.createRun().setText("• ")
+        }
         addRuns(p, block)
     }
 
