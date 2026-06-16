@@ -89,6 +89,96 @@ class DocxExportServiceTest {
     }
 
     @Test
+    @DisplayName("챕터 제목 run 은 bold=true, fontSize=18pt 직접 서식이다")
+    fun `chapter title run has bold true and font size 18`() {
+        val req =
+            ExportRequest(
+                paperSize = "A4",
+                joinMode = "page-title",
+                chapters = listOf(ExportChapterDto("제목챕터", listOf(ExportBlockDto(type = "paragraph", text = "본문")))),
+            )
+        val bytes = service.generate(req)
+        XWPFDocument(ByteArrayInputStream(bytes)).use { doc ->
+            val titlePara = doc.paragraphs.first { it.text.contains("제목챕터") }
+            val titleRun = titlePara.runs.first()
+            assertThat(titleRun.isBold).isTrue()
+            assertThat(titleRun.getFontSize()).isEqualTo(18)
+        }
+    }
+
+    @Test
+    @DisplayName("heading1 블록 run 은 bold=true, fontSize=18pt 직접 서식이다")
+    fun `heading1 block run has bold true and font size 18`() {
+        val req =
+            ExportRequest(
+                paperSize = "A4",
+                joinMode = "body-only",
+                chapters =
+                    listOf(
+                        ExportChapterDto(
+                            "1장",
+                            listOf(ExportBlockDto(type = "heading", level = 1, text = "대제목")),
+                        ),
+                    ),
+            )
+        val bytes = service.generate(req)
+        XWPFDocument(ByteArrayInputStream(bytes)).use { doc ->
+            val headingPara = doc.paragraphs.first { it.text.contains("대제목") }
+            val run = headingPara.runs.first()
+            assertThat(run.isBold).isTrue()
+            assertThat(run.getFontSize()).isEqualTo(18)
+        }
+    }
+
+    @Test
+    @DisplayName("heading2 블록 run 은 bold=true, fontSize=15pt 직접 서식이다")
+    fun `heading2 block run has bold true and font size 15`() {
+        val req =
+            ExportRequest(
+                paperSize = "A4",
+                joinMode = "body-only",
+                chapters =
+                    listOf(
+                        ExportChapterDto(
+                            "1장",
+                            listOf(ExportBlockDto(type = "heading", level = 2, text = "중제목")),
+                        ),
+                    ),
+            )
+        val bytes = service.generate(req)
+        XWPFDocument(ByteArrayInputStream(bytes)).use { doc ->
+            val headingPara = doc.paragraphs.first { it.text.contains("중제목") }
+            val run = headingPara.runs.first()
+            assertThat(run.isBold).isTrue()
+            assertThat(run.getFontSize()).isEqualTo(15)
+        }
+    }
+
+    @Test
+    @DisplayName("heading3 블록 run 은 bold=true, fontSize=13pt 직접 서식이다")
+    fun `heading3 block run has bold true and font size 13`() {
+        val req =
+            ExportRequest(
+                paperSize = "A4",
+                joinMode = "body-only",
+                chapters =
+                    listOf(
+                        ExportChapterDto(
+                            "1장",
+                            listOf(ExportBlockDto(type = "heading", level = 3, text = "소제목")),
+                        ),
+                    ),
+            )
+        val bytes = service.generate(req)
+        XWPFDocument(ByteArrayInputStream(bytes)).use { doc ->
+            val headingPara = doc.paragraphs.first { it.text.contains("소제목") }
+            val run = headingPara.runs.first()
+            assertThat(run.isBold).isTrue()
+            assertThat(run.getFontSize()).isEqualTo(13)
+        }
+    }
+
+    @Test
     @DisplayName("listItem 블록은 bullet 마커(•)를 포함한다")
     fun `listItem block contains bullet marker`() {
         val req =

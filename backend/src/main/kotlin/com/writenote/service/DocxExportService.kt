@@ -39,8 +39,10 @@ class DocxExportService {
         chapter: ExportChapterDto,
     ) {
         val p = doc.createParagraph()
-        p.style = "Heading1"
-        p.createRun().setText(chapter.title)
+        val run = p.createRun()
+        run.isBold = true
+        run.setFontSize(HEADING_FONT_SIZE[1]!!)
+        run.setText(chapter.title)
     }
 
     private fun addBlock(
@@ -52,9 +54,6 @@ class DocxExportService {
             return
         }
         val p = doc.createParagraph()
-        if (block.type == "heading" && block.level != null) {
-            p.style = "Heading${block.level}"
-        }
         if (block.type == "blockquote") p.indentationLeft = 720
         if (block.type == "listItem") {
             val depth = block.depth ?: 0
@@ -62,13 +61,16 @@ class DocxExportService {
             // TODO(R7-dogfooding): ordered 번호 — 프론트가 listNumber 전달 후 정확 번호로 교체
             p.createRun().setText("• ")
         }
-        addRuns(p, block)
+        val headingSize = if (block.type == "heading" && block.level != null) HEADING_FONT_SIZE[block.level] else null
+        addRuns(p, block, baseFontSizePt = headingSize, baseBold = headingSize != null)
     }
 
     /** marks 구간으로 text 를 잘라 run 마다 스타일 적용. \n(소프트 줄바꿈) → addBreak(). */
     private fun addRuns(
         p: XWPFParagraph,
         block: ExportBlockDto,
+        baseFontSizePt: Int? = null,
+        baseBold: Boolean = false,
     ) {
         val text = block.text
         if (text.isEmpty()) {
@@ -89,15 +91,21 @@ class DocxExportService {
             val lines = segment.split("\n")
             lines.forEachIndexed { li, line ->
                 val run = p.createRun()
+                run.isBold = (mark?.bold == true) || baseBold
                 if (mark != null) {
-                    run.isBold = mark.bold
                     run.isItalic = mark.italic
                     if (mark.underline) run.setUnderline(UnderlinePatterns.SINGLE)
                     run.isStrikeThrough = mark.strike
                 }
+                if (baseFontSizePt != null) run.setFontSize(baseFontSizePt)
                 run.setText(line)
                 if (li < lines.size - 1) run.addBreak()
             }
         }
+    }
+
+    companion object {
+        /** heading level(1~3) → 직접 서식 폰트 크기(pt). styleId 의존 없이 Word·한컴 무관 렌더 보장. */
+        private val HEADING_FONT_SIZE = mapOf(1 to 18, 2 to 15, 3 to 13)
     }
 }

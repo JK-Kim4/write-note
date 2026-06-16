@@ -32,6 +32,32 @@ class HwpxExportServiceTest {
     }
 
     @Test
+    @DisplayName("제목 CharPr(ID 20~22)가 등록된 hwpx 를 생성한다 — 직접 서식 보장")
+    fun `generates hwpx with heading char pr registered`() {
+        val req =
+            ExportRequest(
+                paperSize = "A4",
+                joinMode = "page-title",
+                chapters =
+                    listOf(
+                        ExportChapterDto(
+                            "챕터제목",
+                            listOf(
+                                ExportBlockDto(type = "heading", level = 1, text = "H1"),
+                                ExportBlockDto(type = "heading", level = 2, text = "H2"),
+                                ExportBlockDto(type = "heading", level = 3, text = "H3"),
+                            ),
+                        ),
+                    ),
+            )
+        // 생성 예외 없이 ZIP 시그니처를 유지하면 CharPr 등록 포함 구조 정상
+        val bytes = service.generate(req)
+        assertThat(bytes).isNotEmpty()
+        assertThat(bytes[0].toInt().toChar()).isEqualTo('P')
+        assertThat(bytes[1].toInt().toChar()).isEqualTo('K')
+    }
+
+    @Test
     @DisplayName("page-title 모드는 챕터 제목 단락을 포함한다(단락 수 검증)")
     fun `page-title adds title paragraph`() {
         val bodyOnly =

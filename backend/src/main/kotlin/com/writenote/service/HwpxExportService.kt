@@ -25,10 +25,10 @@ class HwpxExportService {
         var paraId = 1
         req.chapters.forEach { chapter ->
             if (req.joinMode != "body-only") {
-                addPara(section, paraId++, "0", chapter.title, styleRef = "1")
+                addPara(section, paraId++, "20", chapter.title, styleRef = "1")
             }
             chapter.blocks.forEach { block ->
-                addPara(section, paraId++, charPrFor(block), blockText(block), styleRef = headingStyle(block))
+                addPara(section, paraId++, headingCharPrFor(block), blockText(block), styleRef = headingStyle(block))
             }
         }
         return write(hwpx)
@@ -44,8 +44,18 @@ class HwpxExportService {
     private fun headingStyle(block: ExportBlockDto): String =
         if (block.type == "heading" && block.level != null) block.level.toString() else "0"
 
-    /** 블록 전체에 단일 mark 면 그 charPr, 아니면 기본(0). 정밀 run 분할은 후속. */
-    private fun charPrFor(block: ExportBlockDto): String {
+    /**
+     * 블록 charPr 결정. heading 은 직접 서식 charPr(20~22) 우선.
+     * 그 외 블록 전체에 단일 mark 면 그 charPr, 아니면 기본(0). 정밀 run 분할은 후속.
+     */
+    private fun headingCharPrFor(block: ExportBlockDto): String {
+        if (block.type == "heading" && block.level != null) {
+            return when (block.level) {
+                1 -> "20" // H1 — 18pt bold
+                2 -> "21" // H2 — 15pt bold
+                else -> "22" // H3+ — 13pt bold
+            }
+        }
         val m = block.marks.firstOrNull() ?: return "0"
         return when {
             m.bold && m.italic -> "12"
@@ -57,6 +67,7 @@ class HwpxExportService {
 
     private fun registerBoldItalicCharPr(hwpx: HWPXFile) {
         val charProps = hwpx.headerXMLFile()?.refList()?.charProperties() ?: return
+        // 인라인 마크 bold/italic (본문 크기 10pt = heightAnd(1000))
         charProps.addNew().apply {
             idAnd("10").heightAnd(1000)
             createBold()
@@ -69,6 +80,20 @@ class HwpxExportService {
             idAnd("12").heightAnd(1000)
             createBold()
             createItalic()
+        }
+        // 제목/heading 직접 서식 (styleIDRef 의존 없이 bold + 크기로 시각화)
+        // hwpxlib height 단위: 1/100 pt (스파이크 heightAnd(1000) = 10pt 기준)
+        charProps.addNew().apply {
+            idAnd("20").heightAnd(1800) // 18pt — 챕터 제목(H1)
+            createBold()
+        }
+        charProps.addNew().apply {
+            idAnd("21").heightAnd(1500) // 15pt — H2
+            createBold()
+        }
+        charProps.addNew().apply {
+            idAnd("22").heightAnd(1300) // 13pt — H3
+            createBold()
         }
     }
 
