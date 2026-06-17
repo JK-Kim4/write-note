@@ -374,6 +374,10 @@ export const CustomEditor = forwardRef<
     const geo = useMemo(() => pageGeometry(paperSize, fontSizePx), [paperSize, fontSizePx]);
     // 버퍼뿐 아니라 blockAttrs(heading 토글) 변경도 리플로우 — 블록별 폰트가 측정·렌더에 관통.
     const view = useMemo<View>(() => (mounted ? relayout(model, geo) : { blocks: [], pages: [] }), [mounted, model, geo]);
+    // EditContext 미지원(iOS WebKit·데스크탑 Safari·Firefox)이면 입력 루프(아래 마운트 effect)가 부착되지
+    // 않아 글씨가 안 써진다. 사용자가 영문 모르고 막히지 않도록 안내를 표시한다(읽기/렌더는 EditContext 무관
+    // 이라 그대로 둔다). mounted 게이트로 SSR/hydration mismatch 회피(서버=항상 미지원이므로).
+    const editContextUnsupported = mounted && typeof EditContext === "undefined";
     // 조합(IME) 중에는 setSel 을 억제(받침 재조합 보호)하므로, 캐럿 오프셋은 EditContext 의 최신 selection 을
     // 직접 읽는다 — 조합 중 onModelChange(텍스트 표시) 리렌더 때 ecRef.selectionStart 가 반영돼 캐럿이 따라간다.
     const caretOffset = composingRef.current ? (ecRef.current?.selectionStart ?? sel.focus) : sel.focus;
@@ -982,6 +986,22 @@ export const CustomEditor = forwardRef<
 
     return (
         <>
+            {editContextUnsupported && (
+                <div
+                    role="alert"
+                    style={{
+                        flex: "none",
+                        padding: "10px 14px",
+                        background: "#fef3c7",
+                        borderBottom: "1px solid #fde68a",
+                        color: "#92400e",
+                        fontSize: 13,
+                        lineHeight: 1.5,
+                    }}
+                >
+                    이 브라우저에서는 아직 글쓰기를 지원하지 않아요. 데스크톱 Chrome·Edge 또는 안드로이드 Chrome에서 작성해 주세요. (작성한 글 읽기는 가능합니다.)
+                </div>
+            )}
             <div
                 style={{
                     display: "flex",
