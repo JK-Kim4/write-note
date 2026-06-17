@@ -161,7 +161,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
             const url = `${chapterUrlBase ?? `/b/works/${projectId}`}?chapter=${nextId}`;
             router.replace(url, { scroll: false });
         },
-        [currentChapterId, projectId, router],
+        [currentChapterId, projectId, router, chapterUrlBase],
     );
 
     // 챕터 삭제 핸들러 (022 US3 T030)

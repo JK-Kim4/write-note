@@ -522,7 +522,6 @@ function _insertTextMarkRuns(
   // buffer offset → flat 텍스트 offset 변환
   // 개행 문자는 flat 에 없으므로, buffer 의 텍스트 글자만 카운트
   function bufferToFlat(bufOffset: number): number {
-    let flat = 0;
     let accBlockStart = 0; // 영향 블록 내 flat 텍스트 누적 offset
     for (let k = 0; k < blockTextLens.length; k++) {
       const bi = startBlockIdx + k;
@@ -898,7 +897,7 @@ export function deleteAtomicAt(model: DocModel, blockIndex: number): DocModel {
  */
 export function nextCaretSkippingAtomic(model: DocModel, offset: number, dir: -1 | 1): number {
   const bufLen = model.buffer.length;
-  let next = offset + dir;
+  const next = offset + dir;
 
   if (next < 0) return 0;
   if (next > bufLen) return bufLen;
