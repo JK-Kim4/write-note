@@ -130,7 +130,7 @@ export function Rail() {
 
     return (
         <nav className="rail" aria-label="화면 전환">
-            <div className="rail__mark" aria-hidden="true" title="나래 노트">
+            <div className="rail__mark" aria-hidden="true" title="소설빙">
                 <span className="rail__logo" />
             </div>
             <div className="rail__nav">
