@@ -16,6 +16,7 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { pageGeometry, type PageGeometry, type PaperSize } from "./geometry";
+import { BulletListIcon, DividerIcon, MarkGlyph, OrderedListIcon, QuoteIcon, ToolbarButton, ToolbarDivider } from "./toolbarIcons";
 import { emptyHistory, pushSnapshot, redo, undo, type Snapshot } from "./history";
 import { type LaidOutPage } from "./layoutEngine";
 import { measureLineXs } from "./measure";
@@ -373,7 +374,10 @@ export const CustomEditor = forwardRef<
     const geo = useMemo(() => pageGeometry(paperSize, fontSizePx), [paperSize, fontSizePx]);
     // 버퍼뿐 아니라 blockAttrs(heading 토글) 변경도 리플로우 — 블록별 폰트가 측정·렌더에 관통.
     const view = useMemo<View>(() => (mounted ? relayout(model, geo) : { blocks: [], pages: [] }), [mounted, model, geo]);
-    const caretPos = mounted ? caretToScreen(sel.focus, view.blocks, view.pages, geo, sel.affinity) : null;
+    // 조합(IME) 중에는 setSel 을 억제(받침 재조합 보호)하므로, 캐럿 오프셋은 EditContext 의 최신 selection 을
+    // 직접 읽는다 — 조합 중 onModelChange(텍스트 표시) 리렌더 때 ecRef.selectionStart 가 반영돼 캐럿이 따라간다.
+    const caretOffset = composingRef.current ? (ecRef.current?.selectionStart ?? sel.focus) : sel.focus;
+    const caretPos = mounted ? caretToScreen(caretOffset, view.blocks, view.pages, geo, sel.affinity) : null;
     const selRects = mounted ? selectionRects(sel.anchor, sel.focus, view, geo) : [];
 
     // 툴바 활성 표시 — 현재 캐럿이 속한 블록의 attr.
@@ -507,7 +511,12 @@ export const CustomEditor = forwardRef<
             onModelChangeRef.current(next);
             // 보류 마크 소비 — 입력이 들어오면 폐기.
             if (pending !== null) setPendingMarks(null);
-            setSel({ anchor: te.selectionStart, focus: te.selectionEnd, affinity: 1 }); // 편집 후 collapse(downstream)
+            // IME 조합 중에는 selection state 갱신(setSel)을 억제한다 — setSel 이 유발하는 리렌더가 한글 받침
+            // 재조합(받침이 다음 글자 초성으로 이동)을 깨뜨려 받침이 앞 글자에 고착된다(025 회귀). 조합 텍스트는
+            // onModelChange 로 화면에 표시되고, 캐럿은 compositionend 에서 EditContext 의 최종 selection 으로 맞춘다.
+            if (!composingRef.current) {
+                setSel({ anchor: te.selectionStart, focus: te.selectionEnd, affinity: 1 }); // 편집 후 collapse(downstream)
+            }
         };
         ec.addEventListener("textupdate", onText);
 
@@ -517,6 +526,8 @@ export const CustomEditor = forwardRef<
         };
         const onCompositionEnd = () => {
             composingRef.current = false;
+            // 조합 종료 — 조합 중 억제한 캐럿을 EditContext 의 최종 selection 으로 한 번 맞춘다(025).
+            setSel({ anchor: ec.selectionStart, focus: ec.selectionEnd, affinity: 1 });
         };
         ec.addEventListener("compositionstart", onCompositionStart);
         ec.addEventListener("compositionend", onCompositionEnd);
@@ -867,7 +878,6 @@ export const CustomEditor = forwardRef<
             ecRef.current = null;
         };
         // 마운트 1회 — 최신 값은 ref(modelRef/onModelChangeRef/selStateRef/viewRef/geoRef)로 참조.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // 포인터 좌표 → 버퍼 캐럿({offset, affinity}, 어느 페이지든). data-poc-page + elementFromPoint 로 페이지·로컬좌표 산출.
@@ -970,60 +980,89 @@ export const CustomEditor = forwardRef<
         stageRef.current?.focus();
     };
 
-    const toolbarBtn = (label: string, isActive: boolean, onClick: () => void) => (
-        <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={onClick}
-            style={{
-                padding: "4px 10px",
-                fontSize: 13,
-                border: "1px solid #d1d5db",
-                borderRadius: 6,
-                background: isActive ? "#e0e7ff" : "#fff",
-                color: isActive ? "#3730a3" : "#374151",
-                cursor: "pointer",
-            }}
-        >
-            {label}
-        </button>
-    );
-
     return (
         <>
-            <div style={{ display: "flex", gap: 6, padding: "8px 12px", borderBottom: "1px solid #e5e7eb", flex: "none" }}>
-                {toolbarBtn("본문", activeAttr.type === "paragraph", applyParagraph)}
-                {toolbarBtn("제목1", activeAttr.type === "heading" && activeAttr.level === 1, () => applyHeading(1))}
-                {toolbarBtn("제목2", activeAttr.type === "heading" && activeAttr.level === 2, () => applyHeading(2))}
-                {toolbarBtn("제목3", activeAttr.type === "heading" && activeAttr.level === 3, () => applyHeading(3))}
-                {/* 마크 — 선택 구간 토글. 활성 표시 = focus 좌측 글자 mask. */}
-                {toolbarBtn("B", (activeMask & MARK.bold) !== 0, () => applyMark(MARK.bold))}
-                {toolbarBtn("I", (activeMask & MARK.italic) !== 0, () => applyMark(MARK.italic))}
-                {toolbarBtn("U", (activeMask & MARK.underline) !== 0, () => applyMark(MARK.underline))}
-                {toolbarBtn("S", (activeMask & MARK.strike) !== 0, () => applyMark(MARK.strike))}
-                {/* 블록 — 인용·글머리표·번호목록·구분선. 활성 = 현재 블록 attr. */}
-                {toolbarBtn("인용", activeAttr.type === "blockquote", () => applyBlockType("blockquote"))}
-                {toolbarBtn("• 목록", activeAttr.type === "listItem" && activeAttr.listKind === "bullet", () => applyBlockType({ listKind: "bullet" }))}
-                {toolbarBtn("1. 목록", activeAttr.type === "listItem" && activeAttr.listKind === "ordered", () => applyBlockType({ listKind: "ordered" }))}
-                {toolbarBtn("구분선", false, () => applyHrRef.current())}
-                {/* 확대/축소 — fit-to-width(scale) 위의 사용자 배수(userZoom). 표시는 실제 배율(effectiveScale). */}
+            <div
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "8px 14px",
+                    borderBottom: "1px solid #e5e7eb",
+                    background: "#fafafa",
+                    flex: "none",
+                    flexWrap: "wrap",
+                }}
+            >
+                {/* 블록 전환 — 텍스트. 활성 = 현재 블록 attr. */}
+                <ToolbarButton isActive={activeAttr.type === "paragraph"} onClick={applyParagraph}>
+                    본문
+                </ToolbarButton>
+                <ToolbarButton isActive={activeAttr.type === "heading" && activeAttr.level === 1} onClick={() => applyHeading(1)}>
+                    제목1
+                </ToolbarButton>
+                <ToolbarButton isActive={activeAttr.type === "heading" && activeAttr.level === 2} onClick={() => applyHeading(2)}>
+                    제목2
+                </ToolbarButton>
+                <ToolbarButton isActive={activeAttr.type === "heading" && activeAttr.level === 3} onClick={() => applyHeading(3)}>
+                    제목3
+                </ToolbarButton>
+                <ToolbarDivider />
+                {/* 글자 서식 — 아이콘(글리프). 선택 구간 토글, 활성 = focus 좌측 글자 mask. */}
+                <ToolbarButton icon title="굵게" isActive={(activeMask & MARK.bold) !== 0} onClick={() => applyMark(MARK.bold)}>
+                    <MarkGlyph kind="bold" />
+                </ToolbarButton>
+                <ToolbarButton icon title="기울임" isActive={(activeMask & MARK.italic) !== 0} onClick={() => applyMark(MARK.italic)}>
+                    <MarkGlyph kind="italic" />
+                </ToolbarButton>
+                <ToolbarButton icon title="밑줄" isActive={(activeMask & MARK.underline) !== 0} onClick={() => applyMark(MARK.underline)}>
+                    <MarkGlyph kind="underline" />
+                </ToolbarButton>
+                <ToolbarButton icon title="취소선" isActive={(activeMask & MARK.strike) !== 0} onClick={() => applyMark(MARK.strike)}>
+                    <MarkGlyph kind="strike" />
+                </ToolbarButton>
+                <ToolbarDivider />
+                {/* 삽입 — 아이콘. 활성 = 현재 블록 attr. */}
+                <ToolbarButton icon title="인용" isActive={activeAttr.type === "blockquote"} onClick={() => applyBlockType("blockquote")}>
+                    <QuoteIcon />
+                </ToolbarButton>
+                <ToolbarButton
+                    icon
+                    title="글머리표 목록"
+                    isActive={activeAttr.type === "listItem" && activeAttr.listKind === "bullet"}
+                    onClick={() => applyBlockType({ listKind: "bullet" })}
+                >
+                    <BulletListIcon />
+                </ToolbarButton>
+                <ToolbarButton
+                    icon
+                    title="번호 목록"
+                    isActive={activeAttr.type === "listItem" && activeAttr.listKind === "ordered"}
+                    onClick={() => applyBlockType({ listKind: "ordered" })}
+                >
+                    <OrderedListIcon />
+                </ToolbarButton>
+                <ToolbarButton icon title="구분선" isActive={false} onClick={() => applyHrRef.current()}>
+                    <DividerIcon />
+                </ToolbarButton>
+                {/* 확대/축소 — fit-to-width(scale) 위의 사용자 배수(userZoom). */}
                 <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}>
                     <button
                         type="button"
                         aria-label="축소"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => setUserZoom((z) => Math.max(0.5, Math.round((z - 0.1) * 10) / 10))}
-                        style={{ width: 26, height: 26, fontSize: 15, border: "1px solid #d1d5db", borderRadius: 6, background: "#fff", color: "#374151", cursor: "pointer", lineHeight: 1 }}
+                        style={{ width: 28, height: 28, fontSize: 15, border: "1px solid #d1d5db", borderRadius: 7, background: "#fff", color: "#374151", cursor: "pointer", lineHeight: 1 }}
                     >
                         −
                     </button>
-                    <span style={{ fontSize: 12, minWidth: 42, textAlign: "center", color: "#374151" }}>{Math.round(userZoom * 100)}%</span>
+                    <span style={{ fontSize: 12, minWidth: 42, textAlign: "center", color: "#6b7280" }}>{Math.round(userZoom * 100)}%</span>
                     <button
                         type="button"
                         aria-label="확대"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => setUserZoom((z) => Math.min(2, Math.round((z + 0.1) * 10) / 10))}
-                        style={{ width: 26, height: 26, fontSize: 15, border: "1px solid #d1d5db", borderRadius: 6, background: "#fff", color: "#374151", cursor: "pointer", lineHeight: 1 }}
+                        style={{ width: 28, height: 28, fontSize: 15, border: "1px solid #d1d5db", borderRadius: 7, background: "#fff", color: "#374151", cursor: "pointer", lineHeight: 1 }}
                     >
                         +
                     </button>
