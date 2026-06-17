@@ -9,7 +9,10 @@ import { useAuthGuard } from "@/lib/auth/guard";
 import { logout } from "@/lib/api/auth";
 import { usePreferences, useIsPreferencesHydrated } from "@/stores/preferences";
 import { getLastProject } from "@/lib/lastProject";
-import { useProjectCards } from "@/lib/query/useProjects";
+import { projectKeys, useProjectCards } from "@/lib/query/useProjects";
+import { documentKeys } from "@/lib/query/useDocument";
+import { webElectronApi } from "@/lib/electron-api";
+import type { ChapterMeta } from "@/lib/types/domain";
 import { useModalDismiss } from "@/lib/useModalDismiss";
 
 /**
@@ -49,6 +52,34 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (hydrated && design === "default") router.replace("/");
     }, [hydrated, design, router]);
+
+    // 집필 진입 대상(최근 연 작품 → 최근 작품) 해석 — onClick 의 분기와 동일 우선순위.
+    const resolveStudioTarget = (): number | null => {
+        const last = getLastProject();
+        if (last != null && (isProjectsLoading || projectCards?.some((c) => c.id === last))) return last;
+        if (projectCards && projectCards.length > 0) return projectCards[0].id;
+        return null;
+    };
+
+    // 집필 진입 지연 완화 — 버튼 hover/focus(클릭 의도) 시점에 작품·챕터·최근 챕터 본문을 미리 로드.
+    // 확정된 2파 워터폴(작품+챕터 → 본문)을 클릭 전에 데워 첫 진입 네트워크 대기를 줄인다.
+    // prefetchQuery 는 staleTime(60s) 내면 재요청하지 않고 에러는 삼킨다(부작용 없음).
+    const prefetchStudio = (id: number) => {
+        if (!Number.isFinite(id) || id <= 0) return;
+        void queryClient.prefetchQuery({ queryKey: projectKeys.detail(id), queryFn: () => webElectronApi.projects.get(id) });
+        void queryClient
+            .prefetchQuery({ queryKey: documentKeys.chapters(id), queryFn: () => webElectronApi.documents.list(id) })
+            .then(() => {
+                const chapters = queryClient.getQueryData<ChapterMeta[]>(documentKeys.chapters(id));
+                if (!chapters || chapters.length === 0) return;
+                // currentChapterId 기본 규칙과 동일: 가장 최근 수정 챕터의 본문을 미리 로드.
+                const latest = chapters.reduce((a, c) => (c.updatedAt > a.updatedAt ? c : a));
+                void queryClient.prefetchQuery({
+                    queryKey: documentKeys.chapter(latest.id),
+                    queryFn: () => webElectronApi.documents.get(latest.id),
+                });
+            });
+    };
 
     const handleLogout = async () => {
         if (isLoggingOut) return;
@@ -99,6 +130,14 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                                     {i === 0 && (
                                         <button
                                             type="button"
+                                            onMouseEnter={() => {
+                                                const t = resolveStudioTarget();
+                                                if (t != null) prefetchStudio(t);
+                                            }}
+                                            onFocus={() => {
+                                                const t = resolveStudioTarget();
+                                                if (t != null) prefetchStudio(t);
+                                            }}
                                             onClick={() => {
                                                 const last = getLastProject();
                                                 // 유효 last id 가 있으면 로딩 중이어도 그 작품으로 진입(존재 검증은 /b/works/[id] 페이지가 수행).
