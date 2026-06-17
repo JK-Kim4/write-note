@@ -17,7 +17,7 @@ import DashboardPage from "./page";
 const pushMock = vi.fn();
 vi.mock("next/navigation", () => ({
     useRouter: () => ({ push: pushMock, replace: vi.fn(), back: vi.fn() }),
-    usePathname: () => "/",
+    usePathname: () => "/home",
     useSearchParams: () => new URLSearchParams(),
 }));
 

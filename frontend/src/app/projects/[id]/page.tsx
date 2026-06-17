@@ -41,7 +41,7 @@ export default function ProjectDetailPage() {
     const unarchiveMutation = useMutation({ mutationFn: () => unarchiveProject(id), onSuccess: invalidate });
     // 공용 훅 재사용 — 삭제 성공 시 lastProject 정리(019 버그픽스 C)가 이 경로에서도 적용된다.
     const deleteMutation = useDeleteProject();
-    const handleDelete = () => deleteMutation.mutate(id, { onSuccess: () => router.push("/") });
+    const handleDelete = () => deleteMutation.mutate(id, { onSuccess: () => router.push("/home") });
 
     const notFound =
         projectQuery.isError &&
@@ -57,7 +57,7 @@ export default function ProjectDetailPage() {
                     lede="이미 삭제되었거나 접근 권한이 없습니다."
                     cta={
                         <Link
-                            href="/"
+                            href="/home"
                             className="px-6 py-3 rounded-button-pill font-semibold"
                             style={{ backgroundColor: "var(--w-accent)", color: "var(--w-canvas)" }}
                         >

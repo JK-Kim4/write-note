@@ -37,7 +37,7 @@ interface PreferencesState {
 
 /** 선택한 디자인의 홈 경로 — 로그인 랜딩·전환 이동·루트 가드가 공유한다. */
 export const DESIGN_HOME: Record<DesignVariant, string> = {
-    default: "/",
+    default: "/home",
     b: "/b",
 };
 

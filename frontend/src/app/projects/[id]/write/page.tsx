@@ -190,7 +190,7 @@ export default function ProjectWritePage() {
             await queryClient.invalidateQueries({ queryKey: logKeys.all });
             setEndWorkOpen(false);
             setEndWorkBody("");
-            router.push("/");
+            router.push("/home");
         } catch {
             // 종료 실패 — 모달 유지(재시도 가능).
         } finally {

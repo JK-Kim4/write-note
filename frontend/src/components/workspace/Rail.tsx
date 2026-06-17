@@ -22,8 +22,8 @@ const ITEMS: Item[] = [
     {
         key: "home",
         label: "홈",
-        href: "/",
-        match: (p) => p === "/",
+        href: "/home",
+        match: (p) => p === "/home",
         icon: (
             <>
                 <path d="M3 11.5 12 4l9 7.5" />
@@ -42,7 +42,7 @@ const ITEMS: Item[] = [
     {
         key: "write",
         label: "집필",
-        href: "/",
+        href: "/home",
         match: (p) => p.includes("/write"),
         icon: (
             <>
