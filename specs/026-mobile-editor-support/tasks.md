@@ -47,13 +47,13 @@ description: "Task list for 026 모바일 집필 지원 (iOS 입력 + 반응형)
 
 **Independent Test**: iPhone Safari로 집필실 진입 → 한글 문단 입력 → 정확 표시 + 받침 재조합(quickstart Phase A).
 
-- [ ] T006 [US1] `contentEditableAdapter.ts` 골격 — contenteditable 요소 attach/detach, `InputAdapter` 구현 시작
-- [ ] T007 [US1] `beforeinput`(insertText/insertCompositionText) + `input` → onTextUpdate 매핑, `preventDefault`로 모델 단일 진실 (research Decision 2)
-- [ ] T008 [US1] `compositionstart`/`compositionupdate`/`compositionend` → onCompositionStart/End + 받침 재조합 처리(025 워크어라운드를 composition 흐름에 적용, research Decision 4)
-- [ ] T009 [US1] syncText/syncSelection — 모델→contenteditable DOM 텍스트·Selection 동기
-- [ ] T010 [US1] 캐럿 충돌 해결 — contenteditable 기본 캐럿 숨김(`caret-color:transparent` 등) + 자체 렌더 캐럿 유지, 조합 표시 방식 결정 (research Decision 3)
-- [ ] T011 [P] [US1] `contentEditableAdapter.test.ts` — beforeinput inputType→model 연산 매핑을 단위 검증(jsdom에서 가능한 결정적 부분)
-- [ ] T012 [US1] 기능 감지 분기에 contentEditableAdapter 연결 + iOS 안내 배너를 입력 가능 상태에 맞게 조정(완전 제거는 Phase 6)
+- [X] T006 [US1] `contentEditableAdapter.ts` 골격 — contenteditable 요소 attach/detach, `InputAdapter` 구현 시작
+- [X] T007 [US1] `beforeinput`(insertText/insertCompositionText) + `input` → onTextUpdate 매핑, `preventDefault`로 모델 단일 진실 (research Decision 2)
+- [X] T008 [US1] `compositionstart`/`compositionupdate`/`compositionend` → onCompositionStart/End + 받침 재조합 처리(025 워크어라운드를 composition 흐름에 적용, research Decision 4)
+- [X] T009 [US1] syncText/syncSelection — 모델→contenteditable DOM 텍스트·Selection 동기
+- [X] T010 [US1] 캐럿 충돌 해결 — contenteditable 기본 캐럿 숨김(`caret-color:transparent` 등) + 자체 렌더 캐럿 유지, 조합 표시 방식 결정 (research Decision 3)
+- [X] T011 [P] [US1] `contentEditableAdapter.test.ts` — beforeinput inputType→model 연산 매핑을 단위 검증(jsdom에서 가능한 결정적 부분)
+- [X] T012 [US1] 기능 감지 분기에 contentEditableAdapter 연결 + iOS 안내 배너를 입력 가능 상태에 맞게 조정(완전 제거는 Phase 6)
 
 **Checkpoint (dogfooding 게이트)**: 사용자 iPhone Safari에서 quickstart Phase A 확인(한글 입력·받침 재조합). **통과해야 US2 진행.**
 
