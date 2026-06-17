@@ -42,34 +42,41 @@
 
 | 컴포넌트 | 책임 | 의존 |
 |---|---|---|
-| `app/page.tsx` (landing) | 소개 페이지 셸 — Hero·Features·Footer 조합 + `LandingAuthRedirect` 마운트 | 아래 표시 컴포넌트 |
-| `LandingHero` | 로고·태그라인·CTA 2버튼 | 새 로고 에셋(`/soseolbing-logo.png`), `next/link` |
+| `app/page.tsx` (landing) | 소개 페이지 셸 — Header·Hero·Preview·Features·Footer 조합 + `LandingAuthRedirect` 마운트 | 아래 표시 컴포넌트 |
+| `LandingHeader` | sticky 헤더 — 로고 + 로그인·무료로 시작하기 | `next/link`, `/soseolbing-logo.png` |
+| `LandingHero` | eyebrow·명조 헤드라인·설명·CTA 2버튼 | `next/link` |
+| `LandingPreview` | 집필 작업실 목업(챕터│원고│곁쪽지) — 순수 CSS 정적 표현 | 없음(순수 표시) |
 | `LandingFeatures` | 기능 3카드 (제목+설명, 정적 데이터 배열) | 없음(순수 표시) |
-| `LandingFooter` | 브랜드 + `/privacy`·`/contact` 링크 | `next/link` |
+| `LandingFooter` | 브랜드·태그라인 + 링크(`/auth/login`·`/privacy`) + 베타 안내 한 줄 + 문의하기(`/contact`) + copyright | `next/link`, `/soseolbing-mark.png` |
 | `LandingAuthRedirect` (client) | 인증 시 홈 자동 이동 | `useQuery(['auth','me'])`, `usePreferences(design)`, `useRouter` |
 
-표시 컴포넌트(Hero/Features/Footer)는 이벤트 핸들러·hook 없음 → 서버 컴포넌트 가능. `LandingAuthRedirect`만 `"use client"`.
+표시 컴포넌트(Header/Hero/Preview/Features/Footer)는 이벤트 핸들러·hook 없음(모두 `next/link` 네비게이션) → 서버 컴포넌트 가능. `LandingAuthRedirect`만 `"use client"`.
 
-### 4-3. 콘텐츠
+### 4-3. 콘텐츠 (비주얼 컴패니언으로 확정한 "간단" 단일 페이지)
 
-- **Hero:** 소설빙 로고(투명 PNG `/soseolbing-logo.png`) + 태그라인 **"소설에 기대어 쉬어가는 곳"** + 설명 **"컨텍스트가 안 죽는 작가용 작업공간"** + CTA: `시작하기`(`/auth/signup`)·`로그인`(`/auth/login`). 카카오 로그인은 기존 auth 페이지 내 존재.
-- **기능 3카드:**
-  - **컨텍스트가 안 죽습니다** — 세션이 끊겨도 작품 맥락(메모·등장인물·마지막 한 줄·다음 장면)이 그대로. 며칠 만에 열어도 흐름을 처음부터 되짚지 않습니다.
-  - **메모와 집필이 한곳에** — 곁쪽지(메모)와 집필 에디터가 같은 시스템. 떠오른 아이디어를 따로 관리하다 잃지 않고 집필 중 바로 곁에 둡니다.
-  - **챕터로 쓰고 내보내기** — 작품을 챕터 단위로 구성·정렬하고 PDF·HWPX(한글)·DOCX(워드)로 내보냅니다.
-- **푸터:** "소설빙" + 개인정보처리방침(`/privacy`)·문의(`/contact`) 링크.
+스크롤 순서: **헤더 → 히어로 → 제품 미리보기 → 기능 3카드 → 푸터**. (좌우 교차 큰 섹션·별도 CTA 밴드는 제외 — 사용자 "간단" 결정)
+
+- **헤더(sticky):** 소설빙 로고(`/soseolbing-logo.png`) + `로그인`(→`/auth/login`) + `무료로 시작하기`(→`/auth/signup`, 테라코타 버튼).
+- **히어로(중앙 정렬):** eyebrow "작가를 위한 집필 작업실" + 명조 헤드라인 **"쉬었다 와도, 이야기는 그 자리에."**("그 자리에"=테라코타 강조) + 설명 "메모도, 등장인물도, 마지막으로 쓴 한 줄도 한자리에. 며칠 만에 다시 열어도 작품의 맥락이 그대로 남습니다." + CTA `무료로 시작하기`(→`/auth/signup`)·`로그인`(→`/auth/login`). 카카오 로그인은 기존 auth 페이지 내 존재.
+- **제품 미리보기:** 브라우저 창 프레임 안에 집필 작업실 목업(챕터 목록 │ 원고 │ 곁쪽지 패널) — **순수 CSS 정적 표현**(실제 스크린샷 아님, 자산 불필요).
+- **기능 3카드(한 줄, 모바일 1열):**
+  - **맥락이 죽지 않아요** — 세션이 끊겨도 메모·등장인물·마지막 한 줄·다음 장면이 그대로. 다시 열면 어디서 멈췄는지 한눈에.
+  - **메모와 집필이 한곳에** — 곁쪽지(메모)와 집필 에디터가 같은 시스템. 떠오른 설정·복선을 잃지 않고 집필 중 바로 곁에.
+  - **챕터로 쓰고 내보내기** — 챕터 단위 구성·정렬 + PDF·HWPX(한글)·DOCX(워드) 내보내기.
+- **푸터(다크):** 로고 마크(`/soseolbing-mark.png`) + 태그라인 "소설에 기대어 쉬어가는 곳" + 링크(`로그인`·`개인정보처리방침`→`/privacy`) + **베타 안내 한 줄** "아직 베타 테스트 중인 1인 개발 작업실이에요. 불편하거나 바라는 점이 있으면 언제든 **문의하기**" — '문의하기'는 클릭 링크 → **`/contact`**(앱 내 문의·메일 발송 화면) + © 2026 소설빙. (만든 이 이름 없음 — "1인 개발 작업실" 문구로 대체.)
 
 ### 4-4. 비주얼
 
-- A형 웜 양피지 토큰(`desktop-app.css`: `--bg` 양피지·`--ink`·`--accent-ink` 잉크블루·serif 폰트) 재사용.
-- 랜딩 전용 스타일은 `desktop-app.css`에 `.landing__*` BEM 섹션 추가.
-- 반응형: 모바일 1열(세로 스택)·데스크탑 중앙 정렬(max-width 컨테이너), 기능 카드 데스크탑 3열/모바일 1열. 라이트·다크 양쪽.
-- CTA 버튼은 기존 `.btn`/`.btn--primary` 재사용.
+- **랜딩 전용 웜 팔레트**(새 로고 톤 정합, 랜딩 스코프 한정 — 앱 전역 잉크블루 토큰은 미변경, [[vault ISSUE-035]] 별개): 크림 배경 `#F4EFE5`/`#FBF8F1`, 잉크 `#2B2722`, 테라코타 액센트/CTA `#C06A41`(hover `#A4552F`), 세이지 보조 `#8C9A6A`, 경계 `#E7DFD0`, 다크 푸터 `#2B2722`.
+- **타이포:** 헤드라인 = 명조(Nanum Myeongjo — 앱이 이미 `next/font`로 로드) / 본문·UI = sans. **결정(plan)**: 기존 폰트 재사용 우선, 목업의 Pretendard는 정확 일치가 필요하면 옵션으로 추가.
+- 랜딩 전용 스타일 = **`landing.css`(신규)** 또는 `desktop-app.css`의 `.landing__*` BEM 섹션. 앱 공용 토큰/컴포넌트 회귀 0 위해 스코프 격리.
+- **반응형:** 데스크탑 중앙 정렬(max-width 컨테이너)·기능 3열, 모바일 1열 세로 스택(제품 미리보기 패널은 모바일에서 원고만). 헤더 sticky + blur.
+- CTA 버튼은 랜딩 전용 `.btn-pri`(테라코타)/`.btn-ghost` 사용(앱 `.btn--primary`와 톤 다름 — 랜딩 한정).
 
 ## 5. 테스트
 
 - **vitest (행위):**
-  - 랜딩 렌더 — 브랜드("소설빙")·CTA 2개(`시작하기`/`로그인` role=link + href)·기능 3개 제목 표시.
+  - 랜딩 렌더 — 브랜드·CTA(`무료로 시작하기`→`/auth/signup`·`로그인`→`/auth/login` role=link + href)·기능 3개 제목·푸터 문의하기(→`/contact`) 표시.
   - `LandingAuthRedirect` — 인증(`me` 200)+design=default → `/home` replace, design=b → `/b` replace, 비로그인(401) → redirect 호출 안 함.
   - `DESIGN_HOME` 갱신 회귀 — `LoginForm` 테스트의 default 기대값 `/`→`/home` 갱신 + B형 `/b` 유지.
 - **게이트:** `pnpm typecheck && pnpm lint && pnpm test && pnpm build` GREEN. `pnpm build`로 RSC 경계(서버/클라이언트) 검증 — `LandingAuthRedirect`만 client, 나머지 서버 컴포넌트.
@@ -84,6 +91,6 @@
 ## 7. 영향 받는 파일 (예상)
 
 - 이동: `src/app/page.tsx` → `src/app/home/page.tsx` (+ 관련 page 테스트)
-- 신규: `src/app/page.tsx`(landing), `LandingHero`/`LandingFeatures`/`LandingFooter`/`LandingAuthRedirect` 컴포넌트
-- 수정: `DESIGN_HOME` 상수 정의처(`LoginForm.tsx` 등) + 해당 테스트, `desktop-app.css`(`.landing__*` 추가)
-- 검증 필요(구현 시 grep): `DESIGN_HOME` 정확한 정의 위치, `/home` 경로 충돌 여부, `/auth/signup` 라우트 존재
+- 신규: `src/app/page.tsx`(landing) + `LandingHeader`/`LandingHero`/`LandingPreview`/`LandingFeatures`/`LandingFooter`/`LandingAuthRedirect` 컴포넌트 + 랜딩 전용 CSS(`landing.css` 또는 `.landing__*`)
+- 수정: `DESIGN_HOME` 상수 정의처(`LoginForm.tsx` 등) + 해당 테스트
+- 검증 필요(구현 시 grep): `DESIGN_HOME` 정확한 정의 위치, `/home` 경로 충돌 여부, `/auth/signup`·`/contact` 라우트 존재, 폰트(Pretendard 추가 여부) 결정
