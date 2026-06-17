@@ -1,6 +1,6 @@
 # Web 런칭(V1 공개) 계획
 
-**상태: 🟡 At Risk** · _최종 갱신: 2026-06-11_ · _대상: web 앱(Next.js→Vercel / Spring Boot→Render)_
+**상태: 🟡 At Risk** · _최종 갱신: 2026-06-16_ · _대상: web 앱(Next.js→Vercel / Spring Boot→OCI Compute / PostgreSQL→OCI self-managed)_
 
 ## 요약
 
@@ -11,6 +11,7 @@
 - export 목표 포맷 = **개방표준 `.hwpx`**(구 `.hwp` 바이너리 제외).
 - 데드라인 = **품질 우선, 날짜 무관**. dogfooding·검증을 범위에 포함.
 - 인프라 = Claude가 코드·설정·SQL 작성 → 사용자가 적용 명령 실행(외부 인프라 쓰기는 사용자 컨펌 영역).
+- **운영 인프라 = OCI 확정(2026-06-16):** 기존 계획의 Render(백엔드)·Supabase(DB)를 **OCI(Oracle Cloud Infrastructure)**로 교체. 백엔드 = OCI Compute 인스턴스 직접 구동 / DB = 같은 OCI Compute에 self-managed PostgreSQL / 프론트 = **Vercel 유지**. OCI CLI 설정 완료, DB·backend 배포 작업 진행 중. (기술 스택 SoT `00-stack-and-schedule.md` + 루트 `CLAUDE.md` 호스팅 표 갱신 의무 — 후속.)
 - **챕터 기능 추가(2026-06-11):** 작품 1:N 챕터(순서 조절 + export 시 골라 묶기, 작품 횡단 없음) — **Round 2.5 신규 삽입**(export 가 챕터 합본에 의존하므로 Round 3 선행 필수). 설계 = `docs/superpowers/specs/2026-06-11-chapters-design.ko.md`.
 - **Round 2 B 기준 재구성(2026-06-12):** B타입 디자인 기본값화에 따라 Round 2 를 B 디자인 기준으로 재정의. **A 디자인 동결**(신규 기능 미적용, 선택 옵션으로 잔존). 용지 크기 = B 에디터에 페이지 분할 이식 후 도입. Round 2.5 챕터 FE(집필실 좌패널)도 B `app/b/works/[id]` 좌패널(목차) 기준으로 적용.
 
@@ -93,18 +94,35 @@
 
 **추정 6~10d** (hwpx는 스파이크 후 확정 — 불확실 폭 최대)
 
-### Round 4 — 운영 인프라 구성 (코드 완성 후)
+### Round 4 — 운영 인프라 (OCI 기반) — ① 사전 준비 해소 → ② 배포 준비
 
-> Claude = 코드·설정·SQL·절차 작성 / 사용자 = 적용 실행(컨펌).
+> **2026-06-16 OCI 전환 + 2026-06-17 2단계 재구성·코드 실측 반영.** 백엔드 = OCI Compute **Docker 컨테이너** / DB = 같은 OCI Compute에 self-managed PostgreSQL(클린 V1~V14, Flyway 자동 적용) / 프론트 = Vercel(same-origin 프록시). **Render·Supabase 폐기.** backend는 OCI에서 **구동까지 완료, 정합만 잔여**(2026-06-17 사용자 확인).
+> **확정(2026-06-17):** SMTP = **Gmail 앱 비밀번호** / 도메인 = **미확보**(Vercel 기본 도메인 우선) / backend 구동 = **Docker 컨테이너**.
+> Claude = 코드·설정·SQL·절차 작성 / 사용자 = OCI·외부 콘솔 적용(컨펌, `external-infra-safety.md` §1).
 
-- [ ] **D2** (#52) Render 백엔드 — Dockerfile·render 설정·환경변수 (web 백엔드 최초 배포)
-- [ ] **D1** (#45) Supabase 마이그레이션 **일괄 적용** — V7·V8 + Round 1/2의 신규 마이그레이션(019 V9~V11 + 020 **V12 작품 용지·V13 작업기록 분리**) 한 번에 (적용 SQL·롤백안). ⚠️ V13은 기존 행 backfill(user_id) + FK CASCADE→SET NULL 교체 — 운영 데이터 ALTER 주의
-- [ ] **D3** (#53) Vercel 프로덕션 브랜치 설정
-- [ ] **D4** (#46) CORS·httpOnly 쿠키 운영 도메인 정합 + 실브라우저 검증
-- [ ] **D5** (#47) 카카오 OAuth redirect URI 운영 콜백 등록(`/api/auth/oauth/kakao/callback`)
+> **아키텍처 메모(코드 실측 2026-06-17):** 프론트는 `/api/*` 를 Next.js `rewrites` 로 `BACKEND_ORIGIN`(env) 프록시 → 브라우저는 항상 **same-origin** → 쿠키 host-only `SameSite=Lax` 로 충분, **CORS `credentials`·cross-site 쿠키 불필요**(기존 `CorsConfig` 와일드카드·`credentials=false` 그대로 유효). 카카오 콜백도 프론트 도메인 경유(`/api/auth/oauth/kakao/callback`)로 same-origin 쿠키 유지. → **구 D4(cross-site `SameSite=None`)는 오판이었고 폐기**(#46 close 후보).
+
+#### ① 사전 준비 해소
+
+**코드 갭 (Claude):**
+- [ ] **C1** 🔴 운영 SMTP 메일 어댑터 — `mode=smtp`(또는 missing) `MailSenderPort` 구현(JavaMailSender, Gmail STARTTLS). 현재 `LoggingMailSender`(`mode=log`)만 존재하고 운영은 placeholder 주석 → 없으면 **회원가입 이메일 인증·비밀번호 재설정 메일 미발송**. `spring-boot-starter-mail` 의존성 기존. TDD.
+- [ ] **C2** 🟡 카카오 redirect-uri 프록시 정합 — 콜백을 프론트 도메인 경유(`https://<front>/api/auth/oauth/kakao/callback`)로 `KAKAO_REDIRECT_URI` 설정 + OAuth 콜백→쿠키 흐름 검증(코드 변경 0 목표)
+
+**외부 등록/설정 (사용자, Claude가 절차·env 제공):**
+- [ ] **E1** 🔴 (#54 인접) Gmail SMTP 앱 비밀번호 발급 → `SMTP_HOST=smtp.gmail.com`·`SMTP_PORT=587`·`SMTP_USERNAME`·`SMTP_PASSWORD`(앱 비번)·`MAIL_FROM`
+- [ ] **E2** 🔴 (#47) 카카오 콘솔 운영 등록 — 앱·웹 플랫폼 도메인(Vercel 도메인)·redirect URI 등록 → `KAKAO_CLIENT_ID/SECRET/REDIRECT_URI`. ⚠️ 도메인 미확보 → **Vercel 기본 도메인(`.vercel.app`, https 자동)** 사용(카카오 IP 콜백 제약 회피)
+- [ ] **E3** 🟡 (#53 인접) 도메인/TLS — 미확보. 우선 Vercel 기본 도메인 + 백엔드는 프록시 뒤 OCI IP. Vercel→OCI 구간 평문 http는 V1 감내, 후속 커스텀 도메인+TLS
+- [ ] **E4** 🟢 나머지 env — `JWT_SECRET`(32B+) / Vercel `BACKEND_ORIGIN`=OCI 주소 / `FRONTEND_ORIGINS` / `FRONTEND_BASE_URL` / `MAIL_BASE_URL`
+
+#### ② 배포 준비 (사전 준비 해소 후)
+- [ ] **D2** (#52) 백엔드 Docker — multi-stage Dockerfile(`gradle bootJar`→JRE 런타임) + run/compose + 운영 env 주입 + 재시작 정책 + (후속) 리버스 프록시·TLS
+- [ ] **D1** (#45) DB — OCI Compute self-managed PostgreSQL, **클린 V1~V14 = backend 첫 기동 시 Flyway 자동 적용**(`flyway.enabled=true`+`ddl-auto=validate`) 확인 + public 미노출 + `pg_dump` 백업. 기존 Supabase 데이터 이전 없음
+- [ ] **D3** (#53) Vercel — `BACKEND_ORIGIN`=OCI 주소 + 프로덕션 브랜치 설정
+- [ ] **D5** (#47) 카카오 redirect 운영 콜백 최종 등록(E2와 연동)
 - [ ] **D7/ISSUE-027** (#54) contact(Formsubmit) 브라우저 CORS 실전송 검증 → 차단 시 백엔드 프록시 endpoint
+- [ ] 전 흐름 dogfooding — 카카오 로그인·메일 수신·전 라우트 회귀
 
-**추정 2~4d**
+**추정 ① 사전 준비 1~2d + ② 배포 2~4d**
 
 ### Round 5 — 통합 dogfooding / 검증
 
@@ -125,17 +143,17 @@
 | Round 2 집필실 (B 재구성) | 5.5~7.5 |
 | Round 2.5 챕터 | 5~7.5 |
 | Round 3 export | 6~10 |
-| Round 4 인프라 | 2~4 |
+| Round 4 인프라 (OCI Compute 직접) | 3~6 |
 | Round 5 검증 | 2~3 |
-| **합계** | **약 27~41d** |
+| **합계** | **약 28~43d** |
 
 > hwpx 스파이크 결과에 따라 Round 3 상단/하단이 갈린다.
 
 ## 🚧 Blocker / 리스크
 
 - **게이트 RED(현재 At Risk 사유)** — frontend `typecheck`·`lint` 실패 → Vercel 배포 게이트 차단. 액션: Round 0 즉시 착수(담당: Claude).
-- **web 백엔드 운영 미배포** — Render에 web 백엔드가 한 번도 배포된 적 없음. 인프라 작업량의 핵심. 액션: Round 4(코드 완성 후), 외부 적용은 사용자 컨펌.
-- **운영 마이그레이션 미적용** — Supabase가 V6에 멈춤(next_scene·logs·sessions·document version→timestamp 부재). 코드-우선 전략상 Round 4에서 일괄 적용. 액션: 적용 SQL·롤백안 사전 작성(담당: Claude) → 적용(담당: 사용자).
+- **web 백엔드 운영 미배포** — web 백엔드가 한 번도 운영 배포된 적 없음. **OCI Compute 직접 운영**은 Render PaaS와 달리 VM 셋업·방화벽(Security List/NSG + OS)·리버스 프록시·TLS(Let's Encrypt)·프로세스 관리를 직접 구성해야 함 → 인프라 작업량의 핵심. 액션: Round 4(코드 완성 후, 진행 중), 외부 적용은 사용자 컨펌.
+- **운영 DB 신규 구축(OCI self-managed)** — 기존 Supabase(V6 정체)를 폐기하고 OCI Compute에 PostgreSQL 신규 구축. 스키마 적용 = **(a) 클린 V1~V14 일괄 확정**(기존 데이터 버림 → 데이터 이전 작업 없음). self-managed라 백업(`pg_dump` cron)·패치는 직접 책임. 액션: 적용 SQL·절차 사전 작성(담당: Claude) → 적용(담당: 사용자).
 - **hwpx 실현가능성 미확정** — `.hwpx` 생성 라이브러리/매핑 범위가 스파이크 전엔 미확정. 액션: Round 3 첫 작업으로 스파이크, 결과로 추정 갱신.
 - **무서명 외부 동작 미검증(ISSUE-027)** — contact CORS는 실브라우저 검증 전 단정 불가. 액션: Round 4 실전송 1건.
 
