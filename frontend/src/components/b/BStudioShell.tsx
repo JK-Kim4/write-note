@@ -94,6 +94,28 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
         return chapters.reduce((latest, c) => (c.updatedAt > latest.updatedAt ? c : latest)).id;
     }, [chapterIdFromUrl, chapters]);
 
+    // 집필실 진입 시 스켈레톤 → 에디터 크로스페이드. 에디터가 준비되면 스켈레톤 오버레이를
+    // 에디터 위에 겹쳐 fade-out 시킨다(겹침 전환). projectId 변경(작품 전환) 시 다시 재생.
+    const editorReady =
+        !Number.isNaN(projectId) &&
+        !projectQuery.isLoading &&
+        !chaptersQuery.isLoading &&
+        !projectQuery.isError &&
+        projectQuery.data != null &&
+        currentChapterId != null;
+    const [showCrossfade, setShowCrossfade] = useState(false);
+    const crossfadeDoneRef = useRef(false);
+    useEffect(() => {
+        crossfadeDoneRef.current = false;
+        setShowCrossfade(false);
+    }, [projectId]);
+    useEffect(() => {
+        if (editorReady && !crossfadeDoneRef.current) {
+            crossfadeDoneRef.current = true;
+            setShowCrossfade(true);
+        }
+    }, [editorReady]);
+
     const [endWorkOpen, setEndWorkOpen] = useState(false);
     const [endWorkBody, setEndWorkBody] = useState("");
     const [endWorkError, setEndWorkError] = useState<string | null>(null);
@@ -504,15 +526,26 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                     </Link>
                 </div>
             ) : (
-                renderEditor({
-                    currentChapterId,
-                    projectId,
-                    paperSize,
-                    chapterTitle: chapters.find((c) => c.id === currentChapterId)?.title,
-                    onChapterRename: (title) => handleRenameChapter(currentChapterId, title),
-                    onSyncStatus: handleSyncStatus,
-                    onConflict: handleConflict,
-                })
+                <div className="relative flex min-w-0 flex-1 flex-col">
+                    {renderEditor({
+                        currentChapterId,
+                        projectId,
+                        paperSize,
+                        chapterTitle: chapters.find((c) => c.id === currentChapterId)?.title,
+                        onChapterRename: (title) => handleRenameChapter(currentChapterId, title),
+                        onSyncStatus: handleSyncStatus,
+                        onConflict: handleConflict,
+                    })}
+                    {showCrossfade && (
+                        <div
+                            className="studio-crossfade-overlay"
+                            aria-hidden="true"
+                            onAnimationEnd={() => setShowCrossfade(false)}
+                        >
+                            <StudioSkeleton />
+                        </div>
+                    )}
+                </div>
             )}
 
             {/* 넓은 폭 inline 우측 패널 */}

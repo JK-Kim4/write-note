@@ -352,3 +352,28 @@
     .studio-skeleton { animation: none; }
     .studio-skeleton__line { animation: none; opacity: 0.6; }
 }
+
+/* 스켈레톤 → 에디터 크로스페이드 — 에디터가 준비되면 스켈레톤을 그 위에 겹쳐 fade-out.
+ * 에디터는 아래에서 즉시 렌더되고, 오버레이 스켈레톤이 녹아 사라지며 드러난다(겹침 전환). */
+.studio-crossfade-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none; /* 순수 시각 — 에디터 입력 막지 않음 */
+    animation: studio-crossfade-out 260ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* 오버레이 안 스켈레톤은 이미 보이던 상태에서 사라지므로 자체 fade-in 비활성. */
+.studio-crossfade-overlay .studio-skeleton {
+    animation: none;
+}
+
+@keyframes studio-crossfade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    /* 모션 줄이기: 즉시 제거(onAnimationEnd 가 fire 되도록 1ms 유지). */
+    .studio-crossfade-overlay { animation-duration: 1ms; }
+}

@@ -21,6 +21,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { PaperSize as LayoutPaperSize } from "@/components/editor/pageLayout";
 import type { BChapterEditorConflictHandlers, BChapterEditorSyncStatus } from "./types";
 import { documentKeys, useChapterDocument } from "@/lib/query/useDocument";
+import { StudioSkeleton } from "@/components/b/StudioSkeleton";
 import type { ProjectDocument } from "@/lib/types/domain";
 import { useDocumentSession } from "@/hooks/useDocumentSession";
 import { CustomEditor, type CustomEditorRef } from "./CustomEditor";
@@ -174,11 +175,8 @@ export const BCustomChapterEditor = forwardRef<CustomEditorRef, BCustomChapterEd
     );
 
     if (isLoading || (!doc && !isError)) {
-        return (
-            <div className="flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white">
-                <p className="text-sm text-gray-400">문서 불러오는 중…</p>
-            </div>
-        );
+        // 본문 로딩도 라우트·셸과 동일 스켈레톤 — 단계 간 깜빡임 없이 이어진다.
+        return <StudioSkeleton />;
     }
     if (isError || !doc) {
         return (
