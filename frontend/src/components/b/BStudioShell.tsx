@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCreateChapter, useDeleteChapter, useProjectChapters, useReorderChapters, useRestoreChapter, useUpdateChapterTitle } from "@/lib/query/useDocument";
 import { useProject, useUpdateProject } from "@/lib/query/useProjects";
 import { PAPER_PRESETS, type PaperSize } from "@/components/editor/pageLayout";
+import { StudioSkeleton } from "./StudioSkeleton";
 import { logKeys } from "@/lib/query/useLogs";
 import { useWorkSession } from "@/hooks/useWorkSession";
 import { rememberLastProject } from "@/lib/lastProject";
@@ -486,9 +487,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                     <p className="text-sm text-gray-500">잘못된 작품입니다.</p>
                 </div>
             ) : projectQuery.isLoading || chaptersQuery.isLoading ? (
-                <div className="flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white">
-                    <p className="text-sm text-gray-400">문서 불러오는 중…</p>
-                </div>
+                <StudioSkeleton />
             ) : projectQuery.isError || projectQuery.data == null ? (
                 // 작품 자체가 없음(잘못된 URL/삭제됨) — 챕터 빈 상태와 구분해 명확히 안내.
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white">
