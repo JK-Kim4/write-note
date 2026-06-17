@@ -56,11 +56,11 @@ V1 wireframe 완료 + 구현 진행 중 — 001 Phase 1A Backend Foundation / 00
 | 상태 관리 | React Query (서버 데이터) + Zustand (로컬 UI) |
 | 백엔드 | Kotlin 2.2 + Spring Boot 4.0.6 (Web + Security + Data JPA + Validation) on Java 24 toolchain (시스템 Corretto 25) |
 | 빌드 | Gradle (Kotlin DSL) |
-| DB | PostgreSQL (Supabase Postgres 의 DB 만 사용) |
+| DB | PostgreSQL (OCI Compute self-managed) |
 | 인증 | Spring Security + JWT + Kakao OAuth2 |
 | 모바일 캡처 | iOS Shortcut → `POST /api/capture` (사용자별 long-lived API token) |
 | 프론트 호스팅 | Vercel |
-| 백엔드 호스팅 | Render |
+| 백엔드 호스팅 | OCI Compute (self-managed) |
 | 코드 품질 | ktlint + Checkstyle |
 
 ## 스크립트
