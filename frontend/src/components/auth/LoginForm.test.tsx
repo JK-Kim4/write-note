@@ -45,7 +45,7 @@ describe("LoginForm", () => {
         await userEvent.type(screen.getByLabelText("비밀번호"), "Strong!Pass123");
         await userEvent.click(screen.getByRole("button", { name: "로그인" }));
 
-        await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/"));
+        await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/home"));
     });
 
     it("B타입 디자인이면 로그인 성공 시 /b 로 이동한다", async () => {

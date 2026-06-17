@@ -59,7 +59,7 @@ describe("ProjectDetailPage", () => {
         const dialog = await screen.findByRole("dialog");
         await userEvent.click(within(dialog).getByRole("button", { name: "삭제" }));
 
-        await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/"));
+        await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/home"));
         expect(deleted).toBe(true);
     });
 });
