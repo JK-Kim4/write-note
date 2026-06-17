@@ -1,0 +1,84 @@
+/* 소설빙 공개 랜딩 — 고정 웜 팔레트(앱 .dark 테마와 무관). */
+.landing {
+  --lp-cream: #F4EFE5; --lp-cream2: #FBF8F1; --lp-paper: #FFFFFF;
+  --lp-ink: #2B2722; --lp-muted: #736A5C; --lp-faint: #9A9082;
+  --lp-terra: #C06A41; --lp-terra-d: #A4552F; --lp-sage-d: #6f7d4f;
+  --lp-line: #E7DFD0;
+  background: var(--lp-cream); color: var(--lp-ink);
+  font-family: system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+  line-height: 1.6; min-height: 100vh;
+}
+.landing-wrap { max-width: 1040px; margin: 0 auto; padding: 0 28px; }
+.landing a { color: inherit; text-decoration: none; }
+
+/* header */
+.landing-header { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(10px);
+  background: rgba(244,239,229,.82); border-bottom: 1px solid rgba(231,223,208,.7); }
+.landing-nav { display: flex; align-items: center; justify-content: space-between; height: 66px; }
+.landing-logo { display: block; width: 132px; height: 40px;
+  background: url('/soseolbing-logo.png') left center / contain no-repeat; }
+.landing-nav-right { display: flex; align-items: center; gap: 20px; }
+.landing-navlink { font-size: 14.5px; color: var(--lp-muted); font-weight: 500; }
+.landing-btn { display: inline-flex; align-items: center; justify-content: center; font-weight: 600;
+  border-radius: 10px; cursor: pointer; border: none; transition: background .15s; }
+.landing-btn--primary { background: var(--lp-terra); color: #fff; padding: 11px 20px; font-size: 14.5px; }
+.landing-btn--primary:hover { background: var(--lp-terra-d); }
+.landing-btn--ghost { background: transparent; color: var(--lp-ink); border: 1px solid var(--lp-line); padding: 11px 20px; font-size: 14.5px; }
+.landing-btn--lg { padding: 15px 30px; font-size: 16px; border-radius: 12px; }
+
+/* hero */
+.landing-hero { text-align: center; padding: 80px 0 52px; }
+.landing-eyebrow { display: inline-block; font-size: 13px; font-weight: 600; letter-spacing: .04em;
+  color: var(--lp-terra-d); background: #F0E2D6; padding: 6px 14px; border-radius: 999px; margin-bottom: 24px; }
+.landing-hero h1 { font-family: var(--font-nanum-myeongjo), serif; font-weight: 800; font-size: 54px;
+  line-height: 1.24; letter-spacing: -.01em; }
+.landing-hero h1 .lp-accent { color: var(--lp-terra); }
+.landing-hero .landing-sub { font-size: 17.5px; color: var(--lp-muted); margin: 22px auto 0; max-width: 28em; line-height: 1.8; }
+.landing-cta { display: flex; gap: 12px; justify-content: center; margin-top: 34px; }
+
+/* product preview */
+.landing-preview { margin: 58px auto 0; max-width: 900px; }
+.landing-browser { background: var(--lp-paper); border: 1px solid var(--lp-line); border-radius: 16px;
+  box-shadow: 0 30px 60px -30px rgba(60,45,30,.35); overflow: hidden; }
+.landing-browserbar { display: flex; gap: 7px; padding: 13px 16px; border-bottom: 1px solid var(--lp-line); background: var(--lp-cream2); }
+.landing-dot { width: 11px; height: 11px; border-radius: 50%; }
+.landing-studio { display: grid; grid-template-columns: 160px 1fr 190px; min-height: 300px; }
+.landing-st-rail { border-right: 1px solid var(--lp-line); padding: 16px 13px; background: var(--lp-cream2); }
+.landing-st-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--lp-faint); text-transform: uppercase; margin-bottom: 11px; }
+.landing-chap { font-size: 13px; color: var(--lp-muted); padding: 7px 10px; border-radius: 7px; margin-bottom: 4px; }
+.landing-chap--on { background: #F0E2D6; color: var(--lp-terra-d); font-weight: 600; }
+.landing-st-paper { padding: 30px 36px; font-family: var(--font-nanum-myeongjo), serif; }
+.landing-st-paper h4 { font-size: 16px; margin-bottom: 14px; }
+.landing-ln { height: 11px; border-radius: 4px; background: #EDE7DB; margin: 10px 0; }
+.landing-st-side { border-left: 1px solid var(--lp-line); padding: 16px 13px; background: var(--lp-cream2); }
+.landing-memo { background: #FBF3D9; border: 1px solid #EBDFB4; border-radius: 8px; padding: 9px 11px;
+  font-size: 11.5px; color: #6b5f3a; margin-bottom: 9px; line-height: 1.5; }
+
+/* features */
+.landing-features { padding: 24px 0 86px; }
+.landing-fgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.landing-fcard { background: var(--lp-paper); border: 1px solid var(--lp-line); border-radius: 14px; padding: 28px 24px; }
+.landing-ficon { width: 42px; height: 42px; border-radius: 11px; background: #F0E2D6;
+  display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 16px; }
+.landing-fcard h3 { font-family: var(--font-nanum-myeongjo), serif; font-weight: 700; font-size: 19px; margin-bottom: 9px; }
+.landing-fcard p { font-size: 14.5px; color: var(--lp-muted); line-height: 1.7; }
+
+/* footer */
+.landing-footer { padding: 48px 0 38px; background: #2B2722; color: #C9C0B2; }
+.landing-ftop { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 22px; }
+.landing-fmark { display: block; width: 110px; height: 30px;
+  background: url('/soseolbing-mark.png') left center / contain no-repeat; margin-bottom: 10px; }
+.landing-ftag { font-family: var(--font-nanum-myeongjo), serif; font-size: 14px; color: #9a9081; }
+.landing-flinks { display: flex; gap: 26px; font-size: 14px; }
+.landing-flinks a:hover { color: #fff; }
+.landing-notice { font-size: 13.5px; color: #a89e8d; margin-top: 20px; line-height: 1.7; }
+.landing-notice .landing-ask { color: #E0A074; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.landing-fcopy { font-size: 12.5px; color: #8a8276; border-top: 1px solid #3d382f; padding-top: 16px; margin-top: 22px; }
+
+@media (max-width: 820px) {
+  .landing-hero h1 { font-size: 38px; }
+  .landing-studio { grid-template-columns: 1fr; }
+  .landing-st-rail, .landing-st-side { display: none; }
+  .landing-fgrid { grid-template-columns: 1fr; gap: 14px; }
+  .landing-ftop { flex-direction: column; }
+}
