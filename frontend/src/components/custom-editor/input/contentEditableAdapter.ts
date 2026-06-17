@@ -137,6 +137,10 @@ export function createContentEditableAdapter(): InputAdapter {
             return composing;
         },
 
+        focusInput() {
+            surface?.focus();
+        },
+
         updateControlBounds() {
             // contenteditable 경로는 제어 영역 경계가 불필요(EditContext 전용) — no-op.
         },

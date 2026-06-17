@@ -867,7 +867,7 @@ export const CustomEditor = forwardRef<
             else setSelLocal(newFocus, newFocus, newAffinity);
         };
         host.addEventListener("keydown", onKey);
-        host.focus();
+        adapter.focusInput();
 
         return () => {
             adapter.detach();
@@ -921,8 +921,9 @@ export const CustomEditor = forwardRef<
 
     // 드래그 선택 — mousedown=anchor, move=focus, up=종료. preventDefault 로 네이티브 선택 억제 + 수동 focus.
     const onStageMouseDown = (e: ReactMouseEvent<HTMLDivElement>) => {
+        // iOS: 키보드는 사용자 제스처 내 focus 라야 뜬다 — preventDefault 보다 먼저 입력 표면 포커스.
+        adapterRef.current?.focusInput();
         e.preventDefault();
-        stageRef.current?.focus();
         const hit = pointToCaret(e.clientX, e.clientY);
         if (hit == null) return;
         typingRunRef.current = false; // 클릭/드래그 = 캐럿 이동 → 다음 타이핑이 새 undo 경계
@@ -948,13 +949,13 @@ export const CustomEditor = forwardRef<
     const applyHeading = (level: 1 | 2 | 3) => {
         const idx = blockIndexAt(modelRef.current, selStateRef.current.focus);
         onModelChangeRef.current(toggleHeading(modelRef.current, idx, level));
-        stageRef.current?.focus();
+        adapterRef.current?.focusInput();
     };
     const applyParagraph = () => {
         const idx = blockIndexAt(modelRef.current, selStateRef.current.focus);
         const attr = modelRef.current.blockAttrs[idx];
         if (attr?.type === "heading") onModelChangeRef.current(toggleHeading(modelRef.current, idx, attr.level));
-        stageRef.current?.focus();
+        adapterRef.current?.focusInput();
     };
     // 블록 타입 토글(인용/목록) — 같은 타입이면 본문으로 해제. buffer 불변(blockAttrs 만) → EC 동기 불필요.
     const applyBlockType = (target: "blockquote" | { listKind: "bullet" | "ordered" }) => {
@@ -965,7 +966,7 @@ export const CustomEditor = forwardRef<
                 ? cur?.type === target
                 : cur?.type === "listItem" && cur.listKind === target.listKind;
         onModelChangeRef.current(toggleBlockType(modelRef.current, idx, isSame ? "paragraph" : target));
-        stageRef.current?.focus();
+        adapterRef.current?.focusInput();
     };
     // 마크 토글 버튼 — 선택 있으면 구간 토글, collapsed 이면 보류 마크 토글(T025). 포커스 복귀.
     const applyMark = (mark: Mask) => {
@@ -978,7 +979,7 @@ export const CustomEditor = forwardRef<
             const base = pendingMarksRef.current !== null ? pendingMarksRef.current : marksAt(modelRef.current, cur.focus);
             setPendingMarks(base ^ mark);
         }
-        stageRef.current?.focus();
+        adapterRef.current?.focusInput();
     };
 
     return (

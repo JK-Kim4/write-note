@@ -85,6 +85,10 @@ export function createEditContextAdapter(): InputAdapter {
             return composing;
         },
 
+        focusInput() {
+            host?.focus();
+        },
+
         updateControlBounds(bounds: DOMRect) {
             if (ec) ec.updateControlBounds(bounds);
         },

@@ -62,6 +62,11 @@ export type InputAdapter = {
     getSelection(): { start: number; end: number };
     /** IME 조합 중 여부(keydown 가드·캐럿 오프셋 계산용). */
     isComposing(): boolean;
+    /**
+     * 입력 소스에 포커스(소프트 키보드 호출). iOS Safari 는 사용자 제스처(탭) 콜스택 내에서 호출해야
+     * 키보드가 뜨므로, CustomEditor 가 stage 탭 핸들러 안에서 이를 부른다.
+     */
+    focusInput(): void;
     /** 입력 소스 제어 영역 경계 갱신(EditContext 전용 — contenteditable 은 no-op). */
     updateControlBounds(bounds: DOMRect): void;
 };
