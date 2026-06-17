@@ -72,6 +72,39 @@ V1 wireframe 완료 + 구현 진행 중 — 001 Phase 1A Backend Foundation / 00
 | backend verify | `cd backend && ./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` |
 | backend boot | `cd backend && ./gradlew bootRun --args='--spring.profiles.active=local'` |
 
+## 배포 환경
+
+배포·인프라 상세 SoT = [docs/plan/04-web-launch-v1-plan.md](./docs/plan/04-web-launch-v1-plan.md) Round 4 + [docs/plan/00-stack-and-schedule.md §2-3](./docs/plan/00-stack-and-schedule.md). 브랜치 종속·유동 정보이므로 본 절은 요약이며, 충돌 시 SoT 우선.
+
+### 호스팅 (2026-06-16 OCI 전환)
+
+| 대상 | 환경 |
+|---|---|
+| 프론트 (web 앱 `frontend/`) | Vercel (same-origin 프록시 — `/api/*` → `BACKEND_ORIGIN` rewrite) |
+| 백엔드 | OCI Compute 인스턴스 (self-managed, Docker 컨테이너) |
+| DB | 같은 OCI Compute 의 self-managed PostgreSQL (public 미노출, Flyway 자동 적용) |
+| 데스크톱 (`desktop/`) | GitHub Releases — `v*` 태그 push 시 `.github/workflows/release.yml` 이 네이티브 러너에서 dmg/exe 빌드·게시 |
+| 다운로드 페이지 (`download-site/`) | Vercel 정적 배포 (Production Branch = `main`, Root = `download-site`) — 데스크톱 설치파일 안내. **웹 앱과 분리** |
+
+> Render(백엔드)·Supabase(DB)는 2026-06-16 폐기. 도메인 미확보 → Vercel 기본 `.vercel.app` 우선.
+
+### 브랜치 모델 (README §"브랜치 전략")
+
+| 브랜치 | 역할 |
+|---|---|
+| `main` | production-released 만 (V1 출시 전 = 기획 산출물만). 데스크톱 다운로드 페이지의 Vercel production 브랜치 |
+| `develop` | 다음 release 통합 target (web 포팅 015~022 merge 완료 지점) |
+| `feature/*` | 신규 기능, 워크트리 격리 |
+| `release/*` · `hotfix/*` | 출시 안정화 / production 긴급 fix (발생 시 생성) |
+
+### 배포 방식 / 현재 상태 (단정 금지 — 확인 후 인용)
+
+- **web 앱은 배포되어 접근 가능** (Vercel FE + OCI BE, 2026-06-18 사용자 확인). V1 공식 런칭 여부·잔여 정합은 SoT(04-web-launch-v1-plan.md Round 4) 기준.
+- **FE 재배포 = 수동 `vercel --prod` CLI** (브랜치 push 자동배포 아님 — 로컬 작업트리 코드를 빌드·업로드). `frontend/.vercel` 링크 존재(project "write-note").
+- **BE 재배포 = 수동 OCI** (Docker 빌드 → OCI Compute 재기동). Render 류 push-자동배포 미구성(00-stack §2-3). 외부 콘솔 적용은 사용자(external-infra-safety §1).
+- **배포 순서 의존(HARD-GATE)** — 쿠키 인증 변경요청에 `X-WriteNote-Client` 헤더를 요구하는 `CsrfDefenseFilter` 때문에, **FE(헤더 전송) 선행 → BE(헤더 요구) 후행** 필수. BE 가 FE 보다 먼저 나가면 기존 사용자 변경요청이 403 으로 깨진다.
+- `main`/`develop` 어느 쪽이 web 앱 production 인지는 유동적 → 배포 관련 답변 전 SoT 또는 사용자 확인.
+
 ## 안전 가드레일 (HARD-GATE)
 
 - 외부 데이터 스토어 (DB / redis) 쓰기·민감 정보 재사용 룰: [.claude/rules/infra/external-infra-safety.md](.claude/rules/infra/external-infra-safety.md)
