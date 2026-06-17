@@ -252,4 +252,33 @@ class MemoCurationServiceIT
                 memoCurationService.curate(userId = user.id!!, memoId = otherMemo.id!!, request = request)
             }.isInstanceOf(com.writenote.error.ResourceNotFoundException::class.java)
         }
+
+        @Test
+        @DisplayName("타인 작품에 연결 시도 — 404 (IDOR 방어, 빈 characterIds 로 무결성 검증 우회 경로)")
+        fun `curate throws NotFoundException when connecting own memo to other user's project`() {
+            val user = savedUser()
+            val memo = savedMemo(user.id!!)
+            val otherUser = savedUser()
+            val otherProject = projectRepository.saveAndFlush(Project(userId = otherUser.id!!, title = "타인 소설"))
+            entityManager.flush()
+            entityManager.clear()
+
+            // characterIds 를 비워 MemoCharacterIntegrityValidator 를 우회하고 타인 작품 ID 만 연결 시도
+            val request =
+                CurateMemoRequest(
+                    projectConnections =
+                        listOf(
+                            ProjectConnectionDto(projectId = otherProject.id!!, characterIds = emptyList()),
+                        ),
+                    tags = emptyList(),
+                    reasonNote = null,
+                )
+
+            assertThatThrownBy {
+                memoCurationService.curate(userId = user.id!!, memoId = memo.id!!, request = request)
+            }.isInstanceOf(com.writenote.error.ResourceNotFoundException::class.java)
+
+            // 연결이 생성되지 않아야 함 (쓰기 오염 방지)
+            assertThat(memoProjectRepository.findAllByMemoId(memo.id!!)).isEmpty()
+        }
     }

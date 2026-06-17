@@ -474,8 +474,12 @@ class AuthControllerWebTest
             val accessCookie = loginResponse.getCookie("access_token")!!
             val refreshCookie = loginResponse.getCookie("refresh_token")!!
             mockMvc
-                .perform(post("/api/auth/logout").cookie(accessCookie, refreshCookie))
-                .andExpect(status().isOk)
+                .perform(
+                    post("/api/auth/logout")
+                        .cookie(accessCookie, refreshCookie)
+                        // 쿠키 인증 상태변경 요청 — CsrfDefenseFilter 가 요구하는 헤더 (프론트 rawFetch 가 항상 동봉)
+                        .header("X-WriteNote-Client", "web"),
+                ).andExpect(status().isOk)
                 .andExpect(cookie().maxAge("refresh_token", 0))
             // 폐기된 refresh 쿠키로 재시도 → revoked
             mockMvc

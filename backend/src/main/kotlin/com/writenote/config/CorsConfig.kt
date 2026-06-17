@@ -24,7 +24,7 @@ class CorsConfig {
             CorsConfiguration().apply {
                 allowedOrigins = listOf("*")
                 allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-                allowedHeaders = listOf("Authorization", "Content-Type", "Idempotency-Key", "Accept")
+                allowedHeaders = listOf("Authorization", "Content-Type", "Idempotency-Key", "Accept", "X-WriteNote-Client")
                 exposedHeaders = listOf("Location")
                 allowCredentials = false
                 maxAge = 3600L

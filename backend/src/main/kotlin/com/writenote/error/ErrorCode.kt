@@ -5,5 +5,6 @@ enum class ErrorCode {
     VALIDATION_FAILED,
     NOT_FOUND,
     CONFLICT,
+    FORBIDDEN,
     INTERNAL_ERROR,
 }

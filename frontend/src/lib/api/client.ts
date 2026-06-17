@@ -62,6 +62,9 @@ const rawFetch = (path: string, init: RequestInit): Promise<Response> => {
     if (init.body !== undefined && !headers.has("Content-Type")) {
         headers.set("Content-Type", "application/json");
     }
+    // CSRF 심층방어 — cross-site form-POST 가 설정할 수 없는 커스텀 헤더.
+    // 백엔드 CsrfDefenseFilter 가 쿠키 인증 상태변경 요청에 본 헤더를 요구한다.
+    headers.set("X-WriteNote-Client", "web");
     return fetch(path, { ...init, headers, credentials: "include" });
 };
 
