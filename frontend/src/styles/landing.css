@@ -2,7 +2,7 @@
 .landing {
   --lp-cream: #F4EFE5; --lp-cream2: #FBF8F1; --lp-paper: #FFFFFF;
   --lp-ink: #2B2722; --lp-muted: #736A5C; --lp-faint: #9A9082;
-  --lp-terra: #C06A41; --lp-terra-d: #A4552F; --lp-sage-d: #6f7d4f;
+  --lp-terra: #B17455; --lp-terra-d: #97603F; --lp-sage-d: #6f7d4f;
   --lp-line: #E7DFD0;
   background: var(--lp-cream); color: var(--lp-ink);
   font-family: system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
@@ -21,9 +21,10 @@
 .landing-navlink { font-size: 14.5px; color: var(--lp-muted); font-weight: 500; }
 .landing-btn { display: inline-flex; align-items: center; justify-content: center; font-weight: 600;
   border-radius: 10px; cursor: pointer; border: none; transition: background .15s; }
-.landing-btn--primary { background: var(--lp-terra); color: #fff; padding: 11px 20px; font-size: 14.5px; }
-.landing-btn--primary:hover { background: var(--lp-terra-d); }
-.landing-btn--ghost { background: transparent; color: var(--lp-ink); border: 1px solid var(--lp-line); padding: 11px 20px; font-size: 14.5px; }
+/* `.landing a { color: inherit }`(0,1,1)를 이기도록 `.landing` 접두로 specificity 확보. */
+.landing .landing-btn--primary { background: var(--lp-terra); color: #fff; padding: 11px 20px; font-size: 14.5px; }
+.landing .landing-btn--primary:hover { background: var(--lp-terra-d); }
+.landing .landing-btn--ghost { background: transparent; color: var(--lp-ink); border: 1px solid var(--lp-line); padding: 11px 20px; font-size: 14.5px; }
 .landing-btn--lg { padding: 15px 30px; font-size: 16px; border-radius: 12px; }
 
 /* hero */
