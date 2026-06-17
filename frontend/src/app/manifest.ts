@@ -9,8 +9,8 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: "write-note",
-        short_name: "write-note",
+        name: "소설빙",
+        short_name: "소설빙",
         description: "컨텍스트가 안 죽는 작가용 작업공간",
         start_url: "/",
         display: "standalone",
@@ -19,9 +19,9 @@ export default function manifest(): MetadataRoute.Manifest {
         lang: "ko-KR",
         icons: [
             {
-                src: "/icon.svg",
-                sizes: "any",
-                type: "image/svg+xml",
+                src: "/icon.png",
+                sizes: "512x512",
+                type: "image/png",
                 purpose: "any",
             },
         ],

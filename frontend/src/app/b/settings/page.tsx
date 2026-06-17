@@ -26,7 +26,7 @@ const THEME_OPTIONS: { value: ThemeMode; label: string; description: string }[] 
 ];
 
 const DESIGN_OPTIONS: { value: DesignVariant; label: string; description: string }[] = [
-    { value: "default", label: "기본 디자인", description: "기존 나래 노트 화면" },
+    { value: "default", label: "기본 디자인", description: "기존 소설빙 화면" },
     { value: "b", label: "B타입 디자인", description: "지금 보고 있는 B 레이아웃" },
 ];
 

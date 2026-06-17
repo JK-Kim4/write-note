@@ -75,7 +75,7 @@ export default function SettingsPage() {
                             <ModeCard
                                 active={design === "default"}
                                 label="기본 디자인"
-                                desc="기존 나래 노트 화면"
+                                desc="기존 소설빙 화면"
                                 onClick={() => handleSelectDesign("default")}
                             />
                             <ModeCard

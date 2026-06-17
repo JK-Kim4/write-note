@@ -1,15 +1,12 @@
 /* ──────────────────────────────────────────────────────────────────────────
-   나래 노트 — 집필실(Write Studio) · React + TipTap 프로토타입
-   토큰 SoT: docs/DESIGN.md §2~§8. 브랜드 결정본: design/DESIGN.md (Narae Note).
+   소설빙 — 집필실(Write Studio) · React + TipTap 프로토타입
+   토큰 SoT: docs/DESIGN.md §2~§8.
    flat parchment: 앱 배경(--bg)은 평평한 양피지 톤(디지털 안식처) — 나무결 텍스처 없음.
    종이(--paper)는 한 단계 더 밝게 떠 배경과 톤 대비를 만든다. accent(잉크블루)는 액션 + 포커스 전용.
    ────────────────────────────────────────────────────────────────────────── */
 
 /* === Light (평평한 양피지 + 떠 있는 종이) === */
 :root {
-  /* 로고 마크(펜촉+날개) — 알파 마스크, mask-image 로 테마 색 적용. */
-  --logo-mask: url('./narae-mark.png');
-
   /* 앱 배경 = 평평한 양피지 (안식처 바닥) */
   --bg:             oklch(0.945 0.013 88);
 
@@ -147,11 +144,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
   width: 28px; height: 28px; display: grid; place-items: center;
   margin-bottom: 14px; flex: none;
 }
-/* 펜촉+날개 마크 — 알파 마스크를 accent 색으로 칠해 라이트/다크 양쪽 자동 대응. */
+/* 소설빙 로고 마크 — 배경 투명 컬러 일러스트(어느 면에도 자연스럽게 얹힘). */
 .rail__logo {
-  width: 23px; height: 24px; display: block; background-color: var(--accent-ink);
-  -webkit-mask: var(--logo-mask) center / contain no-repeat;
-  mask: var(--logo-mask) center / contain no-repeat;
+  width: 26px; height: 26px; display: block;
+  background: url('/soseolbing-mark.png') center / contain no-repeat;
 }
 .rail__nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
 .rail__item {
@@ -1139,11 +1135,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
   text-align: center; display: flex; flex-direction: column; align-items: center;
   animation: rise var(--dur-enter) var(--ease-out) both;
 }
-/* 작업실 입구 브랜드 — 펜촉+날개 마크 + 워드마크(첫인상). */
+/* 작업실 입구 브랜드 — 소설빙 컬러 로고(첫인상). */
 .welcome__mark {
-  width: 46px; height: 48px; display: block; margin-bottom: 14px; background-color: var(--accent-ink);
-  -webkit-mask: var(--logo-mask) center / contain no-repeat;
-  mask: var(--logo-mask) center / contain no-repeat;
+  width: 188px; height: 157px; display: block; margin-bottom: 8px;
+  background: url('/soseolbing-logo.png') center / contain no-repeat;
 }
 .welcome__brand {
   font-family: var(--font-serif); font-size: 14px; font-weight: 700; letter-spacing: 0.04em;
