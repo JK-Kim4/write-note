@@ -21,6 +21,8 @@ import { emptyHistory, pushSnapshot, redo, undo, type Snapshot } from "./history
 import { type LaidOutPage } from "./layoutEngine";
 import { measureLineXs } from "./measure";
 import { modelToPmJson, pmJsonToModel } from "./pmConvert";
+import { createEditContextAdapter } from "./input/editContextAdapter";
+import type { InputAdapter, InputHandlers } from "./input/inputAdapter";
 import { FONT_FAMILY, IMG_SRC, relayout, renderRuns, type ParsedBlock, type View } from "./printLayout";
 import {
     blockIndexAt,
@@ -353,11 +355,11 @@ export const CustomEditor = forwardRef<
     const [pendingMarks, setPendingMarks] = useState<Mask | null>(null);
     const [mounted, setMounted] = useState(false);
     const stageRef = useRef<HTMLDivElement>(null);
-    const ecRef = useRef<EditContext | null>(null);
+    // 입력 어댑터 — 기능 감지로 EditContext(데스크탑·안드)/contenteditable(iOS) 분기. 마운트 effect 에서 attach.
+    const adapterRef = useRef<InputAdapter | null>(null);
     const dragAnchorRef = useRef<number | null>(null);
-    // IME 조합 상태 — EditContext 의 compositionstart/end 로 추적(keydown e.isComposing 은 EditContext 에서 미설정).
-    const composingRef = useRef(false);
-    // 마크 토글(선택 구간) — 단축키(effect 안 keydown)와 툴바 버튼(render)이 공유. effect 안에서 ec 동기까지
+    // IME 조합 상태는 어댑터가 단일 소유(adapter.isComposing()). caretOffset·keydown 가드가 이를 읽는다.
+    // 마크 토글(선택 구간) — 단축키(effect 안 keydown)와 툴바 버튼(render)이 공유. effect 안에서 입력 소스 동기까지
     // 처리하는 실제 구현을 ref 에 담아 양쪽이 호출. 선택 없으면(US2 보류 마크 전) 무동작.
     const toggleMarkRef = useRef<(mark: Mask) => void>(() => {});
     // 구분선 삽입 — buffer 변경 + undo + EC 동기가 effect 안에서만 가능하므로 ref 로 노출(toggleMarkRef 패턴).
@@ -378,9 +380,9 @@ export const CustomEditor = forwardRef<
     // 않아 글씨가 안 써진다. 사용자가 영문 모르고 막히지 않도록 안내를 표시한다(읽기/렌더는 EditContext 무관
     // 이라 그대로 둔다). mounted 게이트로 SSR/hydration mismatch 회피(서버=항상 미지원이므로).
     const editContextUnsupported = mounted && typeof EditContext === "undefined";
-    // 조합(IME) 중에는 setSel 을 억제(받침 재조합 보호)하므로, 캐럿 오프셋은 EditContext 의 최신 selection 을
-    // 직접 읽는다 — 조합 중 onModelChange(텍스트 표시) 리렌더 때 ecRef.selectionStart 가 반영돼 캐럿이 따라간다.
-    const caretOffset = composingRef.current ? (ecRef.current?.selectionStart ?? sel.focus) : sel.focus;
+    // 조합(IME) 중에는 setSel 을 억제(받침 재조합 보호)하므로, 캐럿 오프셋은 입력 소스의 최신 selection 을
+    // 직접 읽는다 — 조합 중 onModelChange(텍스트 표시) 리렌더 때 어댑터 selection 이 반영돼 캐럿이 따라간다.
+    const caretOffset = adapterRef.current?.isComposing() ? (adapterRef.current.getSelection().start ?? sel.focus) : sel.focus;
     const caretPos = mounted ? caretToScreen(caretOffset, view.blocks, view.pages, geo, sel.affinity) : null;
     const selRects = mounted ? selectionRects(sel.anchor, sel.focus, view, geo) : [];
 
@@ -442,10 +444,9 @@ export const CustomEditor = forwardRef<
 
     useEffect(() => setMounted(true), []);
 
-    /** 선택 적용 — EditContext 선택 동기(min,max) + 상태(anchor/focus/affinity). 타이핑/Backspace 가 선택을 교체/삭제하게. */
+    /** 선택 적용 — 입력 소스 선택 동기(어댑터가 min,max 정규화) + 상태(anchor/focus/affinity). 타이핑/Backspace 가 선택을 교체/삭제하게. */
     const applySel = (anchor: number, focus: number, affinity: Affinity = 1) => {
-        const ec = ecRef.current;
-        if (ec) ec.updateSelection(Math.min(anchor, focus), Math.max(anchor, focus));
+        adapterRef.current?.syncSelection(anchor, focus);
         setSel({ anchor, focus, affinity });
     };
 
@@ -466,16 +467,15 @@ export const CustomEditor = forwardRef<
         [view],
     );
 
-    // EditContext 부착 + 입력 루프(마운트 1회).
+    // 입력 어댑터 부착 + 입력 루프(마운트 1회).
     useEffect(() => {
         const host = stageRef.current;
         if (!host || typeof EditContext === "undefined") return;
         const initial = modelRef.current.buffer;
-        const ec = new EditContext({ text: initial, selectionStart: initial.length, selectionEnd: initial.length });
-        ecRef.current = ec;
-        host.editContext = ec;
+        const adapter = createEditContextAdapter();
+        adapterRef.current = adapter;
 
-        // ── undo/redo 헬퍼(effect 안 = ec 직접 접근). ──
+        // ── undo/redo 헬퍼(effect 안 = 어댑터 직접 접근). ──
         /** 현재 편집 직전 상태 스냅샷(modelRef 는 아직 이전 모델 → pre-edit 캡처). */
         const snapshotOf = (): Snapshot => ({
             buffer: modelRef.current.buffer,
@@ -488,53 +488,52 @@ export const CustomEditor = forwardRef<
             historyRef.current = pushSnapshot(historyRef.current, snapshotOf(), { coalesce: false });
             typingRunRef.current = false;
         };
-        /** 스냅샷 복원 — EditContext 텍스트·선택 + model + sel 동기. */
+        /** 스냅샷 복원 — 입력 소스 텍스트·선택 + model + sel 동기. */
         const applySnapshot = (s: Snapshot) => {
             const nextModel: DocModel = { buffer: s.buffer, blockAttrs: s.blockAttrs, markRuns: s.markRuns };
-            ec.updateText(0, ec.text.length, s.buffer);
-            ec.updateSelection(Math.min(s.selection.anchor, s.selection.focus), Math.max(s.selection.anchor, s.selection.focus));
+            adapter.syncText(s.buffer);
+            adapter.syncSelection(s.selection.anchor, s.selection.focus);
             onModelChangeRef.current(nextModel);
             setSel(s.selection);
         };
 
-        // 타이핑/IME/블록내부 collapsed Backspace·Delete = EditContext 자동 → model 보정 후 올림.
-        const onText = (e: Event) => {
-            const te = e as TextUpdateEvent;
-            // 타이핑 런 시작 시 1회 pre-edit 스냅샷(modelRef 는 아직 이전 모델). 런 = undo 1회 경계.
-            if (!typingRunRef.current) {
-                historyRef.current = pushSnapshot(historyRef.current, snapshotOf(), { coalesce: false });
-                typingRunRef.current = true;
-            }
-            // 마크 상속(T022): 삽입 글자는 보류 마크(pendingMarks)가 있으면 그것을, 없으면 좌측 글자
-            // (updateRangeStart)의 mask 를 이어받는다. EditContext 의 updateRange[Start,End) 가 치환 범위.
-            // insertText 로 재구성해 markRuns 가 삽입/삭제를 추종(modelFromEc 의 reconcile 은 mask 0 으로 평탄).
-            const pre = modelRef.current;
-            const pending = pendingMarksRef.current;
-            const inheritMask = pending !== null ? pending : marksAt(pre, te.updateRangeStart);
-            const next = insertText(pre, te.updateRangeStart, te.updateRangeEnd, te.text, inheritMask);
-            onModelChangeRef.current(next);
-            // 보류 마크 소비 — 입력이 들어오면 폐기.
-            if (pending !== null) setPendingMarks(null);
-            // IME 조합 중에는 selection state 갱신(setSel)을 억제한다 — setSel 이 유발하는 리렌더가 한글 받침
-            // 재조합(받침이 다음 글자 초성으로 이동)을 깨뜨려 받침이 앞 글자에 고착된다(025 회귀). 조합 텍스트는
-            // onModelChange 로 화면에 표시되고, 캐럿은 compositionend 에서 EditContext 의 최종 selection 으로 맞춘다.
-            if (!composingRef.current) {
-                setSel({ anchor: te.selectionStart, focus: te.selectionEnd, affinity: 1 }); // 편집 후 collapse(downstream)
-            }
+        // 어댑터 → CustomEditor 콜백. 타이핑/IME/블록내부 collapsed Backspace·Delete = 입력 소스 자동 → model 보정.
+        const handlers: InputHandlers = {
+            onTextUpdate: (u) => {
+                // 타이핑 런 시작 시 1회 pre-edit 스냅샷(modelRef 는 아직 이전 모델). 런 = undo 1회 경계.
+                if (!typingRunRef.current) {
+                    historyRef.current = pushSnapshot(historyRef.current, snapshotOf(), { coalesce: false });
+                    typingRunRef.current = true;
+                }
+                // 마크 상속(T022): 삽입 글자는 보류 마크(pendingMarks)가 있으면 그것을, 없으면 좌측 글자
+                // (rangeStart)의 mask 를 이어받는다. 입력 소스의 치환 범위 [rangeStart, rangeEnd).
+                // insertText 로 재구성해 markRuns 가 삽입/삭제를 추종(reconcile 은 mask 0 으로 평탄).
+                const pre = modelRef.current;
+                const pending = pendingMarksRef.current;
+                const inheritMask = pending !== null ? pending : marksAt(pre, u.rangeStart);
+                const next = insertText(pre, u.rangeStart, u.rangeEnd, u.text, inheritMask);
+                onModelChangeRef.current(next);
+                // 보류 마크 소비 — 입력이 들어오면 폐기.
+                if (pending !== null) setPendingMarks(null);
+                // IME 조합 중에는 selection state 갱신(setSel)을 억제한다 — setSel 이 유발하는 리렌더가 한글 받침
+                // 재조합(받침이 다음 글자 초성으로 이동)을 깨뜨려 받침이 앞 글자에 고착된다(025 회귀). 조합 텍스트는
+                // onModelChange 로 화면에 표시되고, 캐럿은 onCompositionEnd 에서 입력 소스 최종 selection 으로 맞춘다.
+                if (!adapter.isComposing()) {
+                    setSel({ anchor: u.selectionStart, focus: u.selectionEnd, affinity: 1 }); // 편집 후 collapse(downstream)
+                }
+            },
+            // 조합 상태는 어댑터가 추적(adapter.isComposing()) — 별도 처리 없음.
+            onCompositionStart: () => {},
+            // 조합 종료 — 조합 중 억제한 캐럿을 입력 소스의 최종 selection 으로 한 번 맞춘다(025).
+            onCompositionEnd: (selStart, selEnd) => {
+                setSel({ anchor: selStart, focus: selEnd, affinity: 1 });
+            },
+            // 구조 편집(Enter/Backspace 등)은 EditContext 경로에서 host keydown(onKey)으로 직접 처리 — 미사용(contenteditable 전용).
+            onEdit: () => {},
         };
-        ec.addEventListener("textupdate", onText);
-
-        // 조합 상태 추적 — keydown 가드가 조합 중 Enter 이중삽입을 막는 데 쓴다.
-        const onCompositionStart = () => {
-            composingRef.current = true;
-        };
-        const onCompositionEnd = () => {
-            composingRef.current = false;
-            // 조합 종료 — 조합 중 억제한 캐럿을 EditContext 의 최종 selection 으로 한 번 맞춘다(025).
-            setSel({ anchor: ec.selectionStart, focus: ec.selectionEnd, affinity: 1 });
-        };
-        ec.addEventListener("compositionstart", onCompositionStart);
-        ec.addEventListener("compositionend", onCompositionEnd);
+        adapter.attach(host, handlers);
+        adapter.syncText(initial);
+        adapter.syncSelection(initial.length, initial.length);
 
         // 내부 리치 클립보드 MIME — 복사 시 선택 부분문서를 PM JSON 으로 병기, 붙여넣기 시 복원.
         const PM_MIME = "application/x-writenote-pm";
@@ -547,7 +546,7 @@ export const CustomEditor = forwardRef<
             if (lo >= hi) return;
             e.preventDefault();
             const sub = sliceModel(modelRef.current, lo, hi);
-            e.clipboardData?.setData("text/plain", ec.text.slice(lo, hi).split(SOFT_BREAK).join("\n"));
+            e.clipboardData?.setData("text/plain", adapter.getText().slice(lo, hi).split(SOFT_BREAK).join("\n"));
             e.clipboardData?.setData(PM_MIME, modelToPmJson(sub));
         };
         host.addEventListener("copy", onCopy);
@@ -560,12 +559,12 @@ export const CustomEditor = forwardRef<
             if (lo >= hi) return;
             e.preventDefault();
             const sub = sliceModel(modelRef.current, lo, hi);
-            e.clipboardData?.setData("text/plain", ec.text.slice(lo, hi).split(SOFT_BREAK).join("\n"));
+            e.clipboardData?.setData("text/plain", adapter.getText().slice(lo, hi).split(SOFT_BREAK).join("\n"));
             e.clipboardData?.setData(PM_MIME, modelToPmJson(sub));
             recordBeforeStructural();
             const next = deleteRange(modelRef.current, lo, hi);
-            ec.updateText(0, ec.text.length, next.buffer);
-            ec.updateSelection(lo, lo);
+            adapter.syncText(next.buffer);
+            adapter.syncSelection(lo, lo);
             onModelChangeRef.current(next);
             setSel({ anchor: lo, focus: lo, affinity: 1 });
         };
@@ -573,7 +572,7 @@ export const CustomEditor = forwardRef<
 
         // 붙여넣기 — 내부 PM JSON 있으면 서식·블록 보존 복원, 없으면 평문(블록 분할).
         const onPaste = (e: ClipboardEvent) => {
-            if (composingRef.current) return;
+            if (adapter.isComposing()) return;
             e.preventDefault();
             const cur = selStateRef.current;
             const lo = Math.min(cur.anchor, cur.focus);
@@ -589,9 +588,9 @@ export const CustomEditor = forwardRef<
                 if (sub) {
                     recordBeforeStructural();
                     const next = insertModel(modelRef.current, lo, hi, sub);
-                    ec.updateText(0, ec.text.length, next.buffer);
+                    adapter.syncText(next.buffer);
                     const caret = lo + sub.buffer.length;
-                    ec.updateSelection(caret, caret);
+                    adapter.syncSelection(caret, caret);
                     onModelChangeRef.current(next);
                     setSel({ anchor: caret, focus: caret, affinity: 1 });
                     return;
@@ -602,22 +601,22 @@ export const CustomEditor = forwardRef<
             const text = raw.replace(/\r\n?/g, "\n");
             recordBeforeStructural();
             const next = insertText(modelRef.current, lo, hi, text);
-            ec.updateText(0, ec.text.length, next.buffer);
+            adapter.syncText(next.buffer);
             const caret = lo + text.length;
-            ec.updateSelection(caret, caret);
+            adapter.syncSelection(caret, caret);
             onModelChangeRef.current(next);
             setSel({ anchor: caret, focus: caret, affinity: 1 });
         };
         host.addEventListener("paste", onPaste);
 
         const updateCB = () => {
-            if (stageRef.current) ec.updateControlBounds(stageRef.current.getBoundingClientRect());
+            if (stageRef.current) adapter.updateControlBounds(stageRef.current.getBoundingClientRect());
         };
         updateCB();
         window.addEventListener("resize", updateCB);
 
         const setSelLocal = (a: number, f: number, affinity: Affinity = 1) => {
-            ec.updateSelection(Math.min(a, f), Math.max(a, f));
+            adapter.syncSelection(Math.min(a, f), Math.max(a, f));
             setSel({ anchor: a, focus: f, affinity });
         };
 
@@ -643,10 +642,10 @@ export const CustomEditor = forwardRef<
             const base = lo < hi ? deleteRange(modelRef.current, lo, hi) : modelRef.current;
             const bi = blockIndexAt(base, lo);
             const next = insertHr(base, lo);
-            ec.updateText(0, ec.text.length, next.buffer);
+            adapter.syncText(next.buffer);
             // hr 다음 블록(bi+2 = 뒤 분리 블록) 시작으로 캐럿(원자 블록 건너뜀).
             const after = blockBufRanges(next.buffer)[bi + 2]?.start ?? next.buffer.length;
-            ec.updateSelection(after, after);
+            adapter.syncSelection(after, after);
             onModelChangeRef.current(next);
             setSel({ anchor: after, focus: after, affinity: 1 });
         };
@@ -657,13 +656,13 @@ export const CustomEditor = forwardRef<
             // IME 조합 중(한글 등)에는 커스텀 키 처리를 건너뛴다 — 조합 중 Enter/Backspace/화살표는
             // IME·EditContext 가 처리한다. 이 가드가 없으면 조합 중 Enter 가 우리 splitBlock(\n 1개) +
             // IME 자체 개행(\n 1개)으로 이중 삽입돼 빈 블록(\n\n)이 생긴다(2026-06-15 dogfooding 회귀).
-            // EditContext 는 keydown e.isComposing 을 미설정 → 자체 compositionstart/end 로 추적한 composingRef 사용.
-            if (e.isComposing || composingRef.current) return;
+            // 입력 소스(EditContext)는 keydown e.isComposing 을 미설정 → 어댑터가 추적한 조합 상태(isComposing())를 쓴다.
+            if (e.isComposing || adapter.isComposing()) return;
             const cur = selStateRef.current;
             const lo = Math.min(cur.anchor, cur.focus);
             const hi = Math.max(cur.anchor, cur.focus);
             const collapsed = cur.anchor === cur.focus;
-            const len = ec.text.length;
+            const len = adapter.getText().length;
             const m = modelRef.current;
 
             // 마크 단축키(T021+T025) — Cmd/Ctrl+B/I/U. strike 는 툴바 버튼만.
@@ -707,8 +706,8 @@ export const CustomEditor = forwardRef<
                 recordBeforeStructural();
                 const caret = lo;
                 const next = insertSoftBreak(deleteRange(m, lo, hi), caret);
-                ec.updateText(0, ec.text.length, next.buffer);
-                ec.updateSelection(caret + 1, caret + 1);
+                adapter.syncText(next.buffer);
+                adapter.syncSelection(caret + 1, caret + 1);
                 onModelChangeRef.current(next);
                 setSel({ anchor: caret + 1, focus: caret + 1, affinity: 1 });
                 return;
@@ -723,8 +722,8 @@ export const CustomEditor = forwardRef<
                 // 굵게 쓰던 중 Enter 치면 다음 줄도 굵게 유지. 새 블록은 빈 run 이라 marksAt=0 → 평문이 되는 회귀 방지.
                 const carry = pendingMarksRef.current !== null ? pendingMarksRef.current : marksAt(m, caret);
                 const next = splitBlock(deleteRange(m, lo, hi), caret);
-                ec.updateText(0, ec.text.length, next.buffer);
-                ec.updateSelection(caret + 1, caret + 1);
+                adapter.syncText(next.buffer);
+                adapter.syncSelection(caret + 1, caret + 1);
                 onModelChangeRef.current(next);
                 setSel({ anchor: caret + 1, focus: caret + 1, affinity: 1 });
                 setPendingMarks(carry !== 0 ? carry : null);
@@ -742,8 +741,8 @@ export const CustomEditor = forwardRef<
                 e.preventDefault();
                 recordBeforeStructural();
                 const next = deleteRange(m, lo, hi);
-                ec.updateText(0, ec.text.length, next.buffer);
-                ec.updateSelection(lo, lo);
+                adapter.syncText(next.buffer);
+                adapter.syncSelection(lo, lo);
                 onModelChangeRef.current(next);
                 setSel({ anchor: lo, focus: lo, affinity: 1 });
                 return;
@@ -760,7 +759,7 @@ export const CustomEditor = forwardRef<
                     if (demote.demoted) {
                         e.preventDefault();
                         recordBeforeStructural();
-                        // buffer 불변(attr 만 교체) → ec.updateText 불필요, 캐럿 유지.
+                        // buffer 불변(attr 만 교체) → syncText 불필요, 캐럿 유지.
                         onModelChangeRef.current(demote.model);
                         setSel({ anchor: cur.focus, focus: cur.focus, affinity: 1 });
                         return;
@@ -773,8 +772,8 @@ export const CustomEditor = forwardRef<
                     // 앞 블록이 구분선(원자)이면 병합 대신 그 블록만 삭제.
                     const prevAtomic = isAtomic(m.blockAttrs[blockIdx - 1] ?? { type: "paragraph" });
                     const next = prevAtomic ? deleteAtomicAt(m, blockIdx - 1) : mergeWithPrev(m, blockIdx);
-                    ec.updateText(0, ec.text.length, next.buffer);
-                    ec.updateSelection(newCaret, newCaret);
+                    adapter.syncText(next.buffer);
+                    adapter.syncSelection(newCaret, newCaret);
                     onModelChangeRef.current(next);
                     setSel({ anchor: newCaret, focus: newCaret, affinity: 1 });
                     return;
@@ -794,8 +793,8 @@ export const CustomEditor = forwardRef<
                     // 다음 블록이 구분선(원자)이면 병합 대신 그 블록만 삭제.
                     const nextAtomic = isAtomic(m.blockAttrs[blockIdx + 1] ?? { type: "paragraph" });
                     const next = nextAtomic ? deleteAtomicAt(m, blockIdx + 1) : mergeWithNext(m, blockIdx);
-                    ec.updateText(0, ec.text.length, next.buffer);
-                    ec.updateSelection(cur.focus, cur.focus);
+                    adapter.syncText(next.buffer);
+                    adapter.syncSelection(cur.focus, cur.focus);
                     onModelChangeRef.current(next);
                     setSel({ anchor: cur.focus, focus: cur.focus, affinity: 1 });
                     return;
@@ -824,7 +823,7 @@ export const CustomEditor = forwardRef<
                 newAffinity = horiz < 0 ? 1 : isWrapBoundary(newFocus, blocks) ? -1 : 1;
             } else if (horiz !== 0 && e.altKey) {
                 // Option+좌/우 = 단어 경계. wrap 경계에 멈추면 upstream.
-                newFocus = wordBoundary(ec.text, cur.focus, horiz);
+                newFocus = wordBoundary(adapter.getText(), cur.focus, horiz);
                 newAffinity = isWrapBoundary(newFocus, blocks) ? -1 : 1;
             } else if (horiz !== 0) {
                 // 화살표 좌/우 — 선택 있으면(비shift) 가장자리로 collapse, 아니면 ±1
@@ -870,16 +869,13 @@ export const CustomEditor = forwardRef<
         host.focus();
 
         return () => {
-            ec.removeEventListener("textupdate", onText);
-            ec.removeEventListener("compositionstart", onCompositionStart);
-            ec.removeEventListener("compositionend", onCompositionEnd);
+            adapter.detach();
             host.removeEventListener("copy", onCopy);
             host.removeEventListener("cut", onCut);
             host.removeEventListener("paste", onPaste);
             host.removeEventListener("keydown", onKey);
             window.removeEventListener("resize", updateCB);
-            host.editContext = null;
-            ecRef.current = null;
+            adapterRef.current = null;
         };
         // 마운트 1회 — 최신 값은 ref(modelRef/onModelChangeRef/selStateRef/viewRef/geoRef)로 참조.
     }, []);

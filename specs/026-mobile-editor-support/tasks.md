@@ -22,7 +22,7 @@ description: "Task list for 026 모바일 집필 지원 (iOS 입력 + 반응형)
 
 **Purpose**: 입력 어댑터 골격
 
-- [ ] T001 `frontend/src/components/custom-editor/input/` 디렉토리 생성 + `inputAdapter.ts`에 `InputAdapter` 인터페이스·`InputHandlers`·`EditIntent` 타입 정의 (data-model.md 기준: attach/detach/syncText/syncSelection/getText/getSelection/isComposing + onTextUpdate/onCompositionStart/onCompositionEnd/onEdit)
+- [X] T001 `frontend/src/components/custom-editor/input/` 디렉토리 생성 + `inputAdapter.ts`에 `InputAdapter` 인터페이스·`InputHandlers`·`EditIntent` 타입 정의 (data-model.md 기준: attach/detach/syncText/syncSelection/getText/getSelection/isComposing + onTextUpdate/onCompositionStart/onCompositionEnd/onEdit)
 
 ---
 
@@ -32,10 +32,10 @@ description: "Task list for 026 모바일 집필 지원 (iOS 입력 + 반응형)
 
 **⚠️ CRITICAL**: US1·US2는 이 phase 완료 후 시작
 
-- [ ] T002 `editContextAdapter.ts` 구현 — `CustomEditor.tsx`의 EditContext 결합부(new EditContext / host.editContext / `textupdate`→onTextUpdate / compositionstart·end / updateText·updateSelection·updateControlBounds)를 이동해 `InputAdapter` 구현 (동작 보존)
-- [ ] T003 `CustomEditor.tsx` 리팩토링 — EditContext 직접 사용부를 `InputAdapter` 호출로 교체. 기능 감지(`typeof EditContext !== "undefined"`)로 어댑터 선택(없으면 다음 phase의 contenteditable 어댑터). copy/cut/paste·화살표 keydown 등 host 공통 이벤트는 유지
-- [ ] T004 [P] `editContextAdapter.test.ts` — textupdate→onTextUpdate 매핑·composition·selection 동기를 단위 검증(시스템 경계 mock)
-- [ ] T005 무회귀 검증 — `cd frontend && npx vitest run && npx tsc --noEmit && npx next build` GREEN (기존 CustomEditor 동작·전체 테스트 무회귀)
+- [X] T002 `editContextAdapter.ts` 구현 — `CustomEditor.tsx`의 EditContext 결합부(new EditContext / host.editContext / `textupdate`→onTextUpdate / compositionstart·end / updateText·updateSelection·updateControlBounds)를 이동해 `InputAdapter` 구현 (동작 보존)
+- [X] T003 `CustomEditor.tsx` 리팩토링 — EditContext 직접 사용부를 `InputAdapter` 호출로 교체. 기능 감지(`typeof EditContext !== "undefined"`)로 어댑터 선택(없으면 다음 phase의 contenteditable 어댑터). copy/cut/paste·화살표 keydown 등 host 공통 이벤트는 유지
+- [X] T004 [P] `editContextAdapter.test.ts` — textupdate→onTextUpdate 매핑·composition·selection 동기를 단위 검증(시스템 경계 mock)
+- [X] T005 무회귀 검증 — `cd frontend && npx vitest run && npx tsc --noEmit && npx next build` GREEN (기존 CustomEditor 동작·전체 테스트 무회귀)
 
 **Checkpoint**: 데스크탑이 어댑터 경유로 기존과 동일 동작(무회귀 GREEN)
 
