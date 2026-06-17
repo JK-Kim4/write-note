@@ -61,11 +61,14 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
         return null;
     };
 
-    // 집필 진입 지연 완화 — 버튼 hover/focus(클릭 의도) 시점에 작품·챕터·최근 챕터 본문을 미리 로드.
-    // 확정된 2파 워터폴(작품+챕터 → 본문)을 클릭 전에 데워 첫 진입 네트워크 대기를 줄인다.
+    // 집필 진입 지연 완화 — 버튼 hover/focus(클릭 의도) 시점에 라우트와 데이터를 미리 로드.
+    // 핵심: 집필 버튼은 router.push(명령형)라 Next 가 라우트를 자동 prefetch 하지 않아,
+    // 클릭 시 동적 라우트(/b/works/[id]) JS청크+RSC 를 그제서야 받아 ~1초 멈췄다 전환됐다.
+    // router.prefetch 로 라우트 자체를 데우고, queryClient 로 2파 워터폴(작품+챕터 → 본문) 데이터를 데운다.
     // prefetchQuery 는 staleTime(60s) 내면 재요청하지 않고 에러는 삼킨다(부작용 없음).
     const prefetchStudio = (id: number) => {
         if (!Number.isFinite(id) || id <= 0) return;
+        router.prefetch(`/b/works/${id}`); // Next 라우트(청크+RSC) 데우기 — 전환 멈춤 제거
         void queryClient.prefetchQuery({ queryKey: projectKeys.detail(id), queryFn: () => webElectronApi.projects.get(id) });
         void queryClient
             .prefetchQuery({ queryKey: documentKeys.chapters(id), queryFn: () => webElectronApi.documents.list(id) })
