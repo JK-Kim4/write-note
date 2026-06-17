@@ -23,7 +23,7 @@ import { measureLineXs } from "./measure";
 import { modelToPmJson, pmJsonToModel } from "./pmConvert";
 import { createEditContextAdapter } from "./input/editContextAdapter";
 import { createContentEditableAdapter } from "./input/contentEditableAdapter";
-import type { InputAdapter, InputHandlers } from "./input/inputAdapter";
+import type { EditIntent, InputAdapter, InputHandlers } from "./input/inputAdapter";
 import { FONT_FAMILY, IMG_SRC, relayout, renderRuns, type ParsedBlock, type View } from "./printLayout";
 import {
     blockIndexAt,
@@ -316,6 +316,8 @@ function PageBox({
                                         fontFamily: FONT_FAMILY,
                                         whiteSpace: "pre-wrap",
                                         wordBreak: "break-word",
+                                        // iOS text inflation 차단 — px 고정 line-height 와 어긋나 줄이 겹치는 것 방지.
+                                        WebkitTextSizeAdjust: "100%",
                                         color: "#1f2937",
                                     }}
                                 >
@@ -348,14 +350,20 @@ export const CustomEditor = forwardRef<
         onModelChange: (next: DocModel) => void;
         paperSize: PaperSize;
         fontSizePx?: number;
+        /** 진단 전용 — fit-to-width zoom 비활성(iOS zoom 버그 원인 확정 실험용). 기본 false. */
+        debugNoZoom?: boolean;
     }
->(function CustomEditor({ model, onModelChange, paperSize, fontSizePx = 18 }, ref) {
+>(function CustomEditor({ model, onModelChange, paperSize, fontSizePx = 18, debugNoZoom = false }, ref) {
     const buffer = model.buffer;
     // sel.affinity = focus 캐럿의 wrap 경계 시각 위치(-1=앞 줄 끝, +1=다음 줄 시작). 기본 +1 = 1라운드 동작.
     const [sel, setSel] = useState<{ anchor: number; focus: number; affinity: Affinity }>({ anchor: buffer.length, focus: buffer.length, affinity: 1 });
     const [pendingMarks, setPendingMarks] = useState<Mask | null>(null);
     const [mounted, setMounted] = useState(false);
     const stageRef = useRef<HTMLDivElement>(null);
+    // transform:scale 축소 컨테이너 — inner(원본 크기)를 실측해 wrapper 가 scaled 크기를 차지(스크롤 정상화).
+    // CSS zoom 은 iOS Safari 에서 글자·줄 배치가 불균일(줄 겹침) → transform:scale 로 균일 축소.
+    const innerRef = useRef<HTMLDivElement>(null);
+    const [naturalSize, setNaturalSize] = useState({ w: 0, h: 0 });
     // 입력 어댑터 — 기능 감지로 EditContext(데스크탑·안드)/contenteditable(iOS) 분기. 마운트 effect 에서 attach.
     const adapterRef = useRef<InputAdapter | null>(null);
     const dragAnchorRef = useRef<number | null>(null);
@@ -407,8 +415,11 @@ export const CustomEditor = forwardRef<
     modelRef.current = model;
     onModelChangeRef.current = onModelChange;
     pendingMarksRef.current = pendingMarks;
-    const effectiveScale = scale * userZoom;
+    const effectiveScale = debugNoZoom ? 1 : scale * userZoom;
     scaleRef.current = effectiveScale;
+    // CSS zoom 은 iOS WebKit 에서 글자·줄 배치 불균일(줄 겹침) → iOS 만 transform:scale 로 균일 축소.
+    // 데스크탑(EditContext 지원)은 검증된 기존 zoom 유지(무회귀). mounted 게이트로 SSR/hydration mismatch 회피.
+    const useTransformScale = mounted ? typeof EditContext === "undefined" : false;
 
     // fit-to-width — stage 가용 폭에 종이가 들어가도록 축소비율 계산(ResizeObserver 로 패널/창 변화 추종).
     // 페이지 + 좌우 패딩(48*2=96)이 stage clientWidth 안에 들어가도록. 종이가 좁으면 scale=1(축소 안 함).
@@ -426,6 +437,18 @@ export const CustomEditor = forwardRef<
         ro.observe(stage);
         return () => ro.disconnect();
     }, [geo, mounted]);
+
+    // inner(원본·축소 전) 크기 실측 — transform:scale wrapper 가 차지할 scaled 크기 계산용.
+    useEffect(() => {
+        if (!mounted) return;
+        const inner = innerRef.current;
+        if (!inner) return;
+        const measure = () => setNaturalSize({ w: inner.offsetWidth, h: inner.offsetHeight });
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(inner);
+        return () => ro.disconnect();
+    }, [mounted, view]);
 
     // 캐럿 가시화 — 캐럿이 페이지를 넘어가 stage 뷰포트 밖이면 stage 만 최소 스크롤해 따라간다.
     // (window 는 건드리지 않음. block:'nearest' scrollIntoView 대신 scrollTop 직접 보정으로 부작용 차단.)
@@ -529,8 +552,21 @@ export const CustomEditor = forwardRef<
             onCompositionEnd: (selStart, selEnd) => {
                 setSel({ anchor: selStart, focus: selEnd, affinity: 1 });
             },
-            // 구조 편집(Enter/Backspace 등)은 EditContext 경로에서 host keydown(onKey)으로 직접 처리 — 미사용(contenteditable 전용).
-            onEdit: () => {},
+            // 구조 편집(Enter=splitBlock / Shift+Enter=softBreak) — contenteditable(iOS) 경로 전용.
+            // EditContext 경로는 host keydown(onKey)이 직접 처리하므로 이 콜백을 호출하지 않는다.
+            onEdit: (intent: EditIntent) => {
+                const cur = selStateRef.current;
+                const lo = Math.min(cur.anchor, cur.focus);
+                const hi = Math.max(cur.anchor, cur.focus);
+                if (intent !== "splitBlock" && intent !== "softBreak") return; // delete 류는 diff 가 처리
+                recordBeforeStructural();
+                const base = lo < hi ? deleteRange(modelRef.current, lo, hi) : modelRef.current;
+                const next = intent === "softBreak" ? insertSoftBreak(base, lo) : splitBlock(base, lo);
+                adapter.syncText(next.buffer);
+                adapter.syncSelection(lo + 1, lo + 1);
+                onModelChangeRef.current(next);
+                setSel({ anchor: lo + 1, focus: lo + 1, affinity: 1 });
+            },
         };
         adapter.attach(host, handlers);
         adapter.syncText(initial);
@@ -1095,13 +1131,26 @@ export const CustomEditor = forwardRef<
                 style={{ flex: 1, overflow: "auto", outline: "none", caretColor: "transparent", background: "#eceae4" }}
             >
             <style>{"@keyframes pocBlink{0%,49%{opacity:1}50%,100%{opacity:0}} .poc-caret{animation:pocBlink 1s step-end infinite}"}</style>
-            {/* width:max-content + margin:0 auto — 페이지가 뷰포트보다 넓어도 왼쪽 클리핑 없이 가로 스크롤,
-                좁지 않으면 중앙 정렬. (flexbox alignItems:center 의 중앙정렬 오버플로 클리핑 회피.) */}
-            <div style={{ width: "max-content", margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 28, padding: "40px 48px", zoom: effectiveScale }}>
-                {view.pages.map((pg) => (
-                    <PageBox key={pg.index} page={pg} geo={geo} blocks={view.blocks} caret={caretPos} selRects={selRects.filter((r) => r.pageIndex === pg.index)} />
-                ))}
-            </div>
+            {/* iOS(WebKit)는 CSS zoom 이 글자·줄 배치 불균일(줄 겹침) → transform:scale(wrapper 가 scaled
+                크기 차지해 스크롤 정상화). 데스크탑(EditContext)은 검증된 기존 zoom 유지(무회귀). */}
+            {useTransformScale ? (
+                <div style={{ width: naturalSize.w ? naturalSize.w * effectiveScale : "max-content", height: naturalSize.h ? naturalSize.h * effectiveScale : undefined, margin: "0 auto", position: "relative" }}>
+                    <div
+                        ref={innerRef}
+                        style={{ position: "absolute", top: 0, left: 0, transform: `scale(${effectiveScale})`, transformOrigin: "top left", width: "max-content", display: "flex", flexDirection: "column", alignItems: "center", gap: 28, padding: "40px 48px" }}
+                    >
+                        {view.pages.map((pg) => (
+                            <PageBox key={pg.index} page={pg} geo={geo} blocks={view.blocks} caret={caretPos} selRects={selRects.filter((r) => r.pageIndex === pg.index)} />
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <div style={{ width: "max-content", margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 28, padding: "40px 48px", zoom: effectiveScale }}>
+                    {view.pages.map((pg) => (
+                        <PageBox key={pg.index} page={pg} geo={geo} blocks={view.blocks} caret={caretPos} selRects={selRects.filter((r) => r.pageIndex === pg.index)} />
+                    ))}
+                </div>
+            )}
             </div>
         </>
     );

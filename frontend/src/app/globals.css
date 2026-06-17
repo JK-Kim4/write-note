@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @import "../styles/tokens.css";
 
+/* iOS Safari text inflation(-webkit-text-size-adjust:auto) 차단 — 모바일 본문 자동확대가 font-size 만
+   키우고 px 고정 line-height 는 안 키워 자체 에디터 줄이 세로로 겹치는 문제 방지. 데스크탑 무영향. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /*
  * Tailwind 4 @theme directive — tokens.css 의 raw CSS variable 을 Tailwind utility 와 연결.
  * 다크 모드 toggle 은 :root.dark 클래스 (tokens.css 에서 정의) 가 처리.

@@ -55,8 +55,10 @@ function buildOffscreenDiv(
   fontFamily: string,
 ): { el: HTMLDivElement; spans: SpanInfo[] } {
   const el = document.createElement("div");
+  // 화면 밖(left:-99999px)으로 숨긴다. visibility:hidden 은 쓰지 않는다 — iOS WebKit 은 visibility:hidden
+  // 요소의 Range.getBoundingClientRect 를 0 으로 주어 줄측정·x측정이 통째로 깨진다(줄바꿈 안 됨/글자 겹침).
   el.style.cssText =
-    `position:absolute;visibility:hidden;left:-99999px;top:0;` +
+    `position:absolute;left:-99999px;top:0;` +
     `width:${contentWidthPx}px;font-size:${fontSizePx}px;line-height:${lineHeightPx}px;` +
     `font-family:${fontFamily};white-space:pre-wrap;word-break:break-word;`;
 
