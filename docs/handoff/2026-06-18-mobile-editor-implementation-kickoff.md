@@ -88,6 +88,20 @@ frontend/src/app/poc/
 - 직전 핸드오프(렌더 잔여 시점, 이후 진전됨): `docs/handoff/2026-06-18-mobile-ios-editor-render.md`
 - deep research 산출(세션 transcript): iOS contentEditable IME 해법 / 대안 입력 아키텍처(hidden textarea 1순위)
 
+## 다음 세션 첫 프롬프트 (복사해서 붙여넣기)
+
+```
+026 모바일 에디터 구현을 이어서 진행한다. 먼저 docs/handoff/2026-06-18-mobile-editor-implementation-kickoff.md 와 vault 03-ISSUES.md ISSUE-037 을 읽어라.
+
+확정 전제(재논의 금지): iOS 자체에디터 입력은 textarea 입력 프록시(textareaAdapter.ts)로 해결·실기기 검증 완료(한글 IME·줄바꿈·받침·탭이동·reflow). contentEditable 방식은 폐기됨 — 절대 회귀 금지. 데스크탑 EditContext 경로 무수정(MUST). 입력 기반은 끝났고 이미 커밋·push 됨(브랜치 026-mobile-editor-support).
+
+이번 세션 목적 = 모바일 에디터 구현 본론(편집 이식 + 반응형). 입력 재디버깅으로 빠지지 말 것.
+
+1단계부터 시작: specs/026-mobile-editor-support/ 의 spec/tasks 를 textarea 아키텍처 전제로 갱신한다(현재 Phase 3 tasks 가 contentEditable 기준이라 어긋남 — T006~T012 를 'textarea 어댑터로 superseded, dogfooding 통과'로 정정, research.md 에 contentEditable→textarea 결정 추가). speckit(specify/plan/tasks)로 진행하되, tasks 의 파일명·시그니처는 실제 코드 grep 으로 검증(§6). 그 다음 US2(편집 이식: 선택/마크/블록/undo/복붙/목차/자동저장/페이지분할 — 각각 iOS 실기기 dogfooding) → US3(반응형) → Phase 6(정리: ios-textarea-probe·debugNoZoom 제거).
+
+iOS 동작 점검 시 계측(이벤트·value 덤프) 먼저, 추측 수정 금지(§11, 직전 세션 교훈).
+```
+
 ## 절대 잊지 말 것
 
 - **목적 = 모바일 에디터 구현**. 입력 기반은 끝났다 — 다음 세션은 편집 이식(US2)·반응형(US3)이 본론. 입력 재디버깅 트랙으로 다시 빠지지 말 것.
