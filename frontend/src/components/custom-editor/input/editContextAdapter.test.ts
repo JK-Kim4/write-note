@@ -33,6 +33,7 @@ function makeHandlers() {
         },
         onCompositionEnd: (start, end) => compEnds.push({ start, end }),
         onEdit: () => {},
+        onSelectionChange: () => {},
     };
     return { handlers, updates, compEnds, getCompStarts: () => compStarts };
 }

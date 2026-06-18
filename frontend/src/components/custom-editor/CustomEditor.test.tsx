@@ -16,13 +16,14 @@ beforeAll(() => {
 });
 
 describe("CustomEditor — EditContext 미지원(iOS) 입력 어댑터", () => {
-    // 026: jsdom(과 iOS WebKit)에는 EditContext 가 없다 → 기능 감지로 contentEditableAdapter 가 선택되고
-    // contenteditable 입력 표면이 부착된다(기존 "미지원 안내" 배너는 입력 지원으로 대체·비활성).
-    test("EditContext 가 없으면 contenteditable 입력 표면을 부착하고 미지원 안내를 띄우지 않는다", async () => {
+    // 026: jsdom(과 iOS WebKit)에는 EditContext 가 없다 → 기능 감지로 textareaAdapter 가 선택되고
+    // textarea 입력 표면이 부착된다(기존 "미지원 안내" 배너는 입력 지원으로 대체·비활성).
+    // (contenteditable 방식은 iOS IME 상태 orphan 으로 폐기 — deep research 2026-06-18.)
+    test("EditContext 가 없으면 textarea 입력 표면을 부착하고 미지원 안내를 띄우지 않는다", async () => {
         const model = pmJsonToModel(JSON.stringify({ type: "doc", content: [] }));
         const { container } = render(<CustomEditor model={model} onModelChange={() => {}} paperSize="A4" />);
         await waitFor(() => {
-            expect(container.querySelector('[contenteditable="true"]')).not.toBeNull();
+            expect(container.querySelector("textarea")).not.toBeNull();
         });
         expect(screen.queryByText(/지원하지 않/)).toBeNull();
     });

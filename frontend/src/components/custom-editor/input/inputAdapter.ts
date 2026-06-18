@@ -41,6 +41,12 @@ export type InputHandlers = {
     onCompositionEnd(selectionStart: number, selectionEnd: number): void;
     /** 구조 편집(Enter/Backspace 등) — contenteditable 전용. EditContext 경로는 호출 안 함. */
     onEdit(intent: EditIntent): void;
+    /**
+     * 텍스트 변경 없는 캐럿/선택 이동(클릭·화살표 등) — textarea 어댑터 전용. textarea 가 캐럿 이동을
+     * 네이티브로 처리하므로 그 결과(selectionStart/End)를 렌더 캐럿에 반영하기 위해 호출한다.
+     * EditContext/contenteditable 경로는 호출하지 않는다(캐럿 이동을 host 이벤트로 직접 처리).
+     */
+    onSelectionChange(selectionStart: number, selectionEnd: number): void;
 };
 
 /**

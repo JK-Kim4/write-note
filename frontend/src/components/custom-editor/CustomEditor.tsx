@@ -15,14 +15,14 @@
  */
 
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { pageGeometry, type PageGeometry, type PaperSize } from "./geometry";
+import { mobilePageGeometry, pageGeometry, type PageGeometry, type PaperSize } from "./geometry";
 import { BulletListIcon, DividerIcon, MarkGlyph, OrderedListIcon, QuoteIcon, ToolbarButton, ToolbarDivider } from "./toolbarIcons";
 import { emptyHistory, pushSnapshot, redo, undo, type Snapshot } from "./history";
 import { type LaidOutPage } from "./layoutEngine";
 import { measureLineXs } from "./measure";
 import { modelToPmJson, pmJsonToModel } from "./pmConvert";
 import { createEditContextAdapter } from "./input/editContextAdapter";
-import { createContentEditableAdapter } from "./input/contentEditableAdapter";
+import { createTextareaAdapter } from "./input/textareaAdapter";
 import type { EditIntent, InputAdapter, InputHandlers } from "./input/inputAdapter";
 import { FONT_FAMILY, IMG_SRC, relayout, renderRuns, type ParsedBlock, type View } from "./printLayout";
 import {
@@ -55,6 +55,9 @@ import {
 
 type CaretPos = { pageIndex: number; x: number; y: number; height: number };
 type SelRect = { pageIndex: number; x: number; y: number; width: number; height: number };
+
+/** 모바일 페이지 둘레 여백(px) — 데스크탑 48px 패딩 대비 폰에 적정. reflow 폭 계산·렌더 패딩 공유. */
+const MOBILE_PAGE_PAD_PX = 12;
 
 /**
  * 버퍼 오프셋 캐럿 → 화면 위치. 측정·레이아웃에서 줄·페이지·x 를 역추적(measureLineXs = 렌더와 동일 메트릭).
@@ -381,8 +384,16 @@ export const CustomEditor = forwardRef<
     const scaleRef = useRef(1);
     // 사용자 확대/축소 배수(−/+ 버튼). 최종 zoom = fit-to-width(scale) × userZoom.
     const [userZoom, setUserZoom] = useState(1);
+    // 모바일(iOS, EditContext 미지원) reflow — 페이지 폭을 화면 가용 폭에 맞춤(축소 대신 reflow).
+    // 측정 전엔 폰 기본폭으로 fallback(마운트 직후 ResizeObserver 가 즉시 보정).
+    const [availWidth, setAvailWidth] = useState(360);
+    const isMobile = mounted ? typeof EditContext === "undefined" : false;
 
-    const geo = useMemo(() => pageGeometry(paperSize, fontSizePx), [paperSize, fontSizePx]);
+    // 모바일은 화면 폭 페이지(reflow), 데스크탑은 용지 규격 페이지(기존·무회귀).
+    const geo = useMemo(
+        () => (isMobile ? mobilePageGeometry(availWidth, fontSizePx) : pageGeometry(paperSize, fontSizePx)),
+        [isMobile, availWidth, paperSize, fontSizePx],
+    );
     // 버퍼뿐 아니라 blockAttrs(heading 토글) 변경도 리플로우 — 블록별 폰트가 측정·렌더에 관통.
     const view = useMemo<View>(() => (mounted ? relayout(model, geo) : { blocks: [], pages: [] }), [mounted, model, geo]);
     // 026: iOS(EditContext 미지원)는 contenteditable 어댑터로 입력 지원 → 기존 "미지원 안내" 배너 비활성.
@@ -417,26 +428,32 @@ export const CustomEditor = forwardRef<
     pendingMarksRef.current = pendingMarks;
     const effectiveScale = debugNoZoom ? 1 : scale * userZoom;
     scaleRef.current = effectiveScale;
-    // CSS zoom 은 iOS WebKit 에서 글자·줄 배치 불균일(줄 겹침) → iOS 만 transform:scale 로 균일 축소.
-    // 데스크탑(EditContext 지원)은 검증된 기존 zoom 유지(무회귀). mounted 게이트로 SSR/hydration mismatch 회피.
-    const useTransformScale = mounted ? typeof EditContext === "undefined" : false;
+    // 데스크탑(EditContext 지원)은 검증된 기존 zoom 으로 fit-to-width 축소(무회귀).
+    // 모바일(iOS)은 CSS zoom 이 글자·줄 배치 불균일(줄 겹침)이라 transform:scale 경로 + reflow(축소 대신).
+    const useTransformScale = isMobile;
 
-    // fit-to-width — stage 가용 폭에 종이가 들어가도록 축소비율 계산(ResizeObserver 로 패널/창 변화 추종).
-    // 페이지 + 좌우 패딩(48*2=96)이 stage clientWidth 안에 들어가도록. 종이가 좁으면 scale=1(축소 안 함).
+    // fit-to-width(데스크탑) / reflow(모바일) — stage 가용 폭을 ResizeObserver 로 추종.
+    //  - 데스크탑: 용지 폭+좌우 패딩(48*2=96)이 stage 에 들어가도록 축소비율(scale) 계산.
+    //  - 모바일: 페이지 폭을 가용 폭(좌우 패딩 제외)에 맞춰 setAvailWidth → geo reflow, scale=1(축소 없음).
     useEffect(() => {
         if (!mounted) return;
         const stage = stageRef.current;
         if (!stage) return;
         const compute = () => {
             const avail = stage.clientWidth - 8; // 세로 스크롤바 여유
-            const natural = geo.pageWidthPx + 96;
-            setScale(Math.max(0.3, Math.min(1, avail / natural)));
+            if (isMobile) {
+                setAvailWidth(Math.max(280, avail - MOBILE_PAGE_PAD_PX * 2));
+                setScale(1);
+            } else {
+                const natural = geo.pageWidthPx + 96;
+                setScale(Math.max(0.3, Math.min(1, avail / natural)));
+            }
         };
         compute();
         const ro = new ResizeObserver(compute);
         ro.observe(stage);
         return () => ro.disconnect();
-    }, [geo, mounted]);
+    }, [geo.pageWidthPx, mounted, isMobile]);
 
     // inner(원본·축소 전) 크기 실측 — transform:scale wrapper 가 차지할 scaled 크기 계산용.
     useEffect(() => {
@@ -495,8 +512,10 @@ export const CustomEditor = forwardRef<
         const host = stageRef.current;
         if (!host) return;
         const initial = modelRef.current.buffer;
-        // 기능 감지 — EditContext 지원(데스크탑·안드 Chromium)이면 그 어댑터, 미지원(iOS WebKit)이면 contenteditable.
-        const adapter = typeof EditContext !== "undefined" ? createEditContextAdapter() : createContentEditableAdapter();
+        // 기능 감지 — EditContext 지원(데스크탑·안드 Chromium)이면 그 어댑터, 미지원(iOS WebKit)이면 textarea 프록시.
+        // (textarea: iOS 한글 IME·Enter 를 네이티브로 처리 + value diff 로 모델 반영. contenteditable 방식은
+        //  iOS IME 상태 orphan 으로 폐기 — docs/handoff/2026-06-18 / deep research.)
+        const adapter = typeof EditContext !== "undefined" ? createEditContextAdapter() : createTextareaAdapter();
         adapterRef.current = adapter;
 
         // ── undo/redo 헬퍼(effect 안 = 어댑터 직접 접근). ──
@@ -566,6 +585,11 @@ export const CustomEditor = forwardRef<
                 adapter.syncSelection(lo + 1, lo + 1);
                 onModelChangeRef.current(next);
                 setSel({ anchor: lo + 1, focus: lo + 1, affinity: 1 });
+            },
+            // textarea 어댑터 전용 — 네이티브 캐럿 이동(탭/화살표)을 렌더 캐럿에 반영. setSel 만(어댑터엔 역동기
+            // 안 함 — textarea 가 이미 그 선택을 가짐). EditContext/contenteditable 은 호출 안 함.
+            onSelectionChange: (selStart: number, selEnd: number) => {
+                setSel({ anchor: selStart, focus: selEnd, affinity: 1 });
             },
         };
         adapter.attach(host, handlers);
@@ -917,9 +941,18 @@ export const CustomEditor = forwardRef<
         // 마운트 1회 — 최신 값은 ref(modelRef/onModelChangeRef/selStateRef/viewRef/geoRef)로 참조.
     }, []);
 
-    // 포인터 좌표 → 버퍼 캐럿({offset, affinity}, 어느 페이지든). data-poc-page + elementFromPoint 로 페이지·로컬좌표 산출.
+    // 포인터 좌표 → 버퍼 캐럿({offset, affinity}, 어느 페이지든). data-poc-page + elementsFromPoint 로 페이지·로컬좌표 산출.
+    // elementsFromPoint(복수): iOS textarea 입력 표면이 z-index 로 페이지를 덮으므로, 그 아래의 data-poc-page 를 찾는다
+    // (elementFromPoint 단수는 textarea 만 반환 → 탭 hit-test 실패).
     const pointToCaret = (clientX: number, clientY: number): { offset: number; affinity: Affinity } | null => {
-        const el = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>("[data-poc-page]");
+        let el: HTMLElement | null = null;
+        for (const cand of document.elementsFromPoint(clientX, clientY)) {
+            const page = (cand as HTMLElement).closest<HTMLElement>("[data-poc-page]");
+            if (page) {
+                el = page;
+                break;
+            }
+        }
         if (!el) return null;
         const pageIndex = Number(el.getAttribute("data-poc-page"));
         const r = el.getBoundingClientRect();
@@ -1137,7 +1170,7 @@ export const CustomEditor = forwardRef<
                 <div style={{ width: naturalSize.w ? naturalSize.w * effectiveScale : "max-content", height: naturalSize.h ? naturalSize.h * effectiveScale : undefined, margin: "0 auto", position: "relative" }}>
                     <div
                         ref={innerRef}
-                        style={{ position: "absolute", top: 0, left: 0, transform: `scale(${effectiveScale})`, transformOrigin: "top left", width: "max-content", display: "flex", flexDirection: "column", alignItems: "center", gap: 28, padding: "40px 48px" }}
+                        style={{ position: "absolute", top: 0, left: 0, transform: `scale(${effectiveScale})`, transformOrigin: "top left", width: "max-content", display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: `${MOBILE_PAGE_PAD_PX}px` }}
                     >
                         {view.pages.map((pg) => (
                             <PageBox key={pg.index} page={pg} geo={geo} blocks={view.blocks} caret={caretPos} selRects={selRects.filter((r) => r.pageIndex === pg.index)} />
