@@ -6,9 +6,10 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { webElectronApi } from "@/lib/electron-api";
+import { archiveProject, listProjects, unarchiveProject } from "@/lib/api/projects";
 import { clearLastProject, getLastProject } from "@/lib/lastProject";
 import type { CreateProjectInput, UpdateProjectInput } from "@/lib/api/projects";
-import type { ProjectCard } from "@/lib/types/domain";
+import type { Project, ProjectCard } from "@/lib/types/domain";
 
 export const projectKeys = {
     all: ["projects"] as const,
@@ -45,6 +46,34 @@ export function useUpdateProject() {
         mutationFn: ({ id, patch }: { id: number; patch: UpdateProjectInput }) =>
             webElectronApi.projects.update(id, patch),
         onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.all }),
+    });
+}
+
+export function useArchiveProject() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id: number) => archiveProject(id),
+        onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.all }),
+    });
+}
+
+export function useUnarchiveProject() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id: number) => unarchiveProject(id),
+        onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.all }),
+    });
+}
+
+/** 보관된 작품 목록 — enabled=true 일 때만 조회. listProjects(전체) 에서 archivedAt!=null 필터. */
+export function useArchivedProjects(enabled: boolean) {
+    return useQuery({
+        queryKey: [...projectKeys.all, "archived"] as const,
+        queryFn: async (): Promise<Project[]> => {
+            const page = await listProjects({ size: 200 });
+            return page.content.filter((p) => p.archivedAt != null);
+        },
+        enabled,
     });
 }
 
