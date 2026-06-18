@@ -1,9 +1,10 @@
 /**
- * 입력 어댑터 — CustomEditor 가 입력 소스(EditContext / contenteditable)에 거는 계약.
+ * 입력 어댑터 — CustomEditor 가 입력 소스(EditContext / hidden textarea)에 거는 계약.
  *
- * 데스크탑·안드 Chrome 은 EditContext(EditContextAdapter), iOS WebKit 은 contenteditable
- * (ContentEditableAdapter)로 분기한다(기능 감지: `typeof EditContext`). 두 구현이 동일 인터페이스를
+ * 데스크탑·안드 Chrome 은 EditContext(EditContextAdapter), iOS WebKit 은 hidden textarea 입력 프록시
+ * (TextareaAdapter)로 분기한다(기능 감지: `typeof EditContext`). 두 구현이 동일 인터페이스를
  * 만족하므로 CustomEditor 는 입력 소스 종류를 모른 채 텍스트 입력·IME·구조 편집을 받는다.
+ * (contenteditable 방식은 iOS 한글 IME PoC 실패로 폐기 — research.md Decision 6.)
  *
  * 책임 경계: 어댑터는 "텍스트 입력·IME 조합·구조 편집(Enter/Backspace 등)"만 책임진다.
  * 복사/잘라내기/붙여넣기(copy/cut/paste)와 캐럿 이동 키(화살표 등)는 host 요소 이벤트로

@@ -4,7 +4,7 @@
 
 **Created**: 2026-06-17
 
-**Status**: Draft
+**Status**: 종료(2026-06-18). **iOS 자체에디터 입력 = 미지원으로 결정**(US1·US2 폐기 — contenteditable·textarea 두 방식 모두 실패, research.md Decision 7). iOS는 글쓰기 미지원 안내 + 집필실 차단. **US3 모바일 반응형 = 완료**(헤더 햄버거 + 에디터 화면폭 reflow, 운영 배포·검증). 데스크탑·안드 무회귀.
 
 **Input**: User description: "모바일 대응 라운드 — iOS 본격 집필 가능 에디터 + 모바일 버그 fix. 데스크탑 Chromium 전용 자체 에디터를 iOS(WebKit)에서도 동작하게 하고, 모바일 반응형 버그를 고친다."
 
@@ -63,7 +63,7 @@ iOS에서 캐럿 이동, 선택/드래그, 편집키(Backspace·Delete·Enter·S
 - iOS에서 IME 조합 중에 블록 전환(제목↔본문)이나 페이지 경계를 넘으면 조합이 깨지지 않아야 한다.
 - 입력 환경 감지(데스크탑 EditContext vs iOS 대체 경로)가 잘못되면? → 기능 감지(EditContext 지원 여부) 기준으로 분기하며, 미지원이면 대체 경로를 쓴다.
 - iOS 대체 입력 표면과 자체 엔진이 직접 그리는 캐럿/선택이 충돌(이중 캐럿 등)하지 않아야 한다.
-- contenteditable로 재현이 어려운 데스크탑 기능이 있으면 best-effort로 최대한 구현하고, 불가한 부분은 명시 보고한다.
+- 대체 입력 경로(iOS textarea 프록시)로 재현이 어려운 데스크탑 기능이 있으면 best-effort로 최대한 구현하고, 불가한 부분은 명시 보고한다(예: textarea는 Enter/Shift+Enter를 value의 `\n`으로 통합해 소프트 줄바꿈 구분이 어려움).
 
 ## Requirements *(mandatory)*
 
@@ -107,6 +107,6 @@ iOS에서 캐럿 이동, 선택/드래그, 편집키(Backspace·Delete·Enter·S
 - 입력 경로 분기는 브라우저 종류 추측이 아니라 기능 감지(EditContext 지원 여부)로 한다.
 - 데스크탑 입력 경로(EditContext)는 그대로 유지하며 무회귀가 필수다.
 - iOS 한글 IME 정확성은 자동화로 완전히 검증할 수 없고 실기기 dogfooding으로 최종 확인한다(사용자 몫).
-- iOS 대체 입력은 contenteditable 기반이 적합하다(CodeMirror도 모바일은 contenteditable 기본, hidden textarea는 모바일 IME에 문제 — 검증). 단, 자체 엔진의 문서 모델·직접 렌더·페이지 분할 로직은 재사용한다.
+- iOS 자체에디터 입력은 **미지원으로 최종 결정**(2026-06-18). contenteditable(자모 중복·줄바꿈 소실)·hidden textarea(네이티브 선택 발산, user-select 억제 불가) 두 방식 모두 dogfooding서 실패 → 사용자가 미지원 결정(research.md Decision 7). iOS는 안내 배너 + 집필실 차단. 자체 에디터 입력은 데스크탑·안드 Chromium(EditContext)만.
 - 백엔드 변경은 없다.
 - 기존 임시 패치(루트 viewport minimum-scale=1 핀치줌 차단, iOS 안내 배너)는 이 라운드 결과에 따라 재검토된다.

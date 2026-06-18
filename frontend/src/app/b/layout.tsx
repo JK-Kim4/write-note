@@ -38,6 +38,8 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [noProjectModalOpen, setNoProjectModalOpen] = useState(false);
     const [loadErrorModalOpen, setLoadErrorModalOpen] = useState(false);
+    // 모바일(<md) 햄버거 메뉴 — 데스크탑은 가로 nav, 모바일은 접어 헤더 가로 overflow(왼쪽 슬라이드) 제거(026 US3).
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const { data: projectCards, isLoading: isProjectsLoading, isError: isProjectsError } = useProjectCards();
     const noProjectModalRef = useRef<HTMLDivElement>(null);
     const loadErrorModalRef = useRef<HTMLDivElement>(null);
@@ -49,6 +51,36 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (hydrated && design === "default") router.replace("/");
     }, [hydrated, design, router]);
+
+    // 라우트 이동 시 모바일 메뉴 닫기(Link 네비게이션 후 열린 채 남지 않게).
+    useEffect(() => setMobileMenuOpen(false), [pathname]);
+
+    // "집필" 진입 — 마지막으로 연 작품(존재 시)→최근 작품→작품 0개면 안내 모달. 데스크탑 nav·모바일 메뉴 공용.
+    const handleWriteClick = () => {
+        const last = getLastProject();
+        // 유효 last id 가 있으면 로딩 중이어도 그 작품으로 진입(존재 검증은 /b/works/[id] 페이지가 수행).
+        if (last != null && (isProjectsLoading || projectCards?.some((c) => c.id === last))) {
+            router.push(`/b/works/${last}`);
+            return;
+        }
+        // 연 적 없거나 그 작품이 삭제됐어도, 작품이 있으면 가장 최근 작품으로.
+        if (projectCards && projectCards.length > 0) {
+            router.push(`/b/works/${projectCards[0].id}`);
+            return;
+        }
+        // 조회 실패 — 거짓 빈 상태 대신 에러 안내.
+        if (isProjectsError) {
+            setLoadErrorModalOpen(true);
+            return;
+        }
+        // last id 없는 로딩 중이면 거짓 모달 방지 위해 작품 목록으로.
+        if (isProjectsLoading || projectCards === undefined) {
+            router.push("/b/library");
+            return;
+        }
+        // 로딩 성공 + 0개 → 안내 모달.
+        setNoProjectModalOpen(true);
+    };
 
     const handleLogout = async () => {
         if (isLoggingOut) return;
@@ -85,7 +117,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                             B
                         </span>
                     </Link>
-                    <nav className="flex flex-1 items-center gap-1">
+                    <nav className="hidden flex-1 items-center gap-1 md:flex">
                         {NAV_ITEMS.map((item, i) => {
                             const isActive = item.exact
                                 ? pathname === item.href
@@ -99,34 +131,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                                     {i === 0 && (
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                const last = getLastProject();
-                                                // 유효 last id 가 있으면 로딩 중이어도 그 작품으로 진입(존재 검증은 /b/works/[id] 페이지가 수행).
-                                                if (
-                                                    last != null &&
-                                                    (isProjectsLoading || projectCards?.some((c) => c.id === last))
-                                                ) {
-                                                    router.push(`/b/works/${last}`);
-                                                    return;
-                                                }
-                                                // 연 적 없거나 그 작품이 삭제됐어도, 작품이 있으면 가장 최근 작품으로.
-                                                if (projectCards && projectCards.length > 0) {
-                                                    router.push(`/b/works/${projectCards[0].id}`);
-                                                    return;
-                                                }
-                                                // 조회 실패 — 거짓 빈 상태 대신 에러 안내.
-                                                if (isProjectsError) {
-                                                    setLoadErrorModalOpen(true);
-                                                    return;
-                                                }
-                                                // last id 없는 로딩 중이면 거짓 모달 방지 위해 작품 목록으로.
-                                                if (isProjectsLoading || projectCards === undefined) {
-                                                    router.push("/b/library");
-                                                    return;
-                                                }
-                                                // 로딩 성공 + 0개 → 안내 모달.
-                                                setNoProjectModalOpen(true);
-                                            }}
+                                            onClick={handleWriteClick}
                                             className={
                                                 pathname.startsWith("/b/works") ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS
                                             }
@@ -138,18 +143,80 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                             );
                         })}
                     </nav>
-                    <Link href="/" className="text-xs text-gray-400 hover:text-indigo-600">
+                    <Link href="/" className="hidden text-xs text-gray-400 hover:text-indigo-600 md:block">
                         기존 디자인으로
                     </Link>
                     <button
                         type="button"
                         onClick={handleLogout}
                         disabled={isLoggingOut}
-                        className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                        className="hidden rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 md:block"
                     >
                         로그아웃
                     </button>
+                    {/* 모바일 햄버거(<md) — 데스크탑 가로 nav 를 접어 헤더 가로 overflow(왼쪽 슬라이드) 제거(026 US3). */}
+                    <button
+                        type="button"
+                        aria-label="메뉴"
+                        aria-expanded={mobileMenuOpen}
+                        onClick={() => setMobileMenuOpen((o) => !o)}
+                        className="ml-auto inline-flex items-center justify-center rounded-md p-2 text-gray-600 hover:bg-gray-50 md:hidden"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                            {mobileMenuOpen ? (
+                                <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
+                            ) : (
+                                <path d="M3 6h14M3 10h14M3 14h14" strokeLinecap="round" />
+                            )}
+                        </svg>
+                    </button>
                 </div>
+                {/* 모바일 메뉴 패널 — sticky 헤더 내부(스크롤 시 함께 고정). md 이상에선 숨김. */}
+                {mobileMenuOpen && (
+                    <nav className="flex flex-col gap-0.5 border-t border-gray-200 bg-white px-4 py-2 md:hidden">
+                        {NAV_ITEMS.map((item) => {
+                            const isActive = item.exact
+                                ? pathname === item.href
+                                : pathname.startsWith(item.href);
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className={`rounded-md px-3 py-2 text-sm ${isActive ? "bg-indigo-50 font-medium text-indigo-700" : "text-gray-700 hover:bg-gray-50"}`}
+                                >
+                                    {item.label}
+                                </Link>
+                            );
+                        })}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMobileMenuOpen(false);
+                                handleWriteClick();
+                            }}
+                            className={`rounded-md px-3 py-2 text-left text-sm ${pathname.startsWith("/b/works") ? "bg-indigo-50 font-medium text-indigo-700" : "text-gray-700 hover:bg-gray-50"}`}
+                        >
+                            집필
+                        </button>
+                        <div className="my-1 border-t border-gray-100" />
+                        <Link
+                            href="/"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="rounded-md px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
+                        >
+                            기존 디자인으로
+                        </Link>
+                        <button
+                            type="button"
+                            onClick={handleLogout}
+                            disabled={isLoggingOut}
+                            className="rounded-md px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                        >
+                            로그아웃
+                        </button>
+                    </nav>
+                )}
             </header>
             <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
 

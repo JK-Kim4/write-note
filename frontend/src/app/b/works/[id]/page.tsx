@@ -12,7 +12,8 @@
  * (022 거짓 409 제거).
  */
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { BStudioShell } from "@/components/b/BStudioShell";
 import { BCustomChapterEditor } from "@/components/custom-editor/BCustomChapterEditor";
 import type { CustomEditorRef } from "@/components/custom-editor/CustomEditor";
@@ -35,6 +36,38 @@ export default function BWorkDetailPage() {
         }),
         [outline],
     );
+
+    // iOS(WebKit, EditContext 미지원)는 자체 글쓰기 엔진 미지원 → 집필실 자체를 열지 않는다(읽기 전용도 아님,
+    // 사용자 결정 2026-06-18). mounted 게이트로 SSR/hydration mismatch 회피(서버=항상 미지원).
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+    const editingUnsupported = mounted && typeof EditContext === "undefined";
+
+    if (editingUnsupported) {
+        return (
+            <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 text-center">
+                <h1 className="text-lg font-bold text-gray-900">이 기기에서는 집필실을 열 수 없어요</h1>
+                <p className="max-w-sm text-sm text-gray-600">
+                    자체 글쓰기 엔진은 아직 iOS(아이폰·아이패드) 브라우저를 지원하지 않아요. 데스크톱 Chrome·Edge
+                    또는 안드로이드 Chrome에서 집필해 주세요.
+                </p>
+                <div className="flex gap-2">
+                    <Link
+                        href="/b/library"
+                        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                    >
+                        작품 목록
+                    </Link>
+                    <Link
+                        href="/b"
+                        className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                        홈
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <BStudioShell

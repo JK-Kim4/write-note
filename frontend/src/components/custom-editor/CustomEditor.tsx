@@ -22,7 +22,6 @@ import { type LaidOutPage } from "./layoutEngine";
 import { measureLineXs } from "./measure";
 import { modelToPmJson, pmJsonToModel } from "./pmConvert";
 import { createEditContextAdapter } from "./input/editContextAdapter";
-import { createTextareaAdapter } from "./input/textareaAdapter";
 import type { EditIntent, InputAdapter, InputHandlers } from "./input/inputAdapter";
 import { FONT_FAMILY, IMG_SRC, relayout, renderRuns, type ParsedBlock, type View } from "./printLayout";
 import {
@@ -353,10 +352,8 @@ export const CustomEditor = forwardRef<
         onModelChange: (next: DocModel) => void;
         paperSize: PaperSize;
         fontSizePx?: number;
-        /** 진단 전용 — fit-to-width zoom 비활성(iOS zoom 버그 원인 확정 실험용). 기본 false. */
-        debugNoZoom?: boolean;
     }
->(function CustomEditor({ model, onModelChange, paperSize, fontSizePx = 18, debugNoZoom = false }, ref) {
+>(function CustomEditor({ model, onModelChange, paperSize, fontSizePx = 18 }, ref) {
     const buffer = model.buffer;
     // sel.affinity = focus 캐럿의 wrap 경계 시각 위치(-1=앞 줄 끝, +1=다음 줄 시작). 기본 +1 = 1라운드 동작.
     const [sel, setSel] = useState<{ anchor: number; focus: number; affinity: Affinity }>({ anchor: buffer.length, focus: buffer.length, affinity: 1 });
@@ -384,10 +381,12 @@ export const CustomEditor = forwardRef<
     const scaleRef = useRef(1);
     // 사용자 확대/축소 배수(−/+ 버튼). 최종 zoom = fit-to-width(scale) × userZoom.
     const [userZoom, setUserZoom] = useState(1);
-    // 모바일(iOS, EditContext 미지원) reflow — 페이지 폭을 화면 가용 폭에 맞춤(축소 대신 reflow).
+    // 좁은 화면 reflow — 페이지 폭을 화면 가용 폭에 맞춤(데스크탑 A4 축소 대신). 기준 = 화면 폭(EditContext
+    // 지원 여부와 무관) — 안드로이드 모바일(EditContext 지원)도 좁으면 reflow 되어 너무 작게 안 나온다(026 US3).
     // 측정 전엔 폰 기본폭으로 fallback(마운트 직후 ResizeObserver 가 즉시 보정).
     const [availWidth, setAvailWidth] = useState(360);
-    const isMobile = mounted ? typeof EditContext === "undefined" : false;
+    const [isNarrow, setIsNarrow] = useState(false);
+    const isMobile = mounted && isNarrow;
 
     // 모바일은 화면 폭 페이지(reflow), 데스크탑은 용지 규격 페이지(기존·무회귀).
     const geo = useMemo(
@@ -396,9 +395,10 @@ export const CustomEditor = forwardRef<
     );
     // 버퍼뿐 아니라 blockAttrs(heading 토글) 변경도 리플로우 — 블록별 폰트가 측정·렌더에 관통.
     const view = useMemo<View>(() => (mounted ? relayout(model, geo) : { blocks: [], pages: [] }), [mounted, model, geo]);
-    // 026: iOS(EditContext 미지원)는 contenteditable 어댑터로 입력 지원 → 기존 "미지원 안내" 배너 비활성.
-    // (완전 제거는 Phase 6/T025 — iOS 입력 dogfooding 확인 후.)
-    const editContextUnsupported = false;
+    // iOS(WebKit, EditContext 미지원)는 자체 에디터 글쓰기 미지원 — 안내 배너 표시 + 입력 어댑터 미부착(읽기 전용).
+    // (026 textarea 프록시 시도는 네이티브 선택 발산으로 dogfooding 중 폐기, 사용자 결정 2026-06-18.)
+    // mounted 게이트로 SSR/hydration mismatch 회피(서버=항상 미지원).
+    const editContextUnsupported = mounted && typeof EditContext === "undefined";
     // 조합(IME) 중에는 setSel 을 억제(받침 재조합 보호)하므로, 캐럿 오프셋은 입력 소스의 최신 selection 을
     // 직접 읽는다 — 조합 중 onModelChange(텍스트 표시) 리렌더 때 어댑터 selection 이 반영돼 캐럿이 따라간다.
     const caretOffset = adapterRef.current?.isComposing() ? (adapterRef.current.getSelection().start ?? sel.focus) : sel.focus;
@@ -426,7 +426,7 @@ export const CustomEditor = forwardRef<
     modelRef.current = model;
     onModelChangeRef.current = onModelChange;
     pendingMarksRef.current = pendingMarks;
-    const effectiveScale = debugNoZoom ? 1 : scale * userZoom;
+    const effectiveScale = scale * userZoom;
     scaleRef.current = effectiveScale;
     // 데스크탑(EditContext 지원)은 검증된 기존 zoom 으로 fit-to-width 축소(무회귀).
     // 모바일(iOS)은 CSS zoom 이 글자·줄 배치 불균일(줄 겹침)이라 transform:scale 경로 + reflow(축소 대신).
@@ -484,6 +484,15 @@ export const CustomEditor = forwardRef<
 
     useEffect(() => setMounted(true), []);
 
+    // 좁은 화면(모바일·좁은 데스크탑 창) 감지 — A4 가 안 들어가는 폭이면 reflow 로 전환(fit-to-width 축소 대신).
+    useEffect(() => {
+        const mq = window.matchMedia("(max-width: 880px)");
+        const update = () => setIsNarrow(mq.matches);
+        update();
+        mq.addEventListener("change", update);
+        return () => mq.removeEventListener("change", update);
+    }, []);
+
     /** 선택 적용 — 입력 소스 선택 동기(어댑터가 min,max 정규화) + 상태(anchor/focus/affinity). 타이핑/Backspace 가 선택을 교체/삭제하게. */
     const applySel = (anchor: number, focus: number, affinity: Affinity = 1) => {
         adapterRef.current?.syncSelection(anchor, focus);
@@ -511,11 +520,11 @@ export const CustomEditor = forwardRef<
     useEffect(() => {
         const host = stageRef.current;
         if (!host) return;
+        // iOS(WebKit, EditContext 미지원)는 자체 에디터 글쓰기 미지원 — 어댑터 미부착(읽기 전용 + 안내 배너).
+        // 데스크탑·안드 Chromium 만 EditContext 어댑터로 입력.
+        if (typeof EditContext === "undefined") return;
         const initial = modelRef.current.buffer;
-        // 기능 감지 — EditContext 지원(데스크탑·안드 Chromium)이면 그 어댑터, 미지원(iOS WebKit)이면 textarea 프록시.
-        // (textarea: iOS 한글 IME·Enter 를 네이티브로 처리 + value diff 로 모델 반영. contenteditable 방식은
-        //  iOS IME 상태 orphan 으로 폐기 — docs/handoff/2026-06-18 / deep research.)
-        const adapter = typeof EditContext !== "undefined" ? createEditContextAdapter() : createTextareaAdapter();
+        const adapter = createEditContextAdapter();
         adapterRef.current = adapter;
 
         // ── undo/redo 헬퍼(effect 안 = 어댑터 직접 접근). ──
