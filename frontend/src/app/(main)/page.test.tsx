@@ -15,7 +15,7 @@ import BDashboardPage from "./page";
 const pushMock = vi.fn();
 vi.mock("next/navigation", () => ({
     useRouter: () => ({ push: pushMock, replace: vi.fn(), back: vi.fn() }),
-    usePathname: () => "/b",
+    usePathname: () => "/",
     useSearchParams: () => new URLSearchParams(),
 }));
 
@@ -110,8 +110,8 @@ function renderPage() {
     );
 }
 
-describe("BDashboardPage(/b) 행위", () => {
-    it("작품이 있을 때 이어서쓰기 타일이 보이고, [이어 쓰기] 클릭 시 /b/works/{id} 로 이동한다", async () => {
+describe("BDashboardPage(/) 행위", () => {
+    it("작품이 있을 때 이어서쓰기 타일이 보이고, [이어 쓰기] 클릭 시 /works/{id} 로 이동한다", async () => {
         stubCards([cardJson(42, "B작품", "2026-06-10T02:00:00Z", { nextScene: "바다 장면" })]);
         stubDocument(42, "마지막 문장 예시.");
         stubWeekly();
@@ -122,12 +122,12 @@ describe("BDashboardPage(/b) 행위", () => {
         // 이어서쓰기 타일 노출 확인
         expect(await screen.findByText("B작품")).toBeInTheDocument();
 
-        // 이어 쓰기 버튼 클릭 → /b/works/42
+        // 이어 쓰기 버튼 클릭 → /works/42
         await userEvent.click(screen.getByRole("button", { name: /이어 쓰기/ }));
-        expect(pushMock).toHaveBeenCalledWith("/b/works/42");
+        expect(pushMock).toHaveBeenCalledWith("/works/42");
     });
 
-    it("작품이 0개일 때 '작업실이 준비됐습니다' + '첫 작품 시작하기'가 보이고 클릭 시 /b/library?new=1 push", async () => {
+    it("작품이 0개일 때 '작업실이 준비됐습니다' + '첫 작품 시작하기'가 보이고 클릭 시 /library?new=1 push", async () => {
         stubCards([]);
         stubWeekly();
         stubMemos();
@@ -136,7 +136,7 @@ describe("BDashboardPage(/b) 행위", () => {
 
         expect(await screen.findByText("작업실이 준비됐습니다")).toBeInTheDocument();
         await userEvent.click(screen.getByRole("button", { name: "첫 작품 시작하기" }));
-        expect(pushMock).toHaveBeenCalledWith("/b/library?new=1");
+        expect(pushMock).toHaveBeenCalledWith("/library?new=1");
     });
 
     it("cardsQuery 에러일 때 role=alert 와 '다시 시도' 버튼이 보인다", async () => {

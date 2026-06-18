@@ -18,38 +18,26 @@ import type { PaperSize } from "@/components/editor/pageLayout";
 export type ThemeMode = "light" | "dark" | "system";
 export type WritingMode = "manuscript" | "editor";
 export type ManuscriptSize = 200 | 400 | 1000;
-/** 화면 디자인 한 벌 선택 — "default"=기존 Rail 셸 트리(`/`…), "b"=B타입 트리(`/b`…). */
-export type DesignVariant = "default" | "b";
 export type { PaperSize };
 
 interface PreferencesState {
     theme: ThemeMode;
     writingMode: WritingMode;
     manuscriptSize: ManuscriptSize;
-    design: DesignVariant;
     paperSize: PaperSize;
     setTheme: (theme: ThemeMode) => void;
     setWritingMode: (mode: WritingMode) => void;
     setManuscriptSize: (size: ManuscriptSize) => void;
-    setDesign: (design: DesignVariant) => void;
     setPaperSize: (size: PaperSize) => void;
 }
-
-/** 선택한 디자인의 홈 경로 — 로그인 랜딩·전환 이동·루트 가드가 공유한다. */
-export const DESIGN_HOME: Record<DesignVariant, string> = {
-    default: "/home",
-    b: "/b",
-};
 
 /** 초기 기본값 — 계정 전환 시 이전 계정 값 누수 방지 리셋(PreferencesSync 버그픽스 F)에도 쓴다. */
 export const PREFERENCE_DEFAULTS = {
     theme: "system",
     writingMode: "editor",
     manuscriptSize: 400,
-    // 신규 세션(localStorage 비어 있음)은 B타입으로 시작. 사용자가 설정에서 기본 디자인으로 바꿀 수 있다.
-    design: "b",
     paperSize: "A4",
-} as const satisfies Pick<PreferencesState, "theme" | "writingMode" | "manuscriptSize" | "design" | "paperSize">;
+} as const satisfies Pick<PreferencesState, "theme" | "writingMode" | "manuscriptSize" | "paperSize">;
 
 export const usePreferences = create<PreferencesState>()(
     persist(
@@ -58,7 +46,6 @@ export const usePreferences = create<PreferencesState>()(
             setTheme: (theme) => set({ theme }),
             setWritingMode: (writingMode) => set({ writingMode }),
             setManuscriptSize: (manuscriptSize) => set({ manuscriptSize }),
-            setDesign: (design) => set({ design }),
             setPaperSize: (paperSize) => set({ paperSize }),
         }),
         {

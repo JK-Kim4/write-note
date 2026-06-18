@@ -22,7 +22,7 @@ function formatDate(iso: string): string {
 function WorkCard({ card, onDelete }: { card: ProjectCard; onDelete: (id: number) => void }) {
     return (
         <div className="group relative rounded-xl border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md">
-            <Link href={`/b/works/${card.id}`} className="block">
+            <Link href={`/works/${card.id}`} className="block">
                 <div className="flex items-start justify-between gap-2">
                     <h2 className="text-lg font-bold text-gray-900">{card.title}</h2>
                     {card.genre && (
@@ -66,7 +66,7 @@ export default function BWorksPage() {
         if (new URLSearchParams(window.location.search).get("new") !== "1") return;
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsCreating(true);
-        window.history.replaceState(null, "", "/b/library");
+        window.history.replaceState(null, "", "/library");
     }, []);
     const [title, setTitle] = useState("");
     const [genre, setGenre] = useState("");

@@ -6,7 +6,7 @@
  * BStudioShell 에 BCustomChapterEditor(자체엔진)를 주입하는 얇은 래퍼.
  * - 챕터 관리·세션·충돌·작업종료·export·쪽지/인물 패널은 BStudioShell 이 처리.
  * - 아웃라인은 useCustomOutline(DOM 파생): items / activeIndex / selectItem.
- * - chapterUrlBase 생략 → 기본 `/b/works/[id]` 유지(챕터 전환 시 같은 라우트).
+ * - chapterUrlBase 생략 → 기본 `/works/[id]` 유지(챕터 전환 시 같은 라우트).
  *
  * 챕터 전환 시 BCustomChapterEditor 를 `key={currentChapterId}` 로 리마운트해 세션 재초기화
  * (022 거짓 409 제거).
@@ -53,13 +53,13 @@ export default function BWorkDetailPage() {
                 </p>
                 <div className="flex gap-2">
                     <Link
-                        href="/b/library"
+                        href="/library"
                         className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
                     >
                         작품 목록
                     </Link>
                     <Link
-                        href="/b"
+                        href="/"
                         className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
                     >
                         홈

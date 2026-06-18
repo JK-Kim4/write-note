@@ -86,7 +86,7 @@ export default function BDashboardPage() {
                     <button
                         type="button"
                         className="mt-4 rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
-                        onClick={() => router.push("/b/library?new=1")}
+                        onClick={() => router.push("/library?new=1")}
                     >
                         첫 작품 시작하기
                     </button>
@@ -94,7 +94,7 @@ export default function BDashboardPage() {
             ) : (
                 <div className="mt-6">
                     {/* 상단 풀폭: 이어서쓰기 */}
-                    <BResumeCard card={resume} onOpen={() => router.push(`/b/works/${resume.id}`)} />
+                    <BResumeCard card={resume} onOpen={() => router.push(`/works/${resume.id}`)} />
 
                     {/* 880px 미만: 메모 drawer 토글 버튼 */}
                     <button
@@ -115,7 +115,7 @@ export default function BDashboardPage() {
                                         <BWorkMiniCard
                                             key={c.id}
                                             card={c}
-                                            onOpen={() => router.push(`/b/works/${c.id}`)}
+                                            onOpen={() => router.push(`/works/${c.id}`)}
                                         />
                                     ))}
                                 </div>
@@ -132,7 +132,7 @@ export default function BDashboardPage() {
                             <BMemoStrip
                                 memos={recentMemos}
                                 onNew={() => setCaptureOpen(true)}
-                                onOpenAll={() => router.push("/b/memos")}
+                                onOpenAll={() => router.push("/memos")}
                             />
                         </div>
                     </div>
@@ -178,7 +178,7 @@ export default function BDashboardPage() {
                         }}
                         onOpenAll={() => {
                             setMemoDrawerOpen(false);
-                            router.push("/b/memos");
+                            router.push("/memos");
                         }}
                     />
                 </div>

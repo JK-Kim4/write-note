@@ -1,14 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { type KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMe } from "@/lib/api/auth";
 import {
     usePreferences,
     useIsPreferencesHydrated,
-    DESIGN_HOME,
-    type DesignVariant,
     type PaperSize,
     type ThemeMode,
 } from "@/stores/preferences";
@@ -23,11 +20,6 @@ const THEME_OPTIONS: { value: ThemeMode; label: string; description: string }[] 
     { value: "light", label: "라이트", description: "항상 밝은 화면" },
     { value: "dark", label: "다크", description: "항상 어두운 화면" },
     { value: "system", label: "시스템", description: "기기 설정을 따름" },
-];
-
-const DESIGN_OPTIONS: { value: DesignVariant; label: string; description: string }[] = [
-    { value: "default", label: "기본 디자인", description: "기존 소설빙 화면" },
-    { value: "b", label: "B타입 디자인", description: "지금 보고 있는 B 레이아웃" },
 ];
 
 const PAPER_SIZE_OPTIONS: { value: PaperSize; label: string; description: string }[] = [
@@ -63,61 +55,14 @@ function handleRadioKeyDown<TValue extends string>(
 }
 
 export default function BSettingsPage() {
-    const router = useRouter();
-    const { theme, setTheme, design, setDesign, paperSize, setPaperSize } = usePreferences();
-    // 미수화(하드 로드 직후) 동안에는 선택 강조를 보류 — 기본값(A4/시스템/b)으로 깜빡였다 교정되는 현상 방지.
+    const { theme, setTheme, paperSize, setPaperSize } = usePreferences();
+    // 미수화(하드 로드 직후) 동안에는 선택 강조를 보류 — 기본값(A4/시스템)으로 깜빡였다 교정되는 현상 방지.
     const isHydrated = useIsPreferencesHydrated();
     const meQuery = useQuery({ queryKey: ["auth", "me"], queryFn: fetchMe, retry: false });
-
-    // 디자인 선택 = 화면 한 벌 전환. 선택 즉시 해당 트리 홈으로 이동(완전 전환) + localStorage 기억.
-    const handleSelectDesign = (next: DesignVariant) => {
-        // 이미 선택된 디자인 재클릭 시 전환·이동을 건너뛴다(설정 화면에서 홈으로 튕김 방지).
-        if (next === design) return;
-        setDesign(next);
-        router.push(DESIGN_HOME[next]);
-    };
 
     return (
         <div className="mx-auto max-w-2xl">
             <h1 className="mb-6 text-xl font-bold">설정</h1>
-
-            <section className="mb-4 rounded-xl border border-gray-200 bg-white p-5">
-                <h2 className="text-base font-semibold text-gray-900">디자인</h2>
-                <p className="mt-0.5 text-xs text-gray-400">화면 디자인 한 벌을 고릅니다. 선택 즉시 전환됩니다.</p>
-                <div role="radiogroup" aria-label="디자인" aria-busy={!isHydrated} className="mt-3 grid grid-cols-2 gap-2">
-                    {DESIGN_OPTIONS.map((option) => {
-                        const selected = isHydrated && design === option.value;
-                        return (
-                            <button
-                                key={option.value}
-                                type="button"
-                                role="radio"
-                                aria-checked={selected}
-                                tabIndex={!isHydrated ? -1 : design === option.value ? 0 : -1}
-                                disabled={!isHydrated}
-                                onClick={() => handleSelectDesign(option.value)}
-                                onKeyDown={(e) => handleRadioKeyDown(e, DESIGN_OPTIONS, design, handleSelectDesign)}
-                                className={
-                                    selected
-                                        ? "rounded-md border border-indigo-500 bg-indigo-50 px-3 py-2.5 text-left"
-                                        : "rounded-md border border-gray-300 px-3 py-2.5 text-left hover:bg-gray-50 disabled:opacity-60 disabled:hover:bg-transparent"
-                                }
-                            >
-                                <span
-                                    className={
-                                        selected
-                                            ? "block text-sm font-medium text-indigo-700"
-                                            : "block text-sm font-medium text-gray-700"
-                                    }
-                                >
-                                    {option.label}
-                                </span>
-                                <span className="mt-0.5 block text-xs text-gray-400">{option.description}</span>
-                            </button>
-                        );
-                    })}
-                </div>
-            </section>
 
             <section className="mb-4 rounded-xl border border-gray-200 bg-white p-5">
                 <h2 className="text-base font-semibold text-gray-900">새 작품 기본 용지</h2>
