@@ -109,14 +109,14 @@ export default function BSettingsPage() {
                                 onKeyDown={(e) => handleRadioKeyDown(e, PAPER_SIZE_OPTIONS, paperSize, setPaperSize)}
                                 className={
                                     selected
-                                        ? "rounded-md border border-indigo-500 bg-indigo-50 px-3 py-2.5 text-left"
+                                        ? "rounded-md border border-terracotta-500 bg-terracotta-50 px-3 py-2.5 text-left"
                                         : "rounded-md border border-gray-300 px-3 py-2.5 text-left hover:bg-gray-50 disabled:opacity-60 disabled:hover:bg-transparent"
                                 }
                             >
                                 <span
                                     className={
                                         selected
-                                            ? "block text-sm font-medium text-indigo-700"
+                                            ? "block text-sm font-medium text-terracotta-700"
                                             : "block text-sm font-medium text-gray-700"
                                     }
                                 >
@@ -147,14 +147,14 @@ export default function BSettingsPage() {
                                 onKeyDown={(e) => handleRadioKeyDown(e, THEME_OPTIONS, theme, setTheme)}
                                 className={
                                     selected
-                                        ? "rounded-md border border-indigo-500 bg-indigo-50 px-3 py-2.5 text-left"
+                                        ? "rounded-md border border-terracotta-500 bg-terracotta-50 px-3 py-2.5 text-left"
                                         : "rounded-md border border-gray-300 px-3 py-2.5 text-left hover:bg-gray-50 disabled:opacity-60 disabled:hover:bg-transparent"
                                 }
                             >
                                 <span
                                     className={
                                         selected
-                                            ? "block text-sm font-medium text-indigo-700"
+                                            ? "block text-sm font-medium text-terracotta-700"
                                             : "block text-sm font-medium text-gray-700"
                                     }
                                 >
@@ -214,13 +214,13 @@ export default function BSettingsPage() {
                         value={newTokenLabel}
                         onChange={(e) => setNewTokenLabel(e.target.value)}
                         placeholder="라벨 (선택)"
-                        className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-indigo-400 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+                        className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-terracotta-400 focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                     />
                     <button
                         type="button"
                         onClick={handleIssueToken}
                         disabled={issueMutation.isPending}
-                        className="rounded-md border border-indigo-500 bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
+                        className="rounded-md border border-terracotta-500 bg-terracotta-50 px-3 py-1.5 text-sm font-medium text-terracotta-700 hover:bg-terracotta-100 disabled:opacity-50"
                     >
                         {issueMutation.isPending ? "발급 중…" : "새 토큰 발급"}
                     </button>
@@ -342,7 +342,7 @@ function IssuedTokenModal({
                             onClick={handleCopy}
                             className={
                                 copied
-                                    ? "shrink-0 rounded-md border border-indigo-300 bg-indigo-500 px-2 py-1 text-xs font-medium text-white transition-colors"
+                                    ? "shrink-0 rounded-md border border-terracotta-600 bg-terracotta-600 px-2 py-1 text-xs font-medium text-white transition-colors"
                                     : "shrink-0 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"
                             }
                         >
@@ -426,7 +426,7 @@ function TokenRow({ token }: { token: ApiTokenListItem }) {
                                 value={labelInput}
                                 onChange={(e) => setLabelInput(e.target.value)}
                                 placeholder="라벨 입력"
-                                className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 outline-none focus:border-indigo-400 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+                                className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 outline-none focus:border-terracotta-400 focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                             />
                             <button
                                 type="button"

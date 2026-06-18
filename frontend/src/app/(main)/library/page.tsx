@@ -42,14 +42,14 @@ function WorkCard({ card, onDelete, onEdit, onArchive }: WorkCardProps) {
                 <div className="flex items-start justify-between gap-2">
                     <h2 className="text-lg font-bold text-gray-900">{card.title}</h2>
                     {card.genre && (
-                        <span className="shrink-0 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
+                        <span className="shrink-0 rounded-full bg-terracotta-50 px-2.5 py-0.5 text-xs font-medium text-terracotta-700">
                             {card.genre}
                         </span>
                     )}
                 </div>
                 {card.synopsis && <p className="mt-2 line-clamp-2 text-sm text-gray-600">{card.synopsis}</p>}
                 {card.nextScene && (
-                    <p className="mt-2 rounded-md bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-700">
+                    <p className="mt-2 rounded-md bg-olive-50 px-2.5 py-1.5 text-xs text-olive-700">
                         다음 장면 — {card.nextScene}
                     </p>
                 )}
@@ -185,7 +185,7 @@ function ProjectFormModal({
                     onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                     placeholder="작품 제목"
                     maxLength={120}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
                 />
             </label>
             <label className="mt-3 block text-sm text-gray-600">
@@ -195,7 +195,7 @@ function ProjectFormModal({
                     onChange={(e) => setForm((f) => ({ ...f, genre: e.target.value }))}
                     placeholder="예: 장편소설, 에세이"
                     maxLength={100}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
                 />
             </label>
             <label className="mt-3 block text-sm text-gray-600">
@@ -203,7 +203,7 @@ function ProjectFormModal({
                 <select
                     value={form.paperSize}
                     onChange={(e) => setForm((f) => ({ ...f, paperSize: e.target.value as PaperSize }))}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
                 >
                     {(["A4", "A3", "A2", "B4"] as const).map((size) => (
                         <option key={size} value={size}>
@@ -225,7 +225,7 @@ function ProjectFormModal({
                     min={1}
                     max={100000000}
                     step={1}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
                 />
                 {lengthError && <span className="mt-1 block text-xs text-red-600">{lengthError}</span>}
             </label>
@@ -236,7 +236,7 @@ function ProjectFormModal({
                     onChange={(e) => setForm((f) => ({ ...f, synopsis: e.target.value }))}
                     maxLength={5000}
                     rows={3}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
                 />
             </label>
             <label className="mt-3 block text-sm text-gray-600">
@@ -246,7 +246,7 @@ function ProjectFormModal({
                     onChange={(e) => setForm((f) => ({ ...f, toneNotes: e.target.value }))}
                     maxLength={2000}
                     rows={3}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
                 />
             </label>
             <label className="mt-3 block text-sm text-gray-600">
@@ -256,7 +256,7 @@ function ProjectFormModal({
                     onChange={(e) => setForm((f) => ({ ...f, worldNotes: e.target.value }))}
                     maxLength={10000}
                     rows={3}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
                 />
             </label>
             <label className="mt-3 block text-sm text-gray-600">
@@ -266,7 +266,7 @@ function ProjectFormModal({
                     onChange={(e) => setForm((f) => ({ ...f, nextScene: e.target.value }))}
                     placeholder="다음에 쓸 장면 한 줄"
                     maxLength={500}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
                 />
             </label>
             <div className="mt-5 flex justify-end gap-2">
@@ -281,7 +281,7 @@ function ProjectFormModal({
                 <button
                     type="submit"
                     disabled={form.title.trim().length === 0 || isPending}
-                    className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                    className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700 disabled:opacity-50"
                 >
                     {isPending ? pendingLabel : submitLabel}
                 </button>
@@ -478,7 +478,7 @@ export default function BWorksPage() {
                 <button
                     type="button"
                     onClick={() => setIsCreating(true)}
-                    className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                    className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700"
                 >
                     새 작품
                 </button>
@@ -530,7 +530,7 @@ export default function BWorksPage() {
                     <button
                         type="button"
                         onClick={() => setIsCreating(true)}
-                        className="flex min-h-32 items-center justify-center rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-indigo-400 hover:text-indigo-600"
+                        className="flex min-h-32 items-center justify-center rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-terracotta-400 hover:text-terracotta-600"
                     >
                         + 새 작품 시작하기
                     </button>

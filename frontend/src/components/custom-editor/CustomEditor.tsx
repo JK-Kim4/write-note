@@ -331,7 +331,7 @@ function PageBox({
                     return null;
                 })}
                 {caret && caret.pageIndex === page.index && (
-                    <div className="poc-caret" style={{ position: "absolute", left: caret.x, top: caret.y, height: caret.height, width: 2, background: "#4f46e5" }} />
+                    <div className="poc-caret" style={{ position: "absolute", left: caret.x, top: caret.y, height: caret.height, width: 2, background: "#a8542e" }} />
                 )}
             </div>
             <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, textAlign: "center", fontSize: 12, color: "#9ca3af" }}>{page.index + 1}</div>

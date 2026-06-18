@@ -53,7 +53,7 @@ function DeletedMemoToast({
             <button
                 type="button"
                 onClick={() => onRestore(memoId)}
-                className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                className="text-sm font-medium text-terracotta-600 hover:text-terracotta-700"
             >
                 되돌리기
             </button>
@@ -181,7 +181,7 @@ export default function BMemosPage() {
                     onChange={(e) =>
                         setFilterProjectId(e.target.value === "all" ? "all" : Number(e.target.value))
                     }
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
                 >
                     <option value="all">전체</option>
                     {projects.map((p) => (
@@ -220,7 +220,7 @@ export default function BMemosPage() {
                             onChange={(e) => setDraftBody(e.target.value)}
                             placeholder="떠오른 생각을 바로 적어두세요…"
                             rows={3}
-                            className="w-full flex-1 resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                            className="w-full flex-1 resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
                         />
                         <div className="mt-2 flex items-center gap-2">
                             <select
@@ -229,7 +229,7 @@ export default function BMemosPage() {
                                 onChange={(e) =>
                                     setDraftProjectId(e.target.value === "none" ? "none" : Number(e.target.value))
                                 }
-                                className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+                                className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none"
                             >
                                 <option value="none">연결 안 함</option>
                                 {projects.map((p) => (
@@ -241,7 +241,7 @@ export default function BMemosPage() {
                             <button
                                 type="submit"
                                 disabled={draftBody.trim().length === 0 || captureMemo.isPending}
-                                className="rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                                className="rounded-md bg-terracotta-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-terracotta-700 disabled:opacity-50"
                             >
                                 남기기
                             </button>
@@ -258,14 +258,14 @@ export default function BMemosPage() {
                                 {memo.linkedProjects.map((p) => (
                                     <span
                                         key={p.id}
-                                        className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700"
+                                        className="inline-flex items-center gap-1 rounded-full bg-terracotta-50 px-2 py-0.5 text-xs font-medium text-terracotta-700"
                                     >
                                         {p.title}
                                         <button
                                             type="button"
                                             aria-label={`${p.title} 연결 해제`}
                                             onClick={() => handleRemoveLink(memo.id, p.id)}
-                                            className="text-indigo-400 hover:text-indigo-700"
+                                            className="text-terracotta-400 hover:text-terracotta-700"
                                         >
                                             ×
                                         </button>
@@ -284,7 +284,7 @@ export default function BMemosPage() {
                                             }
                                             setLinkTargetMemoId(null);
                                         }}
-                                        className="rounded-md border border-gray-300 px-2 py-0.5 text-xs focus:border-indigo-500 focus:outline-none"
+                                        className="rounded-md border border-gray-300 px-2 py-0.5 text-xs focus:border-terracotta-500 focus:outline-none"
                                     >
                                         <option value="" disabled>
                                             작품 선택
@@ -300,7 +300,7 @@ export default function BMemosPage() {
                                         <button
                                             type="button"
                                             onClick={() => setLinkTargetMemoId(memo.id)}
-                                            className="rounded-full border border-dashed border-gray-300 px-2 py-0.5 text-xs text-gray-400 hover:border-indigo-400 hover:text-indigo-600"
+                                            className="rounded-full border border-dashed border-gray-300 px-2 py-0.5 text-xs text-gray-400 hover:border-terracotta-400 hover:text-terracotta-600"
                                         >
                                             + 붙이기
                                         </button>

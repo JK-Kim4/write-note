@@ -85,7 +85,7 @@ export default function BDashboardPage() {
                     </p>
                     <button
                         type="button"
-                        className="mt-4 rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
+                        className="mt-4 rounded-md bg-terracotta-600 px-4 py-2 text-sm text-white hover:bg-terracotta-700"
                         onClick={() => router.push("/library?new=1")}
                     >
                         첫 작품 시작하기

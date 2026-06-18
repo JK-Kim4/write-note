@@ -78,7 +78,7 @@ function CharacterFormModal({
     };
 
     const inputClass =
-        "mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none";
+        "mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none";
 
     return (
         <div
@@ -164,7 +164,7 @@ function CharacterFormModal({
                     <button
                         type="submit"
                         disabled={values.name.trim().length === 0 || isSaving}
-                        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                        className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700 disabled:opacity-50"
                     >
                         저장
                     </button>
@@ -247,7 +247,7 @@ export default function BCharactersPage() {
                     aria-label="작품 선택"
                     value={projectId == null ? "" : String(projectId)}
                     onChange={(e) => setProjectId(Number(e.target.value))}
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
                 >
                     {projects.length === 0 && <option value="">작품 없음</option>}
                     {projects.map((p) => (
@@ -280,7 +280,7 @@ export default function BCharactersPage() {
                     <button
                         type="button"
                         onClick={() => setIsCreating(true)}
-                        className="flex min-h-28 items-center justify-center rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-indigo-400 hover:text-indigo-600"
+                        className="flex min-h-28 items-center justify-center rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-terracotta-400 hover:text-terracotta-600"
                     >
                         + 인물 추가
                     </button>

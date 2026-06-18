@@ -22,7 +22,7 @@ export function BRhythmCard({ dayMs, todayIndex }: Props) {
                         <div
                             data-testid="rhythm-bar"
                             data-today={i === todayIndex}
-                            className={`w-full rounded-sm ${i === todayIndex ? "bg-indigo-600" : "bg-indigo-200"}`}
+                            className={`w-full rounded-sm ${i === todayIndex ? "bg-terracotta-600" : "bg-terracotta-200"}`}
                             style={{ height: `${Math.max(4, h * 100)}%` }}
                         />
                         <span className="text-[10px] text-gray-400">{DAYS[i]}</span>

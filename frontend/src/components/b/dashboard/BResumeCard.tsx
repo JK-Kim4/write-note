@@ -17,7 +17,7 @@ export function BResumeCard({ card, onOpen }: Props) {
     ].join(" · ");
 
     return (
-        <div className="rounded-xl border border-l-4 border-gray-200 border-l-indigo-600 bg-white p-5">
+        <div className="rounded-xl border border-l-4 border-gray-200 border-l-terracotta-600 bg-white p-5">
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">이어서 쓰기</p>
             <h2 className="mt-1 text-lg font-bold text-gray-900">{card.title}</h2>
             {sentence ? (
@@ -35,7 +35,7 @@ export function BResumeCard({ card, onOpen }: Props) {
             <button
                 type="button"
                 onClick={onOpen}
-                className="mt-3 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+                className="mt-3 rounded-md bg-terracotta-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-terracotta-700"
             >
                 이어 쓰기 →
             </button>

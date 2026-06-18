@@ -39,12 +39,12 @@ function MemosTab({ projectId }: { projectId: number }) {
                     onChange={(e) => setBody(e.target.value)}
                     placeholder="이 작품에 메모 남기기…"
                     rows={2}
-                    className="w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                    className="w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
                 />
                 <button
                     type="submit"
                     disabled={body.trim().length === 0 || captureMemo.isPending}
-                    className="mt-1.5 w-full rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                    className="mt-1.5 w-full rounded-md bg-terracotta-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-terracotta-700 disabled:opacity-50"
                 >
                     붙이기
                 </button>
@@ -83,7 +83,7 @@ function MemosTab({ projectId }: { projectId: number }) {
                                     }
                                     className={
                                         memo.pinned
-                                            ? "rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 disabled:opacity-50"
+                                            ? "rounded-full bg-terracotta-50 px-2 py-0.5 text-xs font-medium text-terracotta-700 disabled:opacity-50"
                                             : "rounded-full px-2 py-0.5 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
                                     }
                                 >
@@ -137,18 +137,18 @@ function CharactersTab({ projectId }: { projectId: number }) {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="인물 이름"
-                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none"
                 />
                 <input
                     value={shortDescription}
                     onChange={(e) => setShortDescription(e.target.value)}
                     placeholder="한 줄 소개 (선택)"
-                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none"
                 />
                 <button
                     type="submit"
                     disabled={name.trim().length === 0 || createCharacter.isPending}
-                    className="w-full rounded-md border border-dashed border-gray-300 px-3 py-1.5 text-sm text-gray-500 hover:border-indigo-400 hover:text-indigo-600 disabled:opacity-50"
+                    className="w-full rounded-md border border-dashed border-gray-300 px-3 py-1.5 text-sm text-gray-500 hover:border-terracotta-400 hover:text-terracotta-600 disabled:opacity-50"
                 >
                     + 인물 추가
                 </button>
@@ -246,7 +246,7 @@ export function BWorkSidePanel({
                     onClick={() => setTab("memos")}
                     className={
                         tab === "memos"
-                            ? "flex-1 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700"
+                            ? "flex-1 bg-terracotta-50 px-3 py-2 text-sm font-medium text-terracotta-700"
                             : "flex-1 px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
                     }
                 >
@@ -257,7 +257,7 @@ export function BWorkSidePanel({
                     onClick={() => setTab("characters")}
                     className={
                         tab === "characters"
-                            ? "flex-1 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700"
+                            ? "flex-1 bg-terracotta-50 px-3 py-2 text-sm font-medium text-terracotta-700"
                             : "flex-1 px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
                     }
                 >

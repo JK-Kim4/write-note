@@ -314,14 +314,14 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
     const outlinePanel = (
         <>
             <div className="border-b border-gray-200 p-3">
-                <Link href="/b/library" className="text-xs text-gray-400 hover:text-indigo-600">
+                <Link href="/b/library" className="text-xs text-gray-400 hover:text-terracotta-600">
                     ← 작품 목록
                 </Link>
                 <h1 className="mt-1 truncate text-base font-bold text-gray-900" title={projectTitle}>
                     {projectTitle || "집필"}
                 </h1>
                 {projectQuery.data?.nextScene && (
-                    <p className="mt-2 rounded-md bg-emerald-50 px-2 py-1.5 text-xs text-emerald-700">
+                    <p className="mt-2 rounded-md bg-olive-50 px-2 py-1.5 text-xs text-olive-700">
                         다음 장면 — {projectQuery.data.nextScene}
                     </p>
                 )}
@@ -334,7 +334,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                         value={paperSize}
                         onChange={(e) => handlePaperSizeChange(e.target.value as PaperSize)}
                         disabled={updateProject.isPending || projectQuery.data == null}
-                        className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-indigo-500 focus:outline-none disabled:opacity-50"
+                        className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-terracotta-500 focus:outline-none disabled:opacity-50"
                     >
                         {(["A4", "A3", "A2", "B4"] as const).map((size) => (
                             <option key={size} value={size}>
@@ -377,7 +377,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                             }}
                             className={`block w-full truncate rounded-md px-2 py-1.5 text-left text-sm ${
                                 outline.activeIndex === i
-                                    ? "bg-indigo-50 font-medium text-indigo-700"
+                                    ? "bg-terracotta-50 font-medium text-terracotta-700"
                                     : "text-gray-600 hover:bg-gray-50"
                             } ${item.level === 2 ? "pl-5" : item.level === 3 ? "pl-9" : ""}`}
                         >
@@ -514,14 +514,14 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                 // 작품 자체가 없음(잘못된 URL/삭제됨) — 챕터 빈 상태와 구분해 명확히 안내.
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white">
                     <p className="text-sm text-gray-500">작품을 찾을 수 없습니다.</p>
-                    <Link href="/b/library" className="text-sm font-medium text-indigo-600 hover:underline">
+                    <Link href="/b/library" className="text-sm font-medium text-terracotta-600 hover:underline">
                         작품 목록으로
                     </Link>
                 </div>
             ) : currentChapterId == null ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white">
                     <p className="text-sm text-gray-400">챕터를 선택하거나 생성해 주세요.</p>
-                    <Link href="/b/library" className="text-xs text-indigo-600 hover:underline">
+                    <Link href="/b/library" className="text-xs text-terracotta-600 hover:underline">
                         작품 목록으로
                     </Link>
                 </div>
@@ -606,7 +606,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                             <button
                                 type="button"
                                 onClick={conflictHandlers.overwrite}
-                                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                                className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700"
                             >
                                 내 본문으로 덮어쓰기
                             </button>
@@ -637,7 +637,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                             placeholder="오늘의 기록을 남겨보세요…"
                             rows={4}
                             maxLength={2000}
-                            className="mt-3 w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                            className="mt-3 w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
                         />
                         <div className="mt-1 flex items-center justify-between">
                             {endWorkError ? (
@@ -660,7 +660,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                                 type="button"
                                 onClick={handleEndWork}
                                 disabled={endWorkBody.trim().length === 0 || isEndingWork}
-                                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                                className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700 disabled:opacity-50"
                             >
                                 저장
                             </button>

@@ -53,7 +53,7 @@ export default function ContactPage() {
                 <label className="block text-sm text-gray-700">
                     회신 이메일 <span className="text-gray-400">(선택)</span>
                     <input
-                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
                         type="email"
                         placeholder="답장받을 이메일"
                         value={email}
@@ -67,7 +67,7 @@ export default function ContactPage() {
                 <label className="block text-sm text-gray-700">
                     의견
                     <textarea
-                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
                         placeholder={BODY_PLACEHOLDER}
                         rows={6}
                         value={body}
@@ -81,7 +81,7 @@ export default function ContactPage() {
                 <button
                     type="submit"
                     disabled={!body.trim() || sending}
-                    className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                    className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700 disabled:opacity-50"
                 >
                     {sending ? "보내는 중…" : "보내기"}
                 </button>

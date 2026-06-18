@@ -34,6 +34,23 @@ html {
   --font-ui: var(--w-font-ui);
   --font-prose: var(--w-font-prose);
   --font-manuscript: var(--w-font-manuscript);
+
+  /* 소설빙 브랜드 주 액센트 — 테라코타(점토 주황갈색). 로고 글자색 도출.
+     기존 SaaS 기본 보라/남색 액센트 대체. bg-terracotta-600 + text-white = 대비 ≈5:1 (AA). */
+  --color-terracotta-50: #fbf3ee;
+  --color-terracotta-100: #f6e3d6;
+  --color-terracotta-200: #ecc7ad;
+  --color-terracotta-300: #e0a781;
+  --color-terracotta-400: #d48d62;
+  --color-terracotta-500: #c77a4f;
+  --color-terracotta-600: #a8542e;
+  --color-terracotta-700: #8a4325;
+  --color-terracotta-800: #6f361f;
+
+  /* 소설빙 보조 액센트 — 올리브 그린(로고 보조색). 긍정 강조(다음 장면 뱃지 등). */
+  --color-olive-50: #f3f3e6;
+  --color-olive-600: #76753f;
+  --color-olive-700: #5e5d32;
 }
 
 @layer base {
@@ -69,7 +86,7 @@ html {
 }
 .export-dialog__formats { display: flex; gap: 8px; }
 .export-dialog__formats button { flex: 1; padding: 8px; border: 1px solid #d4d4d8; border-radius: 8px; background: #fff; }
-.export-dialog__formats button[aria-pressed="true"] { border-color: #4f46e5; color: #4f46e5; font-weight: 600; }
+.export-dialog__formats button[aria-pressed="true"] { border-color: #a8542e; color: #a8542e; font-weight: 600; }
 .export-dialog__chapters { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .export-dialog__chapters li { display: flex; align-items: center; gap: 8px; }
 .export-dialog__chapters li label { flex: 1; display: flex; align-items: center; gap: 6px; }

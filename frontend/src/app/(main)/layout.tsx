@@ -30,7 +30,7 @@ const NAV_ITEMS = [
     { href: "/settings", label: "설정", exact: false },
 ] as const;
 
-const NAV_ACTIVE_CLASS = "rounded-md bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700";
+const NAV_ACTIVE_CLASS = "rounded-md bg-terracotta-50 px-3 py-1.5 text-sm font-medium text-terracotta-700";
 const NAV_IDLE_CLASS = "rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900";
 
 export default function BLayout({ children }: { children: React.ReactNode }) {
@@ -141,7 +141,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                 <div className="mx-auto flex h-14 max-w-7xl items-center gap-6 px-4">
                     <Link href="/" className="text-base font-bold text-gray-900">
                         글쓰기
-                        <span className="ml-1.5 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                        <span className="ml-1.5 rounded-full bg-terracotta-50 px-2 py-0.5 text-xs font-semibold text-terracotta-700">
                             B
                         </span>
                     </Link>
@@ -216,7 +216,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                                     key={item.href}
                                     href={item.href}
                                     onClick={() => setMobileMenuOpen(false)}
-                                    className={`rounded-md px-3 py-2 text-sm ${isActive ? "bg-indigo-50 font-medium text-indigo-700" : "text-gray-700 hover:bg-gray-50"}`}
+                                    className={`rounded-md px-3 py-2 text-sm ${isActive ? "bg-terracotta-50 font-medium text-terracotta-700" : "text-gray-700 hover:bg-gray-50"}`}
                                 >
                                     {item.label}
                                 </Link>
@@ -228,7 +228,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                                 setMobileMenuOpen(false);
                                 handleWriteClick();
                             }}
-                            className={`rounded-md px-3 py-2 text-left text-sm ${pathname.startsWith("/works") ? "bg-indigo-50 font-medium text-indigo-700" : "text-gray-700 hover:bg-gray-50"}`}
+                            className={`rounded-md px-3 py-2 text-left text-sm ${pathname.startsWith("/works") ? "bg-terracotta-50 font-medium text-terracotta-700" : "text-gray-700 hover:bg-gray-50"}`}
                         >
                             집필
                         </button>
@@ -291,7 +291,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                                     router.push("/library?new=1");
                                     setNoProjectModalOpen(false);
                                 }}
-                                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                                className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700"
                             >
                                 새 작품 만들기
                             </button>
@@ -332,7 +332,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                                     router.push("/library");
                                     setLoadErrorModalOpen(false);
                                 }}
-                                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                                className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700"
                             >
                                 작품 목록으로 가기
                             </button>

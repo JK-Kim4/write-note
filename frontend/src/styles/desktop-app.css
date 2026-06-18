@@ -2,13 +2,15 @@
    소설빙 — 집필실(Write Studio) · React + TipTap 프로토타입
    토큰 SoT: docs/DESIGN.md §2~§8.
    flat parchment: 앱 배경(--bg)은 평평한 양피지 톤(디지털 안식처) — 나무결 텍스처 없음.
-   종이(--paper)는 한 단계 더 밝게 떠 배경과 톤 대비를 만든다. accent(잉크블루)는 액션 + 포커스 전용.
+   종이(--paper)는 한 단계 더 밝게 떠 배경과 톤 대비를 만든다. accent(테라코타)는 액션 + 포커스 전용.
    ────────────────────────────────────────────────────────────────────────── */
 
 /* === Light (평평한 양피지 + 떠 있는 종이) === */
 :root {
-  /* 앱 배경 = 평평한 양피지 (안식처 바닥) */
-  --bg:             oklch(0.945 0.013 88);
+  /* 앱 배경 = 평평한 양피지 (안식처 바닥).
+     globals.css @layer base 가 body 를 --w-parchment(#f3ede1)로 칠하므로 동일 색으로 정합
+     (두 정의가 다르면 라우트 전환 시 갈색 플래시). #f3ede1 ≈ oklch(0.928 0.020 82). */
+  --bg:             oklch(0.928 0.020 82);
 
   --surface:        oklch(0.962 0.012 88);
   --surface-sunken: oklch(0.930 0.012 87);
@@ -29,11 +31,12 @@
   --hairline:        oklch(0.895 0.006 82);
   --hairline-strong: oklch(0.830 0.008 80);
 
-  --accent:       oklch(0.470 0.125 252);
-  --accent-hover: oklch(0.430 0.130 252);
-  --accent-soft:  oklch(0.930 0.040 252);
-  --accent-ink:   oklch(0.420 0.130 252);
-  --on-accent:    oklch(0.990 0.005 250);
+  /* 소설빙 테라코타 액센트(점토 주황갈색) — 기존 잉크블루(hue 252) 대체. hue ~47. */
+  --accent:       oklch(0.520 0.115 47);
+  --accent-hover: oklch(0.460 0.110 46);
+  --accent-soft:  oklch(0.935 0.035 60);
+  --accent-ink:   oklch(0.470 0.115 47);
+  --on-accent:    oklch(0.992 0.005 80);
 
   --danger:      oklch(0.550 0.160 25);
   --danger-soft: oklch(0.930 0.040 25);
@@ -66,7 +69,8 @@
 
 /* === Dark (촛불 아래 원고 — 평평한 짙은 양피지) === */
 .dark {
-  --bg:             oklch(0.220 0.010 68);
+  /* 다크 body 도 --w-parchment(#2a251f ≈ oklch(0.232 0.008 70))과 정합 — 전환 플래시 방지. */
+  --bg:             oklch(0.232 0.008 70);
 
   --surface:        oklch(0.262 0.012 64);
   --surface-sunken: oklch(0.232 0.010 62);
@@ -87,11 +91,12 @@
   --hairline:        oklch(0.360 0.016 66);
   --hairline-strong: oklch(0.420 0.018 66);
 
-  --accent:       oklch(0.740 0.115 248);
-  --accent-hover: oklch(0.780 0.120 248);
-  --accent-soft:  oklch(0.340 0.060 250);
-  --accent-ink:   oklch(0.800 0.120 248);
-  --on-accent:    oklch(0.200 0.020 250);
+  /* 소설빙 테라코타 액센트(다크 — 밝은 점토톤). hue ~52. */
+  --accent:       oklch(0.740 0.105 52);
+  --accent-hover: oklch(0.780 0.110 52);
+  --accent-soft:  oklch(0.350 0.055 50);
+  --accent-ink:   oklch(0.800 0.105 52);
+  --on-accent:    oklch(0.210 0.025 50);
 
   --danger:      oklch(0.700 0.150 25);
   --danger-soft: oklch(0.320 0.060 25);
@@ -119,7 +124,7 @@ body {
   transition: background-color var(--dur-base) var(--ease-soft), color var(--dur-base) var(--ease-soft);
 }
 button { font: inherit; color: inherit; cursor: pointer; }
-/* 포커스 가시(접근성 AA) — 네이티브 outline 대신 일관된 잉크블루 ring. 개별 규칙이 색/두께를 덮을 수 있다. */
+/* 포커스 가시(접근성 AA) — 네이티브 outline 대신 일관된 테라코타 ring. 개별 규칙이 색/두께를 덮을 수 있다. */
 :focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
 
 /* ── 앱 셸 ── */
@@ -560,7 +565,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .prose .ProseMirror p { margin: 0; }
 .prose .ProseMirror ::selection,
 .prose .ProseMirror::selection { background: var(--accent-soft); }
-/* TipTap caret 색 (잉크블루) */
+/* TipTap caret 색 (테라코타) */
 .prose .ProseMirror { caret-color: var(--accent); }
 /* 본문 편집면은 포커스 링 없음(커서가 포커스 표시). 전역 :focus-visible box-shadow 가 multicol
    fragment 마다 장 박스로 그려지는 것을 차단. */
@@ -991,7 +996,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .memo__pin:hover { color: var(--accent-ink); background: var(--accent-soft); }
 .memo__pin:focus-visible { opacity: 1; box-shadow: 0 0 0 2px var(--accent-soft); }
 
-/* 고정된 메모 — 재진입 시 떠오를 한 장. 왼쪽 잉크블루 띠로 조용히 강조. */
+/* 고정된 메모 — 재진입 시 떠오를 한 장. 왼쪽 테라코타 띠로 조용히 강조. */
 .memo--pinned { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
 
 /* 집필 패널 메모 해제 ✕ (조용하게 — 에디터보다 약하게) */
