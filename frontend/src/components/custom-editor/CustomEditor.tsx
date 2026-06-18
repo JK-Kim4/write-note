@@ -15,12 +15,14 @@
  */
 
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { pageGeometry, type PageGeometry, type PaperSize } from "./geometry";
+import { mobilePageGeometry, pageGeometry, type PageGeometry, type PaperSize } from "./geometry";
 import { BulletListIcon, DividerIcon, MarkGlyph, OrderedListIcon, QuoteIcon, ToolbarButton, ToolbarDivider } from "./toolbarIcons";
 import { emptyHistory, pushSnapshot, redo, undo, type Snapshot } from "./history";
 import { type LaidOutPage } from "./layoutEngine";
 import { measureLineXs } from "./measure";
 import { modelToPmJson, pmJsonToModel } from "./pmConvert";
+import { createEditContextAdapter } from "./input/editContextAdapter";
+import type { EditIntent, InputAdapter, InputHandlers } from "./input/inputAdapter";
 import { FONT_FAMILY, IMG_SRC, relayout, renderRuns, type ParsedBlock, type View } from "./printLayout";
 import {
     blockIndexAt,
@@ -52,6 +54,9 @@ import {
 
 type CaretPos = { pageIndex: number; x: number; y: number; height: number };
 type SelRect = { pageIndex: number; x: number; y: number; width: number; height: number };
+
+/** 모바일 페이지 둘레 여백(px) — 데스크탑 48px 패딩 대비 폰에 적정. reflow 폭 계산·렌더 패딩 공유. */
+const MOBILE_PAGE_PAD_PX = 12;
 
 /**
  * 버퍼 오프셋 캐럿 → 화면 위치. 측정·레이아웃에서 줄·페이지·x 를 역추적(measureLineXs = 렌더와 동일 메트릭).
@@ -313,6 +318,8 @@ function PageBox({
                                         fontFamily: FONT_FAMILY,
                                         whiteSpace: "pre-wrap",
                                         wordBreak: "break-word",
+                                        // iOS text inflation 차단 — px 고정 line-height 와 어긋나 줄이 겹치는 것 방지.
+                                        WebkitTextSizeAdjust: "100%",
                                         color: "#1f2937",
                                     }}
                                 >
@@ -353,11 +360,15 @@ export const CustomEditor = forwardRef<
     const [pendingMarks, setPendingMarks] = useState<Mask | null>(null);
     const [mounted, setMounted] = useState(false);
     const stageRef = useRef<HTMLDivElement>(null);
-    const ecRef = useRef<EditContext | null>(null);
+    // transform:scale 축소 컨테이너 — inner(원본 크기)를 실측해 wrapper 가 scaled 크기를 차지(스크롤 정상화).
+    // CSS zoom 은 iOS Safari 에서 글자·줄 배치가 불균일(줄 겹침) → transform:scale 로 균일 축소.
+    const innerRef = useRef<HTMLDivElement>(null);
+    const [naturalSize, setNaturalSize] = useState({ w: 0, h: 0 });
+    // 입력 어댑터 — 기능 감지로 EditContext(데스크탑·안드)/contenteditable(iOS) 분기. 마운트 effect 에서 attach.
+    const adapterRef = useRef<InputAdapter | null>(null);
     const dragAnchorRef = useRef<number | null>(null);
-    // IME 조합 상태 — EditContext 의 compositionstart/end 로 추적(keydown e.isComposing 은 EditContext 에서 미설정).
-    const composingRef = useRef(false);
-    // 마크 토글(선택 구간) — 단축키(effect 안 keydown)와 툴바 버튼(render)이 공유. effect 안에서 ec 동기까지
+    // IME 조합 상태는 어댑터가 단일 소유(adapter.isComposing()). caretOffset·keydown 가드가 이를 읽는다.
+    // 마크 토글(선택 구간) — 단축키(effect 안 keydown)와 툴바 버튼(render)이 공유. effect 안에서 입력 소스 동기까지
     // 처리하는 실제 구현을 ref 에 담아 양쪽이 호출. 선택 없으면(US2 보류 마크 전) 무동작.
     const toggleMarkRef = useRef<(mark: Mask) => void>(() => {});
     // 구분선 삽입 — buffer 변경 + undo + EC 동기가 effect 안에서만 가능하므로 ref 로 노출(toggleMarkRef 패턴).
@@ -370,17 +381,27 @@ export const CustomEditor = forwardRef<
     const scaleRef = useRef(1);
     // 사용자 확대/축소 배수(−/+ 버튼). 최종 zoom = fit-to-width(scale) × userZoom.
     const [userZoom, setUserZoom] = useState(1);
+    // 좁은 화면 reflow — 페이지 폭을 화면 가용 폭에 맞춤(데스크탑 A4 축소 대신). 기준 = 화면 폭(EditContext
+    // 지원 여부와 무관) — 안드로이드 모바일(EditContext 지원)도 좁으면 reflow 되어 너무 작게 안 나온다(026 US3).
+    // 측정 전엔 폰 기본폭으로 fallback(마운트 직후 ResizeObserver 가 즉시 보정).
+    const [availWidth, setAvailWidth] = useState(360);
+    const [isNarrow, setIsNarrow] = useState(false);
+    const isMobile = mounted && isNarrow;
 
-    const geo = useMemo(() => pageGeometry(paperSize, fontSizePx), [paperSize, fontSizePx]);
+    // 모바일은 화면 폭 페이지(reflow), 데스크탑은 용지 규격 페이지(기존·무회귀).
+    const geo = useMemo(
+        () => (isMobile ? mobilePageGeometry(availWidth, fontSizePx) : pageGeometry(paperSize, fontSizePx)),
+        [isMobile, availWidth, paperSize, fontSizePx],
+    );
     // 버퍼뿐 아니라 blockAttrs(heading 토글) 변경도 리플로우 — 블록별 폰트가 측정·렌더에 관통.
     const view = useMemo<View>(() => (mounted ? relayout(model, geo) : { blocks: [], pages: [] }), [mounted, model, geo]);
-    // EditContext 미지원(iOS WebKit·데스크탑 Safari·Firefox)이면 입력 루프(아래 마운트 effect)가 부착되지
-    // 않아 글씨가 안 써진다. 사용자가 영문 모르고 막히지 않도록 안내를 표시한다(읽기/렌더는 EditContext 무관
-    // 이라 그대로 둔다). mounted 게이트로 SSR/hydration mismatch 회피(서버=항상 미지원이므로).
+    // iOS(WebKit, EditContext 미지원)는 자체 에디터 글쓰기 미지원 — 안내 배너 표시 + 입력 어댑터 미부착(읽기 전용).
+    // (026 textarea 프록시 시도는 네이티브 선택 발산으로 dogfooding 중 폐기, 사용자 결정 2026-06-18.)
+    // mounted 게이트로 SSR/hydration mismatch 회피(서버=항상 미지원).
     const editContextUnsupported = mounted && typeof EditContext === "undefined";
-    // 조합(IME) 중에는 setSel 을 억제(받침 재조합 보호)하므로, 캐럿 오프셋은 EditContext 의 최신 selection 을
-    // 직접 읽는다 — 조합 중 onModelChange(텍스트 표시) 리렌더 때 ecRef.selectionStart 가 반영돼 캐럿이 따라간다.
-    const caretOffset = composingRef.current ? (ecRef.current?.selectionStart ?? sel.focus) : sel.focus;
+    // 조합(IME) 중에는 setSel 을 억제(받침 재조합 보호)하므로, 캐럿 오프셋은 입력 소스의 최신 selection 을
+    // 직접 읽는다 — 조합 중 onModelChange(텍스트 표시) 리렌더 때 어댑터 selection 이 반영돼 캐럿이 따라간다.
+    const caretOffset = adapterRef.current?.isComposing() ? (adapterRef.current.getSelection().start ?? sel.focus) : sel.focus;
     const caretPos = mounted ? caretToScreen(caretOffset, view.blocks, view.pages, geo, sel.affinity) : null;
     const selRects = mounted ? selectionRects(sel.anchor, sel.focus, view, geo) : [];
 
@@ -407,23 +428,44 @@ export const CustomEditor = forwardRef<
     pendingMarksRef.current = pendingMarks;
     const effectiveScale = scale * userZoom;
     scaleRef.current = effectiveScale;
+    // 데스크탑(EditContext 지원)은 검증된 기존 zoom 으로 fit-to-width 축소(무회귀).
+    // 모바일(iOS)은 CSS zoom 이 글자·줄 배치 불균일(줄 겹침)이라 transform:scale 경로 + reflow(축소 대신).
+    const useTransformScale = isMobile;
 
-    // fit-to-width — stage 가용 폭에 종이가 들어가도록 축소비율 계산(ResizeObserver 로 패널/창 변화 추종).
-    // 페이지 + 좌우 패딩(48*2=96)이 stage clientWidth 안에 들어가도록. 종이가 좁으면 scale=1(축소 안 함).
+    // fit-to-width(데스크탑) / reflow(모바일) — stage 가용 폭을 ResizeObserver 로 추종.
+    //  - 데스크탑: 용지 폭+좌우 패딩(48*2=96)이 stage 에 들어가도록 축소비율(scale) 계산.
+    //  - 모바일: 페이지 폭을 가용 폭(좌우 패딩 제외)에 맞춰 setAvailWidth → geo reflow, scale=1(축소 없음).
     useEffect(() => {
         if (!mounted) return;
         const stage = stageRef.current;
         if (!stage) return;
         const compute = () => {
             const avail = stage.clientWidth - 8; // 세로 스크롤바 여유
-            const natural = geo.pageWidthPx + 96;
-            setScale(Math.max(0.3, Math.min(1, avail / natural)));
+            if (isMobile) {
+                setAvailWidth(Math.max(280, avail - MOBILE_PAGE_PAD_PX * 2));
+                setScale(1);
+            } else {
+                const natural = geo.pageWidthPx + 96;
+                setScale(Math.max(0.3, Math.min(1, avail / natural)));
+            }
         };
         compute();
         const ro = new ResizeObserver(compute);
         ro.observe(stage);
         return () => ro.disconnect();
-    }, [geo, mounted]);
+    }, [geo.pageWidthPx, mounted, isMobile]);
+
+    // inner(원본·축소 전) 크기 실측 — transform:scale wrapper 가 차지할 scaled 크기 계산용.
+    useEffect(() => {
+        if (!mounted) return;
+        const inner = innerRef.current;
+        if (!inner) return;
+        const measure = () => setNaturalSize({ w: inner.offsetWidth, h: inner.offsetHeight });
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(inner);
+        return () => ro.disconnect();
+    }, [mounted, view]);
 
     // 캐럿 가시화 — 캐럿이 페이지를 넘어가 stage 뷰포트 밖이면 stage 만 최소 스크롤해 따라간다.
     // (window 는 건드리지 않음. block:'nearest' scrollIntoView 대신 scrollTop 직접 보정으로 부작용 차단.)
@@ -442,10 +484,18 @@ export const CustomEditor = forwardRef<
 
     useEffect(() => setMounted(true), []);
 
-    /** 선택 적용 — EditContext 선택 동기(min,max) + 상태(anchor/focus/affinity). 타이핑/Backspace 가 선택을 교체/삭제하게. */
+    // 좁은 화면(모바일·좁은 데스크탑 창) 감지 — A4 가 안 들어가는 폭이면 reflow 로 전환(fit-to-width 축소 대신).
+    useEffect(() => {
+        const mq = window.matchMedia("(max-width: 880px)");
+        const update = () => setIsNarrow(mq.matches);
+        update();
+        mq.addEventListener("change", update);
+        return () => mq.removeEventListener("change", update);
+    }, []);
+
+    /** 선택 적용 — 입력 소스 선택 동기(어댑터가 min,max 정규화) + 상태(anchor/focus/affinity). 타이핑/Backspace 가 선택을 교체/삭제하게. */
     const applySel = (anchor: number, focus: number, affinity: Affinity = 1) => {
-        const ec = ecRef.current;
-        if (ec) ec.updateSelection(Math.min(anchor, focus), Math.max(anchor, focus));
+        adapterRef.current?.syncSelection(anchor, focus);
         setSel({ anchor, focus, affinity });
     };
 
@@ -466,16 +516,18 @@ export const CustomEditor = forwardRef<
         [view],
     );
 
-    // EditContext 부착 + 입력 루프(마운트 1회).
+    // 입력 어댑터 부착 + 입력 루프(마운트 1회).
     useEffect(() => {
         const host = stageRef.current;
-        if (!host || typeof EditContext === "undefined") return;
+        if (!host) return;
+        // iOS(WebKit, EditContext 미지원)는 자체 에디터 글쓰기 미지원 — 어댑터 미부착(읽기 전용 + 안내 배너).
+        // 데스크탑·안드 Chromium 만 EditContext 어댑터로 입력.
+        if (typeof EditContext === "undefined") return;
         const initial = modelRef.current.buffer;
-        const ec = new EditContext({ text: initial, selectionStart: initial.length, selectionEnd: initial.length });
-        ecRef.current = ec;
-        host.editContext = ec;
+        const adapter = createEditContextAdapter();
+        adapterRef.current = adapter;
 
-        // ── undo/redo 헬퍼(effect 안 = ec 직접 접근). ──
+        // ── undo/redo 헬퍼(effect 안 = 어댑터 직접 접근). ──
         /** 현재 편집 직전 상태 스냅샷(modelRef 는 아직 이전 모델 → pre-edit 캡처). */
         const snapshotOf = (): Snapshot => ({
             buffer: modelRef.current.buffer,
@@ -488,53 +540,70 @@ export const CustomEditor = forwardRef<
             historyRef.current = pushSnapshot(historyRef.current, snapshotOf(), { coalesce: false });
             typingRunRef.current = false;
         };
-        /** 스냅샷 복원 — EditContext 텍스트·선택 + model + sel 동기. */
+        /** 스냅샷 복원 — 입력 소스 텍스트·선택 + model + sel 동기. */
         const applySnapshot = (s: Snapshot) => {
             const nextModel: DocModel = { buffer: s.buffer, blockAttrs: s.blockAttrs, markRuns: s.markRuns };
-            ec.updateText(0, ec.text.length, s.buffer);
-            ec.updateSelection(Math.min(s.selection.anchor, s.selection.focus), Math.max(s.selection.anchor, s.selection.focus));
+            adapter.syncText(s.buffer);
+            adapter.syncSelection(s.selection.anchor, s.selection.focus);
             onModelChangeRef.current(nextModel);
             setSel(s.selection);
         };
 
-        // 타이핑/IME/블록내부 collapsed Backspace·Delete = EditContext 자동 → model 보정 후 올림.
-        const onText = (e: Event) => {
-            const te = e as TextUpdateEvent;
-            // 타이핑 런 시작 시 1회 pre-edit 스냅샷(modelRef 는 아직 이전 모델). 런 = undo 1회 경계.
-            if (!typingRunRef.current) {
-                historyRef.current = pushSnapshot(historyRef.current, snapshotOf(), { coalesce: false });
-                typingRunRef.current = true;
-            }
-            // 마크 상속(T022): 삽입 글자는 보류 마크(pendingMarks)가 있으면 그것을, 없으면 좌측 글자
-            // (updateRangeStart)의 mask 를 이어받는다. EditContext 의 updateRange[Start,End) 가 치환 범위.
-            // insertText 로 재구성해 markRuns 가 삽입/삭제를 추종(modelFromEc 의 reconcile 은 mask 0 으로 평탄).
-            const pre = modelRef.current;
-            const pending = pendingMarksRef.current;
-            const inheritMask = pending !== null ? pending : marksAt(pre, te.updateRangeStart);
-            const next = insertText(pre, te.updateRangeStart, te.updateRangeEnd, te.text, inheritMask);
-            onModelChangeRef.current(next);
-            // 보류 마크 소비 — 입력이 들어오면 폐기.
-            if (pending !== null) setPendingMarks(null);
-            // IME 조합 중에는 selection state 갱신(setSel)을 억제한다 — setSel 이 유발하는 리렌더가 한글 받침
-            // 재조합(받침이 다음 글자 초성으로 이동)을 깨뜨려 받침이 앞 글자에 고착된다(025 회귀). 조합 텍스트는
-            // onModelChange 로 화면에 표시되고, 캐럿은 compositionend 에서 EditContext 의 최종 selection 으로 맞춘다.
-            if (!composingRef.current) {
-                setSel({ anchor: te.selectionStart, focus: te.selectionEnd, affinity: 1 }); // 편집 후 collapse(downstream)
-            }
+        // 어댑터 → CustomEditor 콜백. 타이핑/IME/블록내부 collapsed Backspace·Delete = 입력 소스 자동 → model 보정.
+        const handlers: InputHandlers = {
+            onTextUpdate: (u) => {
+                // 타이핑 런 시작 시 1회 pre-edit 스냅샷(modelRef 는 아직 이전 모델). 런 = undo 1회 경계.
+                if (!typingRunRef.current) {
+                    historyRef.current = pushSnapshot(historyRef.current, snapshotOf(), { coalesce: false });
+                    typingRunRef.current = true;
+                }
+                // 마크 상속(T022): 삽입 글자는 보류 마크(pendingMarks)가 있으면 그것을, 없으면 좌측 글자
+                // (rangeStart)의 mask 를 이어받는다. 입력 소스의 치환 범위 [rangeStart, rangeEnd).
+                // insertText 로 재구성해 markRuns 가 삽입/삭제를 추종(reconcile 은 mask 0 으로 평탄).
+                const pre = modelRef.current;
+                const pending = pendingMarksRef.current;
+                const inheritMask = pending !== null ? pending : marksAt(pre, u.rangeStart);
+                const next = insertText(pre, u.rangeStart, u.rangeEnd, u.text, inheritMask);
+                onModelChangeRef.current(next);
+                // 보류 마크 소비 — 입력이 들어오면 폐기.
+                if (pending !== null) setPendingMarks(null);
+                // IME 조합 중에는 selection state 갱신(setSel)을 억제한다 — setSel 이 유발하는 리렌더가 한글 받침
+                // 재조합(받침이 다음 글자 초성으로 이동)을 깨뜨려 받침이 앞 글자에 고착된다(025 회귀). 조합 텍스트는
+                // onModelChange 로 화면에 표시되고, 캐럿은 onCompositionEnd 에서 입력 소스 최종 selection 으로 맞춘다.
+                if (!adapter.isComposing()) {
+                    setSel({ anchor: u.selectionStart, focus: u.selectionEnd, affinity: 1 }); // 편집 후 collapse(downstream)
+                }
+            },
+            // 조합 상태는 어댑터가 추적(adapter.isComposing()) — 별도 처리 없음.
+            onCompositionStart: () => {},
+            // 조합 종료 — 조합 중 억제한 캐럿을 입력 소스의 최종 selection 으로 한 번 맞춘다(025).
+            onCompositionEnd: (selStart, selEnd) => {
+                setSel({ anchor: selStart, focus: selEnd, affinity: 1 });
+            },
+            // 구조 편집(Enter=splitBlock / Shift+Enter=softBreak) — contenteditable(iOS) 경로 전용.
+            // EditContext 경로는 host keydown(onKey)이 직접 처리하므로 이 콜백을 호출하지 않는다.
+            onEdit: (intent: EditIntent) => {
+                const cur = selStateRef.current;
+                const lo = Math.min(cur.anchor, cur.focus);
+                const hi = Math.max(cur.anchor, cur.focus);
+                if (intent !== "splitBlock" && intent !== "softBreak") return; // delete 류는 diff 가 처리
+                recordBeforeStructural();
+                const base = lo < hi ? deleteRange(modelRef.current, lo, hi) : modelRef.current;
+                const next = intent === "softBreak" ? insertSoftBreak(base, lo) : splitBlock(base, lo);
+                adapter.syncText(next.buffer);
+                adapter.syncSelection(lo + 1, lo + 1);
+                onModelChangeRef.current(next);
+                setSel({ anchor: lo + 1, focus: lo + 1, affinity: 1 });
+            },
+            // textarea 어댑터 전용 — 네이티브 캐럿 이동(탭/화살표)을 렌더 캐럿에 반영. setSel 만(어댑터엔 역동기
+            // 안 함 — textarea 가 이미 그 선택을 가짐). EditContext/contenteditable 은 호출 안 함.
+            onSelectionChange: (selStart: number, selEnd: number) => {
+                setSel({ anchor: selStart, focus: selEnd, affinity: 1 });
+            },
         };
-        ec.addEventListener("textupdate", onText);
-
-        // 조합 상태 추적 — keydown 가드가 조합 중 Enter 이중삽입을 막는 데 쓴다.
-        const onCompositionStart = () => {
-            composingRef.current = true;
-        };
-        const onCompositionEnd = () => {
-            composingRef.current = false;
-            // 조합 종료 — 조합 중 억제한 캐럿을 EditContext 의 최종 selection 으로 한 번 맞춘다(025).
-            setSel({ anchor: ec.selectionStart, focus: ec.selectionEnd, affinity: 1 });
-        };
-        ec.addEventListener("compositionstart", onCompositionStart);
-        ec.addEventListener("compositionend", onCompositionEnd);
+        adapter.attach(host, handlers);
+        adapter.syncText(initial);
+        adapter.syncSelection(initial.length, initial.length);
 
         // 내부 리치 클립보드 MIME — 복사 시 선택 부분문서를 PM JSON 으로 병기, 붙여넣기 시 복원.
         const PM_MIME = "application/x-writenote-pm";
@@ -547,7 +616,7 @@ export const CustomEditor = forwardRef<
             if (lo >= hi) return;
             e.preventDefault();
             const sub = sliceModel(modelRef.current, lo, hi);
-            e.clipboardData?.setData("text/plain", ec.text.slice(lo, hi).split(SOFT_BREAK).join("\n"));
+            e.clipboardData?.setData("text/plain", adapter.getText().slice(lo, hi).split(SOFT_BREAK).join("\n"));
             e.clipboardData?.setData(PM_MIME, modelToPmJson(sub));
         };
         host.addEventListener("copy", onCopy);
@@ -560,12 +629,12 @@ export const CustomEditor = forwardRef<
             if (lo >= hi) return;
             e.preventDefault();
             const sub = sliceModel(modelRef.current, lo, hi);
-            e.clipboardData?.setData("text/plain", ec.text.slice(lo, hi).split(SOFT_BREAK).join("\n"));
+            e.clipboardData?.setData("text/plain", adapter.getText().slice(lo, hi).split(SOFT_BREAK).join("\n"));
             e.clipboardData?.setData(PM_MIME, modelToPmJson(sub));
             recordBeforeStructural();
             const next = deleteRange(modelRef.current, lo, hi);
-            ec.updateText(0, ec.text.length, next.buffer);
-            ec.updateSelection(lo, lo);
+            adapter.syncText(next.buffer);
+            adapter.syncSelection(lo, lo);
             onModelChangeRef.current(next);
             setSel({ anchor: lo, focus: lo, affinity: 1 });
         };
@@ -573,7 +642,7 @@ export const CustomEditor = forwardRef<
 
         // 붙여넣기 — 내부 PM JSON 있으면 서식·블록 보존 복원, 없으면 평문(블록 분할).
         const onPaste = (e: ClipboardEvent) => {
-            if (composingRef.current) return;
+            if (adapter.isComposing()) return;
             e.preventDefault();
             const cur = selStateRef.current;
             const lo = Math.min(cur.anchor, cur.focus);
@@ -589,9 +658,9 @@ export const CustomEditor = forwardRef<
                 if (sub) {
                     recordBeforeStructural();
                     const next = insertModel(modelRef.current, lo, hi, sub);
-                    ec.updateText(0, ec.text.length, next.buffer);
+                    adapter.syncText(next.buffer);
                     const caret = lo + sub.buffer.length;
-                    ec.updateSelection(caret, caret);
+                    adapter.syncSelection(caret, caret);
                     onModelChangeRef.current(next);
                     setSel({ anchor: caret, focus: caret, affinity: 1 });
                     return;
@@ -602,22 +671,22 @@ export const CustomEditor = forwardRef<
             const text = raw.replace(/\r\n?/g, "\n");
             recordBeforeStructural();
             const next = insertText(modelRef.current, lo, hi, text);
-            ec.updateText(0, ec.text.length, next.buffer);
+            adapter.syncText(next.buffer);
             const caret = lo + text.length;
-            ec.updateSelection(caret, caret);
+            adapter.syncSelection(caret, caret);
             onModelChangeRef.current(next);
             setSel({ anchor: caret, focus: caret, affinity: 1 });
         };
         host.addEventListener("paste", onPaste);
 
         const updateCB = () => {
-            if (stageRef.current) ec.updateControlBounds(stageRef.current.getBoundingClientRect());
+            if (stageRef.current) adapter.updateControlBounds(stageRef.current.getBoundingClientRect());
         };
         updateCB();
         window.addEventListener("resize", updateCB);
 
         const setSelLocal = (a: number, f: number, affinity: Affinity = 1) => {
-            ec.updateSelection(Math.min(a, f), Math.max(a, f));
+            adapter.syncSelection(Math.min(a, f), Math.max(a, f));
             setSel({ anchor: a, focus: f, affinity });
         };
 
@@ -643,10 +712,10 @@ export const CustomEditor = forwardRef<
             const base = lo < hi ? deleteRange(modelRef.current, lo, hi) : modelRef.current;
             const bi = blockIndexAt(base, lo);
             const next = insertHr(base, lo);
-            ec.updateText(0, ec.text.length, next.buffer);
+            adapter.syncText(next.buffer);
             // hr 다음 블록(bi+2 = 뒤 분리 블록) 시작으로 캐럿(원자 블록 건너뜀).
             const after = blockBufRanges(next.buffer)[bi + 2]?.start ?? next.buffer.length;
-            ec.updateSelection(after, after);
+            adapter.syncSelection(after, after);
             onModelChangeRef.current(next);
             setSel({ anchor: after, focus: after, affinity: 1 });
         };
@@ -657,13 +726,13 @@ export const CustomEditor = forwardRef<
             // IME 조합 중(한글 등)에는 커스텀 키 처리를 건너뛴다 — 조합 중 Enter/Backspace/화살표는
             // IME·EditContext 가 처리한다. 이 가드가 없으면 조합 중 Enter 가 우리 splitBlock(\n 1개) +
             // IME 자체 개행(\n 1개)으로 이중 삽입돼 빈 블록(\n\n)이 생긴다(2026-06-15 dogfooding 회귀).
-            // EditContext 는 keydown e.isComposing 을 미설정 → 자체 compositionstart/end 로 추적한 composingRef 사용.
-            if (e.isComposing || composingRef.current) return;
+            // 입력 소스(EditContext)는 keydown e.isComposing 을 미설정 → 어댑터가 추적한 조합 상태(isComposing())를 쓴다.
+            if (e.isComposing || adapter.isComposing()) return;
             const cur = selStateRef.current;
             const lo = Math.min(cur.anchor, cur.focus);
             const hi = Math.max(cur.anchor, cur.focus);
             const collapsed = cur.anchor === cur.focus;
-            const len = ec.text.length;
+            const len = adapter.getText().length;
             const m = modelRef.current;
 
             // 마크 단축키(T021+T025) — Cmd/Ctrl+B/I/U. strike 는 툴바 버튼만.
@@ -707,8 +776,8 @@ export const CustomEditor = forwardRef<
                 recordBeforeStructural();
                 const caret = lo;
                 const next = insertSoftBreak(deleteRange(m, lo, hi), caret);
-                ec.updateText(0, ec.text.length, next.buffer);
-                ec.updateSelection(caret + 1, caret + 1);
+                adapter.syncText(next.buffer);
+                adapter.syncSelection(caret + 1, caret + 1);
                 onModelChangeRef.current(next);
                 setSel({ anchor: caret + 1, focus: caret + 1, affinity: 1 });
                 return;
@@ -723,8 +792,8 @@ export const CustomEditor = forwardRef<
                 // 굵게 쓰던 중 Enter 치면 다음 줄도 굵게 유지. 새 블록은 빈 run 이라 marksAt=0 → 평문이 되는 회귀 방지.
                 const carry = pendingMarksRef.current !== null ? pendingMarksRef.current : marksAt(m, caret);
                 const next = splitBlock(deleteRange(m, lo, hi), caret);
-                ec.updateText(0, ec.text.length, next.buffer);
-                ec.updateSelection(caret + 1, caret + 1);
+                adapter.syncText(next.buffer);
+                adapter.syncSelection(caret + 1, caret + 1);
                 onModelChangeRef.current(next);
                 setSel({ anchor: caret + 1, focus: caret + 1, affinity: 1 });
                 setPendingMarks(carry !== 0 ? carry : null);
@@ -742,8 +811,8 @@ export const CustomEditor = forwardRef<
                 e.preventDefault();
                 recordBeforeStructural();
                 const next = deleteRange(m, lo, hi);
-                ec.updateText(0, ec.text.length, next.buffer);
-                ec.updateSelection(lo, lo);
+                adapter.syncText(next.buffer);
+                adapter.syncSelection(lo, lo);
                 onModelChangeRef.current(next);
                 setSel({ anchor: lo, focus: lo, affinity: 1 });
                 return;
@@ -760,7 +829,7 @@ export const CustomEditor = forwardRef<
                     if (demote.demoted) {
                         e.preventDefault();
                         recordBeforeStructural();
-                        // buffer 불변(attr 만 교체) → ec.updateText 불필요, 캐럿 유지.
+                        // buffer 불변(attr 만 교체) → syncText 불필요, 캐럿 유지.
                         onModelChangeRef.current(demote.model);
                         setSel({ anchor: cur.focus, focus: cur.focus, affinity: 1 });
                         return;
@@ -773,8 +842,8 @@ export const CustomEditor = forwardRef<
                     // 앞 블록이 구분선(원자)이면 병합 대신 그 블록만 삭제.
                     const prevAtomic = isAtomic(m.blockAttrs[blockIdx - 1] ?? { type: "paragraph" });
                     const next = prevAtomic ? deleteAtomicAt(m, blockIdx - 1) : mergeWithPrev(m, blockIdx);
-                    ec.updateText(0, ec.text.length, next.buffer);
-                    ec.updateSelection(newCaret, newCaret);
+                    adapter.syncText(next.buffer);
+                    adapter.syncSelection(newCaret, newCaret);
                     onModelChangeRef.current(next);
                     setSel({ anchor: newCaret, focus: newCaret, affinity: 1 });
                     return;
@@ -794,8 +863,8 @@ export const CustomEditor = forwardRef<
                     // 다음 블록이 구분선(원자)이면 병합 대신 그 블록만 삭제.
                     const nextAtomic = isAtomic(m.blockAttrs[blockIdx + 1] ?? { type: "paragraph" });
                     const next = nextAtomic ? deleteAtomicAt(m, blockIdx + 1) : mergeWithNext(m, blockIdx);
-                    ec.updateText(0, ec.text.length, next.buffer);
-                    ec.updateSelection(cur.focus, cur.focus);
+                    adapter.syncText(next.buffer);
+                    adapter.syncSelection(cur.focus, cur.focus);
                     onModelChangeRef.current(next);
                     setSel({ anchor: cur.focus, focus: cur.focus, affinity: 1 });
                     return;
@@ -824,7 +893,7 @@ export const CustomEditor = forwardRef<
                 newAffinity = horiz < 0 ? 1 : isWrapBoundary(newFocus, blocks) ? -1 : 1;
             } else if (horiz !== 0 && e.altKey) {
                 // Option+좌/우 = 단어 경계. wrap 경계에 멈추면 upstream.
-                newFocus = wordBoundary(ec.text, cur.focus, horiz);
+                newFocus = wordBoundary(adapter.getText(), cur.focus, horiz);
                 newAffinity = isWrapBoundary(newFocus, blocks) ? -1 : 1;
             } else if (horiz !== 0) {
                 // 화살표 좌/우 — 선택 있으면(비shift) 가장자리로 collapse, 아니면 ±1
@@ -867,26 +936,32 @@ export const CustomEditor = forwardRef<
             else setSelLocal(newFocus, newFocus, newAffinity);
         };
         host.addEventListener("keydown", onKey);
-        host.focus();
+        adapter.focusInput();
 
         return () => {
-            ec.removeEventListener("textupdate", onText);
-            ec.removeEventListener("compositionstart", onCompositionStart);
-            ec.removeEventListener("compositionend", onCompositionEnd);
+            adapter.detach();
             host.removeEventListener("copy", onCopy);
             host.removeEventListener("cut", onCut);
             host.removeEventListener("paste", onPaste);
             host.removeEventListener("keydown", onKey);
             window.removeEventListener("resize", updateCB);
-            host.editContext = null;
-            ecRef.current = null;
+            adapterRef.current = null;
         };
         // 마운트 1회 — 최신 값은 ref(modelRef/onModelChangeRef/selStateRef/viewRef/geoRef)로 참조.
     }, []);
 
-    // 포인터 좌표 → 버퍼 캐럿({offset, affinity}, 어느 페이지든). data-poc-page + elementFromPoint 로 페이지·로컬좌표 산출.
+    // 포인터 좌표 → 버퍼 캐럿({offset, affinity}, 어느 페이지든). data-poc-page + elementsFromPoint 로 페이지·로컬좌표 산출.
+    // elementsFromPoint(복수): iOS textarea 입력 표면이 z-index 로 페이지를 덮으므로, 그 아래의 data-poc-page 를 찾는다
+    // (elementFromPoint 단수는 textarea 만 반환 → 탭 hit-test 실패).
     const pointToCaret = (clientX: number, clientY: number): { offset: number; affinity: Affinity } | null => {
-        const el = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>("[data-poc-page]");
+        let el: HTMLElement | null = null;
+        for (const cand of document.elementsFromPoint(clientX, clientY)) {
+            const page = (cand as HTMLElement).closest<HTMLElement>("[data-poc-page]");
+            if (page) {
+                el = page;
+                break;
+            }
+        }
         if (!el) return null;
         const pageIndex = Number(el.getAttribute("data-poc-page"));
         const r = el.getBoundingClientRect();
@@ -924,8 +999,9 @@ export const CustomEditor = forwardRef<
 
     // 드래그 선택 — mousedown=anchor, move=focus, up=종료. preventDefault 로 네이티브 선택 억제 + 수동 focus.
     const onStageMouseDown = (e: ReactMouseEvent<HTMLDivElement>) => {
+        // iOS: 키보드는 사용자 제스처 내 focus 라야 뜬다 — preventDefault 보다 먼저 입력 표면 포커스.
+        adapterRef.current?.focusInput();
         e.preventDefault();
-        stageRef.current?.focus();
         const hit = pointToCaret(e.clientX, e.clientY);
         if (hit == null) return;
         typingRunRef.current = false; // 클릭/드래그 = 캐럿 이동 → 다음 타이핑이 새 undo 경계
@@ -951,13 +1027,13 @@ export const CustomEditor = forwardRef<
     const applyHeading = (level: 1 | 2 | 3) => {
         const idx = blockIndexAt(modelRef.current, selStateRef.current.focus);
         onModelChangeRef.current(toggleHeading(modelRef.current, idx, level));
-        stageRef.current?.focus();
+        adapterRef.current?.focusInput();
     };
     const applyParagraph = () => {
         const idx = blockIndexAt(modelRef.current, selStateRef.current.focus);
         const attr = modelRef.current.blockAttrs[idx];
         if (attr?.type === "heading") onModelChangeRef.current(toggleHeading(modelRef.current, idx, attr.level));
-        stageRef.current?.focus();
+        adapterRef.current?.focusInput();
     };
     // 블록 타입 토글(인용/목록) — 같은 타입이면 본문으로 해제. buffer 불변(blockAttrs 만) → EC 동기 불필요.
     const applyBlockType = (target: "blockquote" | { listKind: "bullet" | "ordered" }) => {
@@ -968,7 +1044,7 @@ export const CustomEditor = forwardRef<
                 ? cur?.type === target
                 : cur?.type === "listItem" && cur.listKind === target.listKind;
         onModelChangeRef.current(toggleBlockType(modelRef.current, idx, isSame ? "paragraph" : target));
-        stageRef.current?.focus();
+        adapterRef.current?.focusInput();
     };
     // 마크 토글 버튼 — 선택 있으면 구간 토글, collapsed 이면 보류 마크 토글(T025). 포커스 복귀.
     const applyMark = (mark: Mask) => {
@@ -981,7 +1057,7 @@ export const CustomEditor = forwardRef<
             const base = pendingMarksRef.current !== null ? pendingMarksRef.current : marksAt(modelRef.current, cur.focus);
             setPendingMarks(base ^ mark);
         }
-        stageRef.current?.focus();
+        adapterRef.current?.focusInput();
     };
 
     return (
@@ -1097,13 +1173,26 @@ export const CustomEditor = forwardRef<
                 style={{ flex: 1, overflow: "auto", outline: "none", caretColor: "transparent", background: "#eceae4" }}
             >
             <style>{"@keyframes pocBlink{0%,49%{opacity:1}50%,100%{opacity:0}} .poc-caret{animation:pocBlink 1s step-end infinite}"}</style>
-            {/* width:max-content + margin:0 auto — 페이지가 뷰포트보다 넓어도 왼쪽 클리핑 없이 가로 스크롤,
-                좁지 않으면 중앙 정렬. (flexbox alignItems:center 의 중앙정렬 오버플로 클리핑 회피.) */}
-            <div style={{ width: "max-content", margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 28, padding: "40px 48px", zoom: effectiveScale }}>
-                {view.pages.map((pg) => (
-                    <PageBox key={pg.index} page={pg} geo={geo} blocks={view.blocks} caret={caretPos} selRects={selRects.filter((r) => r.pageIndex === pg.index)} />
-                ))}
-            </div>
+            {/* iOS(WebKit)는 CSS zoom 이 글자·줄 배치 불균일(줄 겹침) → transform:scale(wrapper 가 scaled
+                크기 차지해 스크롤 정상화). 데스크탑(EditContext)은 검증된 기존 zoom 유지(무회귀). */}
+            {useTransformScale ? (
+                <div style={{ width: naturalSize.w ? naturalSize.w * effectiveScale : "max-content", height: naturalSize.h ? naturalSize.h * effectiveScale : undefined, margin: "0 auto", position: "relative" }}>
+                    <div
+                        ref={innerRef}
+                        style={{ position: "absolute", top: 0, left: 0, transform: `scale(${effectiveScale})`, transformOrigin: "top left", width: "max-content", display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: `${MOBILE_PAGE_PAD_PX}px` }}
+                    >
+                        {view.pages.map((pg) => (
+                            <PageBox key={pg.index} page={pg} geo={geo} blocks={view.blocks} caret={caretPos} selRects={selRects.filter((r) => r.pageIndex === pg.index)} />
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <div style={{ width: "max-content", margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 28, padding: "40px 48px", zoom: effectiveScale }}>
+                    {view.pages.map((pg) => (
+                        <PageBox key={pg.index} page={pg} geo={geo} blocks={view.blocks} caret={caretPos} selRects={selRects.filter((r) => r.pageIndex === pg.index)} />
+                    ))}
+                </div>
+            )}
             </div>
         </>
     );

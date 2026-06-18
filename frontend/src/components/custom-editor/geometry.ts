@@ -56,6 +56,34 @@ export function pageGeometry(size: PaperSize, fontSizePx: number, lineHeightRati
     };
 }
 
+/** 모바일 페이지 마진 비율 — 폭 대비(25mm 고정은 폰에서 과함). */
+const MOBILE_MARGIN_RATIO = 0.06;
+
+/** A4 세로/가로 비율 — 모바일 페이지도 동일 비율 유지(여전히 "종이"·페이지 분할). */
+const A4_ASPECT = PAPER_MM.A4.heightMm / PAPER_MM.A4.widthMm;
+
+/**
+ * 모바일 reflow 페이지 기하(순수). 데스크탑 A4 를 transform 으로 축소하는 대신,
+ * 페이지 폭을 화면 가용 폭에 맞춰 글자를 원본 크기로 렌더하고 줄을 reflow 한다.
+ * 페이지 세로는 A4 비율을 유지해 여전히 종이처럼 보이고 페이지 분할이 일어난다.
+ * @param availWidthPx 화면 가용 폭(px) = 페이지 폭
+ * @param fontSizePx 본문 폰트 px(축소 없이 그대로)
+ * @param lineHeightRatio 줄높이 배수(기본 1.8)
+ */
+export function mobilePageGeometry(availWidthPx: number, fontSizePx: number, lineHeightRatio = 1.8): PageGeometry {
+    const pageWidthPx = availWidthPx;
+    const pageHeightPx = pageWidthPx * A4_ASPECT;
+    const marginPx = pageWidthPx * MOBILE_MARGIN_RATIO;
+    return {
+        pageWidthPx,
+        pageHeightPx,
+        contentWidthPx: pageWidthPx - 2 * marginPx,
+        contentHeightPx: pageHeightPx - 2 * marginPx,
+        fontSizePx,
+        lineHeightPx: fontSizePx * lineHeightRatio,
+    };
+}
+
 /** 용지 라벨(배지·셀렉터용). */
 export function paperLabel(size: PaperSize): string {
     const { widthMm, heightMm } = PAPER_MM[size];

@@ -15,14 +15,15 @@ beforeAll(() => {
     );
 });
 
-describe("CustomEditor — EditContext 미지원 브라우저 안내", () => {
-    // jsdom(과 iOS WebKit·Firefox)에는 EditContext 가 없다 → 입력 루프가 부착되지 않아
-    // 글씨가 안 써진다. 그 경우 사용자가 영문 모르고 못 쓰지 않도록 안내를 표시한다.
-    test("EditContext 가 없으면 글쓰기 미지원 안내를 보여준다", async () => {
+describe("CustomEditor — EditContext 미지원(iOS) 글쓰기 미지원 안내", () => {
+    // jsdom(과 iOS WebKit)에는 EditContext 가 없다 → 자체 에디터 글쓰기 미지원: 안내 배너 표시 +
+    // 입력 어댑터 미부착(읽기 전용). (026 textarea 프록시 시도는 네이티브 선택 발산으로 폐기, 사용자 결정 2026-06-18.)
+    test("EditContext 가 없으면 미지원 안내를 띄우고 입력 표면을 부착하지 않는다", async () => {
         const model = pmJsonToModel(JSON.stringify({ type: "doc", content: [] }));
-        render(<CustomEditor model={model} onModelChange={() => {}} paperSize="A4" />);
+        const { container } = render(<CustomEditor model={model} onModelChange={() => {}} paperSize="A4" />);
         await waitFor(() => {
-            expect(screen.getByText(/지원하지 않/)).toBeInTheDocument();
+            expect(screen.queryByText(/지원하지 않/)).not.toBeNull();
         });
+        expect(container.querySelector("textarea")).toBeNull();
     });
 });

@@ -153,6 +153,13 @@ function renderPage() {
     );
 }
 
+// 작품(집필실) 페이지는 EditContext 미지원(iOS)이면 차단 가드를 띄운다(026, 사용자 결정 2026-06-18).
+// 이 테스트들은 지원 브라우저(데스크탑·안드 Chromium)를 가정하므로 EditContext 를 stub 해 스튜디오가
+// 렌더되게 한다(jsdom 엔 EditContext 가 없어 기본은 iOS 와 동일하게 차단됨).
+beforeEach(() => {
+    vi.stubGlobal("EditContext", class {});
+});
+
 describe("BWorkDetailPage — 복귀 링크", () => {
     it("문서 로드 에러 시 '작품 목록으로' 링크가 /b/library 를 가리킨다", async () => {
         searchParamsStore = new URLSearchParams();
