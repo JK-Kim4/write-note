@@ -77,3 +77,13 @@ export function fetchMe(): Promise<AuthMeResponse> {
 export function logout(): Promise<unknown> {
     return apiFetch("/api/auth/logout", { method: "POST", retryOnAuthFailure: false });
 }
+
+export const WITHDRAWAL_CONFIRMATION_PHRASE = "탈퇴합니다";
+
+export function withdraw(confirmation: string): Promise<void> {
+    return apiFetch<void>("/api/auth/me", {
+        method: "DELETE",
+        body: JSON.stringify({ confirmation }),
+        retryOnAuthFailure: false,
+    });
+}
