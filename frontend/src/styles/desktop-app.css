@@ -123,7 +123,11 @@ body {
   word-break: keep-all;
   transition: background-color var(--dur-base) var(--ease-soft), color var(--dur-base) var(--ease-soft);
 }
-button { font: inherit; color: inherit; cursor: pointer; }
+/* @layer base 로 둬 Tailwind utility(text-white 등)가 우선하게 한다. unlayered 면 layer 밖이라
+   utility 를 이겨 버튼의 text-* 글자색이 무시됨(갈색 버튼 흰 글자가 부모 잉크색으로 덮여 저대비). */
+@layer base {
+    button { font: inherit; color: inherit; cursor: pointer; }
+}
 /* 포커스 가시(접근성 AA) — 네이티브 outline 대신 일관된 테라코타 ring. 개별 규칙이 색/두께를 덮을 수 있다. */
 :focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
 
