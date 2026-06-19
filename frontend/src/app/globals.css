@@ -97,6 +97,13 @@ html {
 .export-dialog__actions { display: flex; gap: 8px; justify-content: flex-end; }
 .export-dialog__paper { color: #6b7280; font-size: 13px; margin: 0; }
 
+/* 토스트 타이머 진행바 — 5초 동안 왼쪽에서 오른쪽으로 줄어듦.
+   motion-safe: 유틸리티로 prefers-reduced-motion 에서는 자동 비활성. */
+@keyframes shrink {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
 /* 인쇄 — PrintOverlay(.print-root) 만 보이게 (후속 Task 5·6) */
 @media print {
   body > *:not(.print-root) { display: none !important; }

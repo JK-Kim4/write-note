@@ -138,9 +138,12 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
     const flushDraftRef = useRef<((body: string) => void) | null>(null);
     const latestBodyForFlushRef = useRef<string>(JSON.stringify({ type: "doc", content: [] }));
     const [conflictHandlers, setConflictHandlers] = useState<BChapterEditorConflictHandlers>({ conflict: null, reload: () => {}, overwrite: () => {} });
+    // 자동저장 상태 — 헤더 배지 표시용.
+    const [syncStatus, setSyncStatus] = useState<BChapterEditorSyncStatus["syncStatus"]>("idle");
 
-    const handleSyncStatus = useCallback(({ flushDraft }: BChapterEditorSyncStatus) => {
+    const handleSyncStatus = useCallback(({ flushDraft, syncStatus: status }: BChapterEditorSyncStatus) => {
         flushDraftRef.current = flushDraft;
+        setSyncStatus(status);
     }, []);
 
     const handleConflict = useCallback((handlers: BChapterEditorConflictHandlers) => {
@@ -384,6 +387,28 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                             {item.text || "(제목 없음)"}
                         </button>
                     ))
+                )}
+            </div>
+            {/* 자동저장 상태 배지 */}
+            <div
+                aria-live="polite"
+                aria-atomic="true"
+                className="border-t border-gray-200 px-3 py-1.5"
+            >
+                {syncStatus === "syncing" && (
+                    <p className="text-xs text-gray-400">저장 중…</p>
+                )}
+                {syncStatus === "synced" && (
+                    <p className="text-xs text-green-600">저장됨</p>
+                )}
+                {syncStatus === "error" && (
+                    <p className="text-xs text-red-500">저장 실패</p>
+                )}
+                {syncStatus === "conflict" && (
+                    <p className="text-xs text-amber-600">저장 충돌</p>
+                )}
+                {(syncStatus === "idle" || !syncStatus) && (
+                    <p className="text-xs text-gray-300">동기화됨</p>
                 )}
             </div>
             <div className="border-t border-gray-200 p-3">

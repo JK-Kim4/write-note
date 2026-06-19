@@ -137,6 +137,13 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
 
     return (
         <div className="min-h-screen bg-gray-50 font-sans text-gray-900 antialiased">
+            {/* 키보드 사용자용 본문 바로가기 — 평소 숨김, 포커스 시 노출(WCAG 2.4.1). */}
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-50 focus:rounded-md focus:bg-terracotta-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+            >
+                본문으로 건너뛰기
+            </a>
             <header className="sticky top-0 z-20 border-b border-gray-200 bg-white">
                 <div className="mx-auto flex h-14 max-w-7xl items-center gap-6 px-4">
                     <Link href="/" className="text-base font-bold text-gray-900">
@@ -168,9 +175,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                                                 if (t != null) prefetchStudio(t);
                                             }}
                                             onClick={handleWriteClick}
-                                            className={
-                                                pathname.startsWith("/works") ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS
-                                            }
+                                            className={`${pathname.startsWith("/works") ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1`}
                                         >
                                             집필
                                         </button>
@@ -183,7 +188,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                         type="button"
                         onClick={handleLogout}
                         disabled={isLoggingOut}
-                        className="hidden rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 md:block"
+                        className="hidden rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 md:block"
                     >
                         로그아웃
                     </button>
@@ -193,7 +198,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                         aria-label="메뉴"
                         aria-expanded={mobileMenuOpen}
                         onClick={() => setMobileMenuOpen((o) => !o)}
-                        className="ml-auto inline-flex items-center justify-center rounded-md p-2 text-gray-600 hover:bg-gray-50 md:hidden"
+                        className="ml-auto inline-flex items-center justify-center rounded-md p-2 text-gray-600 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 md:hidden"
                     >
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
                             {mobileMenuOpen ? (
@@ -244,7 +249,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                     </nav>
                 )}
             </header>
-            <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+            <main id="main-content" className="mx-auto max-w-7xl px-4 py-6">{children}</main>
 
             {noProjectModalOpen && (
                 <div

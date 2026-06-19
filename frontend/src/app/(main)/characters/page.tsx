@@ -97,25 +97,35 @@ function CharacterFormModal({
                 <h2 id="character-form-title" className="text-lg font-bold text-gray-900">
                     {title}
                 </h2>
-                <label className="mt-4 block text-sm text-gray-600">
-                    이름
-                    <input autoFocus value={values.name} onChange={(e) => set({ name: e.target.value })} className={inputClass} />
+                <label htmlFor="char-name" className="mt-4 block text-sm text-gray-600">
+                    이름<span aria-hidden="true" className="ml-0.5 text-red-500">*</span>
+                    <input
+                        id="char-name"
+                        autoFocus
+                        aria-required="true"
+                        value={values.name}
+                        onChange={(e) => set({ name: e.target.value })}
+                        className={inputClass}
+                    />
                 </label>
                 <div className="mt-3 grid grid-cols-2 gap-3">
-                    <label className="block text-sm text-gray-600">
+                    <label htmlFor="char-age" className="block text-sm text-gray-600">
                         나이
                         <input
+                            id="char-age"
                             value={values.age}
                             onChange={(e) => set({ age: e.target.value })}
                             placeholder="예: 27, 소년"
                             className={inputClass}
                         />
                     </label>
-                    <label className="block text-sm text-gray-600">
+                    <label htmlFor="char-gender" className="block text-sm text-gray-600">
                         성별
                         <select
+                            id="char-gender"
                             value={values.gender}
                             onChange={(e) => set({ gender: e.target.value as Gender | "" })}
+                            aria-label="성별 선택"
                             className={inputClass}
                         >
                             <option value="">비움</option>
@@ -125,33 +135,41 @@ function CharacterFormModal({
                         </select>
                     </label>
                 </div>
-                <label className="mt-3 block text-sm text-gray-600">
+                <label htmlFor="char-short-desc" className="mt-3 block text-sm text-gray-600">
                     한 줄 소개
                     <input
+                        id="char-short-desc"
                         value={values.shortDescription}
                         onChange={(e) => set({ shortDescription: e.target.value })}
                         className={inputClass}
                     />
                 </label>
-                <label className="mt-3 block text-sm text-gray-600">
+                <label htmlFor="char-traits" className="mt-3 block text-sm text-gray-600">
                     특징
                     <input
+                        id="char-traits"
                         value={values.traits}
                         onChange={(e) => set({ traits: e.target.value })}
                         placeholder="말버릇, 습관, 외형…"
                         className={inputClass}
                     />
                 </label>
-                <label className="mt-3 block text-sm text-gray-600">
+                <label htmlFor="char-notes" className="mt-3 block text-sm text-gray-600">
                     노트
                     <textarea
+                        id="char-notes"
                         value={values.notes}
                         onChange={(e) => set({ notes: e.target.value })}
                         rows={3}
                         className={`${inputClass} resize-none`}
                     />
                 </label>
-                {errorMessage && <p className="mt-3 text-sm text-red-600">{errorMessage}</p>}
+                {errorMessage && (
+                    <p role="alert" className="mt-3 flex items-center gap-1.5 text-sm text-red-600">
+                        <span aria-hidden="true">⚠</span>
+                        {errorMessage}
+                    </p>
+                )}
                 <div className="mt-5 flex justify-end gap-2">
                     <button
                         type="button"
@@ -386,7 +404,8 @@ export default function BCharactersPage() {
                             「{deleteTarget.name}」 을(를) 삭제할까요? 되돌릴 수 없습니다.
                         </p>
                         {deleteMutation.isError && (
-                            <p className="mt-2 text-sm text-red-600">
+                            <p role="alert" className="mt-2 flex items-center gap-1.5 text-sm text-red-600">
+                                <span aria-hidden="true">⚠</span>
                                 {errorText(deleteMutation.error, "삭제에 실패했습니다.")}
                             </p>
                         )}
