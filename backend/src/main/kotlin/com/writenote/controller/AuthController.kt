@@ -11,6 +11,7 @@ import com.writenote.model.request.LogoutRequest
 import com.writenote.model.request.PasswordResetConfirmRequest
 import com.writenote.model.request.PasswordResetRequestRequest
 import com.writenote.model.request.RefreshTokenRequest
+import com.writenote.model.request.ResendVerificationRequest
 import com.writenote.model.request.SignupEmailRequest
 import com.writenote.model.request.VerifyEmailRequest
 import com.writenote.model.request.WithdrawRequest
@@ -62,6 +63,18 @@ class AuthController(
         @Valid @RequestBody request: VerifyEmailRequest,
     ): ResponseEntity<Result<Nothing?>> {
         authService.verifyEmail(request)
+        return ResponseEntity.ok(Result.success<Nothing?>(null))
+    }
+
+    @PostMapping("/resend-verification")
+    @Operation(
+        summary = "인증 메일 재발송",
+        description = "미인증 계정에 새 EMAIL_VERIFY 토큰 발송 — 미가입·이미인증 이메일도 200 (정보 노출 회피)",
+    )
+    fun resendVerification(
+        @Valid @RequestBody request: ResendVerificationRequest,
+    ): ResponseEntity<Result<Nothing?>> {
+        authService.resendVerification(request)
         return ResponseEntity.ok(Result.success<Nothing?>(null))
     }
 

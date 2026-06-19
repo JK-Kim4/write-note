@@ -61,4 +61,30 @@ describe("LoginForm", () => {
 
         expect(await screen.findByRole("alert")).toHaveTextContent("올바르지 않습니다");
     });
+
+    it("EMAIL_NOT_VERIFIED 응답 시 인증 메일 재발송 버튼을 노출하고 클릭 시 재발송 API를 호출한다", async () => {
+        let resendCalled = false;
+        server.use(
+            http.post(`${ORIGIN}/api/auth/login`, () =>
+                HttpResponse.json(
+                    { success: false, data: null, error: { code: "EMAIL_NOT_VERIFIED", message: "x" } },
+                    { status: 401 },
+                ),
+            ),
+            http.post(`${ORIGIN}/api/auth/resend-verification`, () => {
+                resendCalled = true;
+                return HttpResponse.json({ success: true, data: null, error: null });
+            }),
+        );
+        renderWithClient(<LoginForm />);
+
+        await userEvent.type(screen.getByLabelText("이메일"), "writer@example.com");
+        await userEvent.type(screen.getByLabelText("비밀번호"), "Strong!Pass123");
+        await userEvent.click(screen.getByRole("button", { name: "로그인" }));
+
+        const resendButton = await screen.findByRole("button", { name: "인증 메일 재발송" });
+        await userEvent.click(resendButton);
+
+        await waitFor(() => expect(resendCalled).toBe(true));
+    });
 });
