@@ -152,8 +152,8 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                             aria-label="소설빙"
                             className="block"
                             style={{
-                                width: "112px",
-                                height: "32px",
+                                width: "150px",
+                                height: "42px",
                                 background: "url('/soseolbing-logo.png') left center / contain no-repeat",
                             }}
                         />
