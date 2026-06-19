@@ -62,6 +62,14 @@ export function requestPasswordReset(email: string): Promise<unknown> {
     });
 }
 
+export function resendVerification(email: string): Promise<unknown> {
+    return apiFetch("/api/auth/resend-verification", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+        retryOnAuthFailure: false,
+    });
+}
+
 export function confirmPasswordReset(input: PasswordResetConfirmInput): Promise<unknown> {
     return apiFetch("/api/auth/password-reset/confirm", {
         method: "POST",
