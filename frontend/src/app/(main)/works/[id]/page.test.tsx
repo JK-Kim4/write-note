@@ -8,10 +8,10 @@ import { server } from "@/test/msw/server";
 import BWorkDetailPage from "./page";
 
 /**
- * B형 집필실 /b/works/[id] 테스트.
+ * B형 집필실 /works/[id] 테스트.
  *
- * T1 — 복귀 링크: 에러 상태 복귀 링크가 /b/library 를 가리키는지 검증
- *      (라우트 이동 refactor: 작품 벽 /b → /b/library 회귀 방지).
+ * T1 — 복귀 링크: 에러 상태 복귀 링크가 /library 를 가리키는지 검증
+ *      (route group (main) 이라 URL 에 /b 접두 없음 — 잘못된 /b/library 404 회귀 방지).
  *
  * T2 — 챕터 목록 표시: GET /api/projects/:id/documents 로 챕터 목록이 로드되어 화면에 나타나는지.
  *
@@ -26,7 +26,7 @@ let searchParamsStore = new URLSearchParams();
 
 vi.mock("next/navigation", () => ({
     useRouter: () => ({ push: pushMock, replace: replaceMock, back: vi.fn() }),
-    usePathname: () => "/b/works/1",
+    usePathname: () => "/works/1",
     useSearchParams: () => searchParamsStore,
     useParams: () => ({ id: "1" }),
 }));
@@ -190,7 +190,7 @@ describe("BWorkDetailPage — 복귀 링크", () => {
         renderPage();
 
         const link = await screen.findByRole("link", { name: "작품 목록으로" });
-        expect(link).toHaveAttribute("href", "/b/library");
+        expect(link).toHaveAttribute("href", "/library");
     });
 });
 
@@ -325,5 +325,30 @@ describe("BWorkDetailPage — 챕터 목록 및 전환", () => {
                 expect.anything(),
             );
         });
+    });
+});
+
+describe("BWorkDetailPage — 작업 종료 후 라우팅 (404 회귀 방지)", () => {
+    it("작업 종료 저장 후 /library 로 이동한다 (잘못된 /b/library 404 회귀 방지)", async () => {
+        searchParamsStore = new URLSearchParams("chapter=10");
+        pushMock.mockClear();
+        stubCommon();
+        server.use(
+            http.post(`${ORIGIN}/api/projects/1/work-sessions/end-with-log`, () =>
+                HttpResponse.json({ success: true, data: null, error: null }),
+            ),
+        );
+        renderPage();
+
+        // 작업 종료 버튼(inline/drawer 양쪽 렌더 가능) 클릭 → 종료 모달
+        const endBtns = await screen.findAllByRole("button", { name: "작업 종료" });
+        await userEvent.click(endBtns[0]);
+
+        // 모달 본문 입력 후 저장 → endWithLog → router.push
+        const textarea = await screen.findByPlaceholderText("오늘의 기록을 남겨보세요…");
+        await userEvent.type(textarea, "오늘 작업 완료");
+        await userEvent.click(screen.getByRole("button", { name: "저장" }));
+
+        await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/library"));
     });
 });

@@ -65,8 +65,8 @@ interface BStudioShellProps {
     outline: BStudioOutlineSource;
     /**
      * 챕터 전환 URL 의 베이스 경로.
-     * 기본값: `/b/works/${projectId}` (기본 B형 라우트 동작 보존).
-     * 신규 라우트(`/b/works/[id]/custom`)는 `/b/works/${projectId}/custom` 을 전달한다.
+     * 기본값: `/works/${projectId}` (기본 B형 라우트 동작 보존).
+     * 신규 라우트(`/works/[id]/custom`)는 `/works/${projectId}/custom` 을 전달한다.
      */
     chapterUrlBase?: string;
 }
@@ -184,7 +184,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
             if (nextId === currentChapterId) return;
             // 전환 직전 현재 챕터 초안 즉시 기록 (IME 조합 중 작성분 보존 — 016).
             flushDraftRef.current?.(latestBodyForFlushRef.current);
-            const url = `${chapterUrlBase ?? `/b/works/${projectId}`}?chapter=${nextId}`;
+            const url = `${chapterUrlBase ?? `/works/${projectId}`}?chapter=${nextId}`;
             router.replace(url, { scroll: false });
         },
         [currentChapterId, projectId, router, chapterUrlBase],
@@ -257,7 +257,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
             await queryClient.invalidateQueries({ queryKey: logKeys.all });
             setEndWorkOpen(false);
             setEndWorkBody("");
-            router.push("/b/library");
+            router.push("/library");
         } catch {
             setEndWorkError("기록 저장에 실패했습니다. 다시 시도해 주세요.");
         } finally {
@@ -317,7 +317,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
     const outlinePanel = (
         <>
             <div className="border-b border-gray-200 p-3">
-                <Link href="/b/library" className="text-xs text-gray-400 hover:text-terracotta-600">
+                <Link href="/library" className="text-xs text-gray-400 hover:text-terracotta-600">
                     ← 작품 목록
                 </Link>
                 <h1 className="mt-1 truncate text-base font-bold text-gray-900" title={projectTitle}>
@@ -539,14 +539,14 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                 // 작품 자체가 없음(잘못된 URL/삭제됨) — 챕터 빈 상태와 구분해 명확히 안내.
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white">
                     <p className="text-sm text-gray-500">작품을 찾을 수 없습니다.</p>
-                    <Link href="/b/library" className="text-sm font-medium text-terracotta-600 hover:underline">
+                    <Link href="/library" className="text-sm font-medium text-terracotta-600 hover:underline">
                         작품 목록으로
                     </Link>
                 </div>
             ) : currentChapterId == null ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white">
                     <p className="text-sm text-gray-400">챕터를 선택하거나 생성해 주세요.</p>
-                    <Link href="/b/library" className="text-xs text-terracotta-600 hover:underline">
+                    <Link href="/library" className="text-xs text-terracotta-600 hover:underline">
                         작품 목록으로
                     </Link>
                 </div>
