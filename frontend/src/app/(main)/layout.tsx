@@ -146,11 +146,17 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
             </a>
             <header className="sticky top-0 z-20 border-b border-gray-200 bg-white">
                 <div className="mx-auto flex h-14 max-w-7xl items-center gap-6 px-4">
-                    <Link href="/" className="text-base font-bold text-gray-900">
-                        글쓰기
-                        <span className="ml-1.5 rounded-full bg-terracotta-50 px-2 py-0.5 text-xs font-semibold text-terracotta-700">
-                            B
-                        </span>
+                    <Link href="/" aria-label="소설빙 홈" className="shrink-0">
+                        <span
+                            role="img"
+                            aria-label="소설빙"
+                            className="block"
+                            style={{
+                                width: "112px",
+                                height: "32px",
+                                background: "url('/soseolbing-logo.png') left center / contain no-repeat",
+                            }}
+                        />
                     </Link>
                     <nav className="hidden flex-1 items-center gap-1 md:flex">
                         {NAV_ITEMS.map((item, i) => {
