@@ -136,7 +136,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
     if (!hydrated) return null;
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans text-gray-900 antialiased">
+        <div className="flex-1 bg-gray-50 font-sans text-gray-900 antialiased">
             {/* 키보드 사용자용 본문 바로가기 — 평소 숨김, 포커스 시 노출(WCAG 2.4.1). */}
             <a
                 href="#main-content"
