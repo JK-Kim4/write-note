@@ -1,7 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { useAuthGuard } from "@/lib/auth/guard";
 import { webElectronApi } from "@/lib/electron-api";
 
 const BODY_PLACEHOLDER = "의견을 자유롭게 적어주세요";
@@ -11,10 +11,9 @@ const KAKAO_CHAT_URL = "https://pf.kakao.com/_mxlxlnX/chat";
 const EMAIL_RE = /.+@.+\..+/;
 
 /**
- * 문의 화면 (015 US4) — desktop ContactScreen 1:1 이식. 인앱 메일 폼으로 의견 전송, 회신 이메일 선택.
+ * 문의 화면 (공개) — 로그인 불필요. 인앱 메일 폼으로 의견 전송, 회신 이메일 선택.
  */
 export default function ContactPage() {
-    useAuthGuard("requireAuth");
     const [email, setEmail] = useState("");
     const [body, setBody] = useState("");
     const [sending, setSending] = useState(false);
@@ -43,69 +42,80 @@ export default function ContactPage() {
     };
 
     return (
-        <main className="mx-auto max-w-lg px-4 py-12">
-            <h1 className="text-xl font-bold text-gray-900">의견을 들려주세요</h1>
-            <p className="mt-2 text-sm text-gray-500">
-                쓰면서 불편했던 점이나 바라는 점을 보내주시면 다음 버전에 반영합니다.
-            </p>
-
-            <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-                <label className="block text-sm text-gray-700">
-                    회신 이메일 <span className="text-gray-400">(선택)</span>
-                    <input
-                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
-                        type="email"
-                        placeholder="답장받을 이메일"
-                        value={email}
-                        onChange={(e) => {
-                            setEmail(e.target.value);
-                            setNotice(null);
-                        }}
-                    />
-                </label>
-
-                <label className="block text-sm text-gray-700">
-                    의견
-                    <textarea
-                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
-                        placeholder={BODY_PLACEHOLDER}
-                        rows={6}
-                        value={body}
-                        onChange={(e) => {
-                            setBody(e.target.value);
-                            setNotice(null);
-                        }}
-                    />
-                </label>
-
-                <button
-                    type="submit"
-                    disabled={!body.trim() || sending}
-                    className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700 disabled:opacity-50"
+        <div className="min-h-screen bg-stone-50 px-4 py-10">
+            <div className="mx-auto max-w-lg">
+                <Link
+                    href="/welcome"
+                    className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-terracotta-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 >
-                    {sending ? "보내는 중…" : "보내기"}
-                </button>
+                    ← 소개로
+                </Link>
 
-                {notice && (
-                    <p
-                        role="status"
-                        className={notice.kind === "success" ? "text-sm text-green-600" : "text-sm text-red-600"}
-                    >
-                        {notice.text}
+                <div className="mt-6 rounded-2xl border border-gray-100 bg-white px-8 py-10 shadow-sm">
+                    <h1 className="text-xl font-bold text-gray-900">의견을 들려주세요</h1>
+                    <p className="mt-2 text-sm text-gray-500">
+                        쓰면서 불편했던 점이나 바라는 점을 보내주시면 다음 버전에 반영합니다.
                     </p>
-                )}
-            </form>
 
-            <div className="mt-8 border-t border-gray-100 pt-6">
-                <span className="text-sm text-gray-500">실시간으로 이야기하고 싶다면</span>
-                <button
-                    type="button"
-                    className="mt-2 flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    onClick={() => window.open(KAKAO_CHAT_URL, "_blank")}
-                >
-                    카카오톡으로 문의
-                </button>
+                    <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+                        <label className="block text-sm text-gray-700">
+                            회신 이메일 <span className="text-gray-400">(선택)</span>
+                            <input
+                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
+                                type="email"
+                                placeholder="답장받을 이메일"
+                                value={email}
+                                onChange={(e) => {
+                                    setEmail(e.target.value);
+                                    setNotice(null);
+                                }}
+                            />
+                        </label>
+
+                        <label className="block text-sm text-gray-700">
+                            의견
+                            <textarea
+                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
+                                placeholder={BODY_PLACEHOLDER}
+                                rows={6}
+                                value={body}
+                                onChange={(e) => {
+                                    setBody(e.target.value);
+                                    setNotice(null);
+                                }}
+                            />
+                        </label>
+
+                        <button
+                            type="submit"
+                            disabled={!body.trim() || sending}
+                            className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 disabled:opacity-50"
+                        >
+                            {sending ? "보내는 중…" : "보내기"}
+                        </button>
+
+                        {notice && (
+                            <p
+                                role="status"
+                                className={notice.kind === "success" ? "text-sm text-green-600" : "text-sm text-red-600"}
+                            >
+                                {notice.text}
+                            </p>
+                        )}
+                    </form>
+
+                    <div className="mt-8 border-t border-gray-100 pt-6">
+                        <span className="text-sm text-gray-500">실시간으로 이야기하고 싶다면</span>
+                        <button
+                            type="button"
+                            className="mt-2 flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
+                            onClick={() => window.open(KAKAO_CHAT_URL, "_blank")}
+                        >
+                            카카오톡으로 문의
+                        </button>
+                    </div>
+                </div>
             </div>
-        </main>
+        </div>
     );
 }

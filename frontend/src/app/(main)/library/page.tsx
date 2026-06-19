@@ -185,7 +185,7 @@ function ProjectFormModal({
                     onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                     placeholder="작품 제목"
                     maxLength={120}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
             </label>
             <label className="mt-3 block text-sm text-gray-600">
@@ -195,7 +195,7 @@ function ProjectFormModal({
                     onChange={(e) => setForm((f) => ({ ...f, genre: e.target.value }))}
                     placeholder="예: 장편소설, 에세이"
                     maxLength={100}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
             </label>
             <label className="mt-3 block text-sm text-gray-600">
@@ -203,7 +203,7 @@ function ProjectFormModal({
                 <select
                     value={form.paperSize}
                     onChange={(e) => setForm((f) => ({ ...f, paperSize: e.target.value as PaperSize }))}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 >
                     {(["A4", "A3", "A2", "B4"] as const).map((size) => (
                         <option key={size} value={size}>
@@ -225,7 +225,7 @@ function ProjectFormModal({
                     min={1}
                     max={100000000}
                     step={1}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
                 {lengthError && <span className="mt-1 block text-xs text-red-600">{lengthError}</span>}
             </label>
@@ -236,7 +236,7 @@ function ProjectFormModal({
                     onChange={(e) => setForm((f) => ({ ...f, synopsis: e.target.value }))}
                     maxLength={5000}
                     rows={3}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
             </label>
             <label className="mt-3 block text-sm text-gray-600">
@@ -246,7 +246,7 @@ function ProjectFormModal({
                     onChange={(e) => setForm((f) => ({ ...f, toneNotes: e.target.value }))}
                     maxLength={2000}
                     rows={3}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
             </label>
             <label className="mt-3 block text-sm text-gray-600">
@@ -256,7 +256,7 @@ function ProjectFormModal({
                     onChange={(e) => setForm((f) => ({ ...f, worldNotes: e.target.value }))}
                     maxLength={10000}
                     rows={3}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
             </label>
             <label className="mt-3 block text-sm text-gray-600">
@@ -266,7 +266,7 @@ function ProjectFormModal({
                     onChange={(e) => setForm((f) => ({ ...f, nextScene: e.target.value }))}
                     placeholder="다음에 쓸 장면 한 줄"
                     maxLength={500}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
             </label>
             <div className="mt-5 flex justify-end gap-2">

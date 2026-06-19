@@ -188,7 +188,7 @@ export default function BMemosPage() {
                     onChange={(e) =>
                         setFilterProjectId(e.target.value === "all" ? "all" : Number(e.target.value))
                     }
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 >
                     <option value="all">전체</option>
                     {projects.map((p) => (
@@ -232,7 +232,7 @@ export default function BMemosPage() {
                             onChange={(e) => setDraftBody(e.target.value)}
                             placeholder="떠오른 생각을 바로 적어두세요…"
                             rows={3}
-                            className="w-full flex-1 resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
+                            className="w-full flex-1 resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                         />
                         <div className="mt-2 flex items-center gap-2">
                             <select
@@ -241,7 +241,7 @@ export default function BMemosPage() {
                                 onChange={(e) =>
                                     setDraftProjectId(e.target.value === "none" ? "none" : Number(e.target.value))
                                 }
-                                className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none"
+                                className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                             >
                                 <option value="none">연결 안 함</option>
                                 {projects.map((p) => (
@@ -299,7 +299,7 @@ export default function BMemosPage() {
                                             }
                                             setLinkTargetMemoId(null);
                                         }}
-                                        className="rounded-md border border-gray-300 px-2 py-0.5 text-xs focus:border-terracotta-500 focus:outline-none"
+                                        className="rounded-md border border-gray-300 px-2 py-0.5 text-xs focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                                     >
                                         <option value="" disabled>
                                             작품 선택

@@ -78,7 +78,7 @@ function CharacterFormModal({
     };
 
     const inputClass =
-        "mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none";
+        "mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1";
 
     return (
         <div
@@ -265,7 +265,7 @@ export default function BCharactersPage() {
                     aria-label="작품 선택"
                     value={projectId == null ? "" : String(projectId)}
                     onChange={(e) => setProjectId(Number(e.target.value))}
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 >
                     {projects.length === 0 && <option value="">작품 없음</option>}
                     {projects.map((p) => (

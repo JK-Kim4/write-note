@@ -39,7 +39,7 @@ function MemosTab({ projectId }: { projectId: number }) {
                     onChange={(e) => setBody(e.target.value)}
                     placeholder="이 작품에 메모 남기기…"
                     rows={2}
-                    className="w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
+                    className="w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
                 <button
                     type="submit"
@@ -137,13 +137,13 @@ function CharactersTab({ projectId }: { projectId: number }) {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="인물 이름"
-                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none"
+                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
                 <input
                     value={shortDescription}
                     onChange={(e) => setShortDescription(e.target.value)}
                     placeholder="한 줄 소개 (선택)"
-                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none"
+                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
                 <button
                     type="submit"

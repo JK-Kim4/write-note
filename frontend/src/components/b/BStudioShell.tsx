@@ -337,7 +337,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                         value={paperSize}
                         onChange={(e) => handlePaperSizeChange(e.target.value as PaperSize)}
                         disabled={updateProject.isPending || projectQuery.data == null}
-                        className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-terracotta-500 focus:outline-none disabled:opacity-50"
+                        className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 disabled:opacity-50"
                     >
                         {(["A4", "A3", "A2", "B4"] as const).map((size) => (
                             <option key={size} value={size}>
@@ -662,7 +662,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                             placeholder="오늘의 기록을 남겨보세요…"
                             rows={4}
                             maxLength={2000}
-                            className="mt-3 w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
+                            className="mt-3 w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                         />
                         <div className="mt-1 flex items-center justify-between">
                             {endWorkError ? (
