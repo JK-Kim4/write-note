@@ -8,6 +8,7 @@ import com.writenote.enums.AuthTokenType
 import com.writenote.model.request.LoginRequest
 import com.writenote.model.request.LogoutRequest
 import com.writenote.model.request.RefreshTokenRequest
+import com.writenote.model.request.ResendVerificationRequest
 import com.writenote.model.request.SignupEmailRequest
 import com.writenote.model.request.VerifyEmailRequest
 import com.writenote.repository.AuthTokenRepository
@@ -89,6 +90,33 @@ class AuthControllerWebTest
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.email").value(email))
                 .andExpect(jsonPath("$.data.emailVerifySent").value(true))
+        }
+
+        @Test
+        fun `resend-verification happy — 200 success (비인증 공개 경로)`() {
+            val email = "resend-web-${UUID.randomUUID()}@example.com"
+            // 미인증 가입
+            mockMvc
+                .perform(
+                    post("/api/auth/signup/email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            objectMapper.writeValueAsString(
+                                SignupEmailRequest(email = email, password = "Strong!Pass123"),
+                            ),
+                        ),
+                ).andExpect(status().isCreated)
+
+            // 인증 메일 재발송 — 토큰 없이(비인증) 호출되어도 200
+            mockMvc
+                .perform(
+                    post("/api/auth/resend-verification")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            objectMapper.writeValueAsString(ResendVerificationRequest(email = email)),
+                        ),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.success").value(true))
         }
 
         @Test
