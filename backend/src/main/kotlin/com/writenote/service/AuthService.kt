@@ -227,6 +227,14 @@ class AuthService(
         return userAuthConverter.toAuthMeResponse(user)
     }
 
+    /**
+     * 회원 탈퇴 — User 삭제(연관 데이터는 DB ON DELETE CASCADE 로 연쇄 삭제). 즉시 완전 삭제, 복구 불가.
+     */
+    @Transactional(rollbackFor = [Exception::class])
+    fun withdraw(userId: Long) {
+        userRepository.deleteById(userId)
+    }
+
     companion object {
         private val EMAIL_VERIFY_VALIDITY: Duration = Duration.ofHours(24)
     }
