@@ -1,11 +1,13 @@
 package com.writenote.service
 
 import com.writenote.entity.ApiToken
+import com.writenote.entity.Document
 import com.writenote.entity.Memo
 import com.writenote.entity.Project
 import com.writenote.entity.User
 import com.writenote.entity.UserSetting
 import com.writenote.repository.ApiTokenRepository
+import com.writenote.repository.DocumentRepository
 import com.writenote.repository.MemoRepository
 import com.writenote.repository.ProjectRepository
 import com.writenote.repository.UserRepository
@@ -33,6 +35,7 @@ class AuthServiceWithdrawIT
         private val authService: AuthService,
         private val userRepository: UserRepository,
         private val projectRepository: ProjectRepository,
+        private val documentRepository: DocumentRepository,
         private val memoRepository: MemoRepository,
         private val apiTokenRepository: ApiTokenRepository,
         private val userSettingRepository: UserSettingRepository,
@@ -61,12 +64,21 @@ class AuthServiceWithdrawIT
                 )
             createdUserId = user.id
 
-            projectRepository.saveAndFlush(
-                Project(
-                    userId = user.id!!,
-                    title = "탈퇴 테스트 작품",
-                ),
-            )
+            val project =
+                projectRepository.saveAndFlush(
+                    Project(
+                        userId = user.id!!,
+                        title = "탈퇴 테스트 작품",
+                    ),
+                )
+
+            val document =
+                documentRepository.saveAndFlush(
+                    Document(
+                        projectId = project.id!!,
+                        title = "탈퇴 테스트 챕터",
+                    ),
+                )
 
             val memo =
                 memoRepository.saveAndFlush(
@@ -78,14 +90,15 @@ class AuthServiceWithdrawIT
                     ),
                 )
 
-            apiTokenRepository.saveAndFlush(
-                ApiToken(
-                    userId = user.id!!,
-                    tokenHash = "a".repeat(64),
-                    tokenPrefix = "wnt_XXXX",
-                    label = "탈퇴 테스트 토큰",
-                ),
-            )
+            val apiToken =
+                apiTokenRepository.saveAndFlush(
+                    ApiToken(
+                        userId = user.id!!,
+                        tokenHash = "a".repeat(64),
+                        tokenPrefix = "wnt_XXXX",
+                        label = "탈퇴 테스트 토큰",
+                    ),
+                )
 
             userSettingRepository.saveAndFlush(
                 UserSetting(
@@ -100,9 +113,10 @@ class AuthServiceWithdrawIT
 
             // then: User 및 연관 전부 삭제
             assertThat(userRepository.findById(user.id!!)).isEmpty
-            assertThat(projectRepository.findByUserIdAndArchivedAtIsNull(user.id!!)).isEmpty()
+            assertThat(projectRepository.findById(project.id!!)).isEmpty
+            assertThat(documentRepository.findById(document.id!!)).isEmpty
             assertThat(memoRepository.findById(memo.id!!)).isEmpty
-            assertThat(apiTokenRepository.findByUserIdOrderByCreatedAtDesc(user.id!!)).isEmpty()
+            assertThat(apiTokenRepository.findById(apiToken.id!!)).isEmpty
             assertThat(userSettingRepository.findAllByUserId(user.id!!)).isEmpty()
 
             // cleanup 에서 deleteById 재시도 방지
