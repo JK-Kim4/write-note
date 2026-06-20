@@ -590,6 +590,12 @@ export const CustomEditor = forwardRef<
                 const pending = pendingMarksRef.current;
                 const inheritMask = pending !== null ? pending : marksAt(pre, u.rangeStart);
                 const next = insertText(pre, u.rangeStart, u.rangeEnd, u.text, inheritMask);
+                // modelRef 를 동기 갱신해 같은 프레임의 다음 textupdate 가 fresh 버퍼를 읽게 한다.
+                // modelRef.current 는 평소 렌더(:modelRef.current = model)에서만 갱신되는데, 빠른 한글 조합은
+                // 리렌더 커밋 전에 textupdate 가 연속 발화한다. 그때 다음 이벤트가 stale 한 pre 에 EditContext 의
+                // 최신 rangeEnd 를 적용하면 insertText 의 slice(hi)가 조합 위치 뒤 실제 글자를 절단해 사라진다.
+                // 여기서 next 를 미리 박아두면 다음 이벤트의 pre 가 정확하고, 곧 도착하는 렌더가 동일 값으로 덮는다.
+                modelRef.current = next;
                 onModelChangeRef.current(next);
                 // 보류 마크 소비 — 입력이 들어오면 폐기.
                 if (pending !== null) setPendingMarks(null);
