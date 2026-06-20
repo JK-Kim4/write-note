@@ -6,7 +6,7 @@ export const metadata: Metadata = {
 
 /**
  * 개인정보처리방침 — 카카오 로그인 동의항목(이메일·닉네임 필수) 심사 제출용 공개 URL.
- * https://harubuild.xyz/privacy
+ * https://soseolbi.com/privacy
  */
 export default function PrivacyPage() {
     return (
