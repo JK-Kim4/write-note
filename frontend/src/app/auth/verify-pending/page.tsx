@@ -1,7 +1,13 @@
 import { SuccessBlock } from "@/components/ui/SuccessBlock";
 import { PanelLink } from "@/components/auth/PanelLink";
+import { ResendVerificationButton } from "@/components/auth/ResendVerificationButton";
 
-export default function VerifyPendingPage() {
+export default async function VerifyPendingPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ email?: string }>;
+}) {
+    const { email } = await searchParams;
     return (
         <div className="flex flex-col items-center gap-6">
             <SuccessBlock
@@ -13,9 +19,7 @@ export default function VerifyPendingPage() {
                 <PanelLink href="/auth/login" variant="accent">
                     로그인하러 가기 →
                 </PanelLink>
-                <PanelLink href="/auth/verify-pending" variant="muted">
-                    다시 보내기
-                </PanelLink>
+                <ResendVerificationButton email={email} />
             </div>
         </div>
     );

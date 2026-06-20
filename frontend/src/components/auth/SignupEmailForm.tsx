@@ -28,7 +28,7 @@ export function SignupEmailForm() {
 
     const signupMutation = useMutation({
         mutationFn: () => signupEmail({ email: email.trim(), password }),
-        onSuccess: () => router.push("/auth/verify-pending"),
+        onSuccess: () => router.push(`/auth/verify-pending?email=${encodeURIComponent(email.trim())}`),
     });
 
     const errorCode = signupMutation.error instanceof ApiError ? signupMutation.error.code : null;
