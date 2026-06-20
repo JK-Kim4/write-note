@@ -31,3 +31,20 @@ describe("공개 랜딩 콘텐츠", () => {
         expect(screen.getByRole("link", { name: "문의하기" })).toHaveAttribute("href", "/contact");
     });
 });
+
+describe("로그인 사용자에게 보이는 랜딩 콘텐츠", () => {
+    it("가입·로그인 CTA 대신 '내 작업실로' 링크(/)를 보여준다", () => {
+        render(<LandingContent isAuthenticated />);
+        const studioLinks = screen.getAllByRole("link", { name: "내 작업실로" });
+        expect(studioLinks.length).toBeGreaterThan(0);
+        studioLinks.forEach((link) => expect(link).toHaveAttribute("href", "/"));
+        expect(screen.queryByRole("link", { name: "무료로 시작하기" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: "로그인" })).not.toBeInTheDocument();
+    });
+
+    it("문의하기·개인정보처리방침은 그대로 보여준다", () => {
+        render(<LandingContent isAuthenticated />);
+        expect(screen.getByRole("link", { name: "문의하기" })).toHaveAttribute("href", "/contact");
+        expect(screen.getByRole("link", { name: "개인정보처리방침" })).toHaveAttribute("href", "/privacy");
+    });
+});

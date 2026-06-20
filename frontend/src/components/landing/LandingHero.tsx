@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export function LandingHero() {
+export function LandingHero({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
     return (
         <section className="landing-wrap landing-hero">
             <span className="landing-eyebrow">작가를 위한 집필 작업실</span>
@@ -13,8 +13,14 @@ export function LandingHero() {
                 메모도, 등장인물도, 마지막으로 쓴 한 줄도 한자리에. 며칠 만에 다시 열어도 작품의 맥락이 그대로 남습니다.
             </p>
             <div className="landing-cta">
-                <Link className="landing-btn landing-btn--primary landing-btn--lg" href="/auth/signup">무료로 시작하기</Link>
-                <Link className="landing-btn landing-btn--ghost landing-btn--lg" href="/auth/login">로그인</Link>
+                {isAuthenticated ? (
+                    <Link className="landing-btn landing-btn--primary landing-btn--lg" href="/">내 작업실로</Link>
+                ) : (
+                    <>
+                        <Link className="landing-btn landing-btn--primary landing-btn--lg" href="/auth/signup">무료로 시작하기</Link>
+                        <Link className="landing-btn landing-btn--ghost landing-btn--lg" href="/auth/login">로그인</Link>
+                    </>
+                )}
             </div>
         </section>
     );
