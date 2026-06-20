@@ -143,13 +143,16 @@ export default function BDashboardPage() {
                                     ))}
                                 </div>
                             )}
-                            <BTodayGauge todayMs={todayMs} goalMinutes={dailyGoalMinutes} />
-                            <BRhythmCard
-                                dayMs={weeklyQuery.data?.dayMs ?? [0, 0, 0, 0, 0, 0, 0]}
-                                todayIndex={todayIndex}
-                                todayDateLabel={todayDateLabel}
-                                cards={cardsQuery.data ?? []}
-                            />
+                            {/* 오늘 작업(게이지) : 집필 리듬 ≈ 2:8 한 행(좁은 화면은 세로 적층) */}
+                            <div className="grid grid-cols-1 gap-4 min-[640px]:grid-cols-[minmax(200px,2fr)_8fr] min-[640px]:items-stretch">
+                                <BTodayGauge todayMs={todayMs} goalMinutes={dailyGoalMinutes} />
+                                <BRhythmCard
+                                    dayMs={weeklyQuery.data?.dayMs ?? [0, 0, 0, 0, 0, 0, 0]}
+                                    todayIndex={todayIndex}
+                                    todayDateLabel={todayDateLabel}
+                                    cards={cardsQuery.data ?? []}
+                                />
+                            </div>
                         </div>
 
                         {/* 우 컬럼: 메모 패널 상시(≥880px) */}
