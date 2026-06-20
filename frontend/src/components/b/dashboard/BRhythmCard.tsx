@@ -24,17 +24,22 @@ export function BRhythmCard({ dayMs, todayIndex, todayDateLabel }: Props) {
                     <p className="text-sm text-gray-400">아직 이번 주 기록이 없어요</p>
                 </div>
             ) : (
-                <div className="mt-3 flex h-24 items-end gap-2">
+                <div className="mt-3 flex items-end gap-2">
                     {scaled.map((h, i) => {
                         const isToday = i === todayIndex;
                         return (
                             <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                                <div
-                                    data-testid="rhythm-bar"
-                                    data-today={isToday}
-                                    className={`w-full rounded-sm ${isToday ? "bg-terracotta-600" : "bg-terracotta-200"}`}
-                                    style={{ height: `${Math.max(4, h * 100)}%` }}
-                                />
+                                {/* 막대 트랙 — definite 높이(h-24) + relative. 막대는 absolute bottom-0 로
+                                    이 트랙(definite)에 % 높이를 해석시킨다(게이지와 동일 패턴). 트랙 없이 막대를
+                                    normal-flow 로 두면 부모 칼럼이 auto 높이라 % 가 0 으로 붕괴해 막대가 안 보인다. */}
+                                <div className="relative h-24 w-full">
+                                    <div
+                                        data-testid="rhythm-bar"
+                                        data-today={isToday}
+                                        className={`absolute inset-x-0 bottom-0 rounded-sm ${isToday ? "bg-terracotta-600" : "bg-terracotta-200"}`}
+                                        style={{ height: `${Math.max(4, h * 100)}%` }}
+                                    />
+                                </div>
                                 {isToday ? (
                                     <span className="flex flex-col items-center leading-tight">
                                         <span className="rounded-sm bg-terracotta-600 px-1 text-[9px] font-bold text-white">
