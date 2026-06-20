@@ -70,10 +70,19 @@ export default function BDashboardPage() {
         <div>
             <OnboardingTour />
             <h1 className="text-xl font-bold text-gray-900">
-                {mounted && quote ? `“${quote.text}”` : "안녕하세요."}
+                {mounted && quote ? (
+                    <>
+                        <span className="italic font-semibold">“{quote.text}”</span>
+                        <span className="ml-2 align-baseline text-sm font-normal not-italic text-gray-400">
+                            — {quote.author}
+                        </span>
+                    </>
+                ) : (
+                    "안녕하세요."
+                )}
             </h1>
             <p className="mt-1 text-sm text-gray-500">
-                {mounted ? (quote ? `${dateLabel} · ${quote.author}` : `${dateLabel} — 오늘도 곁에 있을게요.`) : " "}
+                {mounted ? (quote ? dateLabel : `${dateLabel} — 오늘도 곁에 있을게요.`) : " "}
             </p>
 
             {cardsQuery.data === undefined && !cardsQuery.isError ? (
