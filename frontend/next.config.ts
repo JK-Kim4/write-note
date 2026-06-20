@@ -29,6 +29,23 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  // 구 도메인 harubuild.xyz → soseolbi.com 영구 redirect (경로 보존). soseolbi 는 host 미매칭이라 통과.
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "harubuild.xyz" }],
+        destination: "https://soseolbi.com/:path*",
+        permanent: true,
+      },
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.harubuild.xyz" }],
+        destination: "https://soseolbi.com/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       { source: "/api/:path*", destination: `${BACKEND_ORIGIN}/api/:path*` },
