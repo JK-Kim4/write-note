@@ -56,11 +56,11 @@ V1 wireframe 완료 + 구현 진행 중 — 001 Phase 1A Backend Foundation / 00
 | 상태 관리 | React Query (서버 데이터) + Zustand (로컬 UI) |
 | 백엔드 | Kotlin 2.2 + Spring Boot 4.0.6 (Web + Security + Data JPA + Validation) on Java 24 toolchain (시스템 Corretto 25) |
 | 빌드 | Gradle (Kotlin DSL) |
-| DB | PostgreSQL (Supabase Postgres 의 DB 만 사용) |
+| DB | PostgreSQL (OCI Compute self-managed) |
 | 인증 | Spring Security + JWT + Kakao OAuth2 |
 | 모바일 캡처 | iOS Shortcut → `POST /api/capture` (사용자별 long-lived API token) |
 | 프론트 호스팅 | Vercel |
-| 백엔드 호스팅 | Render |
+| 백엔드 호스팅 | OCI Compute (self-managed) |
 | 코드 품질 | ktlint + Checkstyle |
 
 ## 스크립트
@@ -71,6 +71,39 @@ V1 wireframe 완료 + 구현 진행 중 — 001 Phase 1A Backend Foundation / 00
 | backend test | `cd backend && ./gradlew test` |
 | backend verify | `cd backend && ./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` |
 | backend boot | `cd backend && ./gradlew bootRun --args='--spring.profiles.active=local'` |
+
+## 배포 환경
+
+배포·인프라 상세 SoT = [docs/plan/04-web-launch-v1-plan.md](./docs/plan/04-web-launch-v1-plan.md) Round 4 + [docs/plan/00-stack-and-schedule.md §2-3](./docs/plan/00-stack-and-schedule.md). 브랜치 종속·유동 정보이므로 본 절은 요약이며, 충돌 시 SoT 우선.
+
+### 호스팅 (2026-06-16 OCI 전환)
+
+| 대상 | 환경 |
+|---|---|
+| 프론트 (web 앱 `frontend/`) | Vercel (same-origin 프록시 — `/api/*` → `BACKEND_ORIGIN` rewrite) |
+| 백엔드 | OCI Compute 인스턴스 (self-managed, Docker 컨테이너) |
+| DB | 같은 OCI Compute 의 self-managed PostgreSQL (public 미노출, Flyway 자동 적용) |
+| 데스크톱 (`desktop/`) | GitHub Releases — `v*` 태그 push 시 `.github/workflows/release.yml` 이 네이티브 러너에서 dmg/exe 빌드·게시 |
+| 다운로드 페이지 (`download-site/`) | Vercel 정적 배포 (Production Branch = `main`, Root = `download-site`) — 데스크톱 설치파일 안내. **웹 앱과 분리** |
+
+> Render(백엔드)·Supabase(DB)는 2026-06-16 폐기. 도메인 미확보 → Vercel 기본 `.vercel.app` 우선.
+
+### 브랜치 모델 (README §"브랜치 전략")
+
+| 브랜치 | 역할 |
+|---|---|
+| `main` | production-released 만 (V1 출시 전 = 기획 산출물만). 데스크톱 다운로드 페이지의 Vercel production 브랜치 |
+| `develop` | 다음 release 통합 target (web 포팅 015~022 merge 완료 지점) |
+| `feature/*` | 신규 기능, 워크트리 격리 |
+| `release/*` · `hotfix/*` | 출시 안정화 / production 긴급 fix (발생 시 생성) |
+
+### 배포 방식 / 현재 상태 (단정 금지 — 확인 후 인용)
+
+- **web 앱은 배포되어 접근 가능** (Vercel FE + OCI BE, 2026-06-18 사용자 확인). V1 공식 런칭 여부·잔여 정합은 SoT(04-web-launch-v1-plan.md Round 4) 기준.
+- **FE 재배포 = 수동 `vercel --prod` CLI** (브랜치 push 자동배포 아님 — 로컬 작업트리 코드를 빌드·업로드). `frontend/.vercel` 링크 존재(project "write-note").
+- **BE 재배포 = 수동 OCI** (Docker 빌드 → OCI Compute 재기동). Render 류 push-자동배포 미구성(00-stack §2-3). 외부 콘솔 적용은 사용자(external-infra-safety §1).
+- **배포 순서 의존(HARD-GATE)** — 쿠키 인증 변경요청에 `X-WriteNote-Client` 헤더를 요구하는 `CsrfDefenseFilter` 때문에, **FE(헤더 전송) 선행 → BE(헤더 요구) 후행** 필수. BE 가 FE 보다 먼저 나가면 기존 사용자 변경요청이 403 으로 깨진다.
+- `main`/`develop` 어느 쪽이 web 앱 production 인지는 유동적 → 배포 관련 답변 전 SoT 또는 사용자 확인.
 
 ## 안전 가드레일 (HARD-GATE)
 
@@ -135,7 +168,18 @@ timeout / cap 룰은 글로벌 [`~/.claude/rules/shared/long-running-bash.md`](f
 <!-- SPECKIT START -->
 Current implementation plan:
 
-- [013 Desktop 공개 배포 (Windows + macOS) — GitHub Actions 빌드 → Releases, 무서명+안내문, /download 페이지](specs/013-desktop-distribution/plan.md)
+- [029 집필실 에디터 페이지 넘김 뷰 — 자체 CustomEditor 를 연속 세로 스크롤에서 "한 화면에 한 페이지"로 완전 대체. view.pages[currentPage] 한 장만 렌더(데스크탑 zoom·모바일 transform:scale 두 분기), 좌/우 큰 < > 오버레이+PageUp/Down+"n/N" 표시, 캐럿이 흘러가면 caret.pageIndex 로 currentPage 자동 전환(기존 scrollTop-follow effect 대체)·<>는 뷰 이동(캐럿 유지). 선택은 현재 페이지 내만(v1,⌘A 전체선택 유지), 목차 점프=해당 페이지 전환+캐럿. 좌표계가 절대 pageIndex 기준이라 단일 렌더에도 caretToScreen/screenToCaret/selRects 동작 보존. layoutEngine/measure/model/geometry/printLayout·백엔드·PDF export 무변경. 변경 집중=CustomEditor.tsx+pagedView.ts(신규 순수헬퍼). 자체 에디터 회귀위험 영역→dogfooding 게이트 필수(한글 IME 4케이스+캐럿/선택/페이지자동전환/목차/모바일). 028과 별도 트랙. develop 직접](specs/029-editor-paged-view/plan.md)
+- [028 홈(메인) 페이지 개선 — 3가지. (US1/P1) 집필 리듬 즉시 반영: 세션 종료 후 sessions 쿼리 invalidate + 홈 weekly refetchOnMount always, 오늘 막대 날짜+"오늘" 강조, 빈 주 안내. (US1) 세션 최소시간 임계 15초→10초(application.yml; effective 15, 코드 :30 은 미발동 fallback). 빈 막대 근본원인은 구현 0단계 라이브 관찰로 확정(추측 금지). (US2/P2) 오늘 작업시간 원통형 게이지 — 기존 weekly dayMs[today] 재사용(신규 fetch 0), 채움=오늘/일일목표. 일일 목표 user_settings 신규 키 dailyGoalMinutes(이산 30/60/90/120/180/240/300, 기본60) + 설정 페이지 select. (US3/P3) 인사 부제 뒷문구 → 퍼블릭도메인 문학 인용구 무작위 회전(날짜·"안녕하세요."·저자 유지). 백엔드=application.yml 1줄+SettingsService ALLOWED 1줄, 신규 endpoint·마이그레이션 0, 배포순서 BE선행→FE후행. develop 직접 작업](specs/028-home-page-improvements/plan.md)
+- [027 최초 사용자 온보딩 가이드 투어 — driver.js 스포트라이트 4단계 미니 투어(홈 단일 화면, 새 작품·메모·인물·집필). 완료/건너뛰기 시 서버 user_settings onboardingCompleted 키로 영속(기기 무관 1회). 백엔드 1줄(SettingsService ALLOWED 키 추가), FE OnboardingTour(client, driver.js 동적 import) + 대상 4곳 data-tour 표식. "다시 보기" v1 제외. BE 선행→FE 후행 배포](specs/027-onboarding-tour/plan.md)
+- [026 모바일 집필 지원 (iOS 입력 + 반응형) — iOS(WebKit, EditContext 미지원)에서 자체 에디터 입력 가능 + 모바일 반응형(헤더 가로 overflow=왼쪽 슬라이드) 버그 fix. CustomEditor 입력 결합부를 InputAdapter 인터페이스로 추상화 → EditContext 어댑터(데스크탑 무회귀) + contenteditable 어댑터(iOS) 기능감지 분기. 자체 엔진 model/measure/printLayout/layoutEngine/geometry 재사용. PoC(iOS 한글 IME) 먼저 dogfood → 편집 best-effort 이식(캐럿/선택/편집키/마크/블록/undo/복붙/목차/자동저장/페이지분할) → 반응형 → 임시패치 정리. 백엔드 0](specs/026-mobile-editor-support/plan.md)
+- [024 R3 자체 에디터 블록 패리티 + 소프트 줄바꿈 — TipTap 전면 교체(R3~R7, 023-export 단일 브랜치)의 1단계. 자체 EditContext 엔진을 손실 0 대체재로 만들기 위해 인용(blockquote)·글머리표/번호목록(bullet/ordered)·구분선(hr) 블록 + 소프트 줄바꿈(Shift+Enter/hardBreak)을 1급 추가. 평면 블록 모델 유지·BlockAttr 유니온 확장(blockquote/listItem{listKind,depth}/hr) + buffer 내 U+2028 줄바꿈 마커. measure=R2 오프스크린 styled-DOM+Range 일반화에 인용 들여쓰기·목록 마커폭·U+2028 강제 줄나눔(canvas 금지). 번호목록 번호=렌더 파생, 구분선=원자 빈 블록(캐럿 진입불가). pmConvert가 신규 노드 무손실·idempotent 왕복(R4 기존 데이터 교체 안전의 전제). layoutEngine·geometry 무수정, 백엔드 0. 상위 설계 docs/superpowers/specs/2026-06-16-custom-editor-full-replacement-design.md](specs/024-custom-editor-r3/plan.md)
+- [024 R2 자체 에디터 엔진 2라운드 — 마크(부분 스타일)·혼합폰트 줄측정. 1라운드(구조) 위에 문자 단위 인라인 마크(bold/italic/underline/strike) + 한 줄 안 혼합 스타일 측정/캐럿/선택을 더함("드래그한 부분만 굵게"). 데이터 구조=블록별 마크 run-list(정규형 비트마스크 run, 평문 buffer는 텍스트·offset SoT 유지), 측정=오프스크린 styled-DOM+Range run 일반화(canvas 금지), affinity=(offset,방향) 튜플로 1라운드 `<=` 워크어라운드 대체. pmConvert가 PM text node marks(bold/italic/underline/strike) 무손실·idempotent 왕복. 1라운드 모듈(model/measure/pmConvert/CustomEditor) run 단위 일반화, layoutEngine·geometry·outline 무수정, 백엔드 0. 워크트리 024-custom-editor, 메인 repo 023 비접촉](specs/024-custom-editor-r2/plan.md)
+- [024 자체 에디터 엔진 1라운드 — B형 집필실 수직 슬라이스(구조). TipTap(CSS column-wrap)→자체 EditContext 엔진 교체의 첫 라운드. 신규 전용 라우트에 자체 엔진을 꽂아 프레시 테스트 챕터에 문단·제목(H1~3) 쓰기→자동저장→재로드+줄단위 페이지분할을 실환경 검증. 디스크는 PM JSON(bodyJson) 유지·경계 양방향 변환(자동저장016/버전토큰/충돌 무수정 재사용). PoC 순수 자산(geometry/layoutEngine/measure) 승격 + 블록속성(heading) 동기 + undo/plain paste. B형 셸(BStudioShell 추출)·ChapterList·BWorkSidePanel 재사용, 아웃라인은 TipTap 인스턴스 탈피 엔진 파생. 마크/리스트/완전대체/Safari=후속 라운드. 백엔드 변경 0](specs/024-custom-editor-r1/plan.md)
+- [022 챕터 (Chapter) — 작품 1:N 본문 구조. 기존 documents 테이블 1:N 확장(project_id UNIQUE 제거 + sort_order·deleted_at, V14 마이그레이션, 기존 본문 무손실 1번 챕터). 챕터 목록/생성/순서/soft-delete/복구 5 endpoint + 마지막 챕터 가드(409 LAST_CHAPTER_UNDELETABLE) + 카드 합산 집계. FE A형·B형 집필실 좌패널 챕터 목록·전환(?chapter, 016 세션 재사용). Round 2.5, export(Round 3) 선행](specs/022-chapters/plan.md)
+- [019 Round 1 스키마 확장 — 곁쪽지 삭제/되돌리기(soft-delete deleted_at·restore·연결행 보존) + 설정 서버 영속(user_settings key-value·테마/작성모드/원고지크기) + 등장인물 확장(age·gender·traits·Rail 진입). 마이그레이션 V9~V11 로컬 dev 한정](specs/019-round1-schema-extensions/plan.md)
+- [017 집필실 3단 (Studio 3-panel) — [아웃라인 | 원고 | 인물+곁쪽지] 3열. 아웃라인=heading 클라이언트 파생 TOC(점프+하이라이트), 인물=기존 API 보기+빠른추가, 곁쪽지=MemoPanel 불변. 백엔드 변경 0](specs/017-studio-three-panel/plan.md)
+- [016 자동저장 재설계 — 로컬 우선 보존(localStorage draft) + 수정시각(updatedAt 겸용) @Version 버전 토큰. 거짓 409 충돌 근본 해결 + 작성분 복구 + 비동기 공동집필 토대](specs/016-autosave-localstorage-redesign/plan.md)
+- [015 Web 포팅 — Front 이식 (desktop 화면 → Next.js, electronAPI→fetch, projects 풀스택 먼저 + 페이지분할/한글 PoC 선증명)](specs/015-web-port-frontend/plan.md)
 
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan above.

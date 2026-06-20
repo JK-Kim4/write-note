@@ -10,6 +10,8 @@ import type { Result } from "@/types/api";
  * - 401 reactive refresh: 보호 요청 401 → `POST /api/auth/refresh`(쿠키의 refresh_token) 1회 → 성공 시 원요청 재시도.
  *   refresh 자체 / 인증 흐름(login·logout 등)은 `retryOnAuthFailure: false` 로 무한 루프 방지.
  * - 409 DOCUMENT_VERSION_CONFLICT: `ConflictError` throw — currentVersion/currentBody 포함 (006 US1 자동저장).
+ * - 409 LAST_CHAPTER_UNDELETABLE: `LastChapterError` throw — 마지막 활성 챕터 삭제 거부 (022 US3).
+ *   ⚠️ 409 분기는 error.code 기준 — EMAIL_ALREADY_REGISTERED / KAKAO_ALREADY_LINKED 등 다른 409 와 status 공유.
  */
 
 const REFRESH_PATH = "/api/auth/refresh";
@@ -24,18 +26,29 @@ export class ApiError extends Error {
     }
 }
 
-/** 문서 버전 충돌(409) 전용 에러 — currentVersion 과 currentBody 포함 (006 US1). */
+/** 문서 버전 충돌(409) 전용 에러 — currentVersion(불투명 토큰 문자열) 과 currentBody 포함 (006 US1 / 016). */
 export class ConflictError extends Error {
     code: string;
-    currentVersion: number;
+    currentVersion: string;
     currentBody: string;
 
-    constructor(currentVersion: number, currentBody: string) {
+    constructor(currentVersion: string, currentBody: string) {
         super("문서가 다른 곳에서 변경되었습니다.");
         this.name = "ConflictError";
         this.code = "DOCUMENT_VERSION_CONFLICT";
         this.currentVersion = currentVersion;
         this.currentBody = currentBody;
+    }
+}
+
+/** 마지막 활성 챕터 삭제 거부(409) 전용 에러 — 022 US3 C4. */
+export class LastChapterError extends Error {
+    code: string;
+
+    constructor(message = "마지막 챕터는 삭제할 수 없습니다.") {
+        super(message);
+        this.name = "LastChapterError";
+        this.code = "LAST_CHAPTER_UNDELETABLE";
     }
 }
 
@@ -49,6 +62,9 @@ const rawFetch = (path: string, init: RequestInit): Promise<Response> => {
     if (init.body !== undefined && !headers.has("Content-Type")) {
         headers.set("Content-Type", "application/json");
     }
+    // CSRF 심층방어 — cross-site form-POST 가 설정할 수 없는 커스텀 헤더.
+    // 백엔드 CsrfDefenseFilter 가 쿠키 인증 상태변경 요청에 본 헤더를 요구한다.
+    headers.set("X-WriteNote-Client", "web");
     return fetch(path, { ...init, headers, credentials: "include" });
 };
 
@@ -79,9 +95,14 @@ const unwrap = async <T>(response: Response): Promise<T> => {
         const code = typeof error?.["code"] === "string" ? error["code"] : undefined;
         if (code === "DOCUMENT_VERSION_CONFLICT") {
             const data = b["data"] as Record<string, unknown> | null | undefined;
-            const currentVersion = typeof data?.["currentVersion"] === "number" ? data["currentVersion"] : 0;
+            const currentVersion = typeof data?.["currentVersion"] === "string" ? data["currentVersion"] : "";
             const currentBody = typeof data?.["currentBody"] === "string" ? data["currentBody"] : "";
             throw new ConflictError(currentVersion, currentBody);
+        }
+        if (code === "LAST_CHAPTER_UNDELETABLE") {
+            throw new LastChapterError(
+                typeof error?.["message"] === "string" ? error["message"] : undefined,
+            );
         }
         throw new ApiError(
             code ?? "CONFLICT",

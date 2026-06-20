@@ -10,7 +10,7 @@
 - **브레인스토밍 → 설계 문서** — Windows+macOS 공개 배포 방식을 검증(WebSearch) 후 확정: GitHub Actions 매트릭스 빌드 → GitHub Releases, 무서명+설치 안내문, Vercel `/download` 페이지. `docs/superpowers/specs/2026-06-08-desktop-distribution-design.md`.
 - **speckit 풀파이프** — specify(spec.md)/plan(research·data-model·contracts·quickstart)/tasks(17개)/implement.
 - **구현** — `desktop/electron-builder.yml` 확장(mac universal+`identity:"-"` ad-hoc+`hardenedRuntime:false`, win NSIS `oneClick`/`perMachine:false`, 고정 artifactName, github publish) + `.github/workflows/release.yml`(`v*` 태그 매트릭스) + frontend `/download`(`useSyncExternalStore` OS감지+버튼2+한국어 안내문, vitest 3건) + `desktop/README` 릴리스 절차.
-- **로컬 mac 빌드 검증** — `mac.arch` 무효 속성 오류를 빌드로 발견·수정 → `Narae-Note.dmg`(192M) universal + `Signature=adhoc` 확인.
+- **로컬 mac 빌드 검증** — `mac.arch` 무효 속성 오류를 빌드로 발견·수정 → `Soseolbi-Note.dmg`(192M) universal + `Signature=adhoc` 확인.
 - **CI 검증** — `v0.1.0` 태그 push → 양 OS job GREEN(win 2m39s) → draft Release에 자산 2종 자동 업로드.
 - **다운로드 블로커 발견·해소** — 게시 후 공개 URL 404 → 원인=저장소 private → **시크릿 스캔(이력 포함) 통과 후 public 전환** → `releases/latest/download` 익명 HTTP 200 검증.
 - **무서명 마찰 2건 규명** — Gatekeeper(rejected, 시스템 설정 경로) + 키체인 암호 프롬프트(Chromium Safe Storage). `--password-store=basic` 우회 시도 → macOS 무효 검증 → 되돌림 → 안내문 보강.

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>집필실 3단 (Studio 3-panel) — 구현 보고</title>
+<style>
+  :root{
+    --bg:#f4ece0; --paper:#fbf6ee; --surface:#fffdf9; --ink:#2c2620; --ink-soft:#4a4035;
+    --muted:#8a7d6b; --line:#e3d8c6; --line-strong:#d2c4ad; --accent:#9c5b34; --accent-soft:#efe1d2;
+    --ok:#3f7d4e; --warn:#b4762a; --radius:14px; --radius-sm:9px;
+    --shadow:0 1px 2px rgba(60,38,20,.05),0 8px 24px rgba(60,38,20,.07);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+    line-height:1.6;padding:40px 20px 80px}
+  .wrap{max-width:1040px;margin:0 auto}
+  header{text-align:center;margin-bottom:8px}
+  .kicker{font-size:12.5px;letter-spacing:.06em;color:var(--accent);font-weight:700;text-transform:uppercase}
+  h1{font-family:"Apple SD Gothic Neo",serif;font-size:32px;margin:6px 0 4px;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:14px}
+  .meta{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:18px 0 30px}
+  .pill{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 13px;font-size:12.5px;color:var(--ink-soft);box-shadow:var(--shadow)}
+  .pill b{color:var(--accent)}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;margin:16px 0;box-shadow:var(--shadow)}
+  .card h2{font-size:18px;margin:0 0 14px;display:flex;align-items:center;gap:9px;letter-spacing:-.01em}
+  .card h2 .n{display:inline-grid;place-items:center;width:25px;height:25px;border-radius:7px;background:var(--accent);color:#fff;font-size:13px;font-weight:700}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+  /* layout diagram */
+  .layout{display:grid;grid-template-columns:150px 1fr 200px;gap:10px;height:200px;margin:6px 0}
+  .col{border-radius:var(--radius-sm);padding:12px;display:flex;flex-direction:column;gap:6px;font-size:12px}
+  .col--out{background:var(--paper);border:1px dashed var(--line-strong)}
+  .col--ms{background:#fff;border:1px solid var(--line-strong);box-shadow:var(--shadow);align-items:center;justify-content:center;color:var(--muted)}
+  .col--right{background:var(--paper);border:1px dashed var(--line-strong);gap:10px}
+  .col .tag{font-size:10.5px;font-weight:700;color:var(--accent);letter-spacing:.03em}
+  .ln{height:8px;border-radius:3px;background:var(--accent-soft)}
+  .ln.cur{background:var(--accent);box-shadow:-3px 0 0 var(--accent)}
+  .ln.s{width:70%}.ln.m{width:90%}.ln.ind{margin-left:14px;width:60%;background:var(--line)}
+  .sect{border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--surface)}
+  .sect b{font-size:11px;color:var(--ink-soft)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px}
+  td code,code{background:var(--accent-soft);padding:1px 6px;border-radius:5px;font-size:12px;font-family:"SF Mono",ui-monospace,monospace;color:#6b3d20}
+  .ok{color:var(--ok);font-weight:700}.warn{color:var(--warn);font-weight:700}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px}
+  .badge.green{background:#e3f0e4;color:var(--ok)}
+  .badge.amber{background:#f6ead4;color:var(--warn)}
+  ul.tight{margin:6px 0;padding-left:18px}ul.tight li{margin:3px 0;font-size:13.5px}
+  .flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12.5px}
+  .flow .step{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:6px 11px}
+  .flow .step.done{border-color:var(--ok);color:var(--ok);font-weight:600}
+  .flow .arrow{color:var(--muted)}
+  .stat{display:flex;gap:18px;flex-wrap:wrap}
+  .stat .b{flex:1;min-width:120px;text-align:center;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px}
+  .stat .b .v{font-size:26px;font-weight:800;color:var(--accent);font-family:serif}
+  .stat .b .l{font-size:11.5px;color:var(--muted)}
+  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
+  .quote{font-size:13px;color:var(--ink-soft);border-left:3px solid var(--accent);padding-left:12px;margin:4px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Soseolbi · Scope B</div>
+    <h1>집필실 3단 (Studio 3-panel)</h1>
+    <div class="sub">heading 파생 아웃라인 · 인물 노트 · 곁쪽지를 한 작업실에 — speckit 워크플로 구현 보고</div>
+  </header>
+  <div class="meta">
+    <span class="pill">브랜치 <b>feat/studio-three-panel</b></span>
+    <span class="pill">spec <b>017</b></span>
+    <span class="pill">날짜 <b>2026-06-10</b></span>
+    <span class="pill">백엔드 변경 <b>0</b></span>
+    <span class="pill">테스트 <b>103 pass</b></span>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">1</span>무엇을 만들었나</h2>
+    <p class="quote">"한 작업실에 모든 맥락" (PRODUCT.md 원칙 2) — 집필 surface 양옆에 장면 아웃라인과 인물 노트를 두어 흩어진 맥락을 글 쓰는 자리로 모았다. Scrivener의 복잡함이 아니라 iA Writer의 절제로 — 평소엔 물러나고(접기), 필요할 때 곁에.</p>
+    <div class="layout">
+      <div class="col col--out">
+        <span class="tag">◧ 아웃라인 240px</span>
+        <div class="ln m"></div>
+        <div class="ln ind"></div>
+        <div class="ln cur m"></div>
+        <div class="ln ind"></div>
+        <div class="ln s"></div>
+      </div>
+      <div class="col col--ms">원고 1fr<br/><span style="font-size:10px">(종이 순도 유지)</span></div>
+      <div class="col col--right">
+        <div class="sect"><b>인물 노트 ▾</b><div class="ln s" style="margin-top:6px"></div></div>
+        <div class="sect"><b>곁쪽지 ▾</b><div class="ln s" style="margin-top:6px"></div></div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:8px">
+      <div>
+        <ul class="tight">
+          <li><b>아웃라인(좌)</b> — 본문 H1·H2 파생 목차. 클릭 시 커서 이동+스크롤 점프, 스크롤 따라 현재 섹션 하이라이트.</li>
+          <li><b>인물 노트(우상)</b> — 기존 등장인물 보기 + 이름 한 줄 빠른 추가. 상세는 등장인물 화면 링크.</li>
+        </ul>
+      </div>
+      <div>
+        <ul class="tight">
+          <li><b>곁쪽지(우하)</b> — 기존 <code>MemoPanel</code> 동작 불변, 우측 스택 하단.</li>
+          <li><b>접기 토글</b> — 좌·우 각각, 진입 기본 = 아웃라인만 펼침. 둘 다 접으면 원고 몰입.</li>
+          <li><b>영구 제외</b> — AI 보조·음악(Ambience). 제품 원칙 충돌.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">2</span>speckit 워크플로</h2>
+    <div class="flow">
+      <span class="step done">specify</span><span class="arrow">→</span>
+      <span class="step done">plan</span><span class="arrow">→</span>
+      <span class="step done">tasks</span><span class="arrow">→</span>
+      <span class="step done">analyze</span><span class="arrow">→</span>
+      <span class="step done">implement</span><span class="arrow">→</span>
+      <span class="step done">검증 ×2</span>
+    </div>
+    <table style="margin-top:12px">
+      <tr><th>단계</th><th>산출</th></tr>
+      <tr><td>specify</td><td>spec.md — US1~3, FR 22 / SC 6, 품질 체크리스트 16/16</td></tr>
+      <tr><td>plan</td><td>research·data-model·contracts·quickstart — 미해결 3건 확정</td></tr>
+      <tr><td>tasks</td><td>27 task, TDD 의존 순서(순수함수→패널→CSS→결선→게이트)</td></tr>
+      <tr><td>analyze</td><td>CRITICAL 0 — 빌드 대상 요구 100% 커버, 게이트 통과</td></tr>
+      <tr><td>implement</td><td>전 phase 구현 + 게이트 GREEN</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">3</span>plan에서 확정한 설계 결정 (미해결 3건 + α)</h2>
+    <table>
+      <tr><th>결정</th><th>채택</th><th>근거</th></tr>
+      <tr><td>에디터 인스턴스 노출</td><td><b>콜백</b> <code>onEditorReady</code></td><td><code>useEditor</code> lift는 IME·자동저장·페이지분할 재배선 → 회귀 위험. 콜백은 prop 1개</td></tr>
+      <tr><td>점프 시 커서 이동</td><td><b>커서 이동 + 스크롤</b></td><td>선택 변경은 자동저장 비트리거(검증). reduced-motion 시 즉시 이동 <span class="badge green">사용자 확정</span></td></tr>
+      <tr><td>인물 빠른추가 동기화</td><td><b>invalidate</b></td><td>기존 <code>useMemos</code> 패턴 일관. 저빈도라 낙관적 불필요</td></tr>
+      <tr><td>진입 기본 패널</td><td><b>아웃라인만 펼침</b></td><td>"평소엔 물러남" 원칙 + 새 핵심 기능 노출 <span class="badge green">사용자 확정</span></td></tr>
+      <tr><td>outlineFromDoc 입력 <span class="badge amber">구현 중 정제</span></td><td><b>JSON 문자열</b></td><td>기존 <code>countCharsForManuscript</code> 컨벤션 정합. PM pos 산술 재현 회피 → 점프 pos는 라이브 에디터에서 해결</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">4</span>파일 변경 — 백엔드 0, 외과적 변경</h2>
+    <div class="grid2">
+      <div>
+        <p style="font-size:13px;font-weight:700;color:var(--ink-soft);margin:0 0 6px">신규 (8)</p>
+        <ul class="tight">
+          <li><code>lib/editor/outline.ts</code> + 테스트 — 순수함수</li>
+          <li><code>components/editor/StudioOutline.tsx</code> + 테스트</li>
+          <li><code>components/editor/useEditorOutline.ts</code> — 글루 훅</li>
+          <li><code>components/workspace/CharacterPanel.tsx</code> + 테스트</li>
+          <li><code>components/workspace/StudioRightStack.tsx</code></li>
+          <li><code>lib/query/useCharacters.ts</code></li>
+        </ul>
+      </div>
+      <div>
+        <p style="font-size:13px;font-weight:700;color:var(--ink-soft);margin:0 0 6px">변경 (3)</p>
+        <ul class="tight">
+          <li><code>editor/PaperEditor.tsx</code> — <b>prop+effect만</b> (IME·자동저장·페이지분할 무변경)</li>
+          <li><code>app/projects/[id]/write/page.tsx</code> — 3단 결선·토글 2개·에디터 참조</li>
+          <li><code>styles/desktop-app.css</code> — <code>.screen-body--studio</code> 3열화 + 반응형 (공통 골격 불변)</li>
+        </ul>
+        <p style="font-size:13px;font-weight:700;color:var(--ink-soft);margin:10px 0 6px">불변 (회귀 0)</p>
+        <ul class="tight">
+          <li><code>MemoPanel.tsx</code> — diff 0</li>
+          <li>한국어 IME 가드 <code>e.view.composing</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">5</span>게이트 결과</h2>
+    <div class="stat">
+      <div class="b"><div class="v">103</div><div class="l">vitest pass<br/>(+20 신규)</div></div>
+      <div class="b"><div class="v ok">✓</div><div class="l">pnpm build<br/>(RSC 경계)</div></div>
+      <div class="b"><div class="v ok">0</div><div class="l">신규 타입에러<br/>신규파일 lint clean</div></div>
+      <div class="b"><div class="v">0</div><div class="l">백엔드 변경</div></div>
+    </div>
+    <p style="font-size:12.5px;color:var(--muted);margin:12px 0 0">신규 테스트: outline 9 · StudioOutline 4 · CharacterPanel 7. <code>tsc</code>는 기존 <code>documents.test.ts</code> version 에러 1건만(016 부채, 지시대로 미수정·무관). <code>page.tsx:107</code> lint 경고는 016 시기 기존 코드(HEAD 동일, 본 작업 변경 아님).</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">6</span>서브에이전트 2회 독립 검증</h2>
+    <table>
+      <tr><th>검증</th><th>렌즈</th><th>판정</th><th>주요 확인</th></tr>
+      <tr><td>검증 1</td><td>기능·계약·TDD</td><td><span class="badge green">SHIP 가능</span></td><td>FR/SC 전부 충족, 계약 일치, 버그 0. 게이트 GREEN 재확인</td></tr>
+      <tr><td>검증 2</td><td>회귀·접근성·엣지</td><td><span class="badge green">SHIP 가능</span></td><td>PaperEditor 변경=prop+effect만, MemoPanel 불변, aria 3종·하이라이트 병행·reduced-motion 충족, 그리드↔렌더 정합, 버그 0</td></tr>
+    </table>
+    <p style="font-size:13px;margin:12px 0 4px"><b>검증이 짚은 갭 → 본 세션 처리</b></p>
+    <ul class="tight">
+      <li><span class="ok">처리</span> contracts C3 문서-코드 불일치(StudioOutline props) → presentational+훅 분리로 문서 정정</li>
+      <li><span class="ok">처리</span> CharacterPanel 추가 실패-보존(FR-016) 테스트 추가 → 103 pass</li>
+      <li><span class="warn">후속 권고</span> <code>useEditorOutline</code> 점프/스크롤 글루 행위 테스트 — 핵심 기능이나 자동화 미보호(실 브라우저 dogfooding에 의존). 후속 보강 권고</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">7</span>남은 항목 (dogfooding 영역)</h2>
+    <ul class="tight">
+      <li><b>T024 회귀 라이브 검증</b> — 코드 레벨 회귀 0은 확인. 한국어 IME 4케이스(빠른 타자·조합 중 bold·한자 변환·Backspace 분해) 실 브라우저 타이핑은 dogfooding 대기.</li>
+      <li><b>T025 시각 검증</b> — 인증 게이트로 헤드리스 직접 관찰 불가. 정적 하니스 HTML + headless 스크린샷(라이트/다크 × 패널 4조합 × 좁은 폭) dogfooding 대기.</li>
+      <li><b>반응형 오버레이</b> — 1080/820px 오버레이 로직은 코드상 정합. 실제 폭 전환 시각 미세조정은 dogfooding에서.</li>
+      <li><b>범위 밖(후속 spec)</b> — 아웃라인 순서 변경, 장면 설명 메타, 대시보드 허브, 영감 보드.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    Soseolbi · 집필실 3단 구현 보고 · 2026-06-10 · 커밋은 사용자 신호 시
+  </div>
+</div>
+</body>
+</html>

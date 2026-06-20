@@ -30,6 +30,10 @@ class Project(
     var synopsis: String? = null,
     @Column(name = "world_notes", columnDefinition = "TEXT")
     var worldNotes: String? = null,
+    @Column(name = "next_scene", nullable = false, columnDefinition = "TEXT")
+    var nextScene: String = "",
+    @Column(name = "paper_size", nullable = false, length = 8)
+    var paperSize: String = "A4",
     @Column(name = "archived_at")
     var archivedAt: Instant? = null,
     @Column(name = "created_at", nullable = false, updatable = false)

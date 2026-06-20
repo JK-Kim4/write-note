@@ -20,4 +20,6 @@ data class CreateProjectRequest(
     val synopsis: String? = null,
     @field:Size(max = 10_000)
     val worldNotes: String? = null,
+    @field:Size(max = 8)
+    val paperSize: String? = null,
 )

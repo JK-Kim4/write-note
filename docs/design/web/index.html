@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>소설비 — Web 리디자인 시안 목업</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #fcf8fb;
+    --surface: #ffffff;
+    --ink: #1b1b1d;
+    --muted: #414753;
+    --faint: #727784;
+    --line: #c1c6d5;
+    --primary: #004e9f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Inter", "Noto Serif KR", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+  }
+  header.page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 64px 32px 32px;
+  }
+  header.page h1 {
+    font-family: "Noto Serif KR", serif;
+    font-size: 34px;
+    margin: 0 0 8px;
+    color: var(--primary);
+  }
+  header.page p { margin: 4px 0; color: var(--muted); }
+  header.page .sub { color: var(--faint); font-size: 14px; }
+  .note {
+    max-width: 1100px;
+    margin: 24px auto 0;
+    padding: 16px 20px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .note strong { color: var(--ink); }
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    text-decoration: none;
+    color: inherit;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    border-color: var(--primary);
+    box-shadow: 0 8px 24px rgba(0,0,0,.06);
+  }
+  .frame {
+    position: relative;
+    height: 240px;
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+    background: var(--bg);
+  }
+  /* scaled-down live preview via iframe */
+  .frame iframe {
+    width: 1440px;
+    height: 900px;
+    border: 0;
+    transform: scale(0.3125);   /* 1440 * 0.3125 = 450 */
+    transform-origin: top left;
+    pointer-events: none;
+  }
+  .frame .badge {
+    position: absolute;
+    top: 12px; left: 12px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    z-index: 2;
+  }
+  .meta { padding: 18px 20px; }
+  .meta h2 {
+    font-family: "Noto Serif KR", serif;
+    font-size: 19px;
+    margin: 0 0 4px;
+  }
+  .meta .en { color: var(--faint); font-size: 13px; margin: 0 0 10px; }
+  .meta p { margin: 0; font-size: 14px; color: var(--muted); }
+  .meta .open {
+    display: inline-block;
+    margin-top: 14px;
+    color: var(--primary);
+    font-weight: 600;
+    font-size: 14px;
+  }
+  footer {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 32px 80px;
+    color: var(--faint);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>소설비 — Web 리디자인 시안</h1>
+  <p>외부 제작 디자인 목업 5종. 카드를 클릭하면 전체 화면으로 열립니다.</p>
+  <p class="sub">저장 위치: <code>docs/design/web/</code> · 스택: Tailwind CDN + Material Symbols + (Libre Caslon Text / Noto Serif KR / Inter)</p>
+</header>
+
+<div class="note">
+  <strong>참고</strong> — 이 목업은 외부에서 받은 시안을 그대로 보존한 것입니다. 실제 제품(PRODUCT.md)과 대조할 때 검토가 필요한 지점이 있습니다:
+  집필실(Studio)의 <strong>“AI Assistant”·“Ambience: Forest”</strong> 버튼(제품 원칙 “MVP는 AI를 쓰지 않는다”와 충돌),
+  <strong>프리미엄 구독·Scholar Tier·2FA</strong> 등 현재 없는 기능, 영문 중심 네비게이션 라벨(한국어 1차 제품), 영감 보관함 우측 패널의 좌측 색 띠(<code>border-l-2</code>) 등.
+  디자인 채택 시 함께 정리하면 좋습니다.
+</div>
+
+<main>
+  <a class="card" href="01-dashboard.html">
+    <div class="frame"><span class="badge">01</span><iframe src="01-dashboard.html" scrolling="no" title="대시보드"></iframe></div>
+    <div class="meta">
+      <h2>작가님의 대시보드</h2>
+      <p class="en">Writer's Dashboard</p>
+      <p>오늘의 문장·이어 쓰기·오늘의 기록(목표 진행률)·최근 메모를 벤토 그리드로 모은 진입 허브.</p>
+      <span class="open">전체 화면으로 열기 →</span>
+    </div>
+  </a>
+
+  <a class="card" href="02-library.html">
+    <div class="frame"><span class="badge">02</span><iframe src="02-library.html" scrolling="no" title="작품 벽"></iframe></div>
+    <div class="meta">
+      <h2>작품 벽</h2>
+      <p class="en">Library</p>
+      <p>작품 카드 그리드 + “새로운 서사 시작” 빈 상태 카드. 카드마다 장르·글자 수·마지막 문장·즐겨찾기.</p>
+      <span class="open">전체 화면으로 열기 →</span>
+    </div>
+  </a>
+
+  <a class="card" href="03-studio.html">
+    <div class="frame"><span class="badge">03</span><iframe src="03-studio.html" scrolling="no" title="집필실"></iframe></div>
+    <div class="meta">
+      <h2>집필실</h2>
+      <p class="en">Studio</p>
+      <p>좌(스토리 아웃라인)·중앙(원고 종이 + 선택 BubbleMenu)·우(인물 노트) 3단 + 하단 세션 진행 바.</p>
+      <span class="open">전체 화면으로 열기 →</span>
+    </div>
+  </a>
+
+  <a class="card" href="04-inspiration.html">
+    <div class="frame"><span class="badge">04</span><iframe src="04-inspiration.html" scrolling="no" title="영감 보관함"></iframe></div>
+    <div class="meta">
+      <h2>영감 보관함</h2>
+      <p class="en">Inspiration</p>
+      <p>“잉크 한 방울” 빠른 캡처 입력 + 메이슨리 메모 보드 + 우측 최근/태그/오늘의 제언 패널.</p>
+      <span class="open">전체 화면으로 열기 →</span>
+    </div>
+  </a>
+
+  <a class="card" href="05-settings.html">
+    <div class="frame"><span class="badge">05</span><iframe src="05-settings.html" scrolling="no" title="서재 설정"></iframe></div>
+    <div class="meta">
+      <h2>서재 설정</h2>
+      <p class="en">Settings</p>
+      <p>시각 설정(테마·글꼴 크기·줄 간격)·모바일 캡처 동기화·계정/보안 + 우측 최근 활동 패널.</p>
+      <span class="open">전체 화면으로 열기 →</span>
+    </div>
+  </a>
+</main>
+
+<footer>
+  소설비(Soseolbi) · Web 리디자인 시안 미리보기 · 미리보기 썸네일은 iframe 0.3125배 축소 렌더입니다(상호작용은 전체 화면에서).
+</footer>
+</body>
+</html>

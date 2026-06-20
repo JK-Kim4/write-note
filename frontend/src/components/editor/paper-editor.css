@@ -1,0 +1,232 @@
+/*
+ * 진짜 페이지 분할 스타일 — desktop src/styles/app.css 이식(015 T002, PoC).
+ * 페이지 격자(--page-line/h/stride)는 줄 높이 정수배여야 줄노트가 페이지마다 정렬된다.
+ * 토큰은 PoC 자립용 최소 세트(라이트/다크). 본문 폰트는 frontend 변수 + 한글 시스템 fallback.
+ */
+.paper-editor {
+    --page-line: 35px; /* 정수여야 multicol column-height 에 26줄 정확히 (pageLayout.LINE_PX 와 동일) */
+    --page-h: calc(var(--page-line) * 26); /* 한 장 본문 26줄 (column-height) */
+    --page-stride: calc(var(--page-line) * 30); /* 종이 28줄 + 책상 2줄 = 보폭 30줄 */
+    --zoom: 1;
+
+    --pe-serif: var(--font-nanum-myeongjo), "Gowun Batang", "Apple SD Gothic Neo", "Noto Serif KR", serif;
+    --pe-paper: #fdfcf8;
+    --pe-ink: #211f1b;
+    --pe-ink-soft: #4a463d;
+    --pe-faint: #b4b0a6;
+    --pe-accent: #3b5bdb;
+    --pe-accent-soft: #dbe4ff;
+    --pe-accent-ink: #1e40af;
+    --pe-hairline: #e7e3da;
+    --pe-hairline-strong: #d3cfc4;
+    --pe-surface: #ffffff;
+    --pe-surface-sunken: #f1efe9;
+    --pe-radius-lg: 14px;
+    --pe-radius-sm: 10px;
+    --pe-shadow-paper: 0 1px 3px rgba(0, 0, 0, 0.06), 0 10px 28px rgba(0, 0, 0, 0.07);
+    --pe-shadow-panel: 0 8px 28px rgba(0, 0, 0, 0.14);
+    --pe-stage: #ece7df; /* 책상(나무결 자리) */
+
+    background: var(--pe-stage);
+    min-height: 100%;
+}
+html.dark .paper-editor {
+    --pe-paper: #232220;
+    --pe-ink: #e8e5dd;
+    --pe-ink-soft: #b8b4a9;
+    --pe-faint: #6b675e;
+    --pe-accent: #8aa4ff;
+    --pe-accent-soft: #2c3550;
+    --pe-accent-ink: #cdd8ff;
+    --pe-hairline: #36342f;
+    --pe-hairline-strong: #45423b;
+    --pe-surface: #2a2825;
+    --pe-surface-sunken: #1f1e1b;
+    --pe-stage: #181715;
+}
+
+.paper-editor .editor-scroll {
+    overflow-y: auto;
+    min-height: 100vh;
+    padding: 40px 32px 96px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.paper-editor .doc-title {
+    width: 100%;
+    max-width: 210mm;
+    padding: 0 25mm;
+    font-family: var(--pe-serif);
+    font-size: 27px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    color: var(--pe-ink);
+    margin: 0 0 22px;
+    text-wrap: balance;
+}
+/* 종이 무대 — 투명 컨테이너. 실제 종이는 .sheet 가 그린다. */
+.paper-editor .paper {
+    zoom: var(--zoom, 1);
+    width: 100%;
+    max-width: 210mm;
+    position: relative;
+}
+.paper-editor .sheets {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+.paper-editor .sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: var(--pe-paper);
+    border-radius: var(--pe-radius-lg);
+    box-shadow: var(--pe-shadow-paper);
+}
+.paper-editor .sheet--lined {
+    padding: var(--page-line) 25mm;
+    background:
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0,
+            transparent calc(var(--page-line) - 1px),
+            var(--pe-hairline) calc(var(--page-line) - 1px),
+            var(--pe-hairline) var(--page-line)
+        )
+        content-box,
+        var(--pe-paper) border-box;
+}
+.paper-editor .page-num {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: var(--pe-serif);
+    font-size: 13px;
+    color: var(--pe-faint);
+    font-variant-numeric: tabular-nums;
+    user-select: none;
+    pointer-events: none;
+    z-index: 2;
+}
+/* TipTap EditorContent → .prose(wrapper) > .ProseMirror(contenteditable) */
+.paper-editor .prose {
+    max-width: none;
+    position: relative;
+    z-index: 1;
+    padding: var(--page-line) 25mm 0;
+}
+.paper-editor .prose .ProseMirror {
+    font-family: var(--pe-serif);
+    font-size: 18px;
+    font-weight: 400;
+    line-height: var(--page-line); /* 정수 px — 괘선/column-height 정렬(1.92 비정수 금지) */
+    color: var(--pe-ink);
+    letter-spacing: 0.002em;
+    outline: none;
+    text-wrap: pretty;
+    word-break: normal;
+    /* 문단이 페이지 마지막 줄까지 채우고 줄 단위로 갈리게 — 기본값 2 면 마지막 1~2줄을 통째로 다음 장에 밀어냄. */
+    orphans: 1;
+    widows: 1;
+    /* 페이지 분할 — 한 장(26줄)을 채우면 아래 장으로. 분할=브라우저 레이아웃. */
+    column-width: 160mm; /* 한 장 본문 폭(210 − 25×2) */
+    column-height: var(--page-h); /* 26줄; 채우면 다음 장 (비표준 — 브라우저 지원 검증 대상) */
+    column-wrap: wrap;
+    column-gap: 30mm;
+    row-gap: calc(var(--page-stride) - var(--page-h));
+    min-height: var(--page-h);
+}
+.paper-editor .prose .ProseMirror p {
+    margin: 0;
+}
+.paper-editor .prose .ProseMirror::selection,
+.paper-editor .prose .ProseMirror ::selection {
+    background: var(--pe-accent-soft);
+}
+.paper-editor .prose .ProseMirror {
+    caret-color: var(--pe-accent);
+}
+.paper-editor .prose .ProseMirror:focus,
+.paper-editor .prose .ProseMirror:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+.paper-editor .prose .ProseMirror h1 {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: var(--page-line);
+    margin: var(--page-line) 0 0;
+    letter-spacing: -0.01em;
+}
+.paper-editor .prose .ProseMirror h2 {
+    font-size: 21px;
+    font-weight: 700;
+    line-height: var(--page-line);
+    margin: var(--page-line) 0 0;
+    letter-spacing: -0.01em;
+}
+.paper-editor .prose .ProseMirror strong {
+    font-weight: 700;
+}
+.paper-editor .prose .ProseMirror em {
+    font-style: italic;
+}
+.paper-editor .prose .ProseMirror blockquote {
+    margin: 1.92em 0;
+    padding-left: 16px;
+    border-left: 1px solid var(--pe-hairline-strong);
+    color: var(--pe-ink-soft);
+}
+.paper-editor .prose .ProseMirror ul,
+.paper-editor .prose .ProseMirror ol {
+    padding-left: 1.4em;
+    margin: 0 0 1.92em;
+}
+.paper-editor .prose .ProseMirror li,
+.paper-editor .prose .ProseMirror li p {
+    margin: 0;
+}
+/* BubbleMenu — 텍스트 선택 시 */
+.paper-editor .bubble {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--pe-surface);
+    border: 1px solid var(--pe-hairline);
+    border-radius: var(--pe-radius-sm);
+    box-shadow: var(--pe-shadow-panel);
+    padding: 4px;
+}
+.paper-editor .bubble button {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    color: var(--pe-ink-soft);
+    font-family: var(--pe-serif);
+    font-size: 15px;
+    cursor: pointer;
+}
+.paper-editor .bubble button:hover {
+    background: var(--pe-surface-sunken);
+    color: var(--pe-ink);
+}
+.paper-editor .bubble button.is-active {
+    color: var(--pe-accent-ink);
+    background: var(--pe-accent-soft);
+}
+.paper-editor .bubble__div {
+    width: 1px;
+    height: 18px;
+    background: var(--pe-hairline);
+    margin: 0 2px;
+    flex: none;
+}

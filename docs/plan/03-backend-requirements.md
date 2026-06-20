@@ -435,9 +435,9 @@ revoked_at      TIMESTAMP (nullable, 해지 시각)
 
 - 알고리즘: **BCrypt** (Spring Security 표준)
 - cost factor: **12**
-- 최소 길이: **12 자**
-- 복잡도: **영문 + 숫자 + 특수문자** 강제
-- 검증 위치: **클라이언트 + 백엔드 둘 다** (백엔드 우회 공격 방어)
+- 최소 길이: **8 자** (2026-06-13 완화, 구 12자)
+- 복잡도: **영문 + 숫자** 강제 (특수문자 불요 — 2026-06-13 완화, 구 영문/숫자/특수)
+- 검증 위치: **백엔드** (`PasswordPolicyValidator`). 클라이언트는 백엔드 `PASSWORD_TOO_WEAK` 메시지 표시(별도 클라 검증 없음)
 - 실패 응답: 400 + `PASSWORD_TOO_WEAK` + 메시지
 
 ### 4-4. Spring Security 필터 체인 구조

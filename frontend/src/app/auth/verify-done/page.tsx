@@ -7,7 +7,7 @@ export default function VerifyDonePage() {
             <SuccessBlock
                 variant="success"
                 title="환영합니다"
-                description="이제 write-note 에서 첫 프로젝트를 시작할 수 있습니다."
+                description="이제 소설비 에서 첫 프로젝트를 시작할 수 있습니다."
             />
             <Link
                 href="/"

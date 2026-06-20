@@ -12,6 +12,12 @@ interface MemoRepository : JpaRepository<Memo, Long> {
         userId: Long,
     ): Memo?
 
+    /** 삭제되지 않은 단건 — getMemo/updateMemo/curation/pin 경로용(삭제된 메모는 404). */
+    fun findByIdAndUserIdAndDeletedAtIsNull(
+        id: Long,
+        userId: Long,
+    ): Memo?
+
     /**
      * 메모 전체 목록 — MemoProject + MemoProjectCharacter JOIN FETCH (N+1 회피).
      *
@@ -23,8 +29,9 @@ interface MemoRepository : JpaRepository<Memo, Long> {
             LEFT JOIN FETCH m.memoProjects mp
             LEFT JOIN FETCH mp.characters
             WHERE m.userId = :userId
+              AND m.deletedAt IS NULL
         """,
-        countQuery = "SELECT COUNT(m) FROM Memo m WHERE m.userId = :userId",
+        countQuery = "SELECT COUNT(m) FROM Memo m WHERE m.userId = :userId AND m.deletedAt IS NULL",
     )
     fun findAllWithConnectionsByUserId(
         userId: Long,
@@ -38,11 +45,13 @@ interface MemoRepository : JpaRepository<Memo, Long> {
         value = """
             SELECT m FROM Memo m
             WHERE m.userId = :userId
+              AND m.deletedAt IS NULL
               AND NOT EXISTS (SELECT mp FROM MemoProject mp WHERE mp.memo = m)
         """,
         countQuery = """
             SELECT COUNT(m) FROM Memo m
             WHERE m.userId = :userId
+              AND m.deletedAt IS NULL
               AND NOT EXISTS (SELECT mp FROM MemoProject mp WHERE mp.memo = m)
         """,
     )
@@ -60,11 +69,13 @@ interface MemoRepository : JpaRepository<Memo, Long> {
             LEFT JOIN FETCH m.memoProjects mp
             LEFT JOIN FETCH mp.characters
             WHERE m.userId = :userId
+              AND m.deletedAt IS NULL
               AND EXISTS (SELECT mp2 FROM MemoProject mp2 WHERE mp2.memo = m AND mp2.projectId = :projectId)
         """,
         countQuery = """
             SELECT COUNT(m) FROM Memo m
             WHERE m.userId = :userId
+              AND m.deletedAt IS NULL
               AND EXISTS (SELECT mp2 FROM MemoProject mp2 WHERE mp2.memo = m AND mp2.projectId = :projectId)
         """,
     )
@@ -83,6 +94,7 @@ interface MemoRepository : JpaRepository<Memo, Long> {
             LEFT JOIN FETCH m.memoProjects mp
             LEFT JOIN FETCH mp.characters mpc
             WHERE m.userId = :userId
+              AND m.deletedAt IS NULL
               AND EXISTS (
                 SELECT mpc2 FROM MemoProjectCharacter mpc2
                 WHERE mpc2.memoProject.memo = m AND mpc2.characterId = :characterId
@@ -91,6 +103,7 @@ interface MemoRepository : JpaRepository<Memo, Long> {
         countQuery = """
             SELECT COUNT(m) FROM Memo m
             WHERE m.userId = :userId
+              AND m.deletedAt IS NULL
               AND EXISTS (
                 SELECT mpc2 FROM MemoProjectCharacter mpc2
                 WHERE mpc2.memoProject.memo = m AND mpc2.characterId = :characterId
@@ -110,12 +123,14 @@ interface MemoRepository : JpaRepository<Memo, Long> {
         value = """
             SELECT * FROM memos m
             WHERE m.user_id = :userId
+              AND m.deleted_at IS NULL
               AND :tag = ANY(m.tags)
             ORDER BY m.captured_at DESC
         """,
         countQuery = """
             SELECT COUNT(*) FROM memos m
             WHERE m.user_id = :userId
+              AND m.deleted_at IS NULL
               AND :tag = ANY(m.tags)
         """,
         nativeQuery = true,
@@ -135,11 +150,13 @@ interface MemoRepository : JpaRepository<Memo, Long> {
             LEFT JOIN FETCH m.memoProjects mp
             LEFT JOIN FETCH mp.characters
             WHERE m.userId = :userId
+              AND m.deletedAt IS NULL
               AND LOWER(m.body) LIKE LOWER(CONCAT('%', :q, '%'))
         """,
         countQuery = """
             SELECT COUNT(m) FROM Memo m
             WHERE m.userId = :userId
+              AND m.deletedAt IS NULL
               AND LOWER(m.body) LIKE LOWER(CONCAT('%', :q, '%'))
         """,
     )

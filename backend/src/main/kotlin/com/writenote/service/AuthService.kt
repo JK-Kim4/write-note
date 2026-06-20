@@ -15,6 +15,7 @@ import com.writenote.enums.AuthTokenType
 import com.writenote.error.AuthException
 import com.writenote.model.request.LoginRequest
 import com.writenote.model.request.RefreshTokenRequest
+import com.writenote.model.request.ResendVerificationRequest
 import com.writenote.model.request.SignupEmailRequest
 import com.writenote.model.request.VerifyEmailRequest
 import com.writenote.model.response.AuthMeResponse
@@ -88,6 +89,39 @@ class AuthService(
             userId = requireNotNull(user.id),
             email = user.email,
             emailVerifySent = true,
+        )
+    }
+
+    /**
+     * 인증 메일 재발송 — 첫 인증 메일을 놓친 미인증 계정의 자가 복구 경로.
+     *
+     * 1. 이메일로 User 조회 — 미가입이면 조용히 종료 (enumeration 회피, 항상 200)
+     * 2. 이미 인증된 계정이면 종료 (불필요한 메일 회피)
+     * 3. 새 EMAIL_VERIFY 토큰 INSERT + 이메일 발송 이벤트 발행 (AFTER_COMMIT)
+     *
+     * @Transactional 의무 — publishEvent 호출이 있으므로 AFTER_COMMIT 보장.
+     */
+    @Transactional(rollbackFor = [Exception::class])
+    fun resendVerification(request: ResendVerificationRequest) {
+        val user = userRepository.findByEmail(request.email) ?: return
+        if (user.emailVerifiedAt != null) {
+            return
+        }
+        val tokenPair = authTokenGenerator.generate()
+        authTokenRepository.save(
+            AuthToken(
+                userId = requireNotNull(user.id),
+                type = AuthTokenType.EMAIL_VERIFY,
+                tokenHash = tokenPair.hash,
+                expiresAt = Instant.now().plus(EMAIL_VERIFY_VALIDITY),
+            ),
+        )
+        applicationEventPublisher.publishEvent(
+            EmailVerificationRequestedEvent(
+                userId = requireNotNull(user.id),
+                email = user.email,
+                plaintextToken = tokenPair.plaintext,
+            ),
         )
     }
 
@@ -225,6 +259,14 @@ class AuthService(
                 AuthException(AuthErrorCode.AUTH_TOKEN_INVALID)
             }
         return userAuthConverter.toAuthMeResponse(user)
+    }
+
+    /**
+     * 회원 탈퇴 — User 삭제(연관 데이터는 DB ON DELETE CASCADE 로 연쇄 삭제). 즉시 완전 삭제, 복구 불가.
+     */
+    @Transactional(rollbackFor = [Exception::class])
+    fun withdraw(userId: Long) {
+        userRepository.deleteById(userId)
     }
 
     companion object {

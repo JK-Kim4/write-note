@@ -24,6 +24,15 @@ class Character(
     var shortDescription: String? = null,
     @Column(columnDefinition = "TEXT")
     var notes: String? = null,
+    /** 나이 — 자유 텍스트("17세 가량"/"불명" 허용). */
+    @Column(length = 80)
+    var age: String? = null,
+    /** 성별 코드 — MALE/FEMALE/OTHER 또는 NULL(비움). 허용값 검증은 CharacterService. */
+    @Column(length = 16)
+    var gender: String? = null,
+    /** 특징 — 자유 텍스트(외형·말버릇·성향 등). 기존 notes 와 동일 한도. */
+    @Column(columnDefinition = "TEXT")
+    var traits: String? = null,
     @Column(name = "display_order", nullable = false)
     var displayOrder: Int = 0,
     @Column(name = "created_at", nullable = false, updatable = false)

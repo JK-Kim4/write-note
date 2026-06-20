@@ -1,0 +1,383 @@
+<!-- 집필실 (Studio) -->
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Soseolbi - 집필실 (Studio)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&amp;family=Noto+Serif+KR:wght@300;400;600&amp;family=Inter:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+                  "surface-variant": "#e9e1d4",
+                  "surface-container-high": "#ede7db",
+                  "on-tertiary-container": "#ffe3d6",
+                  "secondary-fixed-dim": "#c9c6bd",
+                  "secondary-fixed": "#e5e2d9",
+                  "on-primary-fixed-variant": "#00458e",
+                  "primary-fixed": "#d7e3ff",
+                  "error": "#ba1a1a",
+                  "on-secondary": "#ffffff",
+                  "surface-container-lowest": "#ffffff",
+                  "outline-variant": "#e0d6c4",
+                  "surface-container-low": "#f7f2e9",
+                  "primary-fixed-dim": "#aac7ff",
+                  "on-tertiary-fixed-variant": "#793000",
+                  "error-container": "#ffdad6",
+                  "surface-container": "#f2ede2",
+                  "on-secondary-fixed": "#1c1c16",
+                  "primary": "#004e9f",
+                  "background": "#faf6ee",
+                  "surface-container-highest": "#e9e1d4",
+                  "surface-bright": "#faf6ee",
+                  "on-primary": "#ffffff",
+                  "on-tertiary": "#ffffff",
+                  "on-primary-container": "#dfe8ff",
+                  "outline": "#8b8374",
+                  "on-background": "#2a2620",
+                  "secondary-container": "#e2e0d6",
+                  "on-primary-fixed": "#001b3e",
+                  "on-surface-variant": "#574f43",
+                  "on-error": "#ffffff",
+                  "on-error-container": "#93000a",
+                  "tertiary-fixed-dim": "#ffb692",
+                  "inverse-on-surface": "#f3f0f2",
+                  "on-secondary-container": "#64635b",
+                  "surface-dim": "#dcd9dc",
+                  "tertiary-fixed": "#ffdbcb",
+                  "inverse-primary": "#aac7ff",
+                  "tertiary": "#883700",
+                  "surface": "#faf6ee",
+                  "secondary": "#5f5f57",
+                  "on-tertiary-fixed": "#341100",
+                  "tertiary-container": "#af4900",
+                  "on-secondary-fixed-variant": "#474740",
+                  "on-surface": "#2a2620",
+                  "surface-tint": "#005cba",
+                  "primary-container": "#0066cc",
+                  "inverse-surface": "#303032"
+          },
+          "borderRadius": {
+                  "DEFAULT": "0.5rem",
+                  "lg": "1rem",
+                  "xl": "1.5rem",
+                  "full": "9999px"
+          },
+          "spacing": {
+                  "rail-width": "240px",
+                  "panel-width": "320px",
+                  "manuscript-max-width": "720px",
+                  "gutter": "24px",
+                  "margin-mobile": "20px",
+                  "margin-page": "48px"
+          },
+          "fontFamily": {
+                  "ui-label": ["Inter"],
+                  "prose-body": ["Noto Serif KR"],
+                  "display-title": ["Libre Caslon Text"],
+                  "ui-small": ["Inter"],
+                  "headline-lg-mobile": ["Libre Caslon Text"],
+                  "headline-lg": ["Libre Caslon Text"],
+                  "meta-data": ["Inter"]
+          },
+          "fontSize": {
+                  "ui-label": ["15px", {"lineHeight": "20px", "fontWeight": "500"}],
+                  "prose-body": ["18px", {"lineHeight": "1.85", "letterSpacing": "0.01em", "fontWeight": "400"}],
+                  "display-title": ["42px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "400"}],
+                  "ui-small": ["13px", {"lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "400"}],
+                  "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "400"}],
+                  "headline-lg": ["30px", {"lineHeight": "40px", "fontWeight": "400"}],
+                  "meta-data": ["12px", {"lineHeight": "16px", "fontWeight": "600"}]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .manuscript-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+    .manuscript-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .manuscript-scroll::-webkit-scrollbar-thumb {
+      background: #e9e1d4;
+      border-radius: 10px;
+    }
+    .manuscript-scroll:hover::-webkit-scrollbar-thumb {
+      background: #e0d6c4;
+    }
+    .selection-bubble {
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
+    }
+    body {
+      overflow: hidden;
+    }
+  </style>
+<style>
+  /* === 부드럽고 포근한 보정 (warm & soft pass) === */
+  * { transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+  .writing-sheet-shadow {
+    box-shadow: 0 12px 32px -14px rgba(74, 58, 40, 0.20), 0 2px 8px -4px rgba(74, 58, 40, 0.08) !important;
+    border-color: #ece2d1 !important;
+  }
+  .manuscript-cream { background-color: #fbf7ef !important; }
+  .manuscript-paper {
+    box-shadow: 0 8px 26px -16px rgba(74, 58, 40, 0.18);
+    border-color: #ece2d1 !important;
+  }
+  .manuscript-paper:hover { box-shadow: 0 16px 36px -14px rgba(0, 78, 159, 0.16); }
+  .writing-card-hover { box-shadow: 0 8px 26px -18px rgba(74, 58, 40, 0.16); transition: box-shadow .25s ease, transform .25s ease, background-color .25s ease; }
+  .writing-card-hover:hover { box-shadow: 0 16px 36px -16px rgba(0, 78, 159, 0.14); }
+  /* soft paper-card surfaces (Tailwind border + bg-surface) get a gentle lift */
+  .bg-surface { box-shadow: 0 6px 22px -18px rgba(74, 58, 40, 0.16); }
+</style>
+</head>
+<body class="bg-background text-on-background">
+<!-- Side Navigation Rail -->
+<aside class="fixed left-0 top-0 h-screen w-rail-width bg-surface-container dark:bg-surface-container-high border-r border-outline-variant dark:border-outline flex flex-col py-margin-page px-6 transition-all duration-300 z-50">
+<div class="mb-12">
+<h1 class="font-display-title text-headline-lg text-primary dark:text-primary-fixed leading-tight">Soseolbi</h1>
+<p class="font-ui-small text-on-surface-variant opacity-60">Digital Sanctuary</p>
+</div>
+<nav class="flex-grow space-y-2">
+<!-- Active: Studio (집필실) -->
+<a class="flex items-center gap-4 py-3 px-2 rounded hover:bg-surface-variant dark:hover:bg-on-surface-variant transition-colors cursor-pointer duration-200 text-on-surface-variant dark:text-surface-variant" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-ui-label text-ui-label">Dashboard</span>
+</a>
+<a class="flex items-center gap-4 py-3 px-2 rounded text-primary dark:text-primary-fixed font-bold bg-surface-variant/50 transition-colors cursor-pointer duration-200" href="#">
+<span class="material-symbols-outlined">edit_note</span>
+<span class="font-ui-label text-ui-label">Studio</span>
+</a>
+<a class="flex items-center gap-4 py-3 px-2 rounded hover:bg-surface-variant dark:hover:bg-on-surface-variant transition-colors cursor-pointer duration-200 text-on-surface-variant dark:text-surface-variant" href="#">
+<span class="material-symbols-outlined">auto_stories</span>
+<span class="font-ui-label text-ui-label">Library</span>
+</a>
+<a class="flex items-center gap-4 py-3 px-2 rounded hover:bg-surface-variant dark:hover:bg-on-surface-variant transition-colors cursor-pointer duration-200 text-on-surface-variant dark:text-surface-variant" href="#">
+<span class="material-symbols-outlined">lightbulb</span>
+<span class="font-ui-label text-ui-label">Inspiration</span>
+</a>
+<a class="flex items-center gap-4 py-3 px-2 rounded hover:bg-surface-variant dark:hover:bg-on-surface-variant transition-colors cursor-pointer duration-200 text-on-surface-variant dark:text-surface-variant mt-auto" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-ui-label text-ui-label">Settings</span>
+</a>
+</nav>
+</aside>
+<!-- Top App Bar -->
+<header class="fixed top-0 right-0 left-rail-width h-16 bg-surface dark:bg-background border-b border-outline-variant dark:border-outline flex justify-between items-center px-gutter transition-all duration-300 z-40">
+<div class="flex items-center gap-6">
+<h2 class="font-display-title text-headline-lg text-primary dark:text-primary-fixed">집필실 (Studio)</h2>
+<div class="h-4 w-[1px] bg-outline-variant"></div>
+<div class="flex items-center text-on-surface-variant">
+<span class="font-ui-small text-ui-small opacity-70 italic">겨울의 끝자락, 이름 없는 숲</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center bg-surface-container-low px-4 py-1.5 rounded-full border border-outline-variant/30">
+<span class="material-symbols-outlined text-sm text-primary mr-2" style="font-variation-settings: 'FILL' 1;">timer</span>
+<span class="font-meta-data text-meta-data tracking-wider">01:42:05</span>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-opacity duration-300">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-opacity duration-300">account_circle</button>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="ml-rail-width pt-16 flex h-screen overflow-hidden">
+<!-- Left Sidebar: Story Outline -->
+<aside class="w-panel-width bg-surface-container-low border-r border-outline-variant flex flex-col transition-all duration-300 relative group" id="outline-panel">
+<div class="p-6 border-b border-outline-variant flex justify-between items-center">
+<h3 class="font-ui-label text-ui-label uppercase tracking-widest text-on-surface-variant opacity-80">Story Outline</h3>
+<button class="material-symbols-outlined text-sm opacity-40 hover:opacity-100">push_pin</button>
+</div>
+<div class="flex-grow overflow-y-auto p-6 space-y-6 manuscript-scroll">
+<div class="space-y-4">
+<div class="group/item flex gap-3 cursor-pointer">
+<span class="font-meta-data text-meta-data text-primary pt-1">01</span>
+<div>
+<p class="font-ui-label text-[14px] leading-tight text-on-surface">숲속의 재회</p>
+<p class="font-ui-small text-[12px] text-on-surface-variant mt-1 opacity-60">기억을 잃은 소년과 숲의 수호자가 처음 만나는 장면.</p>
+</div>
+</div>
+<div class="group/item flex gap-3 cursor-pointer bg-surface-container p-3 -mx-3 rounded">
+<span class="font-meta-data text-meta-data text-primary pt-1">02</span>
+<div>
+<p class="font-ui-label text-[14px] leading-tight text-on-surface">오래된 나침반 (현재)</p>
+<p class="font-ui-small text-[12px] text-on-surface-variant mt-1 opacity-60">방향을 잃은 나침반이 가리키는 북쪽 너머의 진실.</p>
+</div>
+</div>
+<div class="group/item flex gap-3 cursor-pointer opacity-40 hover:opacity-100 transition-opacity">
+<span class="font-meta-data text-meta-data text-primary pt-1">03</span>
+<div>
+<p class="font-ui-label text-[14px] leading-tight text-on-surface">겨울 폭풍</p>
+<p class="font-ui-small text-[12px] text-on-surface-variant mt-1">대피소에서 나누는 속마음.</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Center: The Workspace (Parchment) -->
+<section class="flex-grow bg-background flex flex-col items-center overflow-y-auto manuscript-scroll px-gutter pb-32">
+<div class="w-full max-w-manuscript-max-width mt-margin-page relative">
+<!-- Floating Selection Bubble (Mockup) -->
+<div class="absolute -top-12 left-1/4 flex bg-on-background text-background px-4 py-2 rounded-full gap-4 items-center selection-bubble animate-in fade-in slide-in-from-bottom-2 duration-300">
+<button class="material-symbols-outlined text-[18px] hover:text-primary-fixed-dim transition-colors">format_bold</button>
+<button class="material-symbols-outlined text-[18px] hover:text-primary-fixed-dim transition-colors">format_italic</button>
+<button class="material-symbols-outlined text-[18px] hover:text-primary-fixed-dim transition-colors">format_quote</button>
+<div class="w-[1px] h-4 bg-outline/40"></div>
+<button class="material-symbols-outlined text-[18px] hover:text-primary-fixed-dim transition-colors">comment</button>
+</div>
+<article class="bg-surface-container-lowest min-h-[1433px] p-16 shadow-[0_0_40px_rgba(0,0,0,0.02)] border border-outline-variant/20 rounded-sm">
+<h1 class="font-display-title text-[48px] text-on-background mb-16 text-center">겨울의 끝자락, 이름 없는 숲</h1>
+<div class="font-prose-body text-prose-body text-on-background/90 space-y-8 text-justify">
+<p>
+              차가운 대기가 폐부 깊숙이 스며들었다. 눈앞의 숲은 백색 침묵 속에 잠겨 있었고, 간간이 나뭇가지 위로 쌓였던 눈더미가 툭 하고 떨어지는 소리만이 정적을 깼다. 민호는 손등을 비비며 걸음을 옮겼다. 그의 손에는 오래된 구리빛 나침반이 쥐어져 있었다. 바늘은 의미 없이 제자리를 맴돌고 있었다.
+            </p>
+<p>
+              "여기서 더 가면 돌아올 수 없을지도 몰라."
+            </p>
+<p>
+              자신의 목소리조차 낯설게 들렸다. 숲은 그를 삼키려는 듯 어두운 그림자를 길게 드리우고 있었다. 하지만 그는 멈출 수 없었다. 그날 밤, 꿈속에서 보았던 그 찬란한 빛의 정체를 알아야만 했다. 그것은 단순히 환각이라 치부하기엔 너무나 생생했고, 그의 심장을 뛰게 만들었다.
+            </p>
+<p>
+              그때였다. 빽빽한 가문비나무 사이로 낯선 기운이 느껴졌다. <span class="bg-primary/10 border-b border-primary px-1">사람의 흔적이라기엔 지나치게 정갈한 기운이었다.</span> 민호는 본능적으로 숨을 멈췄다. 안개 너머로 비치는 실루엣은 거대한 나무 같기도 했고, 정좌를 틀고 앉은 인간 같기도 했다.
+            </p>
+<p>
+              그는 조심스럽게 한 걸음을 떼었다. 바스락거리는 소리가 들리자마자 그 실루엣이 천천히 고개를 돌렸다. 그 눈동자는 숲의 색을 닮아 있었다. 깊고, 시리고, 알 수 없는 신비로움이 깃든 에메랄드빛이었다.
+            </p>
+<p class="opacity-30 italic">
+              (이곳에 새로운 영감을 적어보세요...)
+            </p>
+</div>
+</article>
+</div>
+<!-- Bottom Session Progress Bar -->
+<div class="fixed bottom-0 right-0 left-rail-width h-1 bg-surface-container-highest z-50">
+<div class="h-full bg-primary-container" style="width: 65%;"></div>
+</div>
+<div class="fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-8 bg-surface-container/80 backdrop-blur-md px-8 py-3 rounded-full border border-outline-variant shadow-lg z-50">
+<div class="flex flex-col items-center">
+<span class="font-meta-data text-[10px] text-on-surface-variant uppercase tracking-tighter">Current Session</span>
+<span class="font-ui-label text-ui-label text-primary">1,420 / 2,000 words</span>
+</div>
+<div class="w-[1px] h-6 bg-outline-variant"></div>
+<button class="flex items-center gap-2 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">psychology</span>
+<span class="font-ui-label text-ui-small">AI Assistant</span>
+</button>
+<button class="flex items-center gap-2 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">music_note</span>
+<span class="font-ui-label text-ui-small">Ambience: Forest</span>
+</button>
+</div>
+</section>
+<!-- Right Sidebar: Character Notes -->
+<aside class="w-panel-width bg-surface-container-low border-l border-outline-variant flex flex-col transition-all duration-300" id="character-panel">
+<div class="p-6 border-b border-outline-variant flex justify-between items-center">
+<h3 class="font-ui-label text-ui-label uppercase tracking-widest text-on-surface-variant opacity-80">Character Notes</h3>
+<button class="material-symbols-outlined text-sm opacity-40 hover:opacity-100">group_add</button>
+</div>
+<div class="flex-grow overflow-y-auto p-6 space-y-8 manuscript-scroll">
+<!-- Main Character -->
+<div class="space-y-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center border border-outline-variant overflow-hidden">
+<img alt="Minho" data-alt="A close-up portrait of a thoughtful young man with short dark hair, standing in soft, diffused winter light. The image captures a sense of quiet determination and internal mystery. The background is a blurred snowy forest, maintaining a minimalist and serene atmosphere consistent with the Digital Sanctuary brand. High-key lighting and clean lines." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDYTqoWfbq4-v7cs41sUDing7j2eIcP3p48Fer9CAYLYjuv2zBmlGzYa70KeBtJrO76vXxCnSXtEugjsKRXiN8M9XgrCnrlbRUV_D_zBWGFw9rRrrSwvMxKxLsswXjFCX3BPZKsdvn8UWXcaeqXycYfBv_Qqs-iGxy77EGtZzv3V05pApHJ1BPiLDSKEe1Ri379wolyIko2uZRbeIxOvMocOYCkFtUlJULNqp16NLW3yckqGq44275pWRnQqIJT-LPVExI01sQRDy8V"/>
+</div>
+<div>
+<p class="font-ui-label text-on-surface leading-none">한민호 (24)</p>
+<p class="font-meta-data text-[10px] text-primary uppercase mt-1">Protagonist</p>
+</div>
+</div>
+<p class="font-ui-small text-[13px] leading-relaxed text-on-surface-variant">
+            잃어버린 기억의 조각을 찾아 설산의 숲으로 들어온 청년. 현실적이고 냉철한 성격이지만, 최근 반복되는 꿈 때문에 감정적 동요를 겪고 있다.
+          </p>
+<div class="flex flex-wrap gap-2">
+<span class="bg-surface-container px-2 py-1 rounded-sm font-meta-data text-[10px] text-on-secondary-container">#내성적</span>
+<span class="bg-surface-container px-2 py-1 rounded-sm font-meta-data text-[10px] text-on-secondary-container">#진실추구</span>
+<span class="bg-surface-container px-2 py-1 rounded-sm font-meta-data text-[10px] text-on-secondary-container">#나침반</span>
+</div>
+</div>
+<div class="h-[1px] bg-outline-variant/30"></div>
+<!-- Supporting Character -->
+<div class="space-y-4 opacity-70">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center border border-outline-variant overflow-hidden">
+<img alt="Lara" data-alt="A portrait of a woman with ethereal features and long flowing hair that seems to blend into the textures of bark and leaves. Her expression is ancient and wise. Soft green and silver tones illuminate her face. The style is clean, sharp, and scholarly, fitting a modern digital writing studio aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCcY6-y9ZPaV1ALB89wJ8Pr6BQNEjOj4XLi0acmtZ8D829nKhEGb9HqBpE9HoatyKW_E2HP5j0EeH-VDQQMQJxrAoy1UE0Kps9VftCEO6tUFwp-0m4tpt1Vc52oMGtZnFIUrITCv5fsWk7VxjfxX6hold13LMSS259XZUwclL228oSK7Dp-_pagmNtmObD0PzoAUa36HY5cCi4FtxK4HnSyYt2_mGPb7sQNvzkUTnYjcwrwVpshV1XYc-TZVC4NDHrk9mhUQawnWs6x"/>
+</div>
+<div>
+<p class="font-ui-label text-on-surface leading-none">라라</p>
+<p class="font-meta-data text-[10px] text-tertiary uppercase mt-1">Guardian</p>
+</div>
+</div>
+<p class="font-ui-small text-[13px] leading-relaxed text-on-surface-variant italic">
+            "이곳의 시간은 당신이 아는 것과 다르게 흐릅니다."
+          </p>
+</div>
+<!-- Relationship Link (The "Past Encounter" Chip logic) -->
+<div class="mt-8">
+<p class="font-meta-data text-[11px] text-on-surface-variant opacity-50 mb-3">RELATED FRAGMENTS</p>
+<div class="flex flex-col gap-2">
+<div class="bg-surface px-3 py-2 rounded border border-outline-variant/50 cursor-pointer hover:bg-surface-variant transition-colors group/frag">
+<div class="flex justify-between items-center">
+<span class="font-ui-small text-[12px] text-on-surface font-medium">부서진 회중시계</span>
+<span class="material-symbols-outlined text-[14px] opacity-0 group-hover/frag:opacity-100 transition-opacity">open_in_new</span>
+</div>
+<span class="font-meta-data text-[10px] text-on-surface-variant">Chapter 1. Ref: Page 12</span>
+</div>
+<div class="bg-surface px-3 py-2 rounded border border-outline-variant/50 cursor-pointer hover:bg-surface-variant transition-colors group/frag">
+<div class="flex justify-between items-center">
+<span class="font-ui-small text-[12px] text-on-surface font-medium">오래된 지도</span>
+<span class="material-symbols-outlined text-[14px] opacity-0 group-hover/frag:opacity-100 transition-opacity">open_in_new</span>
+</div>
+<span class="font-meta-data text-[10px] text-on-surface-variant">Chapter 4. Ref: Page 58</span>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</main>
+<!-- Interactive Script for micro-interactions -->
+<script>
+    // Simple UI interactions
+    document.querySelectorAll('.group\\/item').forEach(item => {
+      item.addEventListener('click', () => {
+        // Toggle active state for outline
+        document.querySelectorAll('.group\\/item').forEach(i => i.classList.remove('bg-surface-container', 'p-3', '-mx-3'));
+        item.classList.add('bg-surface-container', 'p-3', '-mx-3');
+      });
+    });
+
+    // Auto-save simulation
+    let saveIndicator = document.createElement('div');
+    saveIndicator.className = 'fixed bottom-4 right-4 font-meta-data text-[11px] text-on-surface-variant opacity-0 transition-opacity duration-500 pointer-events-none';
+    saveIndicator.innerText = '저장됨...';
+    document.body.appendChild(saveIndicator);
+
+    setInterval(() => {
+      saveIndicator.style.opacity = '0.6';
+      setTimeout(() => saveIndicator.style.opacity = '0', 2000);
+    }, 30000);
+
+    // Collapsible Logic (Simulated)
+    const togglePanels = (id) => {
+      const panel = document.getElementById(id);
+      if (panel.classList.contains('w-panel-width')) {
+        panel.classList.replace('w-panel-width', 'w-0');
+        panel.classList.add('overflow-hidden', 'opacity-0');
+      } else {
+        panel.classList.replace('w-0', 'w-panel-width');
+        panel.classList.remove('overflow-hidden', 'opacity-100');
+      }
+    };
+  </script>
+</body></html>

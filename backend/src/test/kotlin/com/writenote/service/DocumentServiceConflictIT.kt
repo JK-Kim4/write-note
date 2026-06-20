@@ -4,6 +4,7 @@ import com.writenote.entity.User
 import com.writenote.error.DocumentConflictException
 import com.writenote.model.request.CreateProjectRequest
 import com.writenote.model.request.SaveDocumentRequest
+import com.writenote.model.request.UpdateDocumentTitleRequest
 import com.writenote.repository.DocumentRepository
 import com.writenote.repository.UserRepository
 import jakarta.persistence.EntityManager
@@ -46,35 +47,39 @@ class DocumentServiceConflictIT
             )
 
         @Test
-        @DisplayName("saveDocument — version 불일치 시 409 DocumentConflictException + currentVersion/currentBody (US1 / D3)")
+        @DisplayName("saveDocument — version(updatedAt 토큰) 불일치 시 409 DocumentConflictException + currentVersion/currentBody (US1 / D3)")
         fun `saveDocument throws DocumentConflictException with current state on version mismatch`() {
             val user = savedUser()
             val userId = requireNotNull(user.id)
 
-            // 프로젝트 + 문서 생성 (version = 0)
             val projectResponse = projectService.createProject(userId, CreateProjectRequest(title = "충돌 테스트"))
             entityManager.flush()
             entityManager.clear()
 
-            val document = documentRepository.findByProjectId(projectResponse.id).orElseThrow()
+            val document =
+                documentRepository
+                    .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectResponse.id)
+                    .first()
             val projectId = projectResponse.id
             val documentId = requireNotNull(document.id)
-            val currentBodyBeforeConflict = document.body
+            val token0 = requireNotNull(document.updatedAt)
 
-            // version = 0 으로 정상 저장 (version 0 → 1 로 증가)
+            // token0 일치 → 정상 저장. 응답의 새 토큰을 token1 로 보관(이후 충돌 판정 기준)
             val firstBody =
                 """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"첫 저장"}]}]}"""
-            documentService.saveDocument(
-                userId = userId,
-                projectId = projectId,
-                documentId = documentId,
-                request = SaveDocumentRequest(body = firstBody, version = 0),
-            )
+            val firstResponse =
+                documentService.saveDocument(
+                    userId = userId,
+                    projectId = projectId,
+                    documentId = documentId,
+                    request = SaveDocumentRequest(body = firstBody, version = token0),
+                )
+            val token1 = firstResponse.version
 
             entityManager.flush()
             entityManager.clear()
 
-            // 이제 DB version = 1. 구버전(version = 0) 으로 충돌 요청
+            // 구 토큰(token0) 으로 충돌 요청
             val conflictBody =
                 """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"충돌"}]}]}"""
 
@@ -83,19 +88,20 @@ class DocumentServiceConflictIT
                     userId = userId,
                     projectId = projectId,
                     documentId = documentId,
-                    request = SaveDocumentRequest(body = conflictBody, version = 0),
+                    request = SaveDocumentRequest(body = conflictBody, version = token0),
                 )
             }.isInstanceOf(DocumentConflictException::class.java)
                 .satisfies({ ex ->
                     val conflict = ex as DocumentConflictException
-                    assertThat(conflict.currentVersion).isEqualTo(1)
+                    // currentVersion(DB 의 updatedAt) == 1차 응답 토큰 — 토큰 라운드트립 정밀도 정합 검증
+                    assertThat(conflict.currentVersion).isEqualTo(token1)
                     // JSONB 재직렬화로 exact match 불가 — 핵심 텍스트 포함 여부로 검증
                     assertThat(conflict.currentBody).contains("첫 저장")
                 })
         }
 
         @Test
-        @DisplayName("saveDocument — version 일치 시 정상 저장 + wordCount 재계산 (US1 happy path)")
+        @DisplayName("saveDocument — version 일치 시 정상 저장 + wordCount 재계산 + 새 토큰 전진 (US1 happy path)")
         fun `saveDocument succeeds and recalculates wordCount on version match`() {
             val user = savedUser()
             val userId = requireNotNull(user.id)
@@ -104,9 +110,13 @@ class DocumentServiceConflictIT
             entityManager.flush()
             entityManager.clear()
 
-            val document = documentRepository.findByProjectId(projectResponse.id).orElseThrow()
+            val document =
+                documentRepository
+                    .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectResponse.id)
+                    .first()
             val projectId = projectResponse.id
             val documentId = requireNotNull(document.id)
+            val token0 = requireNotNull(document.updatedAt)
 
             val body =
                 """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"안녕 세계"}]}]}"""
@@ -116,7 +126,7 @@ class DocumentServiceConflictIT
                     userId = userId,
                     projectId = projectId,
                     documentId = documentId,
-                    request = SaveDocumentRequest(body = body, version = 0),
+                    request = SaveDocumentRequest(body = body, version = token0),
                 )
 
             entityManager.flush()
@@ -127,8 +137,125 @@ class DocumentServiceConflictIT
             assertThat(saved.wordCount).isEqualTo(4)
             // JSONB 는 키 정렬/공백 재직렬화하므로 exact match 대신 포함 여부 검증
             assertThat(saved.body).contains("안녕 세계")
-            assertThat(saved.version).isEqualTo(1)
             assertThat(response.wordCount).isEqualTo(4)
+            // 토큰 전진: 응답 version 은 저장 전 토큰과 다르고, DB 에 저장된 updatedAt 과 일치
+            assertThat(response.version).isNotEqualTo(token0)
+            assertThat(response.version).isEqualTo(saved.updatedAt)
+        }
+
+        @Test
+        @DisplayName("saveDocument — 저장 응답 토큰으로 재저장 시 거짓 충돌 없이 성공 (016 핵심 — 토큰 라운드트립)")
+        fun `saveDocument re-save with returned token succeeds without false conflict`() {
+            val user = savedUser()
+            val userId = requireNotNull(user.id)
+
+            val projectResponse = projectService.createProject(userId, CreateProjectRequest(title = "토큰 라운드트립"))
+            entityManager.flush()
+            entityManager.clear()
+
+            val document =
+                documentRepository
+                    .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectResponse.id)
+                    .first()
+            val projectId = projectResponse.id
+            val documentId = requireNotNull(document.id)
+            val token0 = requireNotNull(document.updatedAt)
+
+            val body1 = """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"하나"}]}]}"""
+            val first =
+                documentService.saveDocument(
+                    userId = userId,
+                    projectId = projectId,
+                    documentId = documentId,
+                    request = SaveDocumentRequest(body = body1, version = token0),
+                )
+
+            entityManager.flush()
+            entityManager.clear()
+
+            // 클라이언트가 받은 응답 토큰(first.version)을 그대로 다시 보냄 → 거짓 충돌 없이 성공해야 한다
+            val body2 = """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"둘"}]}]}"""
+            val second =
+                documentService.saveDocument(
+                    userId = userId,
+                    projectId = projectId,
+                    documentId = documentId,
+                    request = SaveDocumentRequest(body = body2, version = first.version),
+                )
+
+            assertThat(second.version).isNotEqualTo(first.version)
+        }
+
+        @Test
+        @DisplayName("updateDocumentTitle — 제목 변경은 본문 @Version(updatedAt 토큰)을 올리지 않는다 (024 거짓 409 방지)")
+        fun `updateDocumentTitle does not bump version token`() {
+            val user = savedUser()
+            val userId = requireNotNull(user.id)
+
+            val projectResponse = projectService.createProject(userId, CreateProjectRequest(title = "제목 토큰 불변"))
+            entityManager.flush()
+            entityManager.clear()
+
+            val document =
+                documentRepository
+                    .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectResponse.id)
+                    .first()
+            val documentId = requireNotNull(document.id)
+            val tokenBefore = requireNotNull(document.updatedAt)
+
+            documentService.updateDocumentTitle(
+                userId = userId,
+                documentId = documentId,
+                request = UpdateDocumentTitleRequest(title = "변경된 제목"),
+            )
+            entityManager.flush()
+            entityManager.clear()
+
+            val reloaded = documentRepository.findById(documentId).orElseThrow()
+            // title 은 본문 낙관적 잠금과 무관한 메타 — version 토큰(updatedAt)이 변하면 안 된다.
+            assertThat(reloaded.title).isEqualTo("변경된 제목")
+            assertThat(reloaded.updatedAt).isEqualTo(tokenBefore)
+        }
+
+        @Test
+        @DisplayName("거짓 409 방지 — 제목 변경 후 옛 version 으로 본문 저장이 충돌 없이 성공 (024)")
+        fun `saveDocument with original version succeeds after title change`() {
+            val user = savedUser()
+            val userId = requireNotNull(user.id)
+
+            val projectResponse = projectService.createProject(userId, CreateProjectRequest(title = "거짓 409 방지"))
+            entityManager.flush()
+            entityManager.clear()
+
+            val document =
+                documentRepository
+                    .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectResponse.id)
+                    .first()
+            val projectId = projectResponse.id
+            val documentId = requireNotNull(document.id)
+            val token0 = requireNotNull(document.updatedAt)
+
+            // 본문 세션이 token0 을 소유한 채 제목만 변경됨 → 제목이 토큰을 올리면 안 됨
+            documentService.updateDocumentTitle(
+                userId = userId,
+                documentId = documentId,
+                request = UpdateDocumentTitleRequest(title = "리네임"),
+            )
+            entityManager.flush()
+            entityManager.clear()
+
+            // 본문 세션이 여전히 가진 원래 token0 으로 자동저장 → 거짓 충돌 없이 성공해야 한다
+            val body = """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"본문"}]}]}"""
+            val saved =
+                documentService.saveDocument(
+                    userId = userId,
+                    projectId = projectId,
+                    documentId = documentId,
+                    request = SaveDocumentRequest(body = body, version = token0),
+                )
+
+            assertThat(saved.body).contains("본문")
+            assertThat(saved.version).isNotEqualTo(token0)
         }
 
         @Test
@@ -141,9 +268,13 @@ class DocumentServiceConflictIT
             entityManager.flush()
             entityManager.clear()
 
-            val document = documentRepository.findByProjectId(projectResponse.id).orElseThrow()
+            val document =
+                documentRepository
+                    .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectResponse.id)
+                    .first()
             val projectId = projectResponse.id
             val documentId = requireNotNull(document.id)
+            val token0 = requireNotNull(document.updatedAt)
 
             val latestBody =
                 """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"최신 본문"}]}]}"""
@@ -151,19 +282,19 @@ class DocumentServiceConflictIT
                 userId = userId,
                 projectId = projectId,
                 documentId = documentId,
-                request = SaveDocumentRequest(body = latestBody, version = 0),
+                request = SaveDocumentRequest(body = latestBody, version = token0),
             )
             entityManager.flush()
             entityManager.clear()
 
-            // 구버전으로 충돌 유발
+            // 구 토큰으로 충돌 유발
             var caughtConflict: DocumentConflictException? = null
             try {
                 documentService.saveDocument(
                     userId = userId,
                     projectId = projectId,
                     documentId = documentId,
-                    request = SaveDocumentRequest(body = """{"type":"doc","content":[]}""", version = 0),
+                    request = SaveDocumentRequest(body = """{"type":"doc","content":[]}""", version = token0),
                 )
             } catch (e: DocumentConflictException) {
                 caughtConflict = e
@@ -172,6 +303,5 @@ class DocumentServiceConflictIT
             assertThat(caughtConflict).isNotNull
             // JSONB 재직렬화로 exact match 불가 — 핵심 텍스트 포함 여부로 검증
             assertThat(caughtConflict!!.currentBody).contains("최신 본문")
-            assertThat(caughtConflict.currentVersion).isEqualTo(1)
         }
     }

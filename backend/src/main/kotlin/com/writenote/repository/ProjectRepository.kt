@@ -21,4 +21,7 @@ interface ProjectRepository : JpaRepository<Project, Long> {
         userId: Long,
         pageable: Pageable,
     ): Page<Project>
+
+    /** 카드 집계용(018) — 활성 작품 전량(베타 작품 소수 전제, 페이지네이션 없음). */
+    fun findByUserIdAndArchivedAtIsNull(userId: Long): List<Project>
 }

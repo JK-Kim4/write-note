@@ -25,6 +25,8 @@ class MemoProject(
     var memo: Memo,
     @Column(name = "project_id", nullable = false)
     var projectId: Long = 0,
+    @Column(nullable = false)
+    var pinned: Boolean = false,
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: Instant? = null,
 ) {

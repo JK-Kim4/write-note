@@ -64,7 +64,7 @@ class PasswordResetService(
      *
      * 1. 토큰 검증 (AUTH_TOKEN_INVALID / EXPIRED / ALREADY_USED) — 무효 토큰이면 비밀번호 노출 회피
      * 2. 비밀번호 정책 검증 (PASSWORD_TOO_WEAK)
-     * 3. User.passwordHash 갱신 + AuthToken.usedAt 박음 (dirty checking)
+     * 3. User.passwordHash 갱신 + 미인증 계정이면 emailVerifiedAt 설정 + AuthToken.usedAt 박음 (dirty checking)
      * 4. 사용자의 모든 REFRESH 토큰 row 삭제 — 비밀번호 변경 시 모든 세션 무효
      *    (contracts/auth-endpoints.md §7)
      */
@@ -81,6 +81,10 @@ class PasswordResetService(
                 AuthException(AuthErrorCode.AUTH_TOKEN_INVALID)
             }
         user.passwordHash = passwordEncoder.encode(request.newPassword)
+        // 재설정 링크 클릭 = 이메일 소유 증명 → 미인증 계정은 함께 인증 처리 (인증 메일 미수신 사용자 자가 복구)
+        if (user.emailVerifiedAt == null) {
+            user.emailVerifiedAt = Instant.now()
+        }
         authTokenLifecycleManager.markUsed(authToken)
         authTokenRepository.deleteByUserIdAndType(requireNotNull(user.id), AuthTokenType.REFRESH)
     }

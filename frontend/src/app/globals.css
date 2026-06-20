@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @import "../styles/tokens.css";
 
+/* iOS Safari text inflation(-webkit-text-size-adjust:auto) 차단 — 모바일 본문 자동확대가 font-size 만
+   키우고 px 고정 line-height 는 안 키워 자체 에디터 줄이 세로로 겹치는 문제 방지. 데스크탑 무영향. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /*
  * Tailwind 4 @theme directive — tokens.css 의 raw CSS variable 을 Tailwind utility 와 연결.
  * 다크 모드 toggle 은 :root.dark 클래스 (tokens.css 에서 정의) 가 처리.
@@ -27,6 +34,34 @@
   --font-ui: var(--w-font-ui);
   --font-prose: var(--w-font-prose);
   --font-manuscript: var(--w-font-manuscript);
+
+  /* 소설비 브랜드 주 액센트 — 테라코타(점토 주황갈색). 로고 글자색 도출.
+     기존 SaaS 기본 보라/남색 액센트 대체. bg-terracotta-600 + text-white = 대비 ≈5:1 (AA). */
+  --color-terracotta-50: #fbf3ee;
+  --color-terracotta-100: #f6e3d6;
+  --color-terracotta-200: #ecc7ad;
+  --color-terracotta-300: #e0a781;
+  --color-terracotta-400: #d48d62;
+  --color-terracotta-500: #c77a4f;
+  --color-terracotta-600: #a8542e;
+  --color-terracotta-700: #8a4325;
+  --color-terracotta-800: #6f361f;
+
+  /* 소설비 보조 액센트 — 올리브 그린(로고 보조색). 긍정 강조(다음 장면 뱃지 등). */
+  --color-olive-50: #f3f3e6;
+  --color-olive-600: #76753f;
+  --color-olive-700: #5e5d32;
+
+  /* 소설비 물방울 청록(teal) — 로고 빗방울 모티프. 상호작용 신호(포커스·info)에 절제 사용. */
+  --color-teal-50: #ecf5f8;
+  --color-teal-100: #cfe6ed;
+  --color-teal-200: #a3cdd9;
+  --color-teal-300: #6dabbd;
+  --color-teal-400: #3d8aa3;
+  --color-teal-500: #1c7791;
+  --color-teal-600: #087194;
+  --color-teal-700: #0a5c79;
+  --color-teal-800: #0c4a61;
 }
 
 @layer base {
@@ -46,4 +81,42 @@
   [role="button"]:active {
     transform: scale(var(--w-active-scale));
   }
+}
+
+/* Export 다이얼로그 — 모달 오버레이 */
+.export-dialog {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+}
+.export-dialog__panel {
+  background: #fff; border-radius: 12px; padding: 24px;
+  width: min(440px, 92vw); max-height: 86vh; overflow: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  display: flex; flex-direction: column; gap: 16px;
+}
+.export-dialog__formats { display: flex; gap: 8px; }
+.export-dialog__formats button { flex: 1; padding: 8px; border: 1px solid #d4d4d8; border-radius: 8px; background: #fff; }
+.export-dialog__formats button[aria-pressed="true"] { border-color: #a8542e; color: #a8542e; font-weight: 600; }
+.export-dialog__chapters { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.export-dialog__chapters li { display: flex; align-items: center; gap: 8px; }
+.export-dialog__chapters li label { flex: 1; display: flex; align-items: center; gap: 6px; }
+.export-dialog__option { display: flex; align-items: center; gap: 8px; }
+.export-dialog__field { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+.export-dialog__field-label { font-size: 12px; font-weight: 700; color: #9ca3af; text-transform: none; letter-spacing: 0.02em; }
+.export-dialog__field select { width: 100%; padding: 9px 12px; border: 1px solid #c7cbd1; border-radius: 8px; font-size: 14px; background: #f3f4f6; cursor: pointer; }
+.export-dialog__actions { display: flex; gap: 8px; justify-content: flex-end; }
+.export-dialog__paper { color: #6b7280; font-size: 13px; margin: 0; }
+
+/* 토스트 타이머 진행바 — 5초 동안 왼쪽에서 오른쪽으로 줄어듦.
+   motion-safe: 유틸리티로 prefers-reduced-motion 에서는 자동 비활성. */
+@keyframes shrink {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+/* 인쇄 — PrintOverlay(.print-root) 만 보이게 (후속 Task 5·6) */
+@media print {
+  body > *:not(.print-root) { display: none !important; }
+  .print-root { display: block !important; }
 }

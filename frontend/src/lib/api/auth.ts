@@ -62,6 +62,14 @@ export function requestPasswordReset(email: string): Promise<unknown> {
     });
 }
 
+export function resendVerification(email: string): Promise<unknown> {
+    return apiFetch("/api/auth/resend-verification", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+        retryOnAuthFailure: false,
+    });
+}
+
 export function confirmPasswordReset(input: PasswordResetConfirmInput): Promise<unknown> {
     return apiFetch("/api/auth/password-reset/confirm", {
         method: "POST",
@@ -76,4 +84,14 @@ export function fetchMe(): Promise<AuthMeResponse> {
 
 export function logout(): Promise<unknown> {
     return apiFetch("/api/auth/logout", { method: "POST", retryOnAuthFailure: false });
+}
+
+export const WITHDRAWAL_CONFIRMATION_PHRASE = "탈퇴합니다";
+
+export function withdraw(confirmation: string): Promise<void> {
+    return apiFetch<void>("/api/auth/me", {
+        method: "DELETE",
+        body: JSON.stringify({ confirmation }),
+        retryOnAuthFailure: false,
+    });
 }

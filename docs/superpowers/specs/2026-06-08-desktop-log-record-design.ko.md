@@ -5,7 +5,7 @@
 > **메타**
 > - 트랙: Desktop MVP (Electron 로컬 우선 앱). 011 문의·의견 보내기 완료 직후의 다음 기능.
 > - 작성일: 2026-06-08
-> - 기준 브랜치: `develop` (HEAD `e405db3` — 나래 노트 브랜드 + 집필 가드 + 011 문의)
+> - 기준 브랜치: `develop` (HEAD `e405db3` — 소설비 브랜드 + 집필 가드 + 011 문의)
 > - 상위 SoT: `docs/DESIGN.md`(비주얼 토큰) · `PRODUCT.md`(전략) · vault `02-PROGRESS.md`
 > - feature 번호: 012 예상(011 다음). 브랜치는 `speckit-git-feature` 부여.
 > - 현 상태: `desktop/src/screens/LogScreen.tsx` 는 placeholder(주석: "세션 노트·진척 통계는 MVP 제외 영역"). 본 작업이 그 placeholder 를 실데이터로 채운다.

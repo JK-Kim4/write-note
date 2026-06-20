@@ -47,8 +47,13 @@ class JwtTokenProviderTest {
     @Test
     fun `변조된 토큰 파싱 시 AUTH_TOKEN_INVALID`() {
         val token = provider.createAccessToken(userId = 1L, email = "test@example.com")
-        // 서명 부분 마지막 문자 변조
-        val tampered = token.dropLast(1) + if (token.last() == 'a') 'b' else 'a'
+        // 서명 중간 문자 변조 — 마지막 문자는 base64url 잔여(하위 2비트 폐기) 영역이라
+        // 'a'↔'b' 변조가 동일 서명으로 디코드될 수 있음(토큰이 'a'로 끝날 때 ~1/64 flaky). 중간 문자는 전 비트 유효.
+        val tamperIndex = token.lastIndexOf('.') + 10
+        val tampered =
+            StringBuilder(token)
+                .also { it[tamperIndex] = if (it[tamperIndex] == 'a') 'b' else 'a' }
+                .toString()
         assertThatThrownBy { provider.parseAccessToken(tampered) }
             .isInstanceOf(AuthException::class.java)
             .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.AUTH_TOKEN_INVALID)

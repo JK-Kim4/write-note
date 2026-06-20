@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────────────────────────────────────
-   나래 노트 — 집필실(Write Studio) · React + TipTap 프로토타입
-   토큰 SoT: docs/DESIGN.md §2~§8. 브랜드 결정본: design/DESIGN.md (Narae Note).
+   소설비 — 집필실(Write Studio) · React + TipTap 프로토타입
+   토큰 SoT: docs/DESIGN.md §2~§8. 브랜드 결정본: design/DESIGN.md (소설비).
    flat parchment: 앱 배경(--bg)은 평평한 양피지 톤(디지털 안식처) — 나무결 텍스처 없음.
    종이(--paper)는 한 단계 더 밝게 떠 배경과 톤 대비를 만든다. accent(잉크블루)는 액션 + 포커스 전용.
    ────────────────────────────────────────────────────────────────────────── */
@@ -8,7 +8,7 @@
 /* === Light (평평한 양피지 + 떠 있는 종이) === */
 :root {
   /* 로고 마크(펜촉+날개) — 알파 마스크, mask-image 로 테마 색 적용. */
-  --logo-mask: url('./narae-mark.png');
+  --logo-mask: url('./soseolbi-mark.png');
 
   /* 앱 배경 = 평평한 양피지 (안식처 바닥) */
   --bg:             oklch(0.945 0.006 85);

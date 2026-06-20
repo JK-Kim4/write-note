@@ -1,4 +1,4 @@
-# Narae Note Desktop
+# 소설비 Desktop
 
 작가용 작업공간 데스크탑 앱 (Electron + Vite + React 19 + TipTap, 로컬 `node:sqlite`).
 
@@ -31,8 +31,8 @@ git push origin v0.1.0
 ```
 
 `v*` 태그 push → GitHub Actions(`.github/workflows/release.yml`)가:
-- `macos-latest` → `Narae-Note.dmg` (universal, ad-hoc 서명)
-- `windows-latest` → `Narae-Note-Setup.exe` (NSIS 1-click, per-user)
+- `macos-latest` → `Soseolbi.dmg` (universal, ad-hoc 서명)
+- `windows-latest` → `Soseolbi-Setup.exe` (NSIS 1-click, per-user)
 - 두 자산을 **draft** GitHub Release 에 자동 업로드
 
 → Actions 통과 후 **자산 2종을 확인하고 검증(아래 게이트)을 거친 뒤 draft Release 를 게시(Publish)** 하면 다운로드 페이지의 `releases/latest/download` 링크가 최신을 가리킨다.

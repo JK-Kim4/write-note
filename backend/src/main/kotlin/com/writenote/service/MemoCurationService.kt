@@ -44,8 +44,16 @@ class MemoCurationService(
         request: CurateMemoRequest,
     ): MemoResponse {
         val memo =
-            memoRepository.findByIdAndUserId(memoId, userId)
+            memoRepository.findByIdAndUserIdAndDeletedAtIsNull(memoId, userId)
                 ?: throw ResourceNotFoundException("Memo not found")
+
+        // IDOR 방어 — 연결 대상 작품이 모두 본인 소유인지 검증.
+        // characterIds 가 비면 MemoCharacterIntegrityValidator 가 우회되므로 여기서 작품 소유권을 직접 가드한다.
+        for (connection in request.projectConnections) {
+            projectRepository
+                .findByIdAndUserId(connection.projectId, userId)
+                .orElseThrow { ResourceNotFoundException("Project not found") }
+        }
 
         // 요청 내 모든 characterId 수집
         val allCharacterIds =
@@ -127,7 +135,7 @@ class MemoCurationService(
         userId: Long,
     ): MemoResponse {
         val memo =
-            memoRepository.findByIdAndUserId(memoId, userId)
+            memoRepository.findByIdAndUserIdAndDeletedAtIsNull(memoId, userId)
                 ?: throw ResourceNotFoundException("Memo not found")
 
         val memoProjects = memoProjectRepository.findAllByMemoId(memoId)

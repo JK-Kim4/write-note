@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { login } from "@/lib/api/auth";
+import { login, resendVerification } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { resolveErrorMessage } from "@/lib/api/errors";
 import { FormInput } from "@/components/ui/FormInput";
@@ -14,7 +14,7 @@ import { SubmitLoading } from "@/components/ui/SubmitLoading";
 /**
  * LoginForm — 이메일 로그인 폼 (US1, contracts/screen-data-flow.md §5).
  *
- * 성공: 쿠키 발급 → `['auth','me']` 무효화 → 홈(`/`) 이동.
+ * 성공: 쿠키 발급 → `['auth','me']` 무효화 → 앱 홈(/) 이동.
  * 실패: 401 code(EMAIL_NOT_VERIFIED / LOGIN_FAILED / LOGIN_LOCKED) → 한국어 메시지.
  *
  * `state` prop 은 데모 라우트(login-loading)용 외관 제어. 실제 진행 상태는 mutation.isPending.
@@ -38,12 +38,19 @@ export function LoginForm({ state = "default" }: LoginFormProps) {
         },
     });
 
+    const resendMutation = useMutation({
+        mutationFn: () => resendVerification(email),
+    });
+
     const dim = state === "loading" || loginMutation.isPending;
     const errorMessage = loginMutation.isError
         ? loginMutation.error instanceof ApiError
             ? resolveErrorMessage(loginMutation.error.code, loginMutation.error.message)
             : "로그인에 실패했습니다."
         : null;
+    const isEmailNotVerified =
+        loginMutation.error instanceof ApiError &&
+        loginMutation.error.code === "EMAIL_NOT_VERIFIED";
 
     return (
         <form
@@ -76,6 +83,23 @@ export function LoginForm({ state = "default" }: LoginFormProps) {
                 <p role="alert" style={{ color: "var(--w-error)", fontSize: "14px" }}>
                     {errorMessage}
                 </p>
+            ) : null}
+            {isEmailNotVerified ? (
+                resendMutation.isSuccess ? (
+                    <p style={{ color: "var(--w-ink)", opacity: 0.7, fontSize: "13px" }}>
+                        인증 메일을 다시 보냈어요. 메일함을 확인해주세요.
+                    </p>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={() => resendMutation.mutate()}
+                        disabled={resendMutation.isPending}
+                        className="self-start underline"
+                        style={{ color: "var(--w-ink)", opacity: 0.7, fontSize: "13px" }}
+                    >
+                        {resendMutation.isPending ? "재발송 중…" : "인증 메일 재발송"}
+                    </button>
+                )
             ) : null}
             {dim ? (
                 <SubmitLoading label="로그인 중…" />

@@ -5,6 +5,8 @@
  * 본 spec contracts/api-client.md §3 인용.
  */
 
+import type { PaperSize } from "@/components/editor/pageLayout";
+
 export type Result<T> = SuccessResult<T> | FailureResult;
 
 export interface SuccessResult<T> {
@@ -40,9 +42,25 @@ export interface ProjectResponse {
     toneNotes: string | null;
     synopsis: string | null;
     worldNotes: string | null;
+    /** "다음에 쓸 장면" 한 줄 (014 backend 확장). 미설정은 빈 문자열. */
+    nextScene: string;
+    /** 작품별 용지 크기 (트랙3 / V12). 백엔드 CHECK 로 4종 보장. */
+    paperSize: PaperSize;
     archivedAt: string | null;
     createdAt: string;
     updatedAt: string;
+}
+
+/** 작품 카드 집계 (018/022) — GET /api/projects/cards. 작품 + 챕터·세션 집계 동봉. */
+export interface ProjectCardResponse extends ProjectResponse {
+    /** 활성 챕터 word_count 합. */
+    wordCount: number;
+    /** 활성 챕터 중 최신 updated_at (ISO8601) — "최근에 집필함" 기준. */
+    documentUpdatedAt: string;
+    /** 작품별 누적 작업시간(ms) — 종료된 세션 합(진행 중 제외). */
+    totalDurationMs: number;
+    /** 마지막 문장 파생 원료 — 최근 수정 활성 챕터 body 의 plainText. 챕터 없으면 빈 문자열. */
+    lastSentenceSource: string;
 }
 
 export interface AuthMeResponse {
@@ -59,6 +77,9 @@ export interface CharacterResponse {
     name: string;
     shortDescription: string | null;
     notes: string | null;
+    age: string | null;
+    gender: "MALE" | "FEMALE" | "OTHER" | null;
+    traits: string | null;
     displayOrder: number;
     createdAt: string;
     updatedAt: string;
@@ -71,8 +92,24 @@ export interface DocumentResponse {
     title: string;
     body: string; // ProseMirror JSON 문자열
     wordCount: number;
-    version: number;
+    /** 016 — updatedAt 겸용 불투명 버전 토큰(ISO8601 문자열). 파싱·증감 금지, 받은 값 그대로 전달. */
+    version: string;
     updatedAt: string;
+}
+
+/** 챕터 목록 항목 (022 US1) — GET /api/projects/{projectId}/documents 응답 원소. 본문 미포함 메타만. */
+export interface ChapterMetaResponse {
+    id: number;
+    projectId: number;
+    title: string;
+    sortOrder: number;
+    wordCount: number;
+    updatedAt: string;
+}
+
+/** 챕터 생성 요청 (022 US1) — POST /api/projects/{projectId}/documents */
+export interface CreateChapterInput {
+    title?: string;
 }
 
 /** 메모에 연결된 등장인물 (006 US4) — MemoProjectResponse.characters 원소 */
@@ -98,6 +135,45 @@ export interface MemoResponse {
     reasonNote: string | null;
     tags: string[];
     projects: MemoProjectResponse[];
+}
+
+/** 작품 맥락 메모 응답 (014) — GET /api/projects/{id}/memos, PUT …/pin. id 는 memoId. */
+export interface ProjectMemoResponse {
+    memoId: number;
+    projectId: number;
+    body: string;
+    source: string;
+    capturedAt: string;
+    reasonNote: string | null;
+    tags: string[];
+    pinned: boolean;
+}
+
+/** 집필 기록 응답 (014) — GET/POST /api/projects/{id}/logs. desktop ProjectLog 대응. */
+export interface ProjectLogResponse {
+    id: number;
+    projectId: number;
+    body: string;
+    createdAt: string;
+}
+
+/** 작업 세션 응답 (014). endedAt=null 이면 진행 중. */
+export interface WorkSessionResponse {
+    id: number;
+    projectId: number;
+    startedAt: string;
+    endedAt: string | null;
+}
+
+/** 종료+기록 결과 (014) — 보존된 세션(없으면 null) + 생성된 집필 기록. */
+export interface EndWithLogResponse {
+    session: WorkSessionResponse | null;
+    log: ProjectLogResponse;
+}
+
+/** 총 작업시간(ms) 응답 (014) — 카드 집계용. */
+export interface TotalDurationResponse {
+    totalDurationMs: number;
 }
 
 /** 토큰 목록 항목 — GET /api/api-tokens 응답 원소 (token 필드 없음) */
@@ -134,7 +210,8 @@ export interface DocumentSaveResponse {
     id: number;
     body: string;
     wordCount: number;
-    version: number;
+    /** 016 — flush 후 확정된 새 버전 토큰(ISO8601 문자열, 불투명). */
+    version: string;
     updatedAt: string;
 }
 

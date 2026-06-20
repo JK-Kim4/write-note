@@ -52,15 +52,15 @@ jobs:
 `desktop/electron-builder.yml` (현재 → 목표 diff)
 
 ```yaml
-appId: com.naraenote.desktop
-productName: Narae Note
+appId: com.soseolbi.desktop
+productName: Soseolbi
 directories:
   output: release
 files:
   - dist/**/*
   - dist-electron/**/*
 asar: true
-artifactName: ${productName}.${ext}        # 버전 미포함 고정명 → Narae Note.dmg
+artifactName: ${productName}.${ext}        # 버전 미포함 고정명 → Soseolbi.dmg
 mac:
   target: dmg
   arch: [universal]                         # (신규) Intel + Apple Silicon
@@ -75,11 +75,11 @@ nsis:
   perMachine: false                         # (신규) 관리자 권한 불필요
 ```
 
-> 파일명 주의: `artifactName`에 공백이 들어가면 URL 인코딩 이슈 가능 → 실제 값은 `Narae-Note.${ext}` / `Narae-Note-Setup.${ext}` 형태로 하이픈 사용 권장(다운로드 링크와 정확히 일치시킬 것). NSIS는 기본이 `${productName} Setup.${ext}`이므로 win 산출물명을 `Narae-Note-Setup.exe`로 고정.
+> 파일명 주의: `artifactName`에 공백이 들어가면 URL 인코딩 이슈 가능 → 실제 값은 `Soseolbi-Note.${ext}` / `Soseolbi-Note-Setup.${ext}` 형태로 하이픈 사용 권장(다운로드 링크와 정확히 일치시킬 것). NSIS는 기본이 `${productName} Setup.${ext}`이므로 win 산출물명을 `Soseolbi-Note-Setup.exe`로 고정.
 
 **산출물 불변식**:
-- macOS: `Narae-Note.dmg` (universal, ad-hoc 서명)
-- Windows: `Narae-Note-Setup.exe` (NSIS, 무서명)
+- macOS: `Soseolbi-Note.dmg` (universal, ad-hoc 서명)
+- Windows: `Soseolbi-Note-Setup.exe` (NSIS, 무서명)
 - `node:sqlite`는 Node 내장 → asarUnpack/rebuild 불필요(기존 유지).
 
 ## C. 다운로드 링크 계약
@@ -88,8 +88,8 @@ nsis:
 
 | OS | URL |
 |---|---|
-| Windows | `https://github.com/JK-Kim4/write-note/releases/latest/download/Narae-Note-Setup.exe` |
-| macOS | `https://github.com/JK-Kim4/write-note/releases/latest/download/Narae-Note.dmg` |
+| Windows | `https://github.com/JK-Kim4/write-note/releases/latest/download/Soseolbi-Note-Setup.exe` |
+| macOS | `https://github.com/JK-Kim4/write-note/releases/latest/download/Soseolbi-Note.dmg` |
 
 **불변식**:
 - 파일명이 바뀌면 본 링크가 깨진다 → `artifactName`(계약 B)과 **반드시 일치**.

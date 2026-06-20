@@ -3,6 +3,7 @@ package com.writenote.service
 import com.writenote.components.characters.CharacterReorderValidator
 import com.writenote.entity.Character
 import com.writenote.error.ResourceNotFoundException
+import com.writenote.error.ValidationException
 import com.writenote.mapper.CharacterMapper
 import com.writenote.model.request.CreateCharacterRequest
 import com.writenote.model.request.ReorderCharactersRequest
@@ -57,6 +58,7 @@ class CharacterService(
         request: CreateCharacterRequest,
     ): CharacterResponse {
         projectService.requireOwnedProject(userId, projectId)
+        validateGender(request.gender)
         val character =
             characterRepository.save(
                 Character(
@@ -64,12 +66,20 @@ class CharacterService(
                     name = request.name.trim(),
                     shortDescription = request.shortDescription,
                     notes = request.notes,
+                    age = request.age,
+                    gender = request.gender,
+                    traits = request.traits,
                     displayOrder = request.displayOrder ?: 0,
                 ),
             )
         return characterMapper.toResponse(character)
     }
 
+    /**
+     * 인물 수정 — 콘텐츠 필드(shortDescription·notes·age·gender·traits)는 **전체 상태 교체** 시맨틱:
+     * 요청의 null = 그 필드를 비움. 편집 폼이 항상 전 필드를 전송하는 전제(호출자 = 폼 단일).
+     * [request.name](필수 — 비움 불가)·[request.displayOrder](정렬은 reorder API 소관)만 null = 미변경.
+     */
     @Transactional(rollbackFor = [Exception::class])
     fun updateCharacter(
         userId: Long,
@@ -79,10 +89,14 @@ class CharacterService(
     ): CharacterResponse {
         projectService.requireOwnedProject(userId, projectId)
         val character = requireOwnedCharacter(projectId, characterId)
+        validateGender(request.gender)
 
         request.name?.let { character.name = it.trim() }
-        request.shortDescription?.let { character.shortDescription = it }
-        request.notes?.let { character.notes = it }
+        character.shortDescription = request.shortDescription
+        character.notes = request.notes
+        character.age = request.age
+        character.gender = request.gender
+        character.traits = request.traits
         request.displayOrder?.let { character.displayOrder = it }
 
         return characterMapper.toResponse(character)
@@ -130,4 +144,15 @@ class CharacterService(
         characterRepository
             .findByIdAndProjectId(characterId, projectId)
             .orElseThrow { ResourceNotFoundException("Character not found") }
+
+    /** 성별 — NULL(비움) 허용, 그 외엔 허용 코드만. 위반 시 400 VALIDATION_FAILED. */
+    private fun validateGender(gender: String?) {
+        if (gender != null && gender !in ALLOWED_GENDERS) {
+            throw ValidationException("Invalid gender: $gender")
+        }
+    }
+
+    private companion object {
+        val ALLOWED_GENDERS = setOf("MALE", "FEMALE", "OTHER")
+    }
 }

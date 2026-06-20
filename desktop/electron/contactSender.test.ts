@@ -35,7 +35,7 @@ describe("buildContactPayload", () => {
 
   it("should_fill_subject_and_captcha_constants", () => {
     const payload = buildContactPayload({ email: "", body: "x" }, META);
-    expect(payload._subject).toBe("write-note 데스크탑 의견");
+    expect(payload._subject).toBe("소설비 데스크탑 의견");
     expect(payload._captcha).toBe("false");
   });
 });

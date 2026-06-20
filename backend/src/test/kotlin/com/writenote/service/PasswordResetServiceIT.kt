@@ -211,4 +211,24 @@ class PasswordResetServiceIT
             }.isInstanceOf(AuthException::class.java)
                 .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.PASSWORD_TOO_WEAK)
         }
+
+        @Test
+        @DisplayName("confirm — 미인증 계정은 재설정 완료 시 emailVerifiedAt 설정 (재설정 링크 클릭 = 이메일 소유 증명)")
+        fun `confirm 미인증 계정 인증 부여`() {
+            val user = savedUser()
+            assertThat(user.emailVerifiedAt).isNull()
+            val (_, plaintext) = savedPasswordResetToken(userId = requireNotNull(user.id))
+            entityManager.flush()
+            entityManager.clear()
+
+            passwordResetService.confirm(
+                PasswordResetConfirmRequest(token = plaintext, newPassword = "New!Pass5678"),
+            )
+
+            entityManager.flush()
+            entityManager.clear()
+
+            val refreshed = userRepository.findById(requireNotNull(user.id)).orElseThrow()
+            assertThat(refreshed.emailVerifiedAt).isNotNull()
+        }
     }

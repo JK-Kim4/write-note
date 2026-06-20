@@ -11,8 +11,10 @@ import com.writenote.model.request.LogoutRequest
 import com.writenote.model.request.PasswordResetConfirmRequest
 import com.writenote.model.request.PasswordResetRequestRequest
 import com.writenote.model.request.RefreshTokenRequest
+import com.writenote.model.request.ResendVerificationRequest
 import com.writenote.model.request.SignupEmailRequest
 import com.writenote.model.request.VerifyEmailRequest
+import com.writenote.model.request.WithdrawRequest
 import com.writenote.model.response.AuthMeResponse
 import com.writenote.model.response.LinkEmailResponse
 import com.writenote.model.response.Result
@@ -30,6 +32,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -60,6 +63,18 @@ class AuthController(
         @Valid @RequestBody request: VerifyEmailRequest,
     ): ResponseEntity<Result<Nothing?>> {
         authService.verifyEmail(request)
+        return ResponseEntity.ok(Result.success<Nothing?>(null))
+    }
+
+    @PostMapping("/resend-verification")
+    @Operation(
+        summary = "인증 메일 재발송",
+        description = "미인증 계정에 새 EMAIL_VERIFY 토큰 발송 — 미가입·이미인증 이메일도 200 (정보 노출 회피)",
+    )
+    fun resendVerification(
+        @Valid @RequestBody request: ResendVerificationRequest,
+    ): ResponseEntity<Result<Nothing?>> {
+        authService.resendVerification(request)
         return ResponseEntity.ok(Result.success<Nothing?>(null))
     }
 
@@ -173,6 +188,24 @@ class AuthController(
         )
     }
 
+    @DeleteMapping("/me")
+    @Operation(summary = "회원 탈퇴", description = "확인 문구 일치 시 User 및 모든 데이터 즉시 삭제(복구 불가)")
+    @SecurityRequirement(name = "BearerJwt")
+    fun withdraw(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @RequestBody request: WithdrawRequest,
+    ): ResponseEntity<Result<Nothing?>> {
+        if (request.confirmation != WITHDRAWAL_CONFIRMATION_PHRASE) {
+            throw AuthException(AuthErrorCode.WITHDRAWAL_CONFIRMATION_MISMATCH)
+        }
+        authService.withdraw(principal.userId)
+        return ResponseEntity
+            .ok()
+            .header(HttpHeaders.SET_COOKIE, authCookieFactory.expiredAccessTokenCookie().toString())
+            .header(HttpHeaders.SET_COOKIE, authCookieFactory.expiredRefreshTokenCookie().toString())
+            .body(Result.success<Nothing?>(null))
+    }
+
     /**
      * refresh token 입력 source 결정 (refresh/logout 공용).
      *
@@ -201,4 +234,8 @@ class AuthController(
             .header(HttpHeaders.SET_COOKIE, authCookieFactory.accessTokenCookie(pair.accessToken).toString())
             .header(HttpHeaders.SET_COOKIE, authCookieFactory.refreshTokenCookie(pair.refreshToken).toString())
             .body(Result.success(pair))
+
+    companion object {
+        const val WITHDRAWAL_CONFIRMATION_PHRASE = "탈퇴합니다"
+    }
 }

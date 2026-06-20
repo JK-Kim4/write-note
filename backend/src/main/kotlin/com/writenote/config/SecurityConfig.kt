@@ -2,6 +2,7 @@ package com.writenote.config
 
 import com.writenote.auth.ApiTokenAuthenticationFilter
 import com.writenote.auth.AuthErrorEntryPoint
+import com.writenote.auth.CsrfDefenseFilter
 import com.writenote.auth.JwtAuthenticationFilter
 import com.writenote.auth.KakaoOAuth2UserService
 import com.writenote.auth.LoginAttemptFilter
@@ -25,6 +26,7 @@ class SecurityConfig {
         authErrorEntryPoint: AuthErrorEntryPoint,
         jwtAuthenticationFilter: JwtAuthenticationFilter,
         apiTokenAuthenticationFilter: ApiTokenAuthenticationFilter,
+        csrfDefenseFilter: CsrfDefenseFilter,
         loginAttemptFilter: LoginAttemptFilter,
         kakaoOAuth2UserService: KakaoOAuth2UserService,
         oauth2SuccessHandler: OAuth2SuccessHandler,
@@ -41,6 +43,8 @@ class SecurityConfig {
                     .requestMatchers(HttpMethod.POST, "/api/auth/signup/email")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/auth/verify-email")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/auth/resend-verification")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/auth/login")
                     .permitAll()
@@ -83,7 +87,8 @@ class SecurityConfig {
                     .userInfoEndpoint { it.userService(kakaoOAuth2UserService) }
                     .successHandler(oauth2SuccessHandler)
                     .failureHandler(oauth2FailureHandler)
-            }.addFilterBefore(apiTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+            }.addFilterBefore(csrfDefenseFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .addFilterBefore(apiTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .addFilterBefore(loginAttemptFilter, JwtAuthenticationFilter::class.java)
             .build()

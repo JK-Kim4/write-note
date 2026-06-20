@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Noto_Serif_KR, Nanum_Myeongjo } from "next/font/google";
 import "./globals.css";
+import "@/styles/desktop-app.css";
 import { SWRegister } from "./sw-register";
 import { Providers } from "./providers";
 
@@ -30,8 +31,17 @@ const nanumMyeongjo = Nanum_Myeongjo({
 });
 
 export const metadata: Metadata = {
-    title: "write-note",
+    title: "소설비",
     description: "컨텍스트가 안 죽는 작가용 작업공간",
+};
+
+// 핀치 줌 아웃(축소) 차단 — 고정 높이 앱 셸(min-h-screen + 집필실 calc(100vh))은 핀치 줌 아웃 시
+// 좌상단 박스로 갇히고 나머지가 빈 영역이 되어 깨진다. minimumScale=1 로 1배 미만 축소를 막아 방지.
+// maximumScale 은 두지 않아 확대(줌 인)는 허용 → 접근성(WCAG 확대) 보존. 종이 크기는 앱 자체 줌(−/+)으로 조절.
+export const viewport: Viewport = {
+    width: "device-width",
+    initialScale: 1,
+    minimumScale: 1,
 };
 
 const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem('writenote.preferences.v1');var t='system';if(s){var p=JSON.parse(s);if(p&&p.state&&p.state.theme){t=p.state.theme;}}var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d){document.documentElement.classList.add('dark');}}catch(e){}})();`;

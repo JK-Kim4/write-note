@@ -1,0 +1,376 @@
+<!-- 작품 벽 (Library) -->
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Soseolbi - 작품 벽</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:wght@400;700&amp;family=Inter:wght@400;500;600&amp;family=Noto+Serif:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#e9e1d4",
+                        "surface-container-high": "#ede7db",
+                        "on-tertiary-container": "#ffe3d6",
+                        "secondary-fixed-dim": "#c9c6bd",
+                        "secondary-fixed": "#e5e2d9",
+                        "on-primary-fixed-variant": "#00458e",
+                        "primary-fixed": "#d7e3ff",
+                        "error": "#ba1a1a",
+                        "on-secondary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#e0d6c4",
+                        "surface-container-low": "#f7f2e9",
+                        "primary-fixed-dim": "#aac7ff",
+                        "on-tertiary-fixed-variant": "#793000",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#f2ede2",
+                        "on-secondary-fixed": "#1c1c16",
+                        "primary": "#004e9f",
+                        "background": "#faf6ee",
+                        "surface-container-highest": "#e9e1d4",
+                        "surface-bright": "#faf6ee",
+                        "on-primary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-container": "#dfe8ff",
+                        "outline": "#8b8374",
+                        "on-background": "#2a2620",
+                        "secondary-container": "#e2e0d6",
+                        "on-primary-fixed": "#001b3e",
+                        "on-surface-variant": "#574f43",
+                        "on-error": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "inverse-on-surface": "#f3f0f2",
+                        "on-secondary-container": "#64635b",
+                        "surface-dim": "#dcd9dc",
+                        "tertiary-fixed": "#ffdbcb",
+                        "inverse-primary": "#aac7ff",
+                        "tertiary": "#883700",
+                        "surface": "#faf6ee",
+                        "secondary": "#5f5f57",
+                        "on-tertiary-fixed": "#341100",
+                        "tertiary-container": "#af4900",
+                        "on-secondary-fixed-variant": "#474740",
+                        "on-surface": "#2a2620",
+                        "surface-tint": "#005cba",
+                        "primary-container": "#0066cc",
+                        "inverse-surface": "#303032"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "rail-width": "240px",
+                        "panel-width": "320px",
+                        "manuscript-max-width": "720px",
+                        "gutter": "24px",
+                        "margin-mobile": "20px",
+                        "margin-page": "48px"
+                    },
+                    "fontFamily": {
+                        "ui-label": ["Inter"],
+                        "prose-body": ["Noto Serif"],
+                        "display-title": ["Libre Caslon Text"],
+                        "ui-small": ["Inter"],
+                        "headline-lg-mobile": ["Libre Caslon Text"],
+                        "headline-lg": ["Libre Caslon Text"],
+                        "meta-data": ["Inter"]
+                    },
+                    "fontSize": {
+                        "ui-label": ["15px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "prose-body": ["18px", { "lineHeight": "1.85", "letterSpacing": "0.01em", "fontWeight": "400" }],
+                        "display-title": ["42px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "400" }],
+                        "ui-small": ["13px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "400" }],
+                        "headline-lg": ["30px", { "lineHeight": "40px", "fontWeight": "400" }],
+                        "meta-data": ["12px", { "lineHeight": "16px", "fontWeight": "600" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .parchment-texture {
+            background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 100%);
+        }
+        .writing-card-hover:hover {
+            background-color: theme('colors.surface-container-low');
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.outline-variant');
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.outline');
+        }
+    </style>
+<style>
+  /* === 부드럽고 포근한 보정 (warm & soft pass) === */
+  * { transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+  .writing-sheet-shadow {
+    box-shadow: 0 12px 32px -14px rgba(74, 58, 40, 0.20), 0 2px 8px -4px rgba(74, 58, 40, 0.08) !important;
+    border-color: #ece2d1 !important;
+  }
+  .manuscript-cream { background-color: #fbf7ef !important; }
+  .manuscript-paper {
+    box-shadow: 0 8px 26px -16px rgba(74, 58, 40, 0.18);
+    border-color: #ece2d1 !important;
+  }
+  .manuscript-paper:hover { box-shadow: 0 16px 36px -14px rgba(0, 78, 159, 0.16); }
+  .writing-card-hover { box-shadow: 0 8px 26px -18px rgba(74, 58, 40, 0.16); transition: box-shadow .25s ease, transform .25s ease, background-color .25s ease; }
+  .writing-card-hover:hover { box-shadow: 0 16px 36px -16px rgba(0, 78, 159, 0.14); }
+  /* soft paper-card surfaces (Tailwind border + bg-surface) get a gentle lift */
+  .bg-surface { box-shadow: 0 6px 22px -18px rgba(74, 58, 40, 0.16); }
+</style>
+</head>
+<body class="flex min-h-screen overflow-hidden">
+<!-- SideNavBar (The Anchor) -->
+<aside class="fixed left-0 top-0 h-screen w-rail-width bg-surface-container border-r border-outline-variant flex flex-col py-margin-page px-6 z-50">
+<div class="mb-12">
+<h1 class="font-display-title text-headline-lg text-primary tracking-tighter">Soseolbi</h1>
+<p class="font-ui-small text-on-surface-variant opacity-70">Digital Sanctuary</p>
+</div>
+<nav class="flex-1 space-y-2">
+<!-- Navigation Items Mapping from JSON -->
+<a class="flex items-center gap-4 py-3 px-4 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-ui-label">Dashboard</span>
+</a>
+<a class="flex items-center gap-4 py-3 px-4 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined">edit_note</span>
+<span class="font-ui-label">Studio</span>
+</a>
+<!-- Active State: Library -->
+<a class="flex items-center gap-4 py-3 px-4 rounded-lg text-primary font-bold bg-surface-variant/50 transition-colors group" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_stories</span>
+<span class="font-ui-label">Library</span>
+</a>
+<a class="flex items-center gap-4 py-3 px-4 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined">lightbulb</span>
+<span class="font-ui-label">Inspiration</span>
+</a>
+<a class="flex items-center gap-4 py-3 px-4 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors group mt-auto" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-ui-label">Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-outline-variant flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center overflow-hidden">
+<img alt="Writer's Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfd2zgNVKaTjJg2nTFp5UVipFq66_MeDVPHpfEjqPBqMr50US3EKn1Ty0qwRBBKOTJC9BkaoMKMJwPV2LaeiZiSWygZEwcHl9i0wt1n1nj1Wy9tiDc5q0lxAc6bsieVszdIGkv-s0q_GeCNZQb5l5efgA9skrvRIh2T_1TwawMxVK7GzbXxRk4C7v3PzV-275qu-S045XRMywgU3ZMl6KFKCGXJyKSo4G2e8kU3QmBqkwd9c4HVp3fNnCQW7RpOOZ_PZWtpyUIIuHE"/>
+</div>
+<div>
+<p class="font-ui-small font-bold text-on-surface">작가 소설비</p>
+<p class="text-[10px] text-on-surface-variant uppercase tracking-widest">Master Scribe</p>
+</div>
+</div>
+</aside>
+<!-- Main Wrapper -->
+<div class="flex-1 ml-rail-width flex flex-col h-screen overflow-y-auto parchment-texture bg-background">
+<!-- TopAppBar -->
+<header class="sticky top-0 z-40 bg-surface h-16 px-gutter flex justify-between items-center border-b border-outline-variant">
+<div class="flex items-center gap-6">
+<div class="relative group">
+<span class="absolute inset-y-0 left-0 pl-3 flex items-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</span>
+<input class="bg-surface-container-low border-none rounded-lg pl-10 pr-4 py-2 font-ui-small focus:ring-1 focus:ring-primary w-64 transition-all" placeholder="서재 내 검색..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 p-margin-page">
+<div class="max-w-[1200px] mx-auto">
+<!-- Library Header -->
+<header class="mb-12 flex items-end justify-between border-b border-outline-variant pb-6">
+<div>
+<h2 class="font-display-title text-headline-lg text-on-background mb-2">작품 벽</h2>
+<p class="font-ui-label text-on-surface-variant">침묵 속에 쌓아 올린 당신의 이야기들</p>
+</div>
+<div class="flex gap-4">
+<button class="flex items-center gap-2 font-ui-small px-4 py-2 text-on-surface-variant hover:text-primary border border-outline-variant rounded-lg transition-all">
+<span class="material-symbols-outlined text-[18px]">sort</span> 정렬
+                        </button>
+<button class="flex items-center gap-2 font-ui-small px-4 py-2 text-on-surface-variant hover:text-primary border border-outline-variant rounded-lg transition-all">
+<span class="material-symbols-outlined text-[18px]">filter_list</span> 필터
+                        </button>
+</div>
+</header>
+<!-- Library Grid (Bento Style Variation) -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<!-- Empty State / New Narrative Card -->
+<button class="group relative flex flex-col items-center justify-center border-2 border-dashed border-outline-variant rounded-lg p-10 hover:border-primary hover:bg-primary-fixed/10 transition-all cursor-pointer min-h-[320px]">
+<div class="w-16 h-16 rounded-full border border-outline-variant flex items-center justify-center mb-6 group-hover:scale-110 group-hover:border-primary transition-transform">
+<span class="material-symbols-outlined text-primary text-3xl">add</span>
+</div>
+<h3 class="font-display-title text-xl text-on-background mb-2">새로운 서사 시작</h3>
+<p class="font-ui-small text-on-surface-variant text-center max-w-[180px]">첫 문장의 울림을 기록할 빈 페이지를 준비합니다.</p>
+</button>
+<!-- Manuscript Card 1 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-8 flex flex-col writing-card-hover transition-all relative">
+<div class="flex justify-between items-start mb-6">
+<span class="font-meta-data text-primary px-3 py-1 bg-primary-fixed rounded-full text-[10px] uppercase tracking-widest">Mystery</span>
+<span class="font-meta-data text-on-surface-variant text-[11px]">84,200 자</span>
+</div>
+<h3 class="font-display-title text-2xl text-on-background mb-4 leading-tight">직조공의 침묵</h3>
+<div class="flex-1 mb-8">
+<p class="font-prose-body text-sm text-on-surface-variant line-clamp-4 italic leading-relaxed">
+                                "그녀는 실을 잣는 것이 아니라, 시간을 엮고 있었다. 물레가 돌아가는 소리는 고요를 찢지 않았고, 오히려 그 안으로 녹아들었다. 마지막 올을 끊었을 때, 온 마을은 숨을 멈췄다..."
+                            </p>
+</div>
+<div class="mt-auto flex justify-between items-center pt-4 border-t border-outline-variant">
+<span class="font-ui-small text-on-surface-variant opacity-60 italic">최근 수정: 2일 전</span>
+<div class="flex gap-2">
+<button class="p-1.5 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">star</span></button>
+<button class="p-1.5 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">more_horiz</span></button>
+</div>
+</div>
+</div>
+<!-- Manuscript Card 2 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-8 flex flex-col writing-card-hover transition-all relative">
+<div class="flex justify-between items-start mb-6">
+<span class="font-meta-data text-tertiary px-3 py-1 bg-tertiary-fixed rounded-full text-[10px] uppercase tracking-widest">Poetry</span>
+<span class="font-meta-data text-on-surface-variant text-[11px]">12,450 자</span>
+</div>
+<h3 class="font-display-title text-2xl text-on-background mb-4 leading-tight">눈 위의 잉크</h3>
+<div class="flex-1 mb-8">
+<p class="font-prose-body text-sm text-on-surface-variant line-clamp-4 italic leading-relaxed">
+                                "시린 바람 끝에 맺힌 말들이 검은 잉크가 되어 떨어졌다. 차가운 대지 위에 번지는 얼룩은 누군가의 이름이었거나, 혹은 잊어야만 하는 계절의 기록이었다..."
+                            </p>
+</div>
+<div class="mt-auto flex justify-between items-center pt-4 border-t border-outline-variant">
+<span class="font-ui-small text-on-surface-variant opacity-60 italic">최근 수정: 4시간 전</span>
+<div class="flex gap-2">
+<button class="p-1.5 text-primary"><span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">star</span></button>
+<button class="p-1.5 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">more_horiz</span></button>
+</div>
+</div>
+</div>
+<!-- Manuscript Card 3 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-8 flex flex-col writing-card-hover transition-all relative">
+<div class="flex justify-between items-start mb-6">
+<span class="font-meta-data text-primary px-3 py-1 bg-primary-fixed rounded-full text-[10px] uppercase tracking-widest">Fantasy</span>
+<span class="font-meta-data text-on-surface-variant text-[11px]">156,000 자</span>
+</div>
+<h3 class="font-display-title text-2xl text-on-background mb-4 leading-tight">무너진 성의 별자리</h3>
+<div class="flex-1 mb-8">
+<p class="font-prose-body text-sm text-on-surface-variant line-clamp-4 italic leading-relaxed">
+                                "천장은 이미 무너져 내린 지 오래였으나, 그곳을 통해 보이는 밤하늘은 세상 그 어느 창보다 찬란했다. 기사는 부러진 칼끝으로 먼지 쌓인 바닥에 새로운 지도를 그리기 시작했다..."
+                            </p>
+</div>
+<div class="mt-auto flex justify-between items-center pt-4 border-t border-outline-variant">
+<span class="font-ui-small text-on-surface-variant opacity-60 italic">최근 수정: 1주일 전</span>
+<div class="flex gap-2">
+<button class="p-1.5 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">star</span></button>
+<button class="p-1.5 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">more_horiz</span></button>
+</div>
+</div>
+</div>
+<!-- Manuscript Card 4 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-8 flex flex-col writing-card-hover transition-all relative">
+<div class="flex justify-between items-start mb-6">
+<span class="font-meta-data text-on-secondary-container px-3 py-1 bg-secondary-container rounded-full text-[10px] uppercase tracking-widest">Essay</span>
+<span class="font-meta-data text-on-surface-variant text-[11px]">34,900 자</span>
+</div>
+<h3 class="font-display-title text-2xl text-on-background mb-4 leading-tight">오후 네 시의 그림자</h3>
+<div class="flex-1 mb-8">
+<p class="font-prose-body text-sm text-on-surface-variant line-clamp-4 italic leading-relaxed">
+                                "그림자가 길어지는 순간은 유독 정직하다. 빛의 각도가 낮아지면 숨겨왔던 일상의 질감들이 도드라지기 마련이다. 나는 그 길쭉한 어둠 속에서 내 삶의 모서리를 더듬어 본다..."
+                            </p>
+</div>
+<div class="mt-auto flex justify-between items-center pt-4 border-t border-outline-variant">
+<span class="font-ui-small text-on-surface-variant opacity-60 italic">최근 수정: 어제</span>
+<div class="flex gap-2">
+<button class="p-1.5 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">star</span></button>
+<button class="p-1.5 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">more_horiz</span></button>
+</div>
+</div>
+</div>
+<!-- Manuscript Card 5 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-8 flex flex-col writing-card-hover transition-all relative">
+<div class="flex justify-between items-start mb-6">
+<span class="font-meta-data text-primary px-3 py-1 bg-primary-fixed rounded-full text-[10px] uppercase tracking-widest">Historical</span>
+<span class="font-meta-data text-on-surface-variant text-[11px]">52,100 자</span>
+</div>
+<h3 class="font-display-title text-2xl text-on-background mb-4 leading-tight">청자와 벼루</h3>
+<div class="flex-1 mb-8">
+<p class="font-prose-body text-sm text-on-surface-variant line-clamp-4 italic leading-relaxed">
+                                "비색의 깊이는 인간의 눈으로 다 담을 수 없는 것이었다. 가마의 불길이 잦아들었을 때 도공은 숨을 내쉬며 흙이 간직한 비밀이 마침내 세상 밖으로 고개를 내미는 것을 보았다..."
+                            </p>
+</div>
+<div class="mt-auto flex justify-between items-center pt-4 border-t border-outline-variant">
+<span class="font-ui-small text-on-surface-variant opacity-60 italic">최근 수정: 3일 전</span>
+<div class="flex gap-2">
+<button class="p-1.5 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">star</span></button>
+<button class="p-1.5 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">more_horiz</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Section (Subtle) -->
+<footer class="mt-20 py-10 border-t border-outline-variant flex flex-col items-center gap-4">
+<img alt="Soseolbi Brand Emblem" class="w-12 h-12 opacity-40 grayscale" data-alt="A minimal geometric brand emblem for a premium writing application. The emblem features sharp, elegant lines reminiscent of a stylized fountain pen nib and a pine tree, reflecting a sanctuary of creativity. It is rendered in a soft monochromatic ink-blue palette against a cream parchment texture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBJ93HFJBmRHZSqLIOez7e_ySVlZc1iNfMpVyXO5BCCMEc1pKGB5X16quA4Ef_uJpw8iet7ctwNgkr_1hm6GHOC4oidSvGZz-b3GEnH0nux9hD3Zl6-8AQwOGU8ZApIHv_aYuQMgOY7IcDTimq0epqPr0dRYUvgnnHhiotUub-hsmtUQgrRYPR7nVoqc7uKLjMbTOViNeWl3IltaCbQeISlFojMWoSNiO_1SKboa84QZ5cG0ABc5iL1z-UiQLL8omsNJgf7-lU6VJf"/>
+<p class="font-ui-small text-on-surface-variant/50 tracking-widest uppercase">The Sanctity of Thought • Soseolbi</p>
+</footer>
+</div>
+</main>
+</div>
+<!-- Floating Action Button (FAB) - Suppression Logic Checked -->
+<!-- FAB is suppressed on Details and Transactional screens, but kept here for Home/Library context -->
+<button class="fixed bottom-10 right-10 w-16 h-16 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-50">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+<script>
+        // Simple micro-interaction for cards
+        document.querySelectorAll('.writing-card-hover').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-4px)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+
+        // Search focus interaction
+        const searchInput = document.querySelector('input');
+        searchInput.addEventListener('focus', () => {
+            searchInput.parentElement.classList.add('w-80');
+        });
+        searchInput.addEventListener('blur', () => {
+            searchInput.parentElement.classList.remove('w-80');
+        });
+    </script>
+</body></html>

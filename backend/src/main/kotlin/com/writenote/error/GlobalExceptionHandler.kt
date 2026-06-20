@@ -57,12 +57,14 @@ class GlobalExceptionHandler {
             message = exception.message ?: "Validation failed",
         )
 
+    // ISSUE-029: DataIntegrityViolationException.message 는 DB 원문(SQL·제약명·컬럼)을 담으므로 클라이언트에 노출하지 않는다.
+    // 항상 고정 generic 메시지로 마스킹한다(클라이언트는 error.code 로 분기).
     @ExceptionHandler(DataIntegrityViolationException::class)
     fun handleConflict(exception: DataIntegrityViolationException): ResponseEntity<Result<Nothing>> =
         errorResponse(
             status = HttpStatus.CONFLICT,
             code = ErrorCode.CONFLICT,
-            message = exception.message ?: "Resource conflict",
+            message = "Resource conflict",
         )
 
     @ExceptionHandler(DocumentConflictException::class)
@@ -88,6 +90,22 @@ class GlobalExceptionHandler {
                 ),
             )
     }
+
+    @ExceptionHandler(LastChapterException::class)
+    fun handleLastChapter(exception: LastChapterException): ResponseEntity<Result<Nothing>> =
+        ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(
+                Result(
+                    success = false,
+                    data = null,
+                    error =
+                        com.writenote.model.response.ErrorInfo(
+                            code = "LAST_CHAPTER_UNDELETABLE",
+                            message = exception.message ?: "마지막 챕터는 삭제할 수 없습니다",
+                        ),
+                ),
+            )
 
     @ExceptionHandler(AuthException::class)
     fun handleAuth(exception: AuthException): ResponseEntity<Result<Nothing>> =

@@ -76,14 +76,16 @@ class ProjectServiceIT
             entityManager.flush()
             entityManager.clear()
 
-            val document = documentRepository.findByProjectId(response.id).orElseThrow()
+            val document =
+                documentRepository
+                    .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(response.id)
+                    .first()
             assertThat(document.projectId).isEqualTo(response.id)
             assertThat(document.title).isEqualTo("")
             // Postgres JSONB roundtrip 시 공백 normalize — 의미 동등 비교 의무
             assertThat(jsonMapper.readTree(document.body))
                 .isEqualTo(jsonMapper.readTree(Document.EMPTY_DOC_JSON))
             assertThat(document.wordCount).isEqualTo(0)
-            assertThat(document.version).isEqualTo(0)
             assertThat(document.createdAt).isNotNull()
             assertThat(document.updatedAt).isNotNull()
         }
@@ -116,7 +118,9 @@ class ProjectServiceIT
             assertThat(
                 characterRepository.findAllByProjectIdOrderByDisplayOrderAscCreatedAtAsc(projectId),
             ).hasSize(3)
-            assertThat(documentRepository.findByProjectId(projectId)).isPresent
+            assertThat(
+                documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectId),
+            ).isNotEmpty
 
             // 영구 삭제
             projectService.deleteProject(requireNotNull(user.id), projectId)
@@ -128,6 +132,8 @@ class ProjectServiceIT
             assertThat(
                 characterRepository.findAllByProjectIdOrderByDisplayOrderAscCreatedAtAsc(projectId),
             ).isEmpty()
-            assertThat(documentRepository.findByProjectId(projectId)).isEmpty
+            assertThat(
+                documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectId),
+            ).isEmpty()
         }
     }

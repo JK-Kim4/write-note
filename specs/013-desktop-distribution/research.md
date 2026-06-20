@@ -34,7 +34,7 @@
 
 ## R5. 자산 게시 + 최신 링크 안정성 = GitHub Releases + `releases/latest/download/`
 
-- **Decision**: 고정 `artifactName`(버전 미포함): `Narae-Note.dmg` / `Narae-Note-Setup.exe`. 다운로드 페이지는 `https://github.com/JK-Kim4/write-note/releases/latest/download/<고정명>`으로 링크.
+- **Decision**: 고정 `artifactName`(버전 미포함): `Soseolbi-Note.dmg` / `Soseolbi-Note-Setup.exe`. 다운로드 페이지는 `https://github.com/JK-Kim4/write-note/releases/latest/download/<고정명>`으로 링크.
 - **Rationale**: GitHub의 `latest/download` 리다이렉트는 항상 최신 릴리스 자산을 가리킴 → 버전이 올라가도 링크 불변(FR-004 / SC-004). 무료 공개 호스팅.
 - **Alternatives**: 버전 포함 파일명(매 릴리스 링크 갱신 필요) — 기각.
 

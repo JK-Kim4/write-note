@@ -8,6 +8,7 @@ import com.writenote.enums.AuthTokenType
 import com.writenote.error.AuthException
 import com.writenote.model.request.LoginRequest
 import com.writenote.model.request.RefreshTokenRequest
+import com.writenote.model.request.ResendVerificationRequest
 import com.writenote.model.request.SignupEmailRequest
 import com.writenote.model.request.VerifyEmailRequest
 import com.writenote.repository.AuthTokenRepository
@@ -167,5 +168,72 @@ class AuthServiceIT
                 authService.verifyEmail(VerifyEmailRequest(token = tokenPair.plaintext))
             }.isInstanceOf(AuthException::class.java)
                 .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.AUTH_TOKEN_ALREADY_USED)
+        }
+
+        @Test
+        fun `인증 메일 재발송 — 미인증 계정에 새 EMAIL_VERIFY token 추가 발급`() {
+            // given: 가입(EMAIL_VERIFY token 1개) 후 미인증 상태
+            val email = "resend-${UUID.randomUUID()}@example.com"
+            authService.signupEmail(SignupEmailRequest(email = email, password = "Strong!Pass123"))
+            entityManager.flush()
+            entityManager.clear()
+
+            // when: 인증 메일 재발송
+            authService.resendVerification(ResendVerificationRequest(email = email))
+            entityManager.flush()
+            entityManager.clear()
+
+            // then: EMAIL_VERIFY token 이 2개 (가입 1 + 재발송 1)
+            val user = userRepository.findByEmail(email)!!
+            val tokenCount =
+                authTokenRepository.findAll().count {
+                    it.userId == user.id && it.type == AuthTokenType.EMAIL_VERIFY
+                }
+            assertThat(tokenCount).isEqualTo(2)
+        }
+
+        @Test
+        fun `인증 메일 재발송 — 이미 인증된 계정은 추가 발급 안 함`() {
+            // given: 가입 후 인증 완료된 계정
+            val email = "resend-verified-${UUID.randomUUID()}@example.com"
+            authService.signupEmail(SignupEmailRequest(email = email, password = "Strong!Pass123"))
+            entityManager.flush()
+            entityManager.clear()
+            val verified = userRepository.findByEmail(email)!!
+            verified.emailVerifiedAt = Instant.now()
+            userRepository.saveAndFlush(verified)
+            entityManager.clear()
+            val before =
+                authTokenRepository.findAll().count {
+                    it.userId == verified.id && it.type == AuthTokenType.EMAIL_VERIFY
+                }
+
+            // when
+            authService.resendVerification(ResendVerificationRequest(email = email))
+            entityManager.flush()
+            entityManager.clear()
+
+            // then: EMAIL_VERIFY token 수 불변 (추가 발급 없음)
+            val after =
+                authTokenRepository.findAll().count {
+                    it.userId == verified.id && it.type == AuthTokenType.EMAIL_VERIFY
+                }
+            assertThat(after).isEqualTo(before)
+        }
+
+        @Test
+        fun `인증 메일 재발송 — 미가입 이메일도 예외 없이 종료 (enumeration 회피)`() {
+            val ghost = "ghost-${UUID.randomUUID()}@example.com"
+
+            // 예외 없이 종료 + 어떤 user 에도 EMAIL_VERIFY token 미생성
+            authService.resendVerification(ResendVerificationRequest(email = ghost))
+            entityManager.flush()
+            entityManager.clear()
+
+            val tokens =
+                authTokenRepository.findAll().filter { it.type == AuthTokenType.EMAIL_VERIFY }
+            assertThat(
+                tokens.none { userRepository.findById(it.userId).orElseThrow().email == ghost },
+            ).isTrue()
         }
     }
