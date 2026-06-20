@@ -57,6 +57,7 @@ class SettingsService(
                 "writingMode" to setOf("manuscript", "editor"),
                 "manuscriptSize" to setOf("200", "400", "1000"),
                 "paperSize" to setOf("A4", "A3", "A2", "B4"),
+                "onboardingCompleted" to setOf("true"),
             )
     }
 }

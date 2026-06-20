@@ -99,4 +99,23 @@ class SettingsServiceIT
                 settingsService.updateSettings(user.id!!, mapOf("paperSize" to "Letter"))
             }
         }
+
+        @Test
+        @DisplayName("onboardingCompleted=true 저장 통과 (온보딩 가이드 1회 영속)")
+        fun `onboardingCompleted true accepted`() {
+            val user = savedUser()
+            settingsService.updateSettings(user.id!!, mapOf("onboardingCompleted" to "true"))
+
+            val stored = settingsService.getSettings(user.id!!).settings
+            assertThat(stored).containsEntry("onboardingCompleted", "true")
+        }
+
+        @Test
+        @DisplayName("onboardingCompleted 비허용값(false) 거부")
+        fun `onboardingCompleted invalid value rejected`() {
+            val user = savedUser()
+            assertThrows<ValidationException> {
+                settingsService.updateSettings(user.id!!, mapOf("onboardingCompleted" to "false"))
+            }
+        }
     }
