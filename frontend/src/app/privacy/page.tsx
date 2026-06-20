@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "개인정보처리방침 | 소설빙",
+    title: "개인정보처리방침 | 소설비",
 };
 
 /**
@@ -26,7 +26,7 @@ export default function PrivacyPage() {
             </p>
 
             <p>
-                소설빙(이하 &quot;서비스&quot;)은 개인정보보호법 및 관련 법령에 따라 이용자의 개인정보를 보호하고
+                소설비(이하 &quot;서비스&quot;)은 개인정보보호법 및 관련 법령에 따라 이용자의 개인정보를 보호하고
                 이에 관한 고충을 신속하게 처리할 수 있도록 다음과 같이 개인정보처리방침을 수립·공개합니다.
             </p>
 

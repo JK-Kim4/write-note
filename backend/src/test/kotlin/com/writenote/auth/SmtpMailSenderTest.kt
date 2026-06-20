@@ -17,7 +17,7 @@ class SmtpMailSenderTest {
         SmtpMailSender(
             mailSender = mailSender,
             frontendBaseUrl = "https://app.example.com",
-            from = "no-reply@narae.com",
+            from = "no-reply@soseolbi.com",
         )
 
     private fun stubMimeMessage(): MimeMessage {
@@ -35,7 +35,7 @@ class SmtpMailSenderTest {
 
         verify(exactly = 1) { mailSender.send(mime) }
         assertThat(mime.allRecipients.map { it.toString() }).contains("user@test.com")
-        assertThat(mime.from.map { it.toString() }).contains("no-reply@narae.com")
+        assertThat(mime.from.map { it.toString() }).contains("no-reply@soseolbi.com")
         assertThat(mime.subject).contains("이메일 인증")
         val body = mime.content.toString()
         assertThat(body).contains("https://app.example.com/auth/verify?token=tok-123")

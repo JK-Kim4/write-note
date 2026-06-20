@@ -12,7 +12,7 @@
 |---|---|
 | **`docs/superpowers/specs/2026-06-10-studio-three-panel-design.md`** | **확정 설계 (이 작업의 spec 입력)** — 결정 전부 들어있음 |
 | `PRODUCT.md` | 제품 본질·브랜드·anti-ref·디자인 원칙 (특히 "AI 안 씀", "마찰 설계", "모든 맥락 한 곳") |
-| `docs/reports/2026-06-09-narae-note-product-design-brief.md` | 제품 개요/스타일/기능 정리 |
+| `docs/reports/2026-06-09-soseolbi-note-product-design-brief.md` | 제품 개요/스타일/기능 정리 |
 | `docs/design/web/` | 외부 제작 시안 5종(웜 보정본). 03-studio 가 본 작업 시각 레퍼런스 |
 | `.claude/rules/typescript/code-quality.md` | FE 코드 규율 (RSC 경계 HARD-GATE 등) |
 
@@ -61,7 +61,7 @@
 ```
 develop
   └─ feat/web-warm-reskin   (Scope A — 미merge)
-       ├─ 90e75b3  인증/폼 토큰 웜 통일 + 브랜드 '나래 노트'
+       ├─ 90e75b3  인증/폼 토큰 웜 통일 + 브랜드 '소설비'
        ├─ 337401c  메인 앱 웜 풀(크림 종이·포근한 그림자·모서리)
        └─ bdbf45f  시안 5종 + 브리프 (docs)
        └─ feat/studio-three-panel   (Scope B — 현재 브랜치)

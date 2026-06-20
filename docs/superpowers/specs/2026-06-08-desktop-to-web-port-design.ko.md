@@ -1,4 +1,4 @@
-# 나래 노트 — Desktop → Web 포팅 설계
+# 소설비 — Desktop → Web 포팅 설계
 
 - **작성일:** 2026-06-08
 - **상태:** brainstorming 합의 완료 → 구현 계획(첫 실행 단위 = backend 확장) 대기

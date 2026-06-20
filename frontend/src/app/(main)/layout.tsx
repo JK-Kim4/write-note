@@ -3,6 +3,7 @@
 import "./b.css";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { BookOpen, Clock, Home, PenLine, Settings, StickyNote, Users } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
@@ -22,16 +23,19 @@ import { useModalDismiss } from "@/lib/useModalDismiss";
  */
 
 const NAV_ITEMS = [
-    { href: "/", label: "홈", exact: true },
-    { href: "/library", label: "작품", exact: false },
-    { href: "/memos", label: "메모", exact: false, dataTour: "nav-memos" },
-    { href: "/characters", label: "인물", exact: false, dataTour: "nav-characters" },
-    { href: "/logs", label: "기록", exact: false },
-    { href: "/settings", label: "설정", exact: false },
+    { href: "/", label: "홈", exact: true, Icon: Home },
+    { href: "/library", label: "작품", exact: false, Icon: BookOpen },
+    { href: "/memos", label: "메모", exact: false, dataTour: "nav-memos", Icon: StickyNote },
+    { href: "/characters", label: "인물", exact: false, dataTour: "nav-characters", Icon: Users },
+    { href: "/logs", label: "기록", exact: false, Icon: Clock },
+    { href: "/settings", label: "설정", exact: false, Icon: Settings },
 ] as const;
 
-const NAV_ACTIVE_CLASS = "rounded-md bg-terracotta-50 px-3 py-1.5 text-sm font-medium text-terracotta-700";
-const NAV_IDLE_CLASS = "rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900";
+// 메뉴 칩 — 단색 라인 아이콘(lucide) + 라벨. 평상시 회색, 선택은 테라코타(주 액센트),
+// hover 는 물방울 청록(teal, 로고 빗방울 모티프) — product 절제 원칙: 진한 색은 선택/hover 에만.
+const NAV_CHIP = "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors";
+const NAV_ACTIVE_CLASS = `${NAV_CHIP} bg-terracotta-50 font-medium text-terracotta-700`;
+const NAV_IDLE_CLASS = `${NAV_CHIP} text-gray-600 hover:bg-teal-50 hover:text-teal-800`;
 
 export default function BLayout({ children }: { children: React.ReactNode }) {
     useAuthGuard("requireAuth");
@@ -146,15 +150,15 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
             </a>
             <header className="sticky top-0 z-20 border-b border-gray-200 bg-white">
                 <div className="mx-auto flex h-14 max-w-7xl items-center gap-6 px-4">
-                    <Link href="/" aria-label="소설빙 홈" className="shrink-0">
+                    <Link href="/" aria-label="소설비 홈" className="shrink-0">
                         <span
                             role="img"
-                            aria-label="소설빙"
+                            aria-label="소설비"
                             className="block"
                             style={{
-                                width: "150px",
-                                height: "42px",
-                                background: "url('/soseolbing-logo.png') left center / contain no-repeat",
+                                width: "132px",
+                                height: "48px",
+                                background: "url('/soseolbi-logo.png') left center / contain no-repeat",
                             }}
                         />
                     </Link>
@@ -170,6 +174,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                                         data-tour={"dataTour" in item ? item.dataTour : undefined}
                                         className={isActive ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS}
                                     >
+                                        <item.Icon size={16} strokeWidth={1.75} aria-hidden className="shrink-0" />
                                         {item.label}
                                     </Link>
                                     {/* 집필 — 마지막으로 연 작품(존재 시)→최근 작품→작품 0개면 안내 모달. "연 적 없음"이 아니라 "작품 없음"일 때만 모달. */}
@@ -186,8 +191,9 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                                                 if (t != null) prefetchStudio(t);
                                             }}
                                             onClick={handleWriteClick}
-                                            className={`${pathname.startsWith("/works") ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1`}
+                                            className={`${pathname.startsWith("/works") ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1`}
                                         >
+                                            <PenLine size={16} strokeWidth={1.75} aria-hidden className="shrink-0" />
                                             집필
                                         </button>
                                     )}
@@ -232,8 +238,9 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                                     key={item.href}
                                     href={item.href}
                                     onClick={() => setMobileMenuOpen(false)}
-                                    className={`rounded-md px-3 py-2 text-sm ${isActive ? "bg-terracotta-50 font-medium text-terracotta-700" : "text-gray-700 hover:bg-gray-50"}`}
+                                    className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm ${isActive ? "bg-terracotta-50 font-medium text-terracotta-700" : "text-gray-700 hover:bg-teal-50 hover:text-teal-800"}`}
                                 >
+                                    <item.Icon size={16} strokeWidth={1.75} aria-hidden className="shrink-0" />
                                     {item.label}
                                 </Link>
                             );
@@ -244,8 +251,9 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                                 setMobileMenuOpen(false);
                                 handleWriteClick();
                             }}
-                            className={`rounded-md px-3 py-2 text-left text-sm ${pathname.startsWith("/works") ? "bg-terracotta-50 font-medium text-terracotta-700" : "text-gray-700 hover:bg-gray-50"}`}
+                            className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${pathname.startsWith("/works") ? "bg-terracotta-50 font-medium text-terracotta-700" : "text-gray-700 hover:bg-teal-50 hover:text-teal-800"}`}
                         >
+                            <PenLine size={16} strokeWidth={1.75} aria-hidden className="shrink-0" />
                             집필
                         </button>
                         <div className="my-1 border-t border-gray-100" />

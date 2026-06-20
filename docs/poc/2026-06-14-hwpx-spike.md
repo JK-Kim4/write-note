@@ -31,7 +31,7 @@
 
 | 파일명 | 절대 경로 | 검증 항목 |
 |---|---|---|
-| `minimal.hwpx` | `/Users/jongwan-air/Desktop/workspaces/write-note/backend/build/spike/minimal.hwpx` | 최소 단락 "안녕하세요, 나래 노트입니다." |
+| `minimal.hwpx` | `/Users/jongwan-air/Desktop/workspaces/write-note/backend/build/spike/minimal.hwpx` | 최소 단락 "안녕하세요, 소설비입니다." |
 | `multiple-paragraphs.hwpx` | `/Users/jongwan-air/Desktop/workspaces/write-note/backend/build/spike/multiple-paragraphs.hwpx` | 3개 단락 표시 여부 |
 | `heading-styles.hwpx` | `/Users/jongwan-air/Desktop/workspaces/write-note/backend/build/spike/heading-styles.hwpx` | 제목1~3 스타일 적용 여부 |
 | `bold-italic.hwpx` | `/Users/jongwan-air/Desktop/workspaces/write-note/backend/build/spike/bold-italic.hwpx` | 볼드/이탤릭 렌더링 여부 |

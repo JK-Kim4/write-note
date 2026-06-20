@@ -92,4 +92,4 @@ frontend/
 
 - **R3 검증 게이트(G2)**: 무서명/ad-hoc macOS 앱의 타 기기 실행은 단정 불가 — 실제 설치 검증 필수. 실패 시 macOS 서명+공증($99/년) fallback(별도 트랙, 이미 문서화).
 - **무서명 마찰(확정)**: 양 OS 첫 실행 수동 단계. 안내문으로 보완하되 1-click은 서명 도입 시.
-- **artifactName 공백**: `productName`에 공백(`Narae Note`) → 다운로드 URL 인코딩 이슈 회피 위해 산출물명은 하이픈(`Narae-Note*`)으로 고정, 링크와 정확히 일치(contracts C).
+- **artifactName 공백**: `productName`에 공백(`Soseolbi`) → 다운로드 URL 인코딩 이슈 회피 위해 산출물명은 하이픈(`Soseolbi-Note*`)으로 고정, 링크와 정확히 일치(contracts C).

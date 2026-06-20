@@ -1,4 +1,4 @@
-/* 소설빙 공개 랜딩 — 고정 웜 팔레트(앱 .dark 테마와 무관). */
+/* 소설비 공개 랜딩 — 고정 웜 팔레트(앱 .dark 테마와 무관). */
 .landing {
   --lp-cream: #F4EFE5; --lp-cream2: #FBF8F1; --lp-paper: #FFFFFF;
   --lp-ink: #2B2722; --lp-muted: #736A5C; --lp-faint: #9A9082;
@@ -16,7 +16,7 @@
   background: rgba(244,239,229,.82); border-bottom: 1px solid rgba(231,223,208,.7); }
 .landing-nav { display: flex; align-items: center; justify-content: space-between; height: 66px; }
 .landing-logo { display: block; width: 132px; height: 40px;
-  background: url('/soseolbing-logo.png') left center / contain no-repeat; }
+  background: url('/soseolbi-logo.png') left center / contain no-repeat; }
 .landing-nav-right { display: flex; align-items: center; gap: 20px; }
 .landing-navlink { font-size: 14.5px; color: var(--lp-muted); font-weight: 500; }
 .landing-btn { display: inline-flex; align-items: center; justify-content: center; font-weight: 600;
@@ -68,7 +68,7 @@
 .landing-footer { padding: 48px 0 38px; background: #2B2722; color: #C9C0B2; }
 .landing-ftop { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 22px; }
 .landing-fmark { display: block; width: 110px; height: 30px;
-  background: url('/soseolbing-mark.png') left center / contain no-repeat; margin-bottom: 10px; }
+  background: url('/soseolbi-mark.png') left center / contain no-repeat; margin-bottom: 10px; }
 .landing-ftag { font-family: var(--font-nanum-myeongjo), serif; font-size: 14px; color: #9a9081; }
 .landing-flinks { display: flex; gap: 26px; font-size: 14px; }
 .landing-flinks a:hover { color: #fff; }

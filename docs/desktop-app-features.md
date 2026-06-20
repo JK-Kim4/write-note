@@ -160,8 +160,8 @@ renderer는 `window.electronAPI`(preload contextBridge 화이트리스트)로만
 - **앱 라이프사이클 훅** — 시작 시 마이그레이션 + dangling 세션 정리, 종료 직전 열린 세션 종료, macOS dock 재활성화 대응
 
 **패키징/배포 (electron-builder)**
-- macOS: universal DMG(`Narae-Note.dmg`), 현재 ad-hoc 서명
-- Windows: NSIS 1-click 설치(사용자 권한, `Narae-Note-Setup.exe`)
+- macOS: universal DMG(`Soseolbi-Note.dmg`), 현재 ad-hoc 서명
+- Windows: NSIS 1-click 설치(사용자 권한, `Soseolbi-Note-Setup.exe`)
 - 배포: `v*` 태그 push → GitHub Actions가 macOS·Windows 빌드 → Release **draft** 업로드 → 수동 검증 후 publish (설계: `specs/013-desktop-distribution/`)
 
 ---

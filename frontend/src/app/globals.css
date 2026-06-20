@@ -35,7 +35,7 @@ html {
   --font-prose: var(--w-font-prose);
   --font-manuscript: var(--w-font-manuscript);
 
-  /* 소설빙 브랜드 주 액센트 — 테라코타(점토 주황갈색). 로고 글자색 도출.
+  /* 소설비 브랜드 주 액센트 — 테라코타(점토 주황갈색). 로고 글자색 도출.
      기존 SaaS 기본 보라/남색 액센트 대체. bg-terracotta-600 + text-white = 대비 ≈5:1 (AA). */
   --color-terracotta-50: #fbf3ee;
   --color-terracotta-100: #f6e3d6;
@@ -47,10 +47,21 @@ html {
   --color-terracotta-700: #8a4325;
   --color-terracotta-800: #6f361f;
 
-  /* 소설빙 보조 액센트 — 올리브 그린(로고 보조색). 긍정 강조(다음 장면 뱃지 등). */
+  /* 소설비 보조 액센트 — 올리브 그린(로고 보조색). 긍정 강조(다음 장면 뱃지 등). */
   --color-olive-50: #f3f3e6;
   --color-olive-600: #76753f;
   --color-olive-700: #5e5d32;
+
+  /* 소설비 물방울 청록(teal) — 로고 빗방울 모티프. 상호작용 신호(포커스·info)에 절제 사용. */
+  --color-teal-50: #ecf5f8;
+  --color-teal-100: #cfe6ed;
+  --color-teal-200: #a3cdd9;
+  --color-teal-300: #6dabbd;
+  --color-teal-400: #3d8aa3;
+  --color-teal-500: #1c7791;
+  --color-teal-600: #087194;
+  --color-teal-700: #0a5c79;
+  --color-teal-800: #0c4a61;
 }
 
 @layer base {

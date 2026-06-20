@@ -7,7 +7,7 @@
 
 ## 1. 무엇을 했는가 (사실)
 - 코드베이스를 서브에이전트 3개로 분석해 사용성 개선점 + 명시 3건(A/B 정리·전환·갈색배경) 리스트업.
-- brainstorming→설계문서→계획문서 후, `/goal` 자율 야간 실행으로 **027 브랜치(026 기반)** 에서 구현: B형 루트 승격·A형 제거·소설빙 리브랜딩·테라코타 톤·패리티 이식(메타편집·보관·토큰)·사용성, 프로덕션 배포 + dogfooding HTML.
+- brainstorming→설계문서→계획문서 후, `/goal` 자율 야간 실행으로 **027 브랜치(026 기반)** 에서 구현: B형 루트 승격·A형 제거·소설비 리브랜딩·테라코타 톤·패리티 이식(메타편집·보관·토큰)·사용성, 프로덕션 배포 + dogfooding HTML.
 - 사용자 "logout 미동작" 보고 → systematic-debugging: 백엔드(curl)·프론트(dev·prod 빌드) **로컬 3중 재현 모두 GREEN**, 프로덕션만 `POST /api/auth/logout` **403** 확인.
 - git 이력 추적 → 근본원인 = **027이 develop의 보안 커밋 `e309b08`(CsrfDefenseFilter + 프론트 `X-WriteNote-Client` 헤더)을 누락**. 027이 stale 026에서 분기(20커밋 뒤처짐).
 - 프로덕션 Vercel 롤백 → develop 머지 드라이런(의미론적 충돌 다발, 불가) 확인 → **develop 기반 `028`로 재구성**(구조+패리티+톤+사용성) → develop fast-forward 머지 → 재배포(사용자 logout 정상 확인).
@@ -28,7 +28,7 @@
 - **[치명] 분기 베이스 착오**: 027을 stale 026에서 분기 → develop의 리브랜딩·공개 랜딩·전환개선·**보안 CSRF 헤더**가 통째로 빠짐. **회피 가능 시점 = 027 작업 시작 전 `git log --oneline HEAD..origin/develop` 1회.** 더 뼈아픈 건 `deployment-live` 메모리에 "CsrfDefenseFilter = 쿠키 변경요청에 X-WriteNote-Client 필수"가 **이미 적혀 있었는데 active recall 실패**.
 - **[회귀 배포]** 027을 `vercel --prod` → develop 기반 프로덕션 프론트를 덮어써 **logout 403 + 공개 랜딩·보안헤더 회귀**. 사용자가 직접 발견("로그아웃 클릭해도 안 됨").
 - **[dogfooding 불가 영역 자율 배포]** §16/§17대로 인증 화면을 dogfooding 못 한 채 야간 자율 배포 → logout 회귀가 사용자에게 노출. **게이트 GREEN을 authed 동작 정합 증거로 과신**(자동 테스트는 CSRF 계약 불일치를 못 잡음).
-- **[롤백 오판]** "o82i3oq88로 롤백하면 logout 복구"라 했으나 그 배포도 헤더 부재(나래노트 구버전) → 롤백이 logout 못 고침. 번들 검증 후 정정. 회피 = 롤백 대상이 헤더를 가졌는지 먼저 확인.
+- **[롤백 오판]** "o82i3oq88로 롤백하면 logout 복구"라 했으나 그 배포도 헤더 부재(소설비 구버전) → 롤백이 logout 못 고침. 번들 검증 후 정정. 회피 = 롤백 대상이 헤더를 가졌는지 먼저 확인.
 - **[도구 갓챠]** `vercel rollback`이 별칭을 고정 → 이후 `--prod`가 별칭 자동갱신 안 함, `vercel promote` 필요. 인지 못 해 "헤더 없음" 오판 한 사이클.
 - **[멈춤 신호 다수]** "잠깐만 인터뷰 다시"·"기능 정상동작 안하는데"·"develop 배포 안됐었나보네"·"이거 홈으로 가는기능 달려있는데?" 등 사용자 개입으로 방향 정정.
 - AskUserQuestion JSON 직렬화 오류 수 회(escape 깨짐) → 재시도 비용.

@@ -107,7 +107,7 @@
 - 인물 빠른 추가 후 동기화 방식(낙관적 vs invalidate).
 
 ## 출처 / 인접
-- 제품/스타일: `PRODUCT.md`, `docs/reports/2026-06-09-narae-note-product-design-brief.md`
+- 제품/스타일: `PRODUCT.md`, `docs/reports/2026-06-09-soseolbi-product-design-brief.md`
 - 시안: `docs/design/web/`(03-studio 외)
 - 현행 집필실: `frontend/src/app/projects/[id]/write/page.tsx` · `components/editor/PaperEditor.tsx` · `components/workspace/MemoPanel.tsx`
 - 인물 API: `frontend/src/lib/electron-api/characters.ts`

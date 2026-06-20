@@ -31,7 +31,7 @@ const nanumMyeongjo = Nanum_Myeongjo({
 });
 
 export const metadata: Metadata = {
-    title: "소설빙",
+    title: "소설비",
     description: "컨텍스트가 안 죽는 작가용 작업공간",
 };
 

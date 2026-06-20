@@ -3,8 +3,8 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "write-note 데스크탑 MVP (Electron + Vite + React 19 + TipTap). 집필실 디자인 + 실제 에디터.",
-  "author": "Narae Note",
+  "description": "소설비 데스크탑 MVP (Electron + Vite + React 19 + TipTap). 집필실 디자인 + 실제 에디터.",
+  "author": "Soseolbi",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",

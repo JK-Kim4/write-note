@@ -20,7 +20,7 @@ type FormsubmitPayload = {
 
 // 수신 엔드포인트 — desktop 과 동일(이미 활성화됨). Formsubmit 해시 미발급이라 이메일 직접(노출 감수).
 export const FORMSUBMIT_ENDPOINT = "https://formsubmit.co/ajax/jongbell4@gmail.com";
-const CONTACT_SUBJECT = "write-note 웹 의견";
+const CONTACT_SUBJECT = "소설비 웹 의견";
 
 function composeMessage(body: string, meta: ContactMeta): string {
     return `${body}\n\n---\n앱 버전: ${meta.appVersion} · 환경: ${meta.os} · 전송: ${meta.sentAt}`;

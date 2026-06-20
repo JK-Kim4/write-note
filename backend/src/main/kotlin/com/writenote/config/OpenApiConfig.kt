@@ -14,9 +14,9 @@ class OpenApiConfig {
         OpenAPI()
             .info(
                 Info()
-                    .title("write-note API")
+                    .title("소설비 API")
                     .version("v1")
-                    .description("Backend API for write-note"),
+                    .description("Backend API for Soseolbi"),
             ).components(
                 Components()
                     .addSecuritySchemes(

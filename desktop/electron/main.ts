@@ -14,7 +14,7 @@ function createWindow(): void {
   const win = new BrowserWindow({
     width: 1280,
     height: 832,
-    title: "write-note",
+    title: "소설비",
     webPreferences: {
       preload: path.join(__dirname, "preload.mjs"),
       // renderer(웹 페이지)의 Node 직접 접근 차단 + preload 컨텍스트 격리 + OS 샌드박스.

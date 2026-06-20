@@ -43,7 +43,7 @@
   - `oneClick: true` (마법사 없는 1-click 설치)
   - `perMachine: false` (사용자 단위 설치 → 관리자 권한 프롬프트 없음)
 - **고정 `artifactName`** (버전 미포함) → 다운로드 페이지가 `releases/latest/download/<고정명>`으로 항상 최신 링크:
-  - 예: mac `Narae-Note.dmg`, win `Narae-Note-Setup.exe`
+  - 예: mac `Soseolbi-Note.dmg`, win `Soseolbi-Note-Setup.exe`
 - `node:sqlite`는 Node 내장 → asarUnpack/rebuild 불필요(기존 주석 유지).
 
 > 참고: ad-hoc 재서명은 빌드 자산이 universal(.app)이라 `--deep`로 양 슬라이스 서명. dmg를 electron-builder가 만든 뒤 재서명이 깨지지 않도록, .app 재서명 → dmg 재생성 순서를 CI에서 보장.
@@ -53,8 +53,8 @@
 - 트리거: `push: tags: ['v*']`
 - 권한: `contents: write` (Release 생성·자산 업로드)
 - 매트릭스:
-  - `macos-latest` → `electron-builder --mac` → ad-hoc 재서명 → `Narae-Note.dmg`
-  - `windows-latest` → `electron-builder --win` → `Narae-Note-Setup.exe`
+  - `macos-latest` → `electron-builder --mac` → ad-hoc 재서명 → `Soseolbi-Note.dmg`
+  - `windows-latest` → `electron-builder --win` → `Soseolbi-Note-Setup.exe`
 - 공통 단계: checkout → Node 24 setup → corepack(pnpm 8) → `pnpm install`(`desktop/`) → `pnpm build`(`tsc --noEmit && vite build`) → electron-builder → Release 업로드
 - 작업 디렉토리: `desktop/` (Next.js 프론트와 독립 — 자체 React+TipTap, 프론트 빌드 불필요)
 - Release 업로드: `softprops/action-gh-release` 또는 electron-builder `--publish`(GH_TOKEN). 태그명 = 릴리스.
@@ -64,18 +64,18 @@
 - Next.js App Router 라우트(정적). 이벤트 핸들러/감지 로직 → `'use client'`.
 - `navigator.userAgent` / `navigator.platform`로 OS 감지 → 해당 OS 버튼 강조(둘 다 표시).
 - 버튼 링크(고정):
-  - Windows → `https://github.com/JK-Kim4/write-note/releases/latest/download/Narae-Note-Setup.exe`
-  - macOS → `https://github.com/JK-Kim4/write-note/releases/latest/download/Narae-Note.dmg`
+  - Windows → `https://github.com/JK-Kim4/write-note/releases/latest/download/Soseolbi-Note-Setup.exe`
+  - macOS → `https://github.com/JK-Kim4/write-note/releases/latest/download/Soseolbi-Note.dmg`
 - 설치 안내문(§2-4) 인라인. 한국어 우선(DESIGN.md 전제 #5).
 
 ### 2-4. 설치 안내문 (무서명이라 필수)
 
 - **Windows**:
-  1. `Narae-Note-Setup.exe` 다운로드 후 실행
+  1. `Soseolbi-Note-Setup.exe` 다운로드 후 실행
   2. "Windows의 PC 보호" 창 → **추가 정보** → **실행**(1회)
   3. 설치 완료 → 시작 메뉴/바탕화면 아이콘
 - **macOS (Sequoia 15+)**:
-  1. `Narae-Note.dmg` 열어 **Narae Note**를 **응용 프로그램**으로 드래그
+  1. `Soseolbi-Note.dmg` 열어 **Soseolbi**를 **응용 프로그램**으로 드래그
   2. 첫 실행 시 "확인할 수 없어 열 수 없음" → **완료**
   3. **시스템 설정 → 개인정보 보호 및 보안** 하단 → **"확인 없이 열기"** → 암호 입력(앱당 1회)
   4. 이후 정상 실행

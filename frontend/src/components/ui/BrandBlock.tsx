@@ -2,7 +2,7 @@
  * BrandBlock — 입구 카드 상단 일관 적용.
  *
  * Spec reference: contracts/route-surfaces.md §1-1 (auth shared layout)
- * 소설빙 컬러 로고(워드마크 포함) + mode-label (accent blue, uppercase).
+ * 소설비 컬러 로고(워드마크 포함) + mode-label (accent blue, uppercase).
  */
 
 interface BrandBlockProps {
@@ -14,11 +14,11 @@ export function BrandBlock({ modeLabel }: BrandBlockProps) {
         <div className="flex flex-col items-center gap-2 mb-8">
             <div
                 role="img"
-                aria-label="소설빙"
+                aria-label="소설비"
                 style={{
-                    width: "168px",
-                    height: "140px",
-                    backgroundImage: "url('/soseolbing-logo.png')",
+                    width: "220px",
+                    height: "82px",
+                    backgroundImage: "url('/soseolbi-logo.png')",
                     backgroundSize: "contain",
                     backgroundRepeat: "no-repeat",
                     backgroundPosition: "center",

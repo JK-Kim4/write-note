@@ -1,5 +1,5 @@
 /* ──────────────────────────────────────────────────────────────────────────
-   소설빙 — 집필실(Write Studio) · React + TipTap 프로토타입
+   소설비 — 집필실(Write Studio) · React + TipTap 프로토타입
    토큰 SoT: docs/DESIGN.md §2~§8.
    flat parchment: 앱 배경(--bg)은 평평한 양피지 톤(디지털 안식처) — 나무결 텍스처 없음.
    종이(--paper)는 한 단계 더 밝게 떠 배경과 톤 대비를 만든다. accent(테라코타)는 액션 + 포커스 전용.
@@ -31,7 +31,7 @@
   --hairline:        oklch(0.895 0.006 82);
   --hairline-strong: oklch(0.830 0.008 80);
 
-  /* 소설빙 테라코타 액센트(점토 주황갈색) — 기존 잉크블루(hue 252) 대체. hue ~47. */
+  /* 소설비 테라코타 액센트(점토 주황갈색) — 기존 잉크블루(hue 252) 대체. hue ~47. */
   --accent:       oklch(0.520 0.115 47);
   --accent-hover: oklch(0.460 0.110 46);
   --accent-soft:  oklch(0.935 0.035 60);
@@ -91,7 +91,7 @@
   --hairline:        oklch(0.360 0.016 66);
   --hairline-strong: oklch(0.420 0.018 66);
 
-  /* 소설빙 테라코타 액센트(다크 — 밝은 점토톤). hue ~52. */
+  /* 소설비 테라코타 액센트(다크 — 밝은 점토톤). hue ~52. */
   --accent:       oklch(0.740 0.105 52);
   --accent-hover: oklch(0.780 0.110 52);
   --accent-soft:  oklch(0.350 0.055 50);
@@ -153,10 +153,10 @@ body {
   width: 28px; height: 28px; display: grid; place-items: center;
   margin-bottom: 14px; flex: none;
 }
-/* 소설빙 로고 마크 — 배경 투명 컬러 일러스트(어느 면에도 자연스럽게 얹힘). */
+/* 소설비 로고 마크 — 배경 투명 컬러 일러스트(어느 면에도 자연스럽게 얹힘). */
 .rail__logo {
   width: 26px; height: 26px; display: block;
-  background: url('/soseolbing-mark.png') center / contain no-repeat;
+  background: url('/soseolbi-mark.png') center / contain no-repeat;
 }
 .rail__nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
 .rail__item {
@@ -1144,10 +1144,10 @@ body {
   text-align: center; display: flex; flex-direction: column; align-items: center;
   animation: rise var(--dur-enter) var(--ease-out) both;
 }
-/* 작업실 입구 브랜드 — 소설빙 컬러 로고(첫인상). */
+/* 작업실 입구 브랜드 — 소설비 컬러 로고(첫인상). */
 .welcome__mark {
   width: 188px; height: 157px; display: block; margin-bottom: 8px;
-  background: url('/soseolbing-logo.png') center / contain no-repeat;
+  background: url('/soseolbi-logo.png') center / contain no-repeat;
 }
 .welcome__brand {
   font-family: var(--font-serif); font-size: 14px; font-weight: 700; letter-spacing: 0.04em;

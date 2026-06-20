@@ -41,7 +41,7 @@ type RailProps = {
 export function Rail({ active, onNavigate, onCapture }: RailProps) {
   return (
     <nav className="rail" aria-label="화면 전환">
-      <div className="rail__mark" aria-hidden="true" title="나래 노트">
+      <div className="rail__mark" aria-hidden="true" title="소설비">
         <span className="rail__logo" />
       </div>
       <div className="rail__nav">

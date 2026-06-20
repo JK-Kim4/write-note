@@ -21,7 +21,7 @@ class HwpxExportServiceTest {
                     listOf(
                         ExportChapterDto(
                             "1장",
-                            listOf(ExportBlockDto(type = "paragraph", text = "안녕하세요 나래 노트")),
+                            listOf(ExportBlockDto(type = "paragraph", text = "안녕하세요 소설비")),
                         ),
                     ),
             )

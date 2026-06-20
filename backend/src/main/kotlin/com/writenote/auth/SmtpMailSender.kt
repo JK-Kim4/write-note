@@ -25,7 +25,7 @@ class SmtpMailSender(
         token: String,
     ) {
         val link = "$frontendBaseUrl/auth/verify?token=$token"
-        send(toEmail, "[소설빙] 이메일 인증", verificationHtml(link))
+        send(toEmail, "[소설비] 이메일 인증", verificationHtml(link))
     }
 
     override fun sendPasswordReset(
@@ -33,7 +33,7 @@ class SmtpMailSender(
         token: String,
     ) {
         val link = "$frontendBaseUrl/auth/reset-new?token=$token"
-        send(toEmail, "[소설빙] 비밀번호 재설정", passwordResetHtml(link))
+        send(toEmail, "[소설비] 비밀번호 재설정", passwordResetHtml(link))
     }
 
     private fun send(
@@ -53,7 +53,7 @@ class SmtpMailSender(
     private fun verificationHtml(link: String): String =
         """
         <div style="font-family: sans-serif; line-height: 1.6;">
-          <h2>소설빙 이메일 인증</h2>
+          <h2>소설비 이메일 인증</h2>
           <p>아래 버튼을 눌러 이메일 인증을 완료해 주세요.</p>
           <p><a href="$link" style="display:inline-block;padding:10px 18px;background:#3b4cca;color:#fff;text-decoration:none;border-radius:6px;">이메일 인증하기</a></p>
           <p style="color:#888;font-size:13px;">버튼이 열리지 않으면 다음 주소를 복사해 주세요:<br>$link</p>
@@ -63,7 +63,7 @@ class SmtpMailSender(
     private fun passwordResetHtml(link: String): String =
         """
         <div style="font-family: sans-serif; line-height: 1.6;">
-          <h2>소설빙 비밀번호 재설정</h2>
+          <h2>소설비 비밀번호 재설정</h2>
           <p>아래 버튼을 눌러 새 비밀번호를 설정해 주세요. 본인이 요청하지 않았다면 이 메일을 무시하세요.</p>
           <p><a href="$link" style="display:inline-block;padding:10px 18px;background:#3b4cca;color:#fff;text-decoration:none;border-radius:6px;">비밀번호 재설정</a></p>
           <p style="color:#888;font-size:13px;">버튼이 열리지 않으면 다음 주소를 복사해 주세요:<br>$link</p>

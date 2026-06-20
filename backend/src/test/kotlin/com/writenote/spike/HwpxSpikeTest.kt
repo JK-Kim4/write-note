@@ -26,7 +26,7 @@ class HwpxSpikeTest {
         val hwpxFile = BlankFileMaker.make()
         val section = hwpxFile.sectionXMLFileList().get(0)
 
-        addPara(section, "1", "0", "안녕하세요, 나래 노트입니다.")
+        addPara(section, "1", "0", "안녕하세요, 소설비입니다.")
 
         save(hwpxFile, "minimal.hwpx")
     }
@@ -61,7 +61,7 @@ class HwpxSpikeTest {
         val hwpxFile = BlankFileMaker.make()
         val section = hwpxFile.sectionXMLFileList().get(0)
 
-        addPara(section, "10", "0", "제목 1 — 나래 노트 (styleIDRef=1 시도)") { para ->
+        addPara(section, "10", "0", "제목 1 — 소설비 (styleIDRef=1 시도)") { para ->
             para.styleIDRefAnd("1")
         }
         addPara(section, "11", "0", "제목 2 — 챕터 소개 (styleIDRef=2 시도)") { para ->
@@ -141,7 +141,7 @@ class HwpxSpikeTest {
             secPr.pagePr()?.widthAnd(21000)?.heightAnd(29700) // A4
         }
 
-        run.addNewT().addText("A4 용지 설정 테스트 (21000×29700, 1/100mm) — 나래 노트")
+        run.addNewT().addText("A4 용지 설정 테스트 (21000×29700, 1/100mm) — 소설비")
 
         save(hwpxFile, "paper-size-a4.hwpx")
     }
