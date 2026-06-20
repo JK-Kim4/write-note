@@ -14,11 +14,12 @@
  * (용지는 props, 폰트 고정, 이미지삽입 보류) — CustomEditor 는 편집 표면만.
  */
 
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
 import { mobilePageGeometry, pageGeometry, type PageGeometry, type PaperSize } from "./geometry";
 import { BulletListIcon, DividerIcon, MarkGlyph, OrderedListIcon, QuoteIcon, ToolbarButton, ToolbarDivider } from "./toolbarIcons";
 import { emptyHistory, pushSnapshot, redo, undo, type Snapshot } from "./history";
 import { type LaidOutPage } from "./layoutEngine";
+import { clampPage, nextPage, prevPage, pageToFollowCaret } from "./pagedView";
 import { measureLineXs } from "./measure";
 import { modelToPmJson, pmJsonToModel } from "./pmConvert";
 import { createEditContextAdapter } from "./input/editContextAdapter";
@@ -359,6 +360,8 @@ export const CustomEditor = forwardRef<
     const [sel, setSel] = useState<{ anchor: number; focus: number; affinity: Affinity }>({ anchor: buffer.length, focus: buffer.length, affinity: 1 });
     const [pendingMarks, setPendingMarks] = useState<Mask | null>(null);
     const [mounted, setMounted] = useState(false);
+    // 029 페이지 넘김 뷰 — 화면에 보이는 페이지 인덱스(0-기반). 저장 안 하는 일시 뷰 상태.
+    const [currentPage, setCurrentPage] = useState(0);
     const stageRef = useRef<HTMLDivElement>(null);
     // transform:scale 축소 컨테이너 — inner(원본 크기)를 실측해 wrapper 가 scaled 크기를 차지(스크롤 정상화).
     // CSS zoom 은 iOS Safari 에서 글자·줄 배치가 불균일(줄 겹침) → transform:scale 로 균일 축소.
@@ -405,6 +408,10 @@ export const CustomEditor = forwardRef<
     const caretPos = mounted ? caretToScreen(caretOffset, view.blocks, view.pages, geo, sel.affinity) : null;
     const selRects = mounted ? selectionRects(sel.anchor, sel.focus, view, geo) : [];
 
+    // 029 페이지 넘김 — 보이는 페이지(범위 보정)와 페이지 수.
+    const pageCount = view.pages.length;
+    const safePage = clampPage(currentPage, pageCount);
+
     // 툴바 활성 표시 — 현재 캐럿이 속한 블록의 attr.
     const activeBlockIdx = blockIndexAt(model, sel.focus);
     const activeAttr: BlockAttr = model.blockAttrs[activeBlockIdx] ?? { type: "paragraph" };
@@ -420,6 +427,10 @@ export const CustomEditor = forwardRef<
     const onModelChangeRef = useRef(onModelChange);
     // pendingMarks ref — onKey(마운트 1회 effect)에서 최신값 읽기. setter 는 안정적이라 ref 불필요.
     const pendingMarksRef = useRef<Mask | null>(null);
+    // currentPage 를 ref 로 안정화 — 캐럿-페이지 동기 effect 가 currentPage 를 deps 에 넣지 않고도
+    // 최신값을 읽어, < > 뷰 이동(캐럿 불변) 시 effect 가 캐럿 페이지로 되돌리지 않게 한다(029).
+    const currentPageRef = useRef(currentPage);
+    currentPageRef.current = currentPage;
     viewRef.current = view;
     geoRef.current = geo;
     selStateRef.current = sel;
@@ -467,8 +478,23 @@ export const CustomEditor = forwardRef<
         return () => ro.disconnect();
     }, [mounted, view]);
 
-    // 캐럿 가시화 — 캐럿이 페이지를 넘어가 stage 뷰포트 밖이면 stage 만 최소 스크롤해 따라간다.
-    // (window 는 건드리지 않음. block:'nearest' scrollIntoView 대신 scrollTop 직접 보정으로 부작용 차단.)
+    // 029 페이지 넘김 — 페이지 수가 줄어 currentPage 가 범위를 벗어나면 마지막 페이지로 보정(빈 화면 금지, FR-011).
+    useEffect(() => {
+        const c = clampPage(currentPage, pageCount);
+        if (c !== currentPage) setCurrentPage(c);
+    }, [pageCount, currentPage]);
+
+    // 029 캐럿 → 페이지 자동 전환 — 입력/편집으로 캐럿이 다른 페이지로 흘러가면 그 페이지를 보여준다(FR-002/007).
+    // < > 뷰 이동(캐럿 불변)은 sel 이 안 바뀌어 본 effect 가 안 돌아 → 캐럿 페이지로 되돌리지 않음.
+    // currentPage 는 ref 로 읽어 deps 에서 제외(되돌림 방지).
+    useEffect(() => {
+        if (!mounted || !caretPos) return;
+        const follow = pageToFollowCaret(caretPos.pageIndex, currentPageRef.current);
+        if (follow !== null) setCurrentPage(follow);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- currentPage 는 ref 로 읽어 의도적으로 제외(되돌림 방지)
+    }, [sel.focus, sel.anchor, view, mounted, caretPos?.pageIndex]);
+
+    // 029 페이지 내 캐럿 가시화 — 줌인 등으로 캐럿이 현재 페이지 뷰포트 밖이면 stage 만 최소 스크롤(페이지 전환 아님).
     useEffect(() => {
         if (!mounted) return;
         const stage = stageRef.current;
@@ -480,7 +506,7 @@ export const CustomEditor = forwardRef<
         const margin = 24;
         if (cr.top < sr.top + margin) stage.scrollTop -= sr.top + margin - cr.top;
         else if (cr.bottom > sr.bottom - margin) stage.scrollTop += cr.bottom - (sr.bottom - margin);
-    }, [sel.focus, sel.anchor, view, mounted]);
+    }, [sel.focus, sel.anchor, view, mounted, currentPage]);
 
     useEffect(() => setMounted(true), []);
 
@@ -1164,13 +1190,25 @@ export const CustomEditor = forwardRef<
                     </button>
                 </div>
             </div>
+            <div style={{ position: "relative", flex: 1, minHeight: 0, minWidth: 0 }}>
             <div
                 ref={stageRef}
                 tabIndex={0}
                 onMouseDown={onStageMouseDown}
+                onKeyDown={(e) => {
+                    // 029 페이지 넘김 — PageUp/PageDown 으로 페이지 이동(←/→는 캐럿 이동이라 제외).
+                    if (e.key === "PageDown") {
+                        e.preventDefault();
+                        setCurrentPage((p) => nextPage(p, view.pages.length));
+                    } else if (e.key === "PageUp") {
+                        e.preventDefault();
+                        setCurrentPage((p) => prevPage(p, view.pages.length));
+                    }
+                }}
                 className="custom-editor-scroll"
                 // 은은한 배경 — 흰 페이지가 "책상 위 종이"처럼 떠 보이게(흰-on-흰 답답함 해소).
-                style={{ flex: 1, overflow: "auto", outline: "none", caretColor: "transparent", background: "#eceae4" }}
+                // 029: 바운드된 relative wrapper 를 절대위치로 꽉 채워 내부 세로 스크롤 보장(창 전체 스크롤 X → 패널 고정).
+                style={{ position: "absolute", inset: 0, overflow: "auto", outline: "none", caretColor: "transparent", background: "#eceae4" }}
             >
             <style>{"@keyframes pocBlink{0%,49%{opacity:1}50%,100%{opacity:0}} .poc-caret{animation:pocBlink 1s step-end infinite}"}</style>
             {/* iOS(WebKit)는 CSS zoom 이 글자·줄 배치 불균일(줄 겹침) → transform:scale(wrapper 가 scaled
@@ -1181,22 +1219,90 @@ export const CustomEditor = forwardRef<
                         ref={innerRef}
                         style={{ position: "absolute", top: 0, left: 0, transform: `scale(${effectiveScale})`, transformOrigin: "top left", width: "max-content", display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: `${MOBILE_PAGE_PAD_PX}px` }}
                     >
-                        {view.pages.map((pg) => (
-                            <PageBox key={pg.index} page={pg} geo={geo} blocks={view.blocks} caret={caretPos} selRects={selRects.filter((r) => r.pageIndex === pg.index)} />
-                        ))}
+                        {view.pages[safePage] && (
+                            <PageBox key={safePage} page={view.pages[safePage]} geo={geo} blocks={view.blocks} caret={caretPos} selRects={selRects.filter((r) => r.pageIndex === safePage)} />
+                        )}
                     </div>
                 </div>
             ) : (
                 <div style={{ width: "max-content", margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 28, padding: "40px 48px", zoom: effectiveScale }}>
-                    {view.pages.map((pg) => (
-                        <PageBox key={pg.index} page={pg} geo={geo} blocks={view.blocks} caret={caretPos} selRects={selRects.filter((r) => r.pageIndex === pg.index)} />
-                    ))}
+                    {view.pages[safePage] && (
+                        <PageBox key={safePage} page={view.pages[safePage]} geo={geo} blocks={view.blocks} caret={caretPos} selRects={selRects.filter((r) => r.pageIndex === safePage)} />
+                    )}
                 </div>
+            )}
+            </div>
+            {/* 029 페이지 넘김 네비 — 좌/우 가장자리 < >(첫·끝 비활성) + 하단 "n / N". stage 위 오버레이(스크롤 무관). */}
+            {pageCount > 1 && (
+                <>
+                    <button
+                        type="button"
+                        aria-label="이전 페이지"
+                        disabled={safePage <= 0}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setCurrentPage((p) => prevPage(p, pageCount))}
+                        style={pagedNavBtnStyle("left", safePage <= 0)}
+                    >
+                        ‹
+                    </button>
+                    <button
+                        type="button"
+                        aria-label="다음 페이지"
+                        disabled={safePage >= pageCount - 1}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setCurrentPage((p) => nextPage(p, pageCount))}
+                        style={pagedNavBtnStyle("right", safePage >= pageCount - 1)}
+                    >
+                        ›
+                    </button>
+                    <div
+                        aria-label="현재 페이지"
+                        style={{
+                            position: "absolute",
+                            bottom: 12,
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            padding: "3px 12px",
+                            borderRadius: 999,
+                            background: "rgba(31,41,55,0.62)",
+                            color: "#fff",
+                            fontSize: 12,
+                            fontVariantNumeric: "tabular-nums",
+                            pointerEvents: "none",
+                        }}
+                    >
+                        {safePage + 1} / {pageCount}
+                    </div>
+                </>
             )}
             </div>
         </>
     );
 });
+
+/** 029 페이지 넘김 좌/우 오버레이 버튼 스타일(가장자리 세로 중앙, 비활성 시 흐림). */
+function pagedNavBtnStyle(side: "left" | "right", disabled: boolean): CSSProperties {
+    const base: CSSProperties = {
+        position: "absolute",
+        top: "50%",
+        transform: "translateY(-50%)",
+        width: 40,
+        height: 64,
+        borderRadius: 12,
+        border: "1px solid #d1d5db",
+        background: "rgba(255,255,255,0.9)",
+        color: "#374151",
+        fontSize: 26,
+        lineHeight: 1,
+        cursor: disabled ? "default" : "pointer",
+        opacity: disabled ? 0.3 : 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 5,
+    };
+    return side === "left" ? { ...base, left: 12 } : { ...base, right: 12 };
+}
 
 CustomEditor.displayName = "CustomEditor";
 
