@@ -1,6 +1,7 @@
 "use client";
 import type { ProjectCard } from "@/lib/types/domain";
 import { barScale } from "@/lib/dashboardView";
+import { formatDuration } from "@/lib/progress";
 
 type Props = {
     dayMs: ReadonlyArray<number>;
@@ -27,8 +28,14 @@ export function BRhythmCard({ dayMs, todayIndex, todayDateLabel }: Props) {
                 <div className="mt-3 flex items-end gap-2">
                     {scaled.map((h, i) => {
                         const isToday = i === todayIndex;
+                        const durationLabel = formatDuration(dayMs[i]);
                         return (
-                            <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                            <div key={i} className="group relative flex flex-1 flex-col items-center gap-1">
+                                {/* 호버 툴팁 — 그날 작업시간. pointer-events-none 으로 막대 호버를 방해하지 않음.
+                                    title 폴백(아래 막대)이 접근성·모바일 long-press 를 커버. */}
+                                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-[10px] font-medium text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                                    {durationLabel}
+                                </div>
                                 {/* 막대 트랙 — definite 높이(h-24) + relative. 막대는 absolute bottom-0 로
                                     이 트랙(definite)에 % 높이를 해석시킨다(게이지와 동일 패턴). 트랙 없이 막대를
                                     normal-flow 로 두면 부모 칼럼이 auto 높이라 % 가 0 으로 붕괴해 막대가 안 보인다. */}
@@ -36,6 +43,7 @@ export function BRhythmCard({ dayMs, todayIndex, todayDateLabel }: Props) {
                                     <div
                                         data-testid="rhythm-bar"
                                         data-today={isToday}
+                                        title={durationLabel}
                                         className={`absolute inset-x-0 bottom-0 rounded-sm ${isToday ? "bg-terracotta-600" : "bg-terracotta-200"}`}
                                         style={{ height: `${Math.max(4, h * 100)}%` }}
                                     />
