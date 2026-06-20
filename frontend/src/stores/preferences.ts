@@ -20,15 +20,21 @@ export type WritingMode = "manuscript" | "editor";
 export type ManuscriptSize = 200 | 400 | 1000;
 export type { PaperSize };
 
+/** 일일 작업 목표 시간(분) 허용 이산값 — 백엔드 ALLOWED["dailyGoalMinutes"] 와 정합(028 US2). */
+export const DAILY_GOAL_MINUTES = [30, 60, 90, 120, 180, 240, 300] as const;
+export type DailyGoalMinutes = (typeof DAILY_GOAL_MINUTES)[number];
+
 interface PreferencesState {
     theme: ThemeMode;
     writingMode: WritingMode;
     manuscriptSize: ManuscriptSize;
     paperSize: PaperSize;
+    dailyGoalMinutes: DailyGoalMinutes;
     setTheme: (theme: ThemeMode) => void;
     setWritingMode: (mode: WritingMode) => void;
     setManuscriptSize: (size: ManuscriptSize) => void;
     setPaperSize: (size: PaperSize) => void;
+    setDailyGoalMinutes: (minutes: DailyGoalMinutes) => void;
 }
 
 /** 초기 기본값 — 계정 전환 시 이전 계정 값 누수 방지 리셋(PreferencesSync 버그픽스 F)에도 쓴다. */
@@ -37,7 +43,11 @@ export const PREFERENCE_DEFAULTS = {
     writingMode: "editor",
     manuscriptSize: 400,
     paperSize: "A4",
-} as const satisfies Pick<PreferencesState, "theme" | "writingMode" | "manuscriptSize" | "paperSize">;
+    dailyGoalMinutes: 60,
+} as const satisfies Pick<
+    PreferencesState,
+    "theme" | "writingMode" | "manuscriptSize" | "paperSize" | "dailyGoalMinutes"
+>;
 
 export const usePreferences = create<PreferencesState>()(
     persist(
@@ -47,6 +57,7 @@ export const usePreferences = create<PreferencesState>()(
             setWritingMode: (writingMode) => set({ writingMode }),
             setManuscriptSize: (manuscriptSize) => set({ manuscriptSize }),
             setPaperSize: (paperSize) => set({ paperSize }),
+            setDailyGoalMinutes: (dailyGoalMinutes) => set({ dailyGoalMinutes }),
         }),
         {
             name: "writenote.preferences.v1",

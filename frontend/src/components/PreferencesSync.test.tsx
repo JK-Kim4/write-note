@@ -24,11 +24,11 @@ const ME = http.get(`${ORIGIN}/api/auth/me`, () =>
 
 beforeEach(() => {
     localStorage.removeItem("wn:prefsOwner");
-    usePreferences.setState({ theme: "system", writingMode: "editor", manuscriptSize: 400 });
+    usePreferences.setState({ theme: "system", writingMode: "editor", manuscriptSize: 400, dailyGoalMinutes: 60 });
 });
 
 afterEach(() => {
-    usePreferences.setState({ theme: "system", writingMode: "editor", manuscriptSize: 400 });
+    usePreferences.setState({ theme: "system", writingMode: "editor", manuscriptSize: 400, dailyGoalMinutes: 60 });
 });
 
 describe("PreferencesSync", () => {
@@ -49,6 +49,23 @@ describe("PreferencesSync", () => {
         await waitFor(() => expect(usePreferences.getState().theme).toBe("dark"));
         expect(usePreferences.getState().writingMode).toBe("manuscript");
         expect(usePreferences.getState().manuscriptSize).toBe(1000);
+    });
+
+    it("서버의 dailyGoalMinutes 를 store 에 주입한다 (028 US2)", async () => {
+        server.use(
+            ME,
+            http.get(`${ORIGIN}/api/settings`, () =>
+                HttpResponse.json({
+                    success: true,
+                    data: { settings: { dailyGoalMinutes: "90" } },
+                    error: null,
+                }),
+            ),
+        );
+
+        renderWithClient(<PreferencesSync />);
+
+        await waitFor(() => expect(usePreferences.getState().dailyGoalMinutes).toBe(90));
     });
 
     it("서버 설정이 없으면 현재 로컬값을 시딩 PUT 한다", async () => {

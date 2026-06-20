@@ -41,6 +41,8 @@ export function useWeeklyByDay() {
 
     return useQuery({
         queryKey: sessionKeys.weeklyByDay(weekStartIso, todayIso),
+        // 집필 후 홈 복귀(컴포넌트 mount)마다 강제 재요청 — 기본 staleTime 60s 캐시로 인한 미반영 방지(028 US1).
+        refetchOnMount: "always",
         queryFn: async () => {
             const dayMs = await Promise.all(
                 ranges.map(async ({ from }) => {

@@ -54,3 +54,13 @@ describe("BSettingsPage 회원 탈퇴 모달 행위", () => {
         expect(confirmBtn).toBeEnabled();
     });
 });
+
+// 028 US2 — 일일 작업 목표 설정 섹션
+describe("BSettingsPage 일일 작업 목표", () => {
+    it("일일 작업 목표 select 와 7개 선택지를 렌더한다", () => {
+        renderPage();
+        const select = screen.getByLabelText("일일 작업 목표 시간") as HTMLSelectElement;
+        expect(select).toBeInTheDocument();
+        expect(select.querySelectorAll("option")).toHaveLength(7);
+    });
+});

@@ -5,8 +5,10 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchMe } from "@/lib/api/auth";
 import { fetchSettings, putSettings, type SettingsMap } from "@/lib/api/settings";
 import {
+    DAILY_GOAL_MINUTES,
     PREFERENCE_DEFAULTS,
     usePreferences,
+    type DailyGoalMinutes,
     type ManuscriptSize,
     type PaperSize,
     type ThemeMode,
@@ -39,11 +41,18 @@ type PreferencesSnapshot = {
     writingMode: WritingMode;
     manuscriptSize: ManuscriptSize;
     paperSize: PaperSize;
+    dailyGoalMinutes: DailyGoalMinutes;
 };
 
-/** store → 서버 전송용 맵(manuscriptSize 는 문자열 직렬화). */
+/** store → 서버 전송용 맵(숫자 설정은 문자열 직렬화). */
 function toMap(s: PreferencesSnapshot): SettingsMap {
-    return { theme: s.theme, writingMode: s.writingMode, manuscriptSize: String(s.manuscriptSize), paperSize: s.paperSize };
+    return {
+        theme: s.theme,
+        writingMode: s.writingMode,
+        manuscriptSize: String(s.manuscriptSize),
+        paperSize: s.paperSize,
+        dailyGoalMinutes: String(s.dailyGoalMinutes),
+    };
 }
 
 export function PreferencesSync() {
@@ -73,11 +82,13 @@ export function PreferencesSync() {
                     const owner = localStorage.getItem(OWNER_KEY);
                     if (owner !== null && owner !== String(userId)) {
                         applyingRef.current = true;
-                        const { setTheme, setWritingMode, setManuscriptSize, setPaperSize } = usePreferences.getState();
+                        const { setTheme, setWritingMode, setManuscriptSize, setPaperSize, setDailyGoalMinutes } =
+                            usePreferences.getState();
                         setTheme(PREFERENCE_DEFAULTS.theme);
                         setWritingMode(PREFERENCE_DEFAULTS.writingMode);
                         setManuscriptSize(PREFERENCE_DEFAULTS.manuscriptSize);
                         setPaperSize(PREFERENCE_DEFAULTS.paperSize);
+                        setDailyGoalMinutes(PREFERENCE_DEFAULTS.dailyGoalMinutes);
                         applyingRef.current = false;
                         localStorage.setItem(OWNER_KEY, String(userId));
                         await putSettings(toMap(PREFERENCE_DEFAULTS));
@@ -89,7 +100,8 @@ export function PreferencesSync() {
                     return;
                 }
                 applyingRef.current = true;
-                const { setTheme, setWritingMode, setManuscriptSize, setPaperSize } = usePreferences.getState();
+                const { setTheme, setWritingMode, setManuscriptSize, setPaperSize, setDailyGoalMinutes } =
+                    usePreferences.getState();
                 if (server.theme && (THEMES as readonly string[]).includes(server.theme)) {
                     setTheme(server.theme as ThemeMode);
                 }
@@ -102,6 +114,10 @@ export function PreferencesSync() {
                 }
                 if (server.paperSize && (PAPER_SIZES as readonly string[]).includes(server.paperSize)) {
                     setPaperSize(server.paperSize as PaperSize);
+                }
+                const goal = Number(server.dailyGoalMinutes);
+                if ((DAILY_GOAL_MINUTES as readonly number[]).includes(goal)) {
+                    setDailyGoalMinutes(goal as DailyGoalMinutes);
                 }
                 applyingRef.current = false;
                 localStorage.setItem(OWNER_KEY, String(userId));

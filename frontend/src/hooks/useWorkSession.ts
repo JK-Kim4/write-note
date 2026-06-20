@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { webElectronApi } from "@/lib/electron-api";
+import { sessionKeys } from "@/lib/query/useSessions";
 
 /**
  * 집필실 작업 세션 라이프사이클 (015 US3, R6/FR-019).
@@ -15,6 +17,13 @@ import { webElectronApi } from "@/lib/electron-api";
  */
 export function useWorkSession(projectId: number) {
     const closedRef = useRef(false);
+    const queryClient = useQueryClient();
+
+    // 세션 종료 후 집필 리듬/작업시간 집계를 신선화 — 홈 복귀 시 즉시 반영(028 US1).
+    // unload(beacon) 경로는 페이지가 닫히는 중이라 무효화 대상 아님.
+    const invalidateSessions = useCallback(() => {
+        void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
+    }, [queryClient]);
 
     useEffect(() => {
         if (!Number.isFinite(projectId)) return;
@@ -40,9 +49,9 @@ export function useWorkSession(projectId: number) {
             window.removeEventListener("pagehide", onPageHide);
             if (closedRef.current) return;
             closedRef.current = true;
-            void webElectronApi.sessions.end(projectId);
+            void webElectronApi.sessions.end(projectId).then(invalidateSessions);
         };
-    }, [projectId]);
+    }, [projectId, invalidateSessions]);
 
     const endWithLog = useCallback(
         async (body: string) => {
@@ -50,13 +59,14 @@ export function useWorkSession(projectId: number) {
             closedRef.current = true;
             try {
                 await webElectronApi.sessions.endWithLog(projectId, body);
+                invalidateSessions();
             } catch (e) {
                 // 종료 실패 시 스킵 플래그 복원 — 다음 정상 이탈에서 세션이 제대로 닫히도록(desktop 정합).
                 closedRef.current = false;
                 throw e;
             }
         },
-        [projectId],
+        [projectId, invalidateSessions],
     );
 
     return { endWithLog };

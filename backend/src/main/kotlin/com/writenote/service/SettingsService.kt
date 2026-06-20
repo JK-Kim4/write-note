@@ -58,6 +58,7 @@ class SettingsService(
                 "manuscriptSize" to setOf("200", "400", "1000"),
                 "paperSize" to setOf("A4", "A3", "A2", "B4"),
                 "onboardingCompleted" to setOf("true"),
+                "dailyGoalMinutes" to setOf("30", "60", "90", "120", "180", "240", "300"),
             )
     }
 }

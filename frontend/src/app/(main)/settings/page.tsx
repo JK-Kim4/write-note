@@ -5,11 +5,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { fetchMe, withdraw, WITHDRAWAL_CONFIRMATION_PHRASE } from "@/lib/api/auth";
 import {
+    DAILY_GOAL_MINUTES,
     usePreferences,
     useIsPreferencesHydrated,
+    type DailyGoalMinutes,
     type PaperSize,
     type ThemeMode,
 } from "@/stores/preferences";
+import { formatDurationMinutes } from "@/lib/todayGauge";
 
 /**
  * B타입 설정 — fable-test 카드 문법으로 구성한 설정 화면.
@@ -56,7 +59,7 @@ function handleRadioKeyDown<TValue extends string>(
 }
 
 export default function BSettingsPage() {
-    const { theme, setTheme, paperSize, setPaperSize } = usePreferences();
+    const { theme, setTheme, paperSize, setPaperSize, dailyGoalMinutes, setDailyGoalMinutes } = usePreferences();
     // 미수화(하드 로드 직후) 동안에는 선택 강조를 보류 — 기본값(A4/시스템)으로 깜빡였다 교정되는 현상 방지.
     const isHydrated = useIsPreferencesHydrated();
     const meQuery = useQuery({ queryKey: ["auth", "me"], queryFn: fetchMe, retry: false });
@@ -123,6 +126,29 @@ export default function BSettingsPage() {
                         );
                     })}
                 </div>
+            </section>
+
+            <section className="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+                <h2 className="text-base font-semibold text-gray-900">일일 작업 목표</h2>
+                <p className="mt-0.5 text-xs text-gray-400">
+                    홈 화면의 &ldquo;오늘 작업&rdquo; 게이지가 이 목표 대비 채워집니다.
+                </p>
+                <label htmlFor="daily-goal" className="sr-only">
+                    일일 작업 목표 시간
+                </label>
+                <select
+                    id="daily-goal"
+                    value={dailyGoalMinutes}
+                    disabled={!isHydrated}
+                    onChange={(e) => setDailyGoalMinutes(Number(e.target.value) as DailyGoalMinutes)}
+                    className="mt-3 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 disabled:opacity-60"
+                >
+                    {DAILY_GOAL_MINUTES.map((minutes) => (
+                        <option key={minutes} value={minutes}>
+                            {formatDurationMinutes(minutes)}
+                        </option>
+                    ))}
+                </select>
             </section>
 
             <section className="rounded-xl border border-gray-200 bg-white p-5">

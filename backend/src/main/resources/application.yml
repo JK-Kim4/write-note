@@ -80,8 +80,8 @@ app:
   frontend:
     base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
   work-session:
-    # 자동 종료 시 이 시간(초) 미만 세션은 폐기 (짧은 진입 노이즈 제거 — 2026-06-13 30→15 완화)
-    min-session-seconds: ${WORK_SESSION_MIN_SECONDS:15}
+    # 자동 종료 시 이 시간(초) 미만 세션은 폐기 (짧은 진입 노이즈 제거 — 2026-06-13 30→15, 2026-06-20 15→10 완화)
+    min-session-seconds: ${WORK_SESSION_MIN_SECONDS:10}
     # 이 시간(시간) 초과해 열려 있는 dangling 세션을 스케줄러가 폐기
     max-open-hours: ${WORK_SESSION_MAX_OPEN_HOURS:12}
     # dangling 정리 스케줄 (기본 매시간 정각)

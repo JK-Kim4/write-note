@@ -12,7 +12,10 @@ import { BResumeCard } from "@/components/b/dashboard/BResumeCard";
 import { BWorkMiniCard } from "@/components/b/dashboard/BWorkMiniCard";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { BRhythmCard } from "@/components/b/dashboard/BRhythmCard";
+import { BTodayGauge } from "@/components/b/dashboard/BTodayGauge";
 import { BMemoStrip } from "@/components/b/dashboard/BMemoStrip";
+import { usePreferences } from "@/stores/preferences";
+import { LITERARY_QUOTES, pickRandom } from "@/lib/literaryQuotes";
 
 export default function BDashboardPage() {
     const router = useRouter();
@@ -24,10 +27,16 @@ export default function BDashboardPage() {
     );
     const { resume, others } = selectDashboard(cardsQuery.data ?? []);
     const weeklyQuery = useWeeklyByDay();
-    const todayIndex = weekDayRanges(new Date()).findIndex((r) => r.isToday);
+    const now = new Date();
+    const todayIndex = weekDayRanges(now).findIndex((r) => r.isToday);
+    const todayDateLabel = `${now.getMonth() + 1}/${now.getDate()}`;
+    const dailyGoalMinutes = usePreferences((s) => s.dailyGoalMinutes);
+    const todayMs = weeklyQuery.data?.dayMs[todayIndex] ?? 0;
     const memosQuery = useInboxMemos();
     const [captureOpen, setCaptureOpen] = useState(false);
     const [memoDrawerOpen, setMemoDrawerOpen] = useState(false);
+    // 방문(마운트)마다 무작위 1구절 — mounted 가드로만 표시해 SSR 하이드레이션 불일치를 피한다(028 US3).
+    const [quote] = useState(() => pickRandom(LITERARY_QUOTES));
 
     // 메모 drawer — 키보드 사용자가 ESC 로 닫을 수 있도록(works/[id] 패턴 정합).
     useEffect(() => {
@@ -62,7 +71,11 @@ export default function BDashboardPage() {
             <OnboardingTour />
             <h1 className="text-xl font-bold text-gray-900">안녕하세요.</h1>
             <p className="mt-1 text-sm text-gray-500">
-                {mounted ? `${dateLabel} — 오늘도 곁에 있을게요.` : " "}
+                {mounted
+                    ? quote
+                        ? `${dateLabel} — “${quote.text}” · ${quote.author}`
+                        : `${dateLabel} — 오늘도 곁에 있을게요.`
+                    : " "}
             </p>
 
             {cardsQuery.data === undefined && !cardsQuery.isError ? (
@@ -123,9 +136,11 @@ export default function BDashboardPage() {
                                     ))}
                                 </div>
                             )}
+                            <BTodayGauge todayMs={todayMs} goalMinutes={dailyGoalMinutes} />
                             <BRhythmCard
                                 dayMs={weeklyQuery.data?.dayMs ?? [0, 0, 0, 0, 0, 0, 0]}
                                 todayIndex={todayIndex}
+                                todayDateLabel={todayDateLabel}
                                 cards={cardsQuery.data ?? []}
                             />
                         </div>

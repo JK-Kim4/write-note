@@ -118,4 +118,26 @@ class SettingsServiceIT
                 settingsService.updateSettings(user.id!!, mapOf("onboardingCompleted" to "false"))
             }
         }
+
+        @Test
+        @DisplayName("dailyGoalMinutes 허용값(30·60·300 등) 저장 통과")
+        fun `valid dailyGoalMinutes values accepted`() {
+            val user = savedUser()
+            for (minutes in listOf("30", "60", "90", "120", "180", "240", "300")) {
+                settingsService.updateSettings(user.id!!, mapOf("dailyGoalMinutes" to minutes))
+                val stored = settingsService.getSettings(user.id!!).settings
+                assertThat(stored).containsEntry("dailyGoalMinutes", minutes)
+            }
+        }
+
+        @Test
+        @DisplayName("dailyGoalMinutes 비허용값(45·abc) 거부")
+        fun `invalid dailyGoalMinutes rejected`() {
+            val user = savedUser()
+            for (bad in listOf("45", "abc", "0")) {
+                assertThrows<ValidationException> {
+                    settingsService.updateSettings(user.id!!, mapOf("dailyGoalMinutes" to bad))
+                }
+            }
+        }
     }
