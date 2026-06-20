@@ -10,6 +10,7 @@ import { toInboxMemoView } from "@/lib/memoView";
 import { QuickCapture } from "@/components/QuickCapture";
 import { BResumeCard } from "@/components/b/dashboard/BResumeCard";
 import { BWorkMiniCard } from "@/components/b/dashboard/BWorkMiniCard";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { BRhythmCard } from "@/components/b/dashboard/BRhythmCard";
 import { BMemoStrip } from "@/components/b/dashboard/BMemoStrip";
 
@@ -58,6 +59,7 @@ export default function BDashboardPage() {
 
     return (
         <div>
+            <OnboardingTour />
             <h1 className="text-xl font-bold text-gray-900">안녕하세요.</h1>
             <p className="mt-1 text-sm text-gray-500">
                 {mounted ? `${dateLabel} — 오늘도 곁에 있을게요.` : " "}
@@ -85,6 +87,7 @@ export default function BDashboardPage() {
                     </p>
                     <button
                         type="button"
+                        data-tour="new-work"
                         className="mt-4 rounded-md bg-terracotta-600 px-4 py-2 text-sm text-white hover:bg-terracotta-700"
                         onClick={() => router.push("/library?new=1")}
                     >

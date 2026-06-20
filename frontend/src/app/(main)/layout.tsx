@@ -24,8 +24,8 @@ import { useModalDismiss } from "@/lib/useModalDismiss";
 const NAV_ITEMS = [
     { href: "/", label: "홈", exact: true },
     { href: "/library", label: "작품", exact: false },
-    { href: "/memos", label: "메모", exact: false },
-    { href: "/characters", label: "인물", exact: false },
+    { href: "/memos", label: "메모", exact: false, dataTour: "nav-memos" },
+    { href: "/characters", label: "인물", exact: false, dataTour: "nav-characters" },
     { href: "/logs", label: "기록", exact: false },
     { href: "/settings", label: "설정", exact: false },
 ] as const;
@@ -165,13 +165,18 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                                 : pathname.startsWith(item.href);
                             return (
                                 <span key={item.href} className="contents">
-                                    <Link href={item.href} className={isActive ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS}>
+                                    <Link
+                                        href={item.href}
+                                        data-tour={"dataTour" in item ? item.dataTour : undefined}
+                                        className={isActive ? NAV_ACTIVE_CLASS : NAV_IDLE_CLASS}
+                                    >
                                         {item.label}
                                     </Link>
                                     {/* 집필 — 마지막으로 연 작품(존재 시)→최근 작품→작품 0개면 안내 모달. "연 적 없음"이 아니라 "작품 없음"일 때만 모달. */}
                                     {i === 0 && (
                                         <button
                                             type="button"
+                                            data-tour="nav-write"
                                             onMouseEnter={() => {
                                                 const t = resolveStudioTarget();
                                                 if (t != null) prefetchStudio(t);
