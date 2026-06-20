@@ -1,19 +1,15 @@
 import { cookies } from "next/headers";
 import { LandingContent } from "@/components/landing/LandingContent";
-import { PostLoginRedirect } from "@/components/landing/PostLoginRedirect";
 
 /**
- * 공개 소개 페이지(`/`).
+ * 공개 소개 페이지(`/welcome`).
  *
- * 인증 쿠키(access_token) 보유 시 — 랜딩을 렌더하지 않고 [PostLoginRedirect]가 디자인별 홈으로 즉시 이동
- * (로그인/OAuth 후 랜딩이 잠깐 노출되는 플래시 제거). 비로그인(쿠키 없음)이면 랜딩을 그대로 노출.
+ * 로그인 여부와 무관하게 항상 노출한다 — 로그인 사용자도 소개 페이지를 직접 열어볼 수 있다.
+ * 인증 쿠키(access_token) 보유 시 가입/로그인 CTA 대신 "내 작업실로"(`/`) 진입 버튼을 보인다([LandingContent]).
  *
- * 쿠키를 서버에서 읽으므로 본 라우트는 동적 렌더(비로그인 방문자에겐 추가 인증 round-trip 없이 즉시 랜딩).
+ * 쿠키를 서버에서 읽으므로 본 라우트는 동적 렌더(추가 인증 round-trip 없이 즉시 렌더).
  */
 export default async function LandingPage() {
     const hasSession = (await cookies()).has("access_token");
-    if (hasSession) {
-        return <PostLoginRedirect />;
-    }
-    return <LandingContent />;
+    return <LandingContent isAuthenticated={hasSession} />;
 }

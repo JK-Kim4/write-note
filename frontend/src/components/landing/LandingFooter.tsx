@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export function LandingFooter() {
+export function LandingFooter({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
     return (
         <footer className="landing-footer">
             <div className="landing-wrap">
@@ -10,7 +10,7 @@ export function LandingFooter() {
                         <div className="landing-ftag">소설에 기대어 쉬어가는 곳</div>
                     </div>
                     <div className="landing-flinks">
-                        <Link href="/auth/login">로그인</Link>
+                        {!isAuthenticated && <Link href="/auth/login">로그인</Link>}
                         <Link href="/privacy">개인정보처리방침</Link>
                     </div>
                 </div>

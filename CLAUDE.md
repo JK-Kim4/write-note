@@ -65,12 +65,29 @@ V1 wireframe 완료 + 구현 진행 중 — 001 Phase 1A Backend Foundation / 00
 
 ## 스크립트
 
+### Backend (`backend/`, Gradle)
+
 | 용도 | 명령어 |
 |---|---|
 | local DB | `docker compose up -d --wait postgres` |
 | backend test | `cd backend && ./gradlew test` |
 | backend verify | `cd backend && ./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` |
 | backend boot | `cd backend && ./gradlew bootRun --args='--spring.profiles.active=local'` |
+
+### Frontend (`frontend/`, pnpm — **cwd=`frontend/` 고정 의무**)
+
+> ⚠️ frontend 명령은 반드시 `frontend/` 디렉토리에서 실행한다. repo 루트에서 vitest 실행 시 `vitest.config.ts`(jsdom 환경) 미적용 → `document is not defined` 로 테스트가 깨진다. 커밋용 `cd` 로 루트 이동 후 후속 명령의 cwd 재확인.
+
+| 용도 | 명령어 |
+|---|---|
+| deps 설치 | `cd frontend && pnpm install` |
+| dev 서버 | `cd frontend && pnpm dev` (→ http://localhost:3000) |
+| test (전체) | `cd frontend && pnpm test` (= `vitest run`) |
+| test (단일 파일) | `cd frontend && npx vitest run <파일경로>` |
+| lint | `cd frontend && pnpm lint` |
+| typecheck | `cd frontend && pnpm typecheck` (= `tsc --noEmit`) |
+| build (RSC 경계 검출) | `cd frontend && pnpm build` — server/client 경계 위반은 lint 가 아닌 **build 에서만** 검출 (typescript/code-quality §RSC 경계) |
+| frontend verify | `cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build` |
 
 ## 배포 환경
 
@@ -86,24 +103,35 @@ V1 wireframe 완료 + 구현 진행 중 — 001 Phase 1A Backend Foundation / 00
 | 데스크톱 (`desktop/`) | GitHub Releases — `v*` 태그 push 시 `.github/workflows/release.yml` 이 네이티브 러너에서 dmg/exe 빌드·게시 |
 | 다운로드 페이지 (`download-site/`) | Vercel 정적 배포 (Production Branch = `main`, Root = `download-site`) — 데스크톱 설치파일 안내. **웹 앱과 분리** |
 
-> Render(백엔드)·Supabase(DB)는 2026-06-16 폐기. 도메인 미확보 → Vercel 기본 `.vercel.app` 우선.
+> Render(백엔드)·Supabase(DB)는 2026-06-16 폐기. 도메인 = soseolbi.com 확보(2026-06-21, 위 인프라 구성 참조).
 
 ### 브랜치 모델 (README §"브랜치 전략")
 
 | 브랜치 | 역할 |
 |---|---|
-| `main` | production-released 만 (V1 출시 전 = 기획 산출물만). 데스크톱 다운로드 페이지의 Vercel production 브랜치 |
-| `develop` | 다음 release 통합 target (web 포팅 015~022 merge 완료 지점) |
+| `main` | **웹 앱 production 코드베이스**(2026-06-21 `develop→main` 승격, `7628e66`). main push → Vercel production(soseolbi.com) 자동배포 + 다운로드 페이지 production. develop 과 동기 유지 |
+| `develop` | 다음 release 통합 target. push → Vercel preview 자동배포. 작은 FE 기능은 develop 직접 작업 후 main merge |
 | `feature/*` | 신규 기능, 워크트리 격리 |
 | `release/*` · `hotfix/*` | 출시 안정화 / production 긴급 fix (발생 시 생성) |
 
-### 배포 방식 / 현재 상태 (단정 금지 — 확인 후 인용)
+### 인프라 구성 (요약 — 상세 SoT = 메모리 [[deployment-live]] + 04-web-launch-v1-plan.md)
 
-- **web 앱은 배포되어 접근 가능** (Vercel FE + OCI BE, 2026-06-18 사용자 확인). V1 공식 런칭 여부·잔여 정합은 SoT(04-web-launch-v1-plan.md Round 4) 기준.
-- **FE 재배포 = 수동 `vercel --prod` CLI** (브랜치 push 자동배포 아님 — 로컬 작업트리 코드를 빌드·업로드). `frontend/.vercel` 링크 존재(project "write-note").
-- **BE 재배포 = 수동 OCI** (Docker 빌드 → OCI Compute 재기동). Render 류 push-자동배포 미구성(00-stack §2-3). 외부 콘솔 적용은 사용자(external-infra-safety §1).
-- **배포 순서 의존(HARD-GATE)** — 쿠키 인증 변경요청에 `X-WriteNote-Client` 헤더를 요구하는 `CsrfDefenseFilter` 때문에, **FE(헤더 전송) 선행 → BE(헤더 요구) 후행** 필수. BE 가 FE 보다 먼저 나가면 기존 사용자 변경요청이 403 으로 깨진다.
-- `main`/`develop` 어느 쪽이 web 앱 production 인지는 유동적 → 배포 관련 답변 전 SoT 또는 사용자 확인.
+- **도메인 = soseolbi.com** (2026-06-21 harubuild.xyz 에서 전환). **Cloudflare 경유**(GoDaddy 도메인 → Cloudflare 네임서버): 프론트 `soseolbi.com`(Vercel, Cloudflare 프록시 **OFF**), 백엔드 `api.soseolbi.com`(OCI, Cloudflare 프록시 **ON** + Origin Certificate). 구 harubuild.xyz → 308 redirect.
+- **FE** = Vercel (project "write-note", team narae-note). same-origin 프록시 — `/api/*` → `BACKEND_ORIGIN`(=`https://api.soseolbi.com`) rewrite. **Root Directory=`frontend`**.
+- **BE** = OCI Compute(`free-a1`, ap-seoul-1, `ssh oci`) Docker 컨테이너 + 앞단 Caddy(:443) + self-managed PostgreSQL(Docker, 로컬 전용, Flyway 자동).
+- **데스크톱**(`desktop/`) = GitHub Releases(`v*` 태그 push → `release.yml`). **다운로드 페이지**(`download-site/`) = 별도 Vercel 정적 배포(Root=download-site, Production=main) — 웹 앱과 분리.
+
+### 배포 방식 (HARD-GATE — 정상 경로 = git push 자동배포)
+
+- **FE 재배포 = `main`/`develop` push 시 Vercel git 자동배포** (정상 경로, 2026-06-21~). **`main` push → production**(soseolbi.com alias, **무중단** immutable 배포), 기타 브랜치 push → preview. 별도 명령 불필요.
+  - ⚠️ **수동 `vercel --prod` 는 비권장 — 실패한다**: Root Directory=`frontend` 설정 때문에 (a) `cd frontend && vercel --prod` → 경로 중복 `frontend/frontend` 오류, (b) repo 루트 실행 → backend·desktop 포함 repo 전체(~1GB) 업로드 → **100MB 초과 deploy_failed**. 핫픽스로 꼭 필요하면 `.vercelignore` 선행. **그냥 push 로 자동배포가 맞다.** (2026-06-21 실증 — 메모리 [[deployment-live]])
+- **BE 재배포 = OCI Docker blue-green 무중단** (수동, 내가 직접 수행 가능 — 단 prod 쓰기라 사용자 컨펌 시; external-infra-safety §1). 절차: `cd backend && ./gradlew bootJar` → `scp build/libs/*.jar oci:be-build/backend.jar` → `ssh oci 'sudo bash ~/be-build/blue-green-deploy.sh'`. 상세 = 메모리 [[deployment-live]].
+- **배포 순서 의존(HARD-GATE) = 방향 의존** (고정 아님 — 어느 쪽이 새 계약/요구를 도입하느냐로 결정):
+  - **FE 선행 → BE 후행**: BE 가 FE 가 보내는 것을 *요구*하게 될 때. 예) `CsrfDefenseFilter` 가 쿠키 변경요청에 `X-WriteNote-Client` 헤더 요구 — BE 가 먼저 나가면 헤더 없는 기존 프론트 변경요청이 403.
+  - **BE 선행 → FE 후행**: BE 가 새 계약을 받아들이게 한 뒤 FE 가 그걸 *보낼* 때. 예) settings 신규 키 — FE 가 먼저 나가면 구 BE 가 그 키 포함 PUT 전체를 400 거부.
+  - **FE·BE 무관**: 한쪽만 변경(예: 본 약관 모달 = FE 단독, 백엔드 변경 0)이면 순서 무관.
+- **배포 전 베이스 정합 확인(HARD-GATE)** — push/merge/배포 전 `git fetch origin && git log --oneline HEAD..origin/develop` 로 누락 커밋(특히 보안·인증·공개경로 계약) 점검. 메모리 [[branch-base-verify-before-work]].
+- **§19 한계** — prod 로그인 불가 → 인증 뒤 동작(authed)은 배포해도 검증 못 함. build/test GREEN 을 authed 정합 증거로 단정 말 것. 비인증 화면은 운영 HTML 직접 확인 가능.
 
 ## 안전 가드레일 (HARD-GATE)
 
