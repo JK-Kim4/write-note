@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PrivacyContent } from "@/content/legal/PrivacyContent";
 
 export const metadata: Metadata = {
     title: "개인정보처리방침 | 소설비",
@@ -6,7 +7,7 @@ export const metadata: Metadata = {
 
 /**
  * 개인정보처리방침 — 카카오 로그인 동의항목(이메일·닉네임 필수) 심사 제출용 공개 URL.
- * https://soseolbi.com/privacy
+ * https://soseolbi.com/privacy. 본문은 src/content/legal/PrivacyContent 공유.
  */
 export default function PrivacyPage() {
     return (
@@ -20,187 +21,7 @@ export default function PrivacyPage() {
                 color: "var(--w-ink, #1a1a1a)",
             }}
         >
-            <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "8px" }}>개인정보처리방침</h1>
-            <p style={{ color: "var(--w-ink-faint, #888)", fontSize: "0.875rem", marginBottom: "40px" }}>
-                최종 수정일: 2026년 6월 17일
-            </p>
-
-            <p>
-                소설비(이하 &quot;서비스&quot;)은 개인정보보호법 및 관련 법령에 따라 이용자의 개인정보를 보호하고
-                이에 관한 고충을 신속하게 처리할 수 있도록 다음과 같이 개인정보처리방침을 수립·공개합니다.
-            </p>
-
-            <Section title="1. 수집하는 개인정보 항목 및 수집 방법">
-                <p>서비스는 다음의 개인정보를 수집합니다.</p>
-
-                <SubTitle>가. 카카오 로그인 시 수집 항목</SubTitle>
-                <Table
-                    headers={["항목", "필수/선택", "수집 방법"]}
-                    rows={[
-                        ["카카오계정 이메일 주소", "필수", "카카오 OAuth2 동의항목"],
-                        ["닉네임(프로필 이름)", "필수", "카카오 OAuth2 동의항목"],
-                    ]}
-                />
-
-                <SubTitle>나. 이메일 직접 가입 시 수집 항목</SubTitle>
-                <Table
-                    headers={["항목", "필수/선택", "수집 방법"]}
-                    rows={[
-                        ["이메일 주소", "필수", "회원가입 양식 직접 입력"],
-                        ["비밀번호(암호화 저장)", "필수", "회원가입 양식 직접 입력"],
-                    ]}
-                />
-
-                <SubTitle>다. 서비스 이용 과정에서 자동 생성·수집</SubTitle>
-                <ul>
-                    <li>서비스 가입 일시, 마지막 로그인 일시</li>
-                    <li>서비스 내 작성 콘텐츠(메모, 작품 본문 등) — 이용자가 직접 입력한 데이터</li>
-                </ul>
-            </Section>
-
-            <Section title="2. 개인정보의 수집 및 이용 목적">
-                <Table
-                    headers={["수집 항목", "이용 목적"]}
-                    rows={[
-                        ["이메일 주소, 닉네임", "회원 가입 및 계정 식별·관리, 서비스 이용 안내"],
-                        ["이메일 주소", "이메일 인증, 비밀번호 재설정 안내 발송"],
-                        ["서비스 이용 일시", "서비스 운영 및 보안 관리"],
-                    ]}
-                />
-            </Section>
-
-            <Section title="3. 개인정보의 보유 및 이용 기간">
-                <p>
-                    이용자의 개인정보는 회원 탈퇴 시 지체 없이 파기합니다. 단, 관련 법령에 의해 보존할 필요가 있는
-                    경우에는 해당 법령에서 정한 기간 동안 보관합니다.
-                </p>
-                <Table
-                    headers={["근거 법령", "보유 항목", "보유 기간"]}
-                    rows={[
-                        ["전자상거래법", "계약·청약 철회 기록", "5년"],
-                        ["전자상거래법", "소비자 불만·분쟁 기록", "3년"],
-                        ["통신비밀보호법", "서비스 이용 기록, 접속 로그", "3개월"],
-                    ]}
-                />
-            </Section>
-
-            <Section title="4. 개인정보의 제3자 제공">
-                <p>
-                    서비스는 원칙적으로 이용자의 개인정보를 외부에 제공하지 않습니다. 다만, 이용자가 사전에 동의한
-                    경우 또는 법령의 규정에 의거하거나 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의
-                    요구가 있는 경우에는 예외로 합니다.
-                </p>
-            </Section>
-
-            <Section title="5. 개인정보의 파기 절차 및 방법">
-                <p>
-                    서비스는 개인정보 보유 기간의 경과, 처리 목적 달성 등으로 인해 개인정보가 불필요하게 되었을 때는
-                    지체 없이 해당 개인정보를 파기합니다. 전자적 파일 형태로 기록·저장된 개인정보는 기록을 재생할 수
-                    없도록 파기합니다.
-                </p>
-            </Section>
-
-            <Section title="6. 이용자 및 법정대리인의 권리와 행사 방법">
-                <p>이용자는 언제든지 다음 권리를 행사할 수 있습니다.</p>
-                <ul>
-                    <li>개인정보 열람 요청</li>
-                    <li>오류 등이 있을 경우 정정 요청</li>
-                    <li>삭제 요청(회원 탈퇴)</li>
-                    <li>처리 정지 요청</li>
-                </ul>
-                <p>
-                    권리 행사는 서비스 내 문의 기능 또는 아래 개인정보 보호책임자 이메일을 통해 요청하실 수 있으며,
-                    지체 없이 조치하겠습니다.
-                </p>
-            </Section>
-
-            <Section title="7. 개인정보 보호책임자">
-                <Table
-                    headers={["항목", "내용"]}
-                    rows={[
-                        ["성명", "김종완"],
-                        ["이메일", "jongbell4@gmail.com"],
-                    ]}
-                />
-                <p>
-                    개인정보 처리에 관한 불만, 피해 구제는 개인정보 보호책임자에게 문의하거나 아래 기관에 신고할 수
-                    있습니다.
-                </p>
-                <ul>
-                    <li>개인정보침해 신고센터 (privacy.kisa.or.kr / 118)</li>
-                    <li>개인정보 분쟁조정위원회 (www.kopico.go.kr / 1833-6972)</li>
-                </ul>
-            </Section>
-
-            <Section title="8. 개인정보처리방침 변경">
-                <p>
-                    본 방침은 법령·정책 변경 또는 서비스 변경에 따라 내용이 추가·삭제·수정될 수 있으며, 변경 시
-                    서비스 화면을 통해 공지합니다.
-                </p>
-            </Section>
+            <PrivacyContent />
         </main>
-    );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-    return (
-        <section style={{ marginTop: "36px" }}>
-            <h2 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "12px" }}>{title}</h2>
-            {children}
-        </section>
-    );
-}
-
-function SubTitle({ children }: { children: React.ReactNode }) {
-    return <p style={{ fontWeight: 600, marginTop: "16px", marginBottom: "8px" }}>{children}</p>;
-}
-
-function Table({ headers, rows }: { headers: string[]; rows: string[][] }) {
-    return (
-        <div style={{ overflowX: "auto", marginBottom: "16px" }}>
-            <table
-                style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    fontSize: "0.875rem",
-                }}
-            >
-                <thead>
-                    <tr>
-                        {headers.map((h) => (
-                            <th
-                                key={h}
-                                style={{
-                                    textAlign: "left",
-                                    padding: "8px 12px",
-                                    borderBottom: "2px solid var(--w-hairline, #e5e5e5)",
-                                    whiteSpace: "nowrap",
-                                }}
-                            >
-                                {h}
-                            </th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows.map((row, i) => (
-                        <tr key={i}>
-                            {row.map((cell, j) => (
-                                <td
-                                    key={j}
-                                    style={{
-                                        padding: "8px 12px",
-                                        borderBottom: "1px solid var(--w-hairline, #e5e5e5)",
-                                        verticalAlign: "top",
-                                    }}
-                                >
-                                    {cell}
-                                </td>
-                            ))}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
     );
 }

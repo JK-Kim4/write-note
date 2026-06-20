@@ -9,6 +9,9 @@ import { resolveErrorMessage } from "@/lib/api/errors";
 import { FormInput } from "@/components/ui/FormInput";
 import { FormError } from "@/components/ui/FormError";
 import { PanelLink } from "@/components/auth/PanelLink";
+import { TermsModal } from "@/components/auth/TermsModal";
+import { TermsContent } from "@/content/legal/TermsContent";
+import { PrivacyContent } from "@/content/legal/PrivacyContent";
 
 /**
  * SignupEmailForm — 이메일 회원가입 (US5, contracts/screen-data-flow.md §5).
@@ -23,7 +26,9 @@ export function SignupEmailForm() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [passwordConfirm, setPasswordConfirm] = useState("");
-    const [agreed, setAgreed] = useState(false);
+    const [agreedTerms, setAgreedTerms] = useState(false);
+    const [agreedPrivacy, setAgreedPrivacy] = useState(false);
+    const [openModal, setOpenModal] = useState<"terms" | "privacy" | null>(null);
     const [localError, setLocalError] = useState<string | null>(null);
 
     const signupMutation = useMutation({
@@ -49,8 +54,8 @@ export function SignupEmailForm() {
             setLocalError("비밀번호 확인이 일치하지 않습니다.");
             return;
         }
-        if (!agreed) {
-            setLocalError("이용약관에 동의해주세요.");
+        if (!agreedTerms || !agreedPrivacy) {
+            setLocalError("이용약관과 개인정보처리방침에 모두 동의해주세요.");
             return;
         }
         setLocalError(null);
@@ -60,6 +65,7 @@ export function SignupEmailForm() {
     const pending = signupMutation.isPending;
 
     return (
+        <>
         <form
             className="flex flex-col gap-4"
             style={{ opacity: pending ? 0.6 : 1, pointerEvents: pending ? "none" : "auto" }}
@@ -101,16 +107,48 @@ export function SignupEmailForm() {
                 onChange={(e) => setPasswordConfirm(e.target.value)}
             />
 
-            <label className="flex items-start gap-2 text-sm mt-2" style={{ color: "var(--w-ink)" }}>
-                <input
-                    type="checkbox"
-                    name="terms"
-                    className="mt-1"
-                    checked={agreed}
-                    onChange={(e) => setAgreed(e.target.checked)}
-                />
-                <span>이용약관 및 개인정보 처리방침에 동의합니다.</span>
-            </label>
+            <div className="flex flex-col gap-2 mt-2 text-sm" style={{ color: "var(--w-ink)" }}>
+                <div className="flex items-center justify-between gap-2">
+                    <label className="flex items-start gap-2">
+                        <input
+                            type="checkbox"
+                            name="terms"
+                            className="mt-1"
+                            checked={agreedTerms}
+                            onChange={(e) => setAgreedTerms(e.target.checked)}
+                        />
+                        <span>(필수) 이용약관에 동의합니다.</span>
+                    </label>
+                    <button
+                        type="button"
+                        onClick={() => setOpenModal("terms")}
+                        className="underline underline-offset-2 shrink-0"
+                        style={{ color: "var(--w-accent)" }}
+                    >
+                        이용약관 보기
+                    </button>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                    <label className="flex items-start gap-2">
+                        <input
+                            type="checkbox"
+                            name="privacy"
+                            className="mt-1"
+                            checked={agreedPrivacy}
+                            onChange={(e) => setAgreedPrivacy(e.target.checked)}
+                        />
+                        <span>(필수) 개인정보처리방침에 동의합니다.</span>
+                    </label>
+                    <button
+                        type="button"
+                        onClick={() => setOpenModal("privacy")}
+                        className="underline underline-offset-2 shrink-0"
+                        style={{ color: "var(--w-accent)" }}
+                    >
+                        개인정보처리방침 보기
+                    </button>
+                </div>
+            </div>
 
             {localError ? <FormError>{localError}</FormError> : null}
 
@@ -122,5 +160,16 @@ export function SignupEmailForm() {
                 {pending ? "가입 중…" : "가입하기"}
             </button>
         </form>
+        {openModal === "terms" ? (
+            <TermsModal title="이용약관" onClose={() => setOpenModal(null)}>
+                <TermsContent />
+            </TermsModal>
+        ) : null}
+        {openModal === "privacy" ? (
+            <TermsModal title="개인정보처리방침" onClose={() => setOpenModal(null)}>
+                <PrivacyContent />
+            </TermsModal>
+        ) : null}
+        </>
     );
 }

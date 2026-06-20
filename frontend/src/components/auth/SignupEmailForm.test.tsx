@@ -27,7 +27,8 @@ async function fillForm() {
     await userEvent.type(screen.getByLabelText("이메일"), "writer@example.com");
     await userEvent.type(screen.getByLabelText("비밀번호"), "Strong!Pass123");
     await userEvent.type(screen.getByLabelText("비밀번호 확인"), "Strong!Pass123");
-    await userEvent.click(screen.getByRole("checkbox"));
+    await userEvent.click(screen.getByRole("checkbox", { name: /이용약관/ }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /개인정보/ }));
 }
 
 describe("SignupEmailForm", () => {
@@ -45,7 +46,9 @@ describe("SignupEmailForm", () => {
         await fillForm();
         await userEvent.click(screen.getByRole("button", { name: "가입하기" }));
 
-        await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/auth/verify-pending"));
+        await waitFor(() =>
+            expect(pushMock).toHaveBeenCalledWith(expect.stringContaining("/auth/verify-pending")),
+        );
     });
 
     it("EMAIL_ALREADY_REGISTERED(409) 시 이미 가입된 이메일 메시지를 표시한다", async () => {
@@ -78,10 +81,40 @@ describe("SignupEmailForm", () => {
         await userEvent.type(screen.getByLabelText("이메일"), "writer@example.com");
         await userEvent.type(screen.getByLabelText("비밀번호"), "Strong!Pass123");
         await userEvent.type(screen.getByLabelText("비밀번호 확인"), "Different!999");
-        await userEvent.click(screen.getByRole("checkbox"));
+        await userEvent.click(screen.getByRole("checkbox", { name: /이용약관/ }));
+        await userEvent.click(screen.getByRole("checkbox", { name: /개인정보/ }));
         await userEvent.click(screen.getByRole("button", { name: "가입하기" }));
 
         expect(await screen.findByText(/일치하지 않습니다/)).toBeInTheDocument();
         expect(posted).toBe(false);
+    });
+
+    it("약관에 모두 동의하지 않으면 가입 요청을 보내지 않는다", async () => {
+        let posted = false;
+        server.use(
+            http.post(`${ORIGIN}/api/auth/signup/email`, () => {
+                posted = true;
+                return HttpResponse.json({ success: true, data: {}, error: null }, { status: 201 });
+            }),
+        );
+        renderWithClient(<SignupEmailForm />);
+
+        await userEvent.type(screen.getByLabelText("이메일"), "writer@example.com");
+        await userEvent.type(screen.getByLabelText("비밀번호"), "Strong!Pass123");
+        await userEvent.type(screen.getByLabelText("비밀번호 확인"), "Strong!Pass123");
+        await userEvent.click(screen.getByRole("checkbox", { name: /이용약관/ }));
+        // 개인정보처리방침 미동의 상태로 제출
+        await userEvent.click(screen.getByRole("button", { name: "가입하기" }));
+
+        expect(await screen.findByText(/모두 동의/)).toBeInTheDocument();
+        expect(posted).toBe(false);
+    });
+
+    it("이용약관 보기 클릭 시 약관 모달 본문을 표시한다", async () => {
+        renderWithClient(<SignupEmailForm />);
+        await userEvent.click(screen.getByRole("button", { name: "이용약관 보기" }));
+        const dialog = await screen.findByRole("dialog", { name: "이용약관" });
+        expect(dialog).toBeInTheDocument();
+        expect(screen.getByText(/작성자인 이용자 본인에게 귀속/)).toBeInTheDocument();
     });
 });
