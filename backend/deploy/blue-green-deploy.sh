@@ -4,14 +4,14 @@
 # 전제: cutover 완료 후 — 두 컨테이너(wn-be-blue:8080 / wn-be-green:8081)를 Caddy upstream 전환으로 교대.
 # 사용:
 #   1) 로컬: cd backend && ./gradlew bootJar
-#   2) 로컬: scp build/libs/backend-0.0.1-SNAPSHOT.jar oci:/tmp/be-build/backend.jar
-#   3) OCI : sudo bash /opt/write-note/blue-green-deploy.sh
+#   2) 로컬: scp build/libs/backend-0.0.1-SNAPSHOT.jar oci:be-build/backend.jar
+#   3) OCI : sudo bash ~/be-build/blue-green-deploy.sh
 #
 # 동작: Caddy 가 가리키는 활성 포트의 반대편에 새 이미지를 기동 → health 통과 시 Caddy 전환(reload) → 구 컨테이너 중지.
 #       health 실패 시 신규 컨테이너만 제거하고 Caddy 무변경(=무중단 롤백).
 set -euo pipefail
 
-BUILD_DIR=/tmp/be-build          # backend.jar + Dockerfile 위치 (jar 는 배포 전 scp)
+BUILD_DIR=/home/ubuntu/be-build  # backend.jar + Dockerfile 영속 위치 (재부팅 안전; jar 는 배포 전 scp oci:be-build/backend.jar)
 ENV_FILE=/etc/write-note/backend.env
 CADDYFILE=/etc/caddy/Caddyfile
 IMG=write-note-backend:latest
