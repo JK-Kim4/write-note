@@ -21,7 +21,7 @@ export function BResumeCard({ card, onOpen }: Props) {
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">이어서 쓰기</p>
             <h2 className="mt-1 text-lg font-bold text-gray-900">{card.title}</h2>
             {sentence ? (
-                <p className="mt-1 italic text-gray-700">&ldquo;{hasPreceding ? "…" : ""}{sentence}&rdquo;</p>
+                <p className="mt-1 line-clamp-2 break-all italic text-gray-700">&ldquo;{hasPreceding ? "…" : ""}{sentence}&rdquo;</p>
             ) : (
                 <p className="mt-1 italic text-gray-400">아직 첫 문장을 기다리는 중</p>
             )}
