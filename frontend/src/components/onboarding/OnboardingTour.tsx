@@ -2,8 +2,8 @@
 
 import "driver.js/dist/driver.css";
 import { useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { fetchSettings, putSettings } from "@/lib/api/settings";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchSettings, putSettings, type SettingsMap } from "@/lib/api/settings";
 
 /**
  * 최초 사용자 온보딩 가이드 투어 (027).
@@ -37,6 +37,7 @@ const TOUR_STEPS = [
 
 export function OnboardingTour() {
     const startedRef = useRef(false);
+    const queryClient = useQueryClient();
     const { data: settings } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
 
     useEffect(() => {
@@ -58,6 +59,11 @@ export function OnboardingTour() {
                 onDestroyed: () => {
                     // 완료·건너뛰기 모두 여기로 수렴. 저장 실패는 사용자 동작 비차단(다음 진입 재시도).
                     void putSettings({ onboardingCompleted: "true" }).catch(() => {});
+                    // 캐시도 즉시 갱신 — 홈을 떠났다 돌아와 리마운트돼도 stale 미완료 캐시로 재시작하는 것을 막는다.
+                    queryClient.setQueryData<SettingsMap>(["settings"], (prev) => ({
+                        ...(prev ?? {}),
+                        onboardingCompleted: "true",
+                    }));
                 },
             }).drive();
         })();
@@ -65,7 +71,7 @@ export function OnboardingTour() {
         return () => {
             cancelled = true;
         };
-    }, [settings]);
+    }, [settings, queryClient]);
 
     return null;
 }
