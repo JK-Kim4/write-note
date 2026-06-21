@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { useAnnouncement } from "@/lib/query/useAnnouncements";
+import { AnnouncementBody } from "@/components/AnnouncementBody";
 
 /**
  * 공지 상세 (030 US1) — 제목·공개일·본문. 비공개/없음은 안내.
@@ -39,7 +40,9 @@ export default function NoticeDetailPage() {
                 <article>
                     <h1 className="text-xl font-bold text-gray-900">{data.title}</h1>
                     <time className="mt-1 block text-xs text-gray-400">{formatDate(data.publishedAt)}</time>
-                    <div className="mt-5 whitespace-pre-wrap text-sm leading-relaxed text-gray-800">{data.body}</div>
+                    <div className="mt-5">
+                        <AnnouncementBody body={data.body} />
+                    </div>
                 </article>
             )}
         </div>
