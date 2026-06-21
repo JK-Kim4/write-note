@@ -5,7 +5,7 @@
  * web 은 브라우저가 Referer 를 자동 전송(수동 설정 불가)하므로 Referer 트릭이 불필요하다.
  * 첨부 메타(앱/환경 정보)는 web 컨텍스트(navigator·빌드버전)에서 재구성한다(FR-020).
  */
-export type ContactInput = { email: string; body: string };
+export type ContactInput = { email: string; body: string; category?: string };
 export type ContactResult = { ok: boolean };
 
 /** 전송 직전 부여하는 환경 메타(사용자 입력 아님) — web 컨텍스트에서 생성. */
@@ -28,8 +28,10 @@ function composeMessage(body: string, meta: ContactMeta): string {
 
 /** 순수 매핑 — ContactInput + 메타 → Formsubmit payload. 회신 이메일이 비면 키 생략(익명). */
 function buildPayload(input: ContactInput, meta: ContactMeta): FormsubmitPayload {
+    // 카테고리 선택 시 제목에 [분류] prefix — 받은편지함 목록에서 바로 분류된다(미선택이면 기존 제목).
+    const category = input.category?.trim();
     const payload: FormsubmitPayload = {
-        _subject: CONTACT_SUBJECT,
+        _subject: category ? `[${category}] ${CONTACT_SUBJECT}` : CONTACT_SUBJECT,
         _captcha: "false",
         message: composeMessage(input.body, meta),
     };

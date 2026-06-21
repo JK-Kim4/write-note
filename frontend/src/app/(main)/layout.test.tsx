@@ -78,3 +78,20 @@ describe("BLayout 네비게이션", () => {
         expect(pushMock).toHaveBeenCalledWith("/library");
     });
 });
+
+// 031 — 서비스 내 문의 진입점(헤더 전역). 데스크탑 헤더 + 모바일 햄버거 메뉴 양쪽.
+describe("BLayout 문의 진입점", () => {
+    it("헤더에 문의 링크(/contact)가 있다", () => {
+        renderLayout();
+        expect(screen.getByRole("link", { name: "문의" })).toHaveAttribute("href", "/contact");
+    });
+
+    it("모바일 햄버거 메뉴를 열면 문의 링크(/contact)가 보인다", async () => {
+        renderLayout();
+        await userEvent.click(screen.getByRole("button", { name: "메뉴" }));
+        // 데스크탑 헤더 + 모바일 메뉴 양쪽에 노출 → 2개, 모두 /contact.
+        const links = screen.getAllByRole("link", { name: "문의" });
+        expect(links).toHaveLength(2);
+        links.forEach((link) => expect(link).toHaveAttribute("href", "/contact"));
+    });
+});

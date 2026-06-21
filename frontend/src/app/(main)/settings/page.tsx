@@ -2,6 +2,7 @@
 
 import { type KeyboardEvent, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { fetchMe, withdraw, WITHDRAWAL_CONFIRMATION_PHRASE } from "@/lib/api/auth";
 import {
@@ -217,6 +218,20 @@ export default function BSettingsPage() {
                         </button>
                     </div>
                 )}
+            </section>
+
+            {/* 문의·도움말 (031) */}
+            <section className="mt-4 rounded-xl border border-gray-200 bg-white p-5">
+                <h2 className="text-base font-semibold text-gray-900">문의·도움말</h2>
+                <p className="mt-0.5 text-xs text-gray-400">
+                    쓰면서 불편한 점이나 바라는 점이 있으면 알려주세요. 다음 버전에 반영합니다.
+                </p>
+                <Link
+                    href="/contact"
+                    className="mt-3 inline-block rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1"
+                >
+                    문의하기
+                </Link>
             </section>
 
             {/* 회원 탈퇴 */}
