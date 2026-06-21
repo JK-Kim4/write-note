@@ -26,6 +26,7 @@ function renderWithClient(ui: ReactNode) {
 
 afterEach(() => {
     pushMock.mockClear();
+    localStorage.clear();
 });
 
 describe("LoginForm", () => {
@@ -86,5 +87,54 @@ describe("LoginForm", () => {
         await userEvent.click(resendButton);
 
         await waitFor(() => expect(resendCalled).toBe(true));
+    });
+
+    it("이메일 기억하기 체크 후 로그인 성공 시 이메일을 localStorage에 저장한다", async () => {
+        server.use(
+            http.post(`${ORIGIN}/api/auth/login`, () =>
+                HttpResponse.json({ success: true, data: { accessToken: "x" }, error: null }),
+            ),
+        );
+        renderWithClient(<LoginForm />);
+
+        await userEvent.type(screen.getByLabelText("이메일"), "writer@example.com");
+        await userEvent.type(screen.getByLabelText("비밀번호"), "Strong!Pass123");
+        await userEvent.click(screen.getByLabelText("이메일 기억하기"));
+        await userEvent.click(screen.getByRole("button", { name: "로그인" }));
+
+        await waitFor(() =>
+            expect(localStorage.getItem("writenote.rememberedEmail.v1")).toBe("writer@example.com"),
+        );
+    });
+
+    it("이메일 기억하기 미체크로 로그인 성공 시 저장된 이메일을 삭제한다", async () => {
+        localStorage.setItem("writenote.rememberedEmail.v1", "old@example.com");
+        server.use(
+            http.post(`${ORIGIN}/api/auth/login`, () =>
+                HttpResponse.json({ success: true, data: { accessToken: "x" }, error: null }),
+            ),
+        );
+        renderWithClient(<LoginForm />);
+
+        // 마운트 복원으로 체크가 켜지므로 끈다.
+        await userEvent.clear(screen.getByLabelText("이메일"));
+        await userEvent.type(screen.getByLabelText("이메일"), "writer@example.com");
+        const remember = screen.getByLabelText("이메일 기억하기");
+        if ((remember as HTMLInputElement).checked) await userEvent.click(remember);
+        await userEvent.type(screen.getByLabelText("비밀번호"), "Strong!Pass123");
+        await userEvent.click(screen.getByRole("button", { name: "로그인" }));
+
+        await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/"));
+        expect(localStorage.getItem("writenote.rememberedEmail.v1")).toBeNull();
+    });
+
+    it("저장된 이메일이 있으면 마운트 시 이메일칸을 복원하고 체크박스를 켠다", async () => {
+        localStorage.setItem("writenote.rememberedEmail.v1", "saved@example.com");
+        renderWithClient(<LoginForm />);
+
+        await waitFor(() =>
+            expect(screen.getByLabelText("이메일")).toHaveValue("saved@example.com"),
+        );
+        expect(screen.getByLabelText("이메일 기억하기")).toBeChecked();
     });
 });

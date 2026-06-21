@@ -1,15 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { login, resendVerification } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { resolveErrorMessage } from "@/lib/api/errors";
 import { FormInput } from "@/components/ui/FormInput";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { KakaoButton } from "@/components/auth/KakaoButton";
 import { PanelLink } from "@/components/auth/PanelLink";
 import { SubmitLoading } from "@/components/ui/SubmitLoading";
+
+const REMEMBERED_EMAIL_KEY = "writenote.rememberedEmail.v1";
 
 /**
  * LoginForm — 이메일 로그인 폼 (US1, contracts/screen-data-flow.md §5).
@@ -29,10 +32,21 @@ export function LoginForm({ state = "default" }: LoginFormProps) {
     const queryClient = useQueryClient();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [remember, setRemember] = useState(false);
+
+    useEffect(() => {
+        const saved = localStorage.getItem(REMEMBERED_EMAIL_KEY);
+        if (saved) {
+            setEmail(saved);
+            setRemember(true);
+        }
+    }, []);
 
     const loginMutation = useMutation({
         mutationFn: () => login({ email, password }),
         onSuccess: async () => {
+            if (remember) localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+            else localStorage.removeItem(REMEMBERED_EMAIL_KEY);
             await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
             router.push("/");
         },
@@ -70,15 +84,23 @@ export function LoginForm({ state = "default" }: LoginFormProps) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
             />
-            <FormInput
+            <PasswordInput
                 name="password"
-                type="password"
                 label="비밀번호"
                 autoComplete="current-password"
                 error={errorMessage !== null}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
             />
+            <label className="flex items-center gap-2 text-sm" style={{ color: "var(--w-ink)" }}>
+                <input
+                    type="checkbox"
+                    name="rememberEmail"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                />
+                <span>이메일 기억하기</span>
+            </label>
             {errorMessage ? (
                 <p role="alert" style={{ color: "var(--w-error)", fontSize: "14px" }}>
                     {errorMessage}
