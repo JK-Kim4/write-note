@@ -3,11 +3,11 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-/** 어드민 인덱스 — v1 은 공지 관리로 보낸다(US3 대시보드는 후속). */
+/** 어드민 인덱스 — 대시보드(사용 현황)로 보낸다. */
 export default function AdminHome() {
     const router = useRouter();
     useEffect(() => {
-        router.replace("/announcements");
+        router.replace("/dashboard");
     }, [router]);
     return null;
 }

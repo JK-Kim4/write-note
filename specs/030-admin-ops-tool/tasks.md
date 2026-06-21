@@ -94,15 +94,15 @@ description: "Task list for 운영 툴 (Admin Ops Tool) v1"
 
 ### Backend
 
-- [ ] T026 [P] [US2] `AdminUserResponse` DTO(화이트리스트) — `backend/.../controller/admin/dto` (id/email/kakaoLinked/emailVerified/lastLoginAt/createdAt/projectCount; passwordHash·kakaoId·토큰 제외) — data-model.md
-- [ ] T027 [US2] [TDD] 회원 조회 통합 테스트(실패) — `backend/src/test/kotlin/com/writenote/controller/admin/AdminUserControllerIT.kt`: 목록 최신순·페이지, email 검색, 검색 무결과 빈배열, 상세 404, **비밀값 미노출 assert**(passwordHash 응답 부재), 비관리자 403 — contracts/admin-users.md
-- [ ] T028 [US2] 회원 조회 서비스 + projectCount 집계 — `backend/.../service/AdminUserService.kt` (목록·검색·상세, 작품 수 집계 쿼리 N+1 회피)
-- [ ] T029 [US2] 회원 조회 컨트롤러 — `backend/.../controller/admin/AdminUserController.kt` (`GET /api/admin/users`?page,size,q; `GET /api/admin/users/{id}`) → T027 GREEN
+- [x] T026 [P] [US2] `AdminUserResponse` DTO(화이트리스트) — `backend/.../controller/admin/dto` (id/email/kakaoLinked/emailVerified/lastLoginAt/createdAt/projectCount; passwordHash·kakaoId·토큰 제외) — data-model.md
+- [x] T027 [US2] [TDD] 회원 조회 통합 테스트(실패) — `backend/src/test/kotlin/com/writenote/controller/admin/AdminUserControllerIT.kt`: 목록 최신순·페이지, email 검색, 검색 무결과 빈배열, 상세 404, **비밀값 미노출 assert**(passwordHash 응답 부재), 비관리자 403 — contracts/admin-users.md
+- [x] T028 [US2] 회원 조회 서비스 + projectCount 집계 — `backend/.../service/AdminUserService.kt` (목록·검색·상세, 작품 수 집계 쿼리 N+1 회피)
+- [x] T029 [US2] 회원 조회 컨트롤러 — `backend/.../controller/admin/AdminUserController.kt` (`GET /api/admin/users`?page,size,q; `GET /api/admin/users/{id}`) → T027 GREEN
 
 ### Frontend — 어드민 앱
 
-- [ ] T030 [P] [US2] 회원 API + 훅 — `admin-site/src/lib/api/users.ts` + query 훅 (목록·검색·상세)
-- [ ] T031 [US2] 회원 조회 화면 — `admin-site/src/app/(admin)/users/page.tsx`(목록 + 검색 input) + `users/[id]/page.tsx`(상세) — 작성 직후 `pnpm build`
+- [x] T030 [P] [US2] 회원 API + 훅 — `admin-site/src/lib/api/users.ts` + query 훅 (목록·검색·상세)
+- [x] T031 [US2] 회원 조회 화면 — `admin-site/src/app/(admin)/users/page.tsx`(목록 + 검색 input) + `users/[id]/page.tsx`(상세) — 작성 직후 `pnpm build`
 
 **Checkpoint**: 회원 조회 독립 동작. 단계 B 배포(BE→어드민 앱).
 
@@ -116,15 +116,15 @@ description: "Task list for 운영 툴 (Admin Ops Tool) v1"
 
 ### Backend
 
-- [ ] T032 [P] [US3] 통계 DTO — `AdminStatsSummaryResponse`(totalUsers/newUsersToday/newUsersThisWeek/activeUsers/totalProjects) + signups points — contracts/admin-stats.md
-- [ ] T033 [US3] [TDD] 통계 집계 통합 테스트(실패) — `backend/src/test/kotlin/com/writenote/controller/admin/AdminStatsControllerIT.kt`: summary 카운트(오늘/이번주/활성7일 KST), signups 빈 날 0 채움·days 개수, 데이터 0건 시 0, 비관리자 403 — contracts/admin-stats.md
-- [ ] T034 [US3] `AdminStatsService` — `backend/.../service/AdminStatsService.kt` (KST 기준 집계, @Transactional(readOnly=true))
-- [ ] T035 [US3] 통계 컨트롤러 — `backend/.../controller/admin/AdminStatsController.kt` (`GET /api/admin/stats/summary`, `GET /api/admin/stats/signups?days=30`) → T033 GREEN
+- [x] T032 [P] [US3] 통계 DTO — `AdminStatsSummaryResponse`(totalUsers/newUsersToday/newUsersThisWeek/activeUsers/totalProjects) + signups points — contracts/admin-stats.md
+- [x] T033 [US3] [TDD] 통계 집계 통합 테스트(실패) — `backend/src/test/kotlin/com/writenote/controller/admin/AdminStatsControllerIT.kt`: summary 카운트(오늘/이번주/활성7일 KST), signups 빈 날 0 채움·days 개수, 데이터 0건 시 0, 비관리자 403 — contracts/admin-stats.md
+- [x] T034 [US3] `AdminStatsService` — `backend/.../service/AdminStatsService.kt` (KST 기준 집계, @Transactional(readOnly=true))
+- [x] T035 [US3] 통계 컨트롤러 — `backend/.../controller/admin/AdminStatsController.kt` (`GET /api/admin/stats/summary`, `GET /api/admin/stats/signups?days=30`) → T033 GREEN
 
 ### Frontend — 어드민 앱
 
-- [ ] T036 [P] [US3] 통계 API + 훅 — `admin-site/src/lib/api/stats.ts` + query 훅
-- [ ] T037 [US3] 대시보드 화면 — `admin-site/src/app/(admin)/dashboard/page.tsx` (카운트 카드 + recharts 30일 가입 추이 막대/선) — 작성 직후 `pnpm build`
+- [x] T036 [P] [US3] 통계 API + 훅 — `admin-site/src/lib/api/stats.ts` + query 훅
+- [x] T037 [US3] 대시보드 화면 — `admin-site/src/app/(admin)/dashboard/page.tsx` (카운트 카드 + recharts 30일 가입 추이 막대/선) — 작성 직후 `pnpm build`
 
 **Checkpoint**: 통계 독립 동작. 단계 C 배포(BE→어드민 앱).
 
@@ -132,9 +132,9 @@ description: "Task list for 운영 툴 (Admin Ops Tool) v1"
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T038 백엔드 전체 게이트 — `cd backend && ./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` GREEN
-- [ ] T039 [P] 사용자 앱 게이트 — `cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build`
-- [ ] T040 [P] 어드민 앱 게이트 — `cd admin-site && pnpm lint && pnpm typecheck && pnpm build`
+- [x] T038 백엔드 전체 게이트 — `cd backend && ./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` GREEN
+- [x] T039 [P] 사용자 앱 게이트 — `cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] T040 [P] 어드민 앱 게이트 — `cd admin-site && pnpm lint && pnpm typecheck && pnpm build`
 - [ ] T041 quickstart.md 검증 절차 수행(스모크 + dogfooding 게이트) — 공지 왕복·비관리자 차단(§16 버그 있던 surface 직접 관찰)·통계 일치
 - [ ] T042 어드민 앱 Vercel 신규 프로젝트 설정(Root=`admin-site`, Production Branch=`main`, env) + prod `ADMIN_EMAIL` 설정 + 배포 순서(BE 선행) 확인. 어드민은 정적 download-site와 달리 빌드 필요
 

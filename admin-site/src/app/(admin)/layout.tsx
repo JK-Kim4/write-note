@@ -12,7 +12,11 @@ import { ApiError } from "@/lib/api/client";
  * 어드민 가드 셸 (030) — 로그인/관리자 권한 확인.
  * 비인증(401) → /login 리다이렉트. 비관리자(403) → 권한 안내. 백엔드가 최종 권위.
  */
-const NAV = [{ href: "/announcements", label: "공지 관리" }];
+const NAV = [
+    { href: "/dashboard", label: "사용 현황" },
+    { href: "/announcements", label: "공지 관리" },
+    { href: "/users", label: "회원 조회" },
+];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
     const router = useRouter();
