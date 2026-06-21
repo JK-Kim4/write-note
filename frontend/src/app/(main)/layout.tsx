@@ -201,6 +201,13 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                             );
                         })}
                     </nav>
+                    {/* 문의(전역) — 로그아웃 왼쪽. 보조 액션이라 보더 없는 teal 톤 링크(product 절제 원칙). */}
+                    <Link
+                        href="/contact"
+                        className="hidden rounded-md px-3 py-1.5 text-sm text-teal-700 hover:bg-teal-50 hover:text-teal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 md:block"
+                    >
+                        문의
+                    </Link>
                     <button
                         type="button"
                         onClick={handleLogout}
@@ -257,6 +264,13 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                             집필
                         </button>
                         <div className="my-1 border-t border-gray-100" />
+                        <Link
+                            href="/contact"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm text-teal-700 hover:bg-teal-50 hover:text-teal-800"
+                        >
+                            문의
+                        </Link>
                         <button
                             type="button"
                             onClick={handleLogout}

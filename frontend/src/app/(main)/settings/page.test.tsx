@@ -64,3 +64,11 @@ describe("BSettingsPage 일일 작업 목표", () => {
         expect(select.querySelectorAll("option")).toHaveLength(7);
     });
 });
+
+// 031 — 설정 내 문의 진입점 카드
+describe("BSettingsPage 문의 진입점", () => {
+    it("문의·도움말 카드에 /contact 로 가는 문의하기 링크가 있다", () => {
+        renderPage();
+        expect(screen.getByRole("link", { name: "문의하기" })).toHaveAttribute("href", "/contact");
+    });
+});
