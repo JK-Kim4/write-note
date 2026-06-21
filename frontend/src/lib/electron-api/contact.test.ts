@@ -40,6 +40,34 @@ describe("webElectronApi.contact", () => {
         expect(payload.email).toBeUndefined();
     });
 
+    it("send — 카테고리가 있으면 제목에 [카테고리] prefix 를 붙인다(받은편지함 분류)", async () => {
+        let payload: { _subject?: string } = {};
+        server.use(
+            http.post(FORMSUBMIT_ENDPOINT, async ({ request }) => {
+                payload = (await request.json()) as typeof payload;
+                return HttpResponse.json({ success: "true" });
+            }),
+        );
+
+        await contact.send({ email: "", body: "버그 있어요", category: "버그 신고" });
+
+        expect(payload._subject).toBe("[버그 신고] 소설비 웹 의견");
+    });
+
+    it("send — 카테고리가 비면 제목 prefix 없이 기존 제목 그대로", async () => {
+        let payload: { _subject?: string } = {};
+        server.use(
+            http.post(FORMSUBMIT_ENDPOINT, async ({ request }) => {
+                payload = (await request.json()) as typeof payload;
+                return HttpResponse.json({ success: "true" });
+            }),
+        );
+
+        await contact.send({ email: "", body: "분류 없는 의견", category: "" });
+
+        expect(payload._subject).toBe("소설비 웹 의견");
+    });
+
     it("send — success!=='true' 또는 비정상 응답이면 ok:false", async () => {
         server.use(http.post(FORMSUBMIT_ENDPOINT, () => HttpResponse.json({ success: "false" })));
 
