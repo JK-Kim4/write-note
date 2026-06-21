@@ -28,16 +28,14 @@ import { CustomEditor, type CustomEditorRef } from "./CustomEditor";
 import { pmJsonToModel, modelToPmJson } from "./pmConvert";
 import { outlineFromModel, type OutlineItem } from "./outline";
 import type { DocModel } from "./model";
-import type { PaperSize as GeoPaperSize } from "./geometry";
+import { fontPxFor, type PaperSize as GeoPaperSize } from "./geometry";
+import type { FontScale, LayoutMode } from "@/types/api";
 
-/** pageLayout PaperSize → geometry PaperSize 매핑. A4/A3/A2/B4 는 동일 문자열, 타입만 다름. */
+/** pageLayout PaperSize → geometry PaperSize 매핑. ISO·판형 동일 문자열, 타입만 다름(판형은 양쪽 동일 식별자). */
 function toGeoPaperSize(size: LayoutPaperSize): GeoPaperSize {
-    // geometry.ts 지원: "A5" | "A4" | "B4" | "A3" | "A2". pageLayout 의 A4/A3/A2/B4 는 전부 포함.
+    // geometry.ts 는 pageLayout 의 8종(A4/A3/A2/B4 + 판형 4종)을 모두 포함(+ A5).
     return size as GeoPaperSize;
 }
-
-/** 본문 fontSizePx 고정 상수 — 사용자 노출 없음. */
-const FONT_SIZE_PX = 18;
 
 const EMPTY_DOC = JSON.stringify({ type: "doc", content: [] });
 
@@ -46,6 +44,8 @@ interface BCustomChapterEditorProps {
     currentChapterId: number;
     projectId: number;
     paperSize: LayoutPaperSize;
+    fontScale: FontScale;
+    layoutMode: LayoutMode;
     chapterTitle?: string;
     onChapterRename?: (title: string) => void;
     onSyncStatus: (status: BChapterEditorSyncStatus) => void;
@@ -55,7 +55,7 @@ interface BCustomChapterEditorProps {
 }
 
 export const BCustomChapterEditor = forwardRef<CustomEditorRef, BCustomChapterEditorProps>(function BCustomChapterEditor(
-    { currentChapterId, projectId, paperSize, onSyncStatus, onConflict, onOutlineChange },
+    { currentChapterId, projectId, paperSize, fontScale, layoutMode, onSyncStatus, onConflict, onOutlineChange },
     editorRef,
 ) {
     const documentId = currentChapterId;
@@ -217,7 +217,8 @@ export const BCustomChapterEditor = forwardRef<CustomEditorRef, BCustomChapterEd
                 model={currentModel}
                 onModelChange={handleModelChange}
                 paperSize={toGeoPaperSize(paperSize)}
-                fontSizePx={FONT_SIZE_PX}
+                fontSizePx={fontPxFor(toGeoPaperSize(paperSize), fontScale)}
+                layoutMode={layoutMode}
             />
         </div>
     );

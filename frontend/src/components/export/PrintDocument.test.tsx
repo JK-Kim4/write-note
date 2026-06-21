@@ -22,12 +22,12 @@ afterEach(() => {
 
 describe("PrintDocument", () => {
   it("DocModel 의 본문 텍스트를 렌더한다", () => {
-    render(<PrintDocument models={[model]} paperSize="A4" lined={false} />);
+    render(<PrintDocument models={[model]} paperSize="A4" />);
     expect(screen.getByText("안녕하세요")).toBeInTheDocument();
   });
 
   it("print-root 컨테이너로 감싼다", () => {
-    const { container } = render(<PrintDocument models={[model]} paperSize="A4" lined={false} />);
+    const { container } = render(<PrintDocument models={[model]} paperSize="A4" />);
     expect(container.querySelector(".print-root")).not.toBeNull();
   });
 });

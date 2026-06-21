@@ -23,11 +23,11 @@ afterEach(() => {
 
 describe("PrintOverlay", () => {
   it("마운트 시 window.print 를 호출한다", () => {
-    render(<PrintOverlay models={models} paperSize="A4" lined={false} onDone={vi.fn()} />);
+    render(<PrintOverlay models={models} paperSize="A4" onDone={vi.fn()} />);
     expect(window.print).toHaveBeenCalledTimes(1);
   });
   it("본문을 렌더한다", () => {
-    render(<PrintOverlay models={models} paperSize="A4" lined={false} onDone={vi.fn()} />);
+    render(<PrintOverlay models={models} paperSize="A4" onDone={vi.fn()} />);
     expect(screen.getByText("본문")).toBeInTheDocument();
   });
 });

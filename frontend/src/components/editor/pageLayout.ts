@@ -17,8 +17,11 @@
  */
 export const LINE_PX = 35;
 
-/** 지원 용지 크기 식별자. */
-export type PaperSize = "A4" | "A3" | "A2" | "B4";
+/** 지원 용지 크기 식별자. ISO 4종 + 출판 판형 4종(031). */
+export type PaperSize = "A4" | "A3" | "A2" | "B4" | "sinkukpan" | "kukpan" | "pan46" | "mungopan";
+
+/** 셀렉터 노출 순서(031) — ISO 4종 → 출판 판형 4종. */
+export const PAPER_SIZE_ORDER: readonly PaperSize[] = ["A4", "A3", "A2", "B4", "sinkukpan", "kukpan", "pan46", "mungopan"] as const;
 
 /** 용지별 기하 파생값 (순수, paperGeometry() 로 생성). */
 export type PaperGeometry = {
@@ -42,6 +45,11 @@ export const PAPER_PRESETS: Record<PaperSize, { widthMm: number; heightMm: numbe
     B4: { widthMm: 257, heightMm: 364, bodyLines: 32 }, // JIS B4 (257×364mm). 26×(364/297)=31.9→32
     A3: { widthMm: 297, heightMm: 420, bodyLines: 37 }, // 26×(420/297)=36.8→37
     A2: { widthMm: 420, heightMm: 594, bodyLines: 52 }, // 26×(594/297)=52.0
+    // 출판 판형(031) — 재단 mm. bodyLines 는 레거시 모델용(자체 에디터는 geometry.ts 사용), height 비율 스케일.
+    sinkukpan: { widthMm: 152, heightMm: 225, bodyLines: 20 },
+    kukpan: { widthMm: 148, heightMm: 210, bodyLines: 18 },
+    pan46: { widthMm: 128, heightMm: 188, bodyLines: 16 },
+    mungopan: { widthMm: 105, heightMm: 148, bodyLines: 13 },
 };
 
 /**

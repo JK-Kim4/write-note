@@ -6,7 +6,9 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCreateChapter, useDeleteChapter, useProjectChapters, useReorderChapters, useRestoreChapter, useUpdateChapterTitle } from "@/lib/query/useDocument";
 import { useProject, useUpdateProject } from "@/lib/query/useProjects";
-import { PAPER_PRESETS, type PaperSize } from "@/components/editor/pageLayout";
+import { PAPER_PRESETS, PAPER_SIZE_ORDER, type PaperSize } from "@/components/editor/pageLayout";
+import { PAPER_LABEL, FONT_SCALE_ORDER, FONT_SCALE_LABEL } from "@/components/custom-editor/geometry";
+import type { FontScale, LayoutMode } from "@/types/api";
 import { StudioSkeleton } from "./StudioSkeleton";
 import { logKeys } from "@/lib/query/useLogs";
 import { useWorkSession } from "@/hooks/useWorkSession";
@@ -19,6 +21,7 @@ import { ExportDialog } from "@/components/export/ExportDialog";
 import { PrintOverlay } from "@/components/export/PrintOverlay";
 import { usePdfExport } from "@/lib/export/usePdfExport";
 import { useWordExport } from "@/lib/export/useWordExport";
+import { useTextExport } from "@/lib/export/useTextExport";
 import type { BChapterEditorConflictHandlers, BChapterEditorSyncStatus } from "@/components/custom-editor/types";
 
 /**
@@ -41,6 +44,10 @@ export interface BStudioEditorSlotArgs {
     currentChapterId: number;
     projectId: number;
     paperSize: PaperSize;
+    /** 작품별 글자 크기 5단(031 US5) — 판형 기본 위 덮어쓰기. */
+    fontScale: FontScale;
+    /** 출판 방식(031). web=연속 렌더(판형·페이지 분할 없음). */
+    layoutMode: LayoutMode;
     /** 현재 챕터 제목 — 본문 상단 부제 표시·인라인 편집용. */
     chapterTitle?: string;
     /** 본문 상단 챕터 제목 인라인 편집 완료 콜백. */
@@ -132,7 +139,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
     const [panelTab, setPanelTab] = useState<"memos" | "characters">("memos");
     // 내보내기 다이얼로그(023 Round 3 진입점).
     const [exportOpen, setExportOpen] = useState(false);
-    const { printModels, lined, exportPdf, clearPrint } = usePdfExport();
+    const { printModels, exportPdf, clearPrint } = usePdfExport();
 
     // 에디터 코어로부터 받은 저장 상태 / flushDraft / 충돌 핸들러
     const flushDraftRef = useRef<((body: string) => void) | null>(null);
@@ -167,10 +174,23 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
 
     // 용지 크기는 작품 속성 — 변경 시 PATCH → 비율 즉시 반영.
     const paperSize: PaperSize = projectQuery.data?.paperSize ?? "A4";
+    const fontScale: FontScale = projectQuery.data?.fontScale ?? "m";
+    // 분량 지표(031) — 현재 챕터 저장 글자수(자동저장 시 갱신). 종이=원고지 매수, 웹=글자수.
+    const chapterWordCount = chapters.find((c) => c.id === currentChapterId)?.wordCount ?? 0;
+    const layoutMode: LayoutMode = projectQuery.data?.layoutMode ?? "paper";
     const exportWord = useWordExport(projectId, paperSize);
     const handlePaperSizeChange = (next: PaperSize) => {
         if (next === paperSize) return;
         updateProject.mutate({ id: projectId, patch: { paperSize: next } });
+    };
+    const handleFontScaleChange = (next: FontScale) => {
+        if (next === fontScale) return;
+        updateProject.mutate({ id: projectId, patch: { fontScale: next } });
+    };
+    // 출판 방식 전환(031 US4) — 종이↔웹. 본문(DocModel)은 렌더와 독립이라 텍스트 무손실, 표시 형태만 바뀜.
+    const handleLayoutModeChange = (next: LayoutMode) => {
+        if (next === layoutMode) return;
+        updateProject.mutate({ id: projectId, patch: { layoutMode: next } });
     };
 
     useEffect(() => {
@@ -312,6 +332,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
     }, [leftDrawerOpen, rightDrawerOpen, endWorkOpen, conflictHandlers.conflict]);
 
     const projectTitle = projectQuery.data?.title ?? "";
+    const exportText = useTextExport(projectTitle);
 
     /** 목차 패널 내용 — 좁은 폭 drawer 와 넓은 폭 inline 모두 동일 마크업 공유. */
     const outlinePanel = (
@@ -329,23 +350,64 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                     </p>
                 )}
                 <div className="mt-2 flex items-center gap-2">
-                    <label htmlFor="b-paper-size" className="shrink-0 text-xs text-gray-400">
-                        용지
+                    <label htmlFor="b-layout-mode" className="shrink-0 text-xs text-gray-400">
+                        출판
                     </label>
                     <select
-                        id="b-paper-size"
-                        value={paperSize}
-                        onChange={(e) => handlePaperSizeChange(e.target.value as PaperSize)}
+                        id="b-layout-mode"
+                        value={layoutMode}
+                        onChange={(e) => handleLayoutModeChange(e.target.value as LayoutMode)}
                         disabled={updateProject.isPending || projectQuery.data == null}
                         className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 disabled:opacity-50"
                     >
-                        {(["A4", "A3", "A2", "B4"] as const).map((size) => (
-                            <option key={size} value={size}>
-                                {size} ({PAPER_PRESETS[size].widthMm}×{PAPER_PRESETS[size].heightMm}mm)
+                        <option value="paper">종이 출판 (페이지·판형)</option>
+                        <option value="web">웹 출판 (연속·글자수)</option>
+                    </select>
+                </div>
+                {layoutMode === "paper" && (
+                    <div className="mt-2 flex items-center gap-2">
+                        <label htmlFor="b-paper-size" className="shrink-0 text-xs text-gray-400">
+                            용지
+                        </label>
+                        <select
+                            id="b-paper-size"
+                            value={paperSize}
+                            onChange={(e) => handlePaperSizeChange(e.target.value as PaperSize)}
+                            disabled={updateProject.isPending || projectQuery.data == null}
+                            className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 disabled:opacity-50"
+                        >
+                            {PAPER_SIZE_ORDER.map((size) => (
+                                <option key={size} value={size}>
+                                    {PAPER_LABEL[size]} ({PAPER_PRESETS[size].widthMm}×{PAPER_PRESETS[size].heightMm}mm)
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+                <div className="mt-2 flex items-center gap-2">
+                    <label htmlFor="b-font-scale" className="shrink-0 text-xs text-gray-400">
+                        글자 크기
+                    </label>
+                    <select
+                        id="b-font-scale"
+                        value={fontScale}
+                        onChange={(e) => handleFontScaleChange(e.target.value as FontScale)}
+                        disabled={updateProject.isPending || projectQuery.data == null}
+                        className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 disabled:opacity-50"
+                    >
+                        {FONT_SCALE_ORDER.map((scale) => (
+                            <option key={scale} value={scale}>
+                                {FONT_SCALE_LABEL[scale]}
                             </option>
                         ))}
                     </select>
                 </div>
+                {/* 분량 지표(031) — 현재 챕터. 웹=글자수, 종이=글자수+원고지 매수(페이지 수는 본문 하단에 표시). */}
+                <p className="mt-2 text-xs text-gray-400">
+                    {layoutMode === "web"
+                        ? `${chapterWordCount.toLocaleString()}자`
+                        : `${chapterWordCount.toLocaleString()}자 · 원고지 ${Math.round(chapterWordCount / 200)}매`}
+                </p>
             </div>
             {/* 챕터 목록 */}
             <div className="border-b border-gray-200 px-2 py-2">
@@ -556,6 +618,8 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                         currentChapterId,
                         projectId,
                         paperSize,
+                        fontScale,
+                        layoutMode,
                         chapterTitle: chapters.find((c) => c.id === currentChapterId)?.title,
                         onChapterRename: (title) => handleRenameChapter(currentChapterId, title),
                         onSyncStatus: handleSyncStatus,
@@ -601,11 +665,12 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                     paperSize={paperSize}
                     onExportPdf={(req) => { setExportOpen(false); exportPdf(req); }}
                     onExportWord={(format, req) => { setExportOpen(false); exportWord(format, req); }}
+                    onExportText={(format, req) => { setExportOpen(false); exportText(format, req); }}
                     onClose={() => setExportOpen(false)}
                 />
             )}
 
-            {printModels && <PrintOverlay models={printModels} paperSize={paperSize} lined={lined} onDone={clearPrint} />}
+            {printModels && <PrintOverlay models={printModels} paperSize={paperSize} onDone={clearPrint} />}
 
             {/* 충돌 다이얼로그 — 에디터 슬롯이 콜백으로 올린 conflict / 해결 핸들러 사용 */}
             {conflictHandlers.conflict != null && (
