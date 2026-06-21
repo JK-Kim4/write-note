@@ -4,9 +4,21 @@ import com.writenote.entity.Project
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
 import java.util.Optional
 
+/** 운영 툴 회원 조회(030 US2) — userId 별 작품 수 집계 projection(N+1 회피). */
+interface ProjectCountByUser {
+    val userId: Long
+    val cnt: Long
+}
+
 interface ProjectRepository : JpaRepository<Project, Long> {
+    @Query(
+        "SELECT p.userId AS userId, COUNT(p) AS cnt FROM Project p WHERE p.userId IN :userIds GROUP BY p.userId",
+    )
+    fun countByUserIds(userIds: List<Long>): List<ProjectCountByUser>
+
     fun findByIdAndUserId(
         id: Long,
         userId: Long,
