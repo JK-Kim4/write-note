@@ -3,7 +3,7 @@
 import "./b.css";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Clock, Home, PenLine, Settings, StickyNote, Users } from "lucide-react";
+import { BookOpen, Clock, Home, Mail, Megaphone, PenLine, Settings, StickyNote, Users } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
@@ -28,7 +28,9 @@ const NAV_ITEMS = [
     { href: "/memos", label: "메모", exact: false, dataTour: "nav-memos", Icon: StickyNote },
     { href: "/characters", label: "인물", exact: false, dataTour: "nav-characters", Icon: Users },
     { href: "/logs", label: "기록", exact: false, Icon: Clock },
+    { href: "/notice", label: "공지", exact: false, Icon: Megaphone },
     { href: "/settings", label: "설정", exact: false, Icon: Settings },
+    { href: "/contact", label: "문의", exact: false, Icon: Mail },
 ] as const;
 
 // 메뉴 칩 — 단색 라인 아이콘(lucide) + 라벨. 평상시 회색, 선택은 테라코타(주 액센트),

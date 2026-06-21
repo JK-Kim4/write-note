@@ -14,6 +14,7 @@ import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { BRhythmCard } from "@/components/b/dashboard/BRhythmCard";
 import { BTodayGauge } from "@/components/b/dashboard/BTodayGauge";
 import { BMemoStrip } from "@/components/b/dashboard/BMemoStrip";
+import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { usePreferences } from "@/stores/preferences";
 import { LITERARY_QUOTES, pickRandom } from "@/lib/literaryQuotes";
 
@@ -69,6 +70,7 @@ export default function BDashboardPage() {
     return (
         <div>
             <OnboardingTour />
+            <AnnouncementBanner />
             <h1 className="text-xl font-bold text-gray-900">
                 {mounted && quote ? (
                     <>
