@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
 import type { AnnouncementInput } from "@/lib/api/announcements";
+import { applyMarkdown, type MarkdownKind } from "@/lib/markdownToolbar";
 
 interface Props {
     initial?: AnnouncementInput;
@@ -17,6 +20,19 @@ export function AnnouncementForm({ initial, submitLabel, submitting, error, onSu
     const [body, setBody] = useState(initial?.body ?? "");
     const [isPublished, setIsPublished] = useState(initial?.isPublished ?? false);
     const [isPinned, setIsPinned] = useState(initial?.isPinned ?? false);
+    const bodyRef = useRef<HTMLTextAreaElement>(null);
+    const [preview, setPreview] = useState(false);
+
+    const runMarker = (kind: MarkdownKind) => {
+        const ta = bodyRef.current;
+        if (!ta) return;
+        const result = applyMarkdown(body, ta.selectionStart, ta.selectionEnd, kind);
+        setBody(result.text);
+        requestAnimationFrame(() => {
+            ta.focus();
+            ta.setSelectionRange(result.selStart, result.selEnd);
+        });
+    };
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
@@ -39,14 +55,49 @@ export function AnnouncementForm({ initial, submitLabel, submitting, error, onSu
                 />
             </div>
             <div>
-                <label htmlFor="body" className="mb-1 block text-sm font-medium text-slate-700">본문</label>
-                <textarea
-                    id="body"
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                    rows={10}
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
-                />
+                <div className="mb-1 flex items-center gap-2">
+                    <label htmlFor="body" className="text-sm font-medium text-slate-700">본문</label>
+                    <div className="ml-auto flex gap-1">
+                        {(
+                            [
+                                ["h2", "제목"],
+                                ["h3", "소제목"],
+                                ["bold", "굵게"],
+                                ["bullet", "목록"],
+                            ] as [MarkdownKind, string][]
+                        ).map(([kind, label]) => (
+                            <button
+                                key={kind}
+                                type="button"
+                                onClick={() => runMarker(kind)}
+                                className="rounded border border-slate-300 px-2 py-0.5 text-xs text-slate-600 hover:bg-slate-100"
+                            >
+                                {label}
+                            </button>
+                        ))}
+                        <button
+                            type="button"
+                            onClick={() => setPreview((p) => !p)}
+                            className="rounded border border-slate-300 px-2 py-0.5 text-xs text-slate-600 hover:bg-slate-100"
+                        >
+                            {preview ? "편집" : "미리보기"}
+                        </button>
+                    </div>
+                </div>
+                {preview ? (
+                    <div className="min-h-[16rem] rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm leading-relaxed text-slate-800">
+                        <ReactMarkdown remarkPlugins={[remarkBreaks]}>{body}</ReactMarkdown>
+                    </div>
+                ) : (
+                    <textarea
+                        id="body"
+                        ref={bodyRef}
+                        value={body}
+                        onChange={(e) => setBody(e.target.value)}
+                        rows={12}
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm outline-none focus:border-slate-500"
+                    />
+                )}
             </div>
             <div className="flex gap-6">
                 <label className="flex items-center gap-2 text-sm text-slate-700">
