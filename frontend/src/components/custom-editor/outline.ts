@@ -38,7 +38,7 @@ export function outlineFromModel(model: DocModel): OutlineItem[] {
 /**
  * heading 이 위치한 블록 인덱스를 등장순 배열로 반환한다.
  *
- * useCustomOutline 이 view 좌표와 결합해 스크롤 위치를 해결하는 데 사용.
+ * view 좌표와 결합해 heading 의 스크롤/페이지 위치를 해결하는 데 사용.
  */
 export function headingBlockIndices(model: DocModel): number[] {
   const indices: number[] = [];

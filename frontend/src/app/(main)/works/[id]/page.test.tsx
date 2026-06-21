@@ -34,31 +34,44 @@ vi.mock("next/navigation", () => ({
 // BCustomChapterEditor(자체엔진 — EditContext/DOM 측정), BWorkSidePanel 은 jsdom 미지원 API 사용 → mock.
 // 024 R4: 기본 라우트가 TipTap BEditor → 자체엔진 BCustomChapterEditor 로 교체됨.
 // chapterTitle / onChapterRename 을 노출해 본문 상단 제목 편집 흐름 검증 가능.
-vi.mock("@/components/custom-editor/BCustomChapterEditor", () => ({
-    BCustomChapterEditor: ({
-        chapterTitle,
-        onChapterRename,
-    }: {
-        chapterTitle?: string;
-        onChapterRename?: (title: string) => void;
-    }) => (
-        <div data-testid="b-editor">
-            {chapterTitle != null && (
-                <span
-                    data-testid="b-editor-chapter-title"
-                    onDoubleClick={() => onChapterRename?.("B형 본문에서 변경된 제목")}
-                >
-                    {chapterTitle || "새 챕터"}
-                </span>
-            )}
-        </div>
-    ),
-}));
+// onOutlineChange: 에디터가 전체 문서(여러 페이지에 걸친 heading 전부) 목차를 page 로 올리는 콜백.
+// mock 은 마운트 시 2개(서로 다른 페이지에 있다고 가정) 제목을 올려, 목차가 페이지 한정이 아닌
+// 전체 작품 기준으로 표시되는지 검증할 수 있게 한다.
+vi.mock("@/components/custom-editor/BCustomChapterEditor", async () => {
+    const { useEffect } = await import("react");
+    return {
+        BCustomChapterEditor: ({
+            chapterTitle,
+            onChapterRename,
+            onOutlineChange,
+        }: {
+            chapterTitle?: string;
+            onChapterRename?: (title: string) => void;
+            onOutlineChange?: (items: { level: 1 | 2 | 3; text: string; index: number }[]) => void;
+        }) => {
+            useEffect(() => {
+                onOutlineChange?.([
+                    { level: 1, text: "1페이지 제목", index: 0 },
+                    { level: 1, text: "2페이지 제목", index: 1 },
+                ]);
+            }, [onOutlineChange]);
+            return (
+                <div data-testid="b-editor">
+                    {chapterTitle != null && (
+                        <span
+                            data-testid="b-editor-chapter-title"
+                            onDoubleClick={() => onChapterRename?.("B형 본문에서 변경된 제목")}
+                        >
+                            {chapterTitle || "새 챕터"}
+                        </span>
+                    )}
+                </div>
+            );
+        },
+    };
+});
 vi.mock("@/components/b/BWorkSidePanel", () => ({
     BWorkSidePanel: () => <div data-testid="b-work-side-panel" />,
-}));
-vi.mock("@/components/custom-editor/useCustomOutline", () => ({
-    useCustomOutline: () => ({ items: [], activeIndex: -1, selectItem: vi.fn() }),
 }));
 
 const ORIGIN = "http://localhost:3000";
@@ -325,6 +338,25 @@ describe("BWorkDetailPage — 챕터 목록 및 전환", () => {
                 expect.anything(),
             );
         });
+    });
+});
+
+describe("BWorkDetailPage — 목차는 전체 작품 기준 (페이지 한정 회귀 방지)", () => {
+    /**
+     * 회귀: 기존 useCustomOutline(DOM 스캔)은 현재 보이는 페이지 1장의 heading 만 긁어,
+     * 페이지를 넘기면 목차가 초기화됐다. 에디터가 onOutlineChange 로 올리는 전체 문서 목차를
+     * page 가 그대로 패널에 표시해야 한다 — 서로 다른 페이지의 제목이 동시에 보이는지로 검증.
+     */
+    it("에디터가 올린 전체 문서 heading 이 모두 목차 패널에 표시된다", async () => {
+        searchParamsStore = new URLSearchParams("chapter=10");
+        stubCommon();
+        renderPage();
+
+        // inline/drawer 양쪽 렌더라 getAllBy 로 최소 1개 이상 존재 확인.
+        await waitFor(() => {
+            expect(screen.getAllByRole("button", { name: "1페이지 제목" }).length).toBeGreaterThan(0);
+        });
+        expect(screen.getAllByRole("button", { name: "2페이지 제목" }).length).toBeGreaterThan(0);
     });
 });
 
