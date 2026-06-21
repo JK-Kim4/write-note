@@ -5,8 +5,8 @@ import { useState, type FormEvent } from "react";
 import { webElectronApi } from "@/lib/electron-api";
 
 const BODY_PLACEHOLDER = "의견을 자유롭게 적어주세요";
-// 카카오 채널 채팅 진입 URL(사용자 준비물). 메일이 부담스러울 때 실시간 대화 대안.
-const KAKAO_CHAT_URL = "https://pf.kakao.com/_mxlxlnX/chat";
+// 카카오 채널(소설비) 채팅 진입 URL. 메일이 부담스러울 때 실시간 대화 대안.
+const KAKAO_CHAT_URL = "https://pf.kakao.com/_xcuxhxfX/chat";
 // 선택 입력이라 엄밀 RFC 검증 대신 최소 형식만 본다.
 const EMAIL_RE = /.+@.+\..+/;
 // 문의 유형(선택) — 선택 시 Formsubmit 메일 제목에 [분류] prefix 로 붙어 받은편지함에서 분류된다.

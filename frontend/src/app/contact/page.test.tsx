@@ -38,3 +38,13 @@ describe("ContactPage 문의 유형", () => {
         expect(await screen.findByText("보내주셔서 감사합니다.")).toBeInTheDocument();
     });
 });
+
+describe("ContactPage 카카오 채널 링크", () => {
+    it("카카오톡으로 문의 클릭 시 소설비 채널 채팅 URL 을 새 창으로 연다", async () => {
+        const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+        render(<ContactPage />);
+        await userEvent.click(screen.getByRole("button", { name: "카카오톡으로 문의" }));
+        expect(openSpy).toHaveBeenCalledWith("https://pf.kakao.com/_xcuxhxfX/chat", "_blank");
+        openSpy.mockRestore();
+    });
+});
