@@ -32,6 +32,10 @@ const PAPER_SIZE_OPTIONS: { value: PaperSize; label: string; description: string
     { value: "A3", label: "A3", description: "297×420mm — 넓은 원고지" },
     { value: "A2", label: "A2", description: "420×594mm — 대형 원고지" },
     { value: "B4", label: "B4", description: "257×364mm — JIS B4 규격" },
+    { value: "sinkukpan", label: "신국판", description: "152×225mm — 소설 단행본 표준" },
+    { value: "kukpan", label: "국판", description: "148×210mm — 일반 단행본" },
+    { value: "pan46", label: "46판", description: "128×188mm — 소설·문고형" },
+    { value: "mungopan", label: "문고판", description: "105×148mm — 휴대용 문고본" },
 ];
 
 /**

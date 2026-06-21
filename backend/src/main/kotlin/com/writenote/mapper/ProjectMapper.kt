@@ -17,6 +17,8 @@ class ProjectMapper {
             worldNotes = project.worldNotes,
             nextScene = project.nextScene,
             paperSize = project.paperSize,
+            layoutMode = project.layoutMode,
+            fontScale = project.fontScale,
             archivedAt = project.archivedAt,
             createdAt = requireNotNull(project.createdAt),
             updatedAt = requireNotNull(project.updatedAt),

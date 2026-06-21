@@ -56,7 +56,7 @@ class SettingsService(
                 "theme" to setOf("light", "dark", "system"),
                 "writingMode" to setOf("manuscript", "editor"),
                 "manuscriptSize" to setOf("200", "400", "1000"),
-                "paperSize" to setOf("A4", "A3", "A2", "B4"),
+                "paperSize" to setOf("A4", "A3", "A2", "B4", "sinkukpan", "kukpan", "pan46", "mungopan"),
                 "onboardingCompleted" to setOf("true"),
                 "dailyGoalMinutes" to setOf("30", "60", "90", "120", "180", "240", "300"),
             )

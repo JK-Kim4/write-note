@@ -9,15 +9,13 @@ import type { ExportRequest } from "@/components/export/ExportDialog";
 /** PDF 내보내기 상태·동작. 두 집필실(A형·B형)이 공유. */
 export function usePdfExport() {
   const [printModels, setPrintModels] = useState<DocModel[] | null>(null);
-  const [lined, setLined] = useState(false);
 
   const exportPdf = useCallback(async (req: ExportRequest) => {
     const data = await collectChapters(req.orderedIds, getDocument);
-    setLined(req.lined);
     setPrintModels(mergeChaptersForPrint(data, req.joinMode));
   }, []);
 
   const clearPrint = useCallback(() => setPrintModels(null), []);
 
-  return { printModels, lined, exportPdf, clearPrint };
+  return { printModels, exportPdf, clearPrint };
 }
