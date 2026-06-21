@@ -5,16 +5,19 @@ import { useState, type FormEvent } from "react";
 import { webElectronApi } from "@/lib/electron-api";
 
 const BODY_PLACEHOLDER = "의견을 자유롭게 적어주세요";
-// 카카오 채널 채팅 진입 URL(사용자 준비물). 메일이 부담스러울 때 실시간 대화 대안.
-const KAKAO_CHAT_URL = "https://pf.kakao.com/_mxlxlnX/chat";
+// 카카오 채널(소설비) 채팅 진입 URL. 메일이 부담스러울 때 실시간 대화 대안.
+const KAKAO_CHAT_URL = "https://pf.kakao.com/_xcuxhxfX/chat";
 // 선택 입력이라 엄밀 RFC 검증 대신 최소 형식만 본다.
 const EMAIL_RE = /.+@.+\..+/;
+// 문의 유형(선택) — 선택 시 Formsubmit 메일 제목에 [분류] prefix 로 붙어 받은편지함에서 분류된다.
+const CATEGORIES = ["버그 신고", "개선 제안", "기능 제안", "사용 후기", "기타"] as const;
 
 /**
  * 문의 화면 (공개) — 로그인 불필요. 인앱 메일 폼으로 의견 전송, 회신 이메일 선택.
  */
 export default function ContactPage() {
     const [email, setEmail] = useState("");
+    const [category, setCategory] = useState("");
     const [body, setBody] = useState("");
     const [sending, setSending] = useState(false);
     const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
@@ -28,10 +31,11 @@ export default function ContactPage() {
         }
         setSending(true);
         try {
-            const result = await webElectronApi.contact.send({ email, body });
+            const result = await webElectronApi.contact.send({ email, body, category });
             if (result.ok) {
                 setNotice({ kind: "success", text: "보내주셔서 감사합니다." });
                 setEmail("");
+                setCategory("");
                 setBody("");
             } else {
                 setNotice({ kind: "error", text: "전송 실패, 잠시 후 다시 시도해주세요." });
@@ -58,6 +62,25 @@ export default function ContactPage() {
                     </p>
 
                     <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+                        <label className="block text-sm text-gray-700">
+                            문의 유형 <span className="text-gray-400">(선택)</span>
+                            <select
+                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
+                                value={category}
+                                onChange={(e) => {
+                                    setCategory(e.target.value);
+                                    setNotice(null);
+                                }}
+                            >
+                                <option value="">선택 안 함</option>
+                                {CATEGORIES.map((c) => (
+                                    <option key={c} value={c}>
+                                        {c}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+
                         <label className="block text-sm text-gray-700">
                             회신 이메일 <span className="text-gray-400">(선택)</span>
                             <input
