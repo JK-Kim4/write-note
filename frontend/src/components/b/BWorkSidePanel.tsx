@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { genderLabel } from "@/lib/api/characters";
 import { useCreateCharacter, useProjectCharacters } from "@/lib/query/useCharacters";
 import { useCaptureMemo, useProjectMemos, useRemoveLinkMemo, useSetPinMemo } from "@/lib/query/useMemos";
+import { goalProgress } from "@/lib/goalGauge";
 
 /**
  * B타입 집필 보조 패널 — fable-test WorkSidePanel 이식 (w-80, 메모/인물 탭, ◀▶ 접이식).
@@ -205,6 +206,9 @@ type SidePanelProps = {
     onTabChange?: (tab: Tab) => void;
     /** 접기 토글(▶) 노출 여부. drawer 인스턴스(false)는 항상 펼친 상태 — 좁은 폭에서 8px strip 잔존 방지. */
     collapsible?: boolean;
+    /** 분량 지표(031) — 작품 전체 글자수(실시간) · 목표 분량 진행률. 패널 하단 고정 카드. */
+    wordCount?: number;
+    targetLength?: number | null;
 };
 
 export function BWorkSidePanel({
@@ -214,7 +218,10 @@ export function BWorkSidePanel({
     tab: tabProp,
     onTabChange,
     collapsible = true,
+    wordCount,
+    targetLength,
 }: SidePanelProps) {
+    const goal = wordCount != null && targetLength != null ? goalProgress(wordCount, targetLength) : null;
     const [isOpenLocal, setIsOpenLocal] = useState(true);
     const [tabLocal, setTabLocal] = useState<Tab>("memos");
     // collapsible=false 면 공유 panelOpen 무시하고 항상 펼침(drawer 는 자체 ✕ 로만 닫는다).
@@ -277,6 +284,25 @@ export function BWorkSidePanel({
             <div className="min-h-0 flex-1">
                 {tab === "memos" ? <MemosTab projectId={projectId} /> : <CharactersTab projectId={projectId} />}
             </div>
+            {wordCount != null && (
+                <div className="border-t border-gray-200 bg-white px-3 py-2.5">
+                    <div className="flex items-baseline justify-between">
+                        <span className="text-xs text-gray-500">분량</span>
+                        {goal != null && <span className="text-sm font-bold text-gray-700">{goal.percent}%</span>}
+                    </div>
+                    <p className="mt-0.5 text-sm text-gray-700">
+                        {wordCount.toLocaleString()}자{targetLength ? ` / ${targetLength.toLocaleString()}자` : ""}
+                    </p>
+                    {goal != null && (
+                        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
+                            <div
+                                className="h-full rounded-full bg-terracotta-500"
+                                style={{ width: `${Math.min(100, goal.percent)}%` }}
+                            />
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

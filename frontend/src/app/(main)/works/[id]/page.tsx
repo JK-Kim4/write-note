@@ -75,7 +75,7 @@ export default function BWorkDetailPage() {
     return (
         <BStudioShell
             outline={outline}
-            renderEditor={({ currentChapterId, projectId, paperSize, fontScale, layoutMode, chapterTitle, onChapterRename, onSyncStatus, onConflict }) => (
+            renderEditor={({ currentChapterId, projectId, paperSize, fontScale, layoutMode, onWordCountChange, chapterTitle, onChapterRename, onSyncStatus, onConflict }) => (
                 <BCustomChapterEditor
                     key={currentChapterId}
                     ref={editorRef}
@@ -84,6 +84,7 @@ export default function BWorkDetailPage() {
                     paperSize={paperSize}
                     fontScale={fontScale}
                     layoutMode={layoutMode}
+                    onWordCountChange={onWordCountChange}
                     chapterTitle={chapterTitle}
                     onChapterRename={onChapterRename}
                     onSyncStatus={onSyncStatus}

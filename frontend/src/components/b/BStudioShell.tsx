@@ -48,6 +48,8 @@ export interface BStudioEditorSlotArgs {
     fontScale: FontScale;
     /** 출판 방식(031). web=연속 렌더(판형·페이지 분할 없음). */
     layoutMode: LayoutMode;
+    /** 실시간 글자수 보고(031 분량 지표) — 에디터가 본문 변경 시 셸로 올림. */
+    onWordCountChange: (count: number) => void;
     /** 현재 챕터 제목 — 본문 상단 부제 표시·인라인 편집용. */
     chapterTitle?: string;
     /** 본문 상단 챕터 제목 인라인 편집 완료 콜백. */
@@ -175,8 +177,20 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
     // 용지 크기는 작품 속성 — 변경 시 PATCH → 비율 즉시 반영.
     const paperSize: PaperSize = projectQuery.data?.paperSize ?? "A4";
     const fontScale: FontScale = projectQuery.data?.fontScale ?? "m";
-    // 분량 지표(031) — 현재 챕터 저장 글자수(자동저장 시 갱신). 종이=원고지 매수, 웹=글자수.
-    const chapterWordCount = chapters.find((c) => c.id === currentChapterId)?.wordCount ?? 0;
+    // 분량 지표(031) — 에디터가 보고하는 실시간 글자수(미보고 시 저장값 fallback). 종이=원고지 매수, 웹=글자수.
+    const savedWordCount = chapters.find((c) => c.id === currentChapterId)?.wordCount ?? 0;
+    const [liveWordCount, setLiveWordCount] = useState<number | null>(null);
+    // 챕터 전환 시 이전 챕터 글자수 잔상 제거(새 에디터가 마운트하며 즉시 재보고).
+    useEffect(() => {
+        setLiveWordCount(null);
+    }, [currentChapterId]);
+    const displayWordCount = liveWordCount ?? savedWordCount;
+    // 작품 전체 글자수 — 현재 챕터는 실시간(displayWordCount), 나머지는 저장값. 우패널 분량 카드용.
+    const totalWordCount = chapters.reduce(
+        (sum, c) => sum + (c.id === currentChapterId ? displayWordCount : c.wordCount),
+        0,
+    );
+    const targetLength = projectQuery.data?.targetLength ?? null;
     const layoutMode: LayoutMode = projectQuery.data?.layoutMode ?? "paper";
     const exportWord = useWordExport(projectId, paperSize);
     const handlePaperSizeChange = (next: PaperSize) => {
@@ -402,12 +416,6 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                         ))}
                     </select>
                 </div>
-                {/* 분량 지표(031) — 현재 챕터. 웹=글자수, 종이=글자수+원고지 매수(페이지 수는 본문 하단에 표시). */}
-                <p className="mt-2 text-xs text-gray-400">
-                    {layoutMode === "web"
-                        ? `${chapterWordCount.toLocaleString()}자`
-                        : `${chapterWordCount.toLocaleString()}자 · 원고지 ${Math.round(chapterWordCount / 200)}매`}
-                </p>
             </div>
             {/* 챕터 목록 */}
             <div className="border-b border-gray-200 px-2 py-2">
@@ -586,6 +594,8 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                         collapsible={false}
                         tab={panelTab}
                         onTabChange={setPanelTab}
+                        wordCount={totalWordCount}
+                        targetLength={targetLength}
                     />
                 </div>
             </div>
@@ -620,6 +630,7 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                         paperSize,
                         fontScale,
                         layoutMode,
+                        onWordCountChange: setLiveWordCount,
                         chapterTitle: chapters.find((c) => c.id === currentChapterId)?.title,
                         onChapterRename: (title) => handleRenameChapter(currentChapterId, title),
                         onSyncStatus: handleSyncStatus,
@@ -645,6 +656,8 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                     onOpenChange={setPanelOpen}
                     tab={panelTab}
                     onTabChange={setPanelTab}
+                    wordCount={totalWordCount}
+                    targetLength={targetLength}
                 />
             </div>
 
