@@ -1,101 +1,57 @@
-# write-note
+# 소설비 (Soseolbi)
 
-컨텍스트가 안 죽는 작가용 작업공간.
+> 컨텍스트가 안 죽는 작가용 작업공간
 
-취미로 소설·단막극·시를 쓰는 사람들이 일상의 영감과 글쓰기 세션 사이에서 잃어버리는 *맥락*을 살려주는 사이드 프로젝트. 메모와 글쓰기 에디터가 *같은 시스템*에 살면서, 세션이 끊겨도 컨텍스트가 영속하게 만드는 것이 목표.
+**[soseolbi.com](https://soseolbi.com)**
 
-## 문서
+소설비는 취미로 소설·단막극·시를 쓰는 사람들을 위한 글쓰기 작업공간입니다. 일상의 영감과 글쓰기 세션 사이에서 잃어버리기 쉬운 *맥락*을 살려주는 것이 목표입니다. 메모와 글쓰기 에디터가 *같은 시스템*에 살면서, 세션이 끊겨도 작업 맥락이 영속하게 만듭니다.
 
-- [docs/STATUS.md](./docs/STATUS.md) — **현재 active track 진입점** (Desktop MVP)
-- [PRODUCT.md](./PRODUCT.md) — desktop 전략 (누가/무엇을/왜)
-- [docs/DESIGN.md](./docs/DESIGN.md) — **desktop** 비주얼 시스템 SoT (활성)
-- [DESIGN.web-legacy.md](./DESIGN.web-legacy.md) — web 트랙(paused) 설계·UI/UX 기록
-- [docs/plan/00-stack-and-schedule.md](./docs/plan/00-stack-and-schedule.md) — 기술 스택 SoT + 일정 + 보류 결정
-- [docs/plan/01-phase-breakdown.md](./docs/plan/01-phase-breakdown.md) — Week → Phase 분해 (총 56 Phase)
-- [designs/wireframe.html](./designs/wireframe.html) — 인터랙티브 wireframe (메인 9개 view + 인증 12개 패널)
+## 주요 기능
 
-## 상태
+- **작품·챕터 관리** — 작품 단위로 메타데이터(장르·로그라인·등장인물)를 모으고, 본문을 여러 챕터로 나눠 집필
+- **집필실 에디터** — 실제 종이처럼 페이지가 나뉘는 자체 에디터 엔진. 출판 방식(종이/웹)과 판형(신국판·국판·46판·문고판 등)을 선택해 실측에 가까운 분량을 가늠하며 집필
+- **등장인물·곁쪽지** — 집필 화면 옆에서 인물 설정과 메모를 바로 참조. 글의 흐름을 끊지 않고 맥락 유지
+- **집필 리듬·분량 지표** — 글자 수, 일일 목표 진행률, 주간 집필 리듬을 한눈에 확인
+- **내보내기** — 완성한 원고를 PDF·DOCX로 출력
+- **모바일·데스크톱 지원** — 웹 브라우저, 모바일, 그리고 별도 데스크톱 앱으로 어디서든 집필
 
-🟢 Week 1A Backend Foundation (001) + Week 1B Backend Auth (003 — Spring Security + JWT + Kakao OAuth2 + 이메일/비밀번호 로그인 + 5회 실패 잠금 + 비밀번호 재설정) + Week 2 Backend Project Metadata & Character (004 — Project 메타 5 필드 + Document auto-provisioning + Character CRUD 5 endpoint + Character reorder) 종료. 다음 = Week 2 Frontend Views (005 — 홈 view / 새 프로젝트 흐름 / 메타 카드 UI / 등장인물 페이지).
-
-🟡 002 Frontend Route Scaffold — 자동화 GREEN / dogfooding 5 영역 대기 (vault ISSUE-001).
-
-## 디렉토리
-
-```
-write-note/
-├── desktop/            Desktop MVP 렌더러 프로토타입 (Vite + React + TipTap) — 활성
-├── frontend/           Next.js 16 (web 트랙, paused)
-├── backend/            Spring Boot 4.0.6 (web 트랙, paused)
-├── PRODUCT.md          desktop 전략 (누가/무엇을/왜)
-├── docs/DESIGN.md      desktop 비주얼 시스템 SoT (활성)
-├── docs/STATUS.md      현재 active track 진입점
-├── docs/plan/          기술 스택 + Phase 분해 (web 트랙)
-├── designs/            wireframe.html (web 트랙)
-├── DESIGN.web-legacy.md  web 트랙(paused) 설계 기록
-└── docker-compose.yml  로컬 인프라 (Postgres 17)
-```
-
-## 기술 스택 (요약, 상세는 [docs/plan/00-stack-and-schedule.md §2-1](./docs/plan/00-stack-and-schedule.md) 참조)
+## 기술 스택
 
 | 레이어 | 기술 |
 |---|---|
-| 프론트 | Next.js 16 (App Router) + TypeScript + React 19 + Tailwind 4 |
-| 에디터 | TipTap |
-| 백엔드 | Kotlin 2.2 + Spring Boot 4.0.6 on Java 24 toolchain (Web + Security + Data JPA + Validation + Flyway) |
-| 빌드 | Gradle Kotlin DSL (gradlew wrapper 포함) |
-| DB | PostgreSQL 17 (로컬 docker, 프로덕션 Supabase Postgres) |
+| 프론트엔드 | Next.js (App Router) + TypeScript + React |
+| 에디터 | 자체 페이지 분할 에디터 엔진 |
+| 상태 관리 | React Query + Zustand |
+| 백엔드 | Kotlin + Spring Boot (Web · Security · Data JPA) |
+| 데이터베이스 | PostgreSQL |
 | 인증 | Spring Security + JWT + Kakao OAuth2 |
-| 모바일 캡처 | iOS Shortcut → `POST /api/capture` |
-| 호스팅 | Vercel (FE) + Render (BE) + Supabase (DB) |
+| 데스크톱 | Electron |
+| 호스팅 | Vercel (프론트) · OCI Compute (백엔드) |
 
-## 로컬 개발 환경
+## 로컬 실행
 
 ### 사전 요구사항
 
 - Node.js 20+ / pnpm 8+
-- Java 24 (Gradle toolchain). 시스템 Corretto 25 이상이면 OK — Gradle 이 toolchain 24 로 자동 처리
-- Docker 28+ — Postgres 컨테이너
-- Spring Boot 빌드는 backend/ 의 `./gradlew` wrapper 사용 (시스템 gradle 불필요)
+- Java 24 (Gradle toolchain 자동 처리)
+- Docker (PostgreSQL 컨테이너)
 
-### 실행 순서
+### 실행
 
 ```bash
-# 1. Postgres 컨테이너 기동
+# 1. PostgreSQL 컨테이너 기동
 docker compose up -d --wait postgres
 
-# 2. 백엔드 (호스트 직접 실행)
+# 2. 백엔드 (새 터미널)
 cd backend
-./gradlew bootRun --args='--spring.profiles.active=local'  # 8080 포트
+./gradlew bootRun --args='--spring.profiles.active=local'   # http://localhost:8080
 
-# 3. 프론트 (호스트 직접 실행, 새 터미널)
+# 3. 프론트엔드 (새 터미널)
 cd frontend
-pnpm install                 # 첫 회만
-pnpm dev                     # 3000 포트, http://localhost:3000
+pnpm install
+pnpm dev                                                    # http://localhost:3000
 ```
 
-### 백엔드 검증
+## 라이선스
 
-```bash
-cd backend
-./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build
-```
-
-### 서비스 종료
-
-```bash
-docker compose down          # Postgres 컨테이너 정지 + 네트워크 정리
-docker compose down -v       # 볼륨까지 삭제 (DB 데이터 날아감)
-```
-
-## 브랜치 전략
-
-정통 git flow (Vincent Driessen 모델) + 워크트리 격리.
-
-| 브랜치 | 역할 |
-|---|---|
-| `main` | production-released 만 (현재: V1 출시 전이라 기획 산출물만) |
-| `develop` | 다음 release 준비 (integration target) |
-| `feature/*` | 신규 기능 (develop → feature → develop merge), 워크트리 격리 의무 |
-| `release/*` | V1 출시 직전 안정화 (발생 시점 생성) |
-| `hotfix/*` | production 긴급 fix (발생 시점 생성) |
+개인 사이드 프로젝트입니다.
