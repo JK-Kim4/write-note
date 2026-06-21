@@ -433,6 +433,187 @@ class ProjectControllerIT {
             .andExpect(status().isUnauthorized)
     }
 
+    // ── 031 layoutMode (출판 방식: paper/web) ──────────────────────────────
+
+    @Test
+    fun `layoutMode defaults to paper when omitted and persists web when provided`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+
+        // 미지정 → 기본 'paper' (FR-013 기존 작품 동작 보존)
+        mockMvc
+            .perform(
+                post("/api/projects")
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"title":"기본 작품"}"""),
+            ).andExpect(status().isCreated)
+            .andExpect(jsonPath("$.data.layoutMode").value("paper"))
+
+        // 'web' 명시 → 저장·응답
+        val webId =
+            mockMvc
+                .perform(
+                    post("/api/projects")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"title":"웹 작품","layoutMode":"web"}"""),
+                ).andExpect(status().isCreated)
+                .andExpect(jsonPath("$.data.layoutMode").value("web"))
+                .andReturn()
+                .response
+                .contentAsString
+                .let(::extractProjectId)
+
+        // GET 재조회에도 보존
+        mockMvc
+            .perform(get("/api/projects/{projectId}", webId).header("Authorization", bearer))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.layoutMode").value("web"))
+    }
+
+    @Test
+    fun `layoutMode can be toggled via patch without losing other metadata`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+        val projectId =
+            mockMvc
+                .perform(
+                    post("/api/projects")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"title":"전환 작품","genre":"판타지","layoutMode":"web"}"""),
+                ).andExpect(status().isCreated)
+                .andReturn()
+                .response
+                .contentAsString
+                .let(::extractProjectId)
+
+        // web → paper 전환, 다른 필드 보존
+        mockMvc
+            .perform(
+                patch("/api/projects/{projectId}", projectId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"layoutMode":"paper"}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.layoutMode").value("paper"))
+            .andExpect(jsonPath("$.data.title").value("전환 작품"))
+            .andExpect(jsonPath("$.data.genre").value("판타지"))
+    }
+
+    @Test
+    fun `publication paper format sinkukpan is accepted on create and patch`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+
+        // 출판 판형(신국판) 생성 — 9자 식별자(VARCHAR16) 영속
+        val projectId =
+            mockMvc
+                .perform(
+                    post("/api/projects")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"title":"판형 작품","paperSize":"sinkukpan"}"""),
+                ).andExpect(status().isCreated)
+                .andExpect(jsonPath("$.data.paperSize").value("sinkukpan"))
+                .andReturn()
+                .response
+                .contentAsString
+                .let(::extractProjectId)
+
+        // 다른 판형으로 PATCH
+        mockMvc
+            .perform(
+                patch("/api/projects/{projectId}", projectId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"paperSize":"mungopan"}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.paperSize").value("mungopan"))
+    }
+
+    @Test
+    fun `invalid paperSize returns 400 VALIDATION_FAILED`() {
+        val owner = createUser()
+        mockMvc
+            .perform(
+                post("/api/projects")
+                    .header("Authorization", bearerFor(owner))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"title":"잘못된 판형","paperSize":"tabloid"}"""),
+            ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"))
+    }
+
+    @Test
+    fun `fontScale defaults to m and persists chosen value via create and patch`() {
+        val owner = createUser()
+        val bearer = bearerFor(owner)
+
+        // 미지정 → 기본 'm'(보통)
+        val projectId =
+            mockMvc
+                .perform(
+                    post("/api/projects")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"title":"글자 크기 작품"}"""),
+                ).andExpect(status().isCreated)
+                .andExpect(jsonPath("$.data.fontScale").value("m"))
+                .andReturn()
+                .response
+                .contentAsString
+                .let(::extractProjectId)
+
+        // PATCH 로 'xl' 변경
+        mockMvc
+            .perform(
+                patch("/api/projects/{projectId}", projectId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"fontScale":"xl"}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.fontScale").value("xl"))
+
+        // 생성 시 명시도 가능
+        mockMvc
+            .perform(
+                post("/api/projects")
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"title":"작게 작품","fontScale":"s"}"""),
+            ).andExpect(status().isCreated)
+            .andExpect(jsonPath("$.data.fontScale").value("s"))
+    }
+
+    @Test
+    fun `invalid fontScale returns 400 VALIDATION_FAILED`() {
+        val owner = createUser()
+        mockMvc
+            .perform(
+                post("/api/projects")
+                    .header("Authorization", bearerFor(owner))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"title":"잘못된 크기","fontScale":"xxl"}"""),
+            ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"))
+    }
+
+    @Test
+    fun `invalid layoutMode returns 400 VALIDATION_FAILED`() {
+        val owner = createUser()
+        mockMvc
+            .perform(
+                post("/api/projects")
+                    .header("Authorization", bearerFor(owner))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"title":"잘못된 모드","layoutMode":"pdf"}"""),
+            ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"))
+    }
+
     private fun createUser(): User =
         userRepository.saveAndFlush(
             User(email = "controller-${UUID.randomUUID()}@example.com", passwordHash = "test-fixture-password-hash"),

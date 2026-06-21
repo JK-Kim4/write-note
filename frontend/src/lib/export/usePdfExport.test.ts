@@ -14,10 +14,9 @@ describe("usePdfExport", () => {
   it("exportPdf 호출 시 수집·합본해 printModels 를 채운다", async () => {
     const { result } = renderHook(() => usePdfExport());
     expect(result.current.printModels).toBeNull();
-    await act(async () => { await result.current.exportPdf({ orderedIds: [1], lined: true, joinMode: "page-title" }); });
+    await act(async () => { await result.current.exportPdf({ orderedIds: [1], joinMode: "page-title" }); });
     await waitFor(() => expect(result.current.printModels).not.toBeNull());
     expect(result.current.printModels).toHaveLength(1);
-    expect(result.current.lined).toBe(true);
     act(() => result.current.clearPrint());
     expect(result.current.printModels).toBeNull();
   });

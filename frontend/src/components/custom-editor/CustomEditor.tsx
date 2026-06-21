@@ -15,7 +15,7 @@
  */
 
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
-import { mobilePageGeometry, pageGeometry, type PageGeometry, type PaperSize } from "./geometry";
+import { mobilePageGeometry, pageGeometry, webPageGeometry, type PageGeometry, type PaperSize } from "./geometry";
 import { BulletListIcon, DividerIcon, MarkGlyph, OrderedListIcon, QuoteIcon, ToolbarButton, ToolbarDivider } from "./toolbarIcons";
 import { emptyHistory, pushSnapshot, redo, undo, type Snapshot } from "./history";
 import { type LaidOutPage } from "./layoutEngine";
@@ -241,12 +241,16 @@ function PageBox({
 }) {
     const marginPx = (geo.pageWidthPx - geo.contentWidthPx) / 2;
     const byId: Record<string, ParsedBlock> = Object.fromEntries(blocks.map((b) => [b.id, b]));
+    // 웹 연속(031 US3) — contentHeightPx=Infinity 면 고정 sheet 대신 내용 높이로 렌더(분할 없는 단일 페이지).
+    const isContinuous = !Number.isFinite(geo.contentHeightPx);
+    const sheetHeight = isContinuous ? page.usedHeight + 2 * marginPx : geo.pageHeightPx;
+    const contentH = isContinuous ? page.usedHeight : geo.contentHeightPx;
     return (
         <div
             style={{
                 position: "relative",
                 width: geo.pageWidthPx,
-                height: geo.pageHeightPx,
+                height: sheetHeight,
                 flex: "none",
                 background: "#fff",
                 borderRadius: 8,
@@ -255,7 +259,7 @@ function PageBox({
         >
             <div
                 data-poc-page={page.index}
-                style={{ position: "absolute", left: marginPx, top: marginPx, width: geo.contentWidthPx, height: geo.contentHeightPx, userSelect: "none", cursor: "text" }}
+                style={{ position: "absolute", left: marginPx, top: marginPx, width: geo.contentWidthPx, height: contentH, userSelect: "none", cursor: "text" }}
             >
                 {/* 선택 하이라이트 — 텍스트보다 먼저(뒤에) 그림 */}
                 {selRects.map((r, i) => (
@@ -335,7 +339,9 @@ function PageBox({
                     <div className="poc-caret" style={{ position: "absolute", left: caret.x, top: caret.y, height: caret.height, width: 2, background: "#a8542e" }} />
                 )}
             </div>
-            <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, textAlign: "center", fontSize: 12, color: "#9ca3af" }}>{page.index + 1}</div>
+            {!isContinuous && (
+                <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, textAlign: "center", fontSize: 12, color: "#9ca3af" }}>{page.index + 1}</div>
+            )}
         </div>
     );
 }
@@ -353,8 +359,11 @@ export const CustomEditor = forwardRef<
         onModelChange: (next: DocModel) => void;
         paperSize: PaperSize;
         fontSizePx?: number;
+        /** 출판 방식(031 US3). web=페이지 분할 없는 연속 스크롤(종이·판형 무관). 기본 paper. */
+        layoutMode?: "paper" | "web";
     }
->(function CustomEditor({ model, onModelChange, paperSize, fontSizePx = 18 }, ref) {
+>(function CustomEditor({ model, onModelChange, paperSize, fontSizePx = 18, layoutMode = "paper" }, ref) {
+    const isWeb = layoutMode === "web";
     const buffer = model.buffer;
     // sel.affinity = focus 캐럿의 wrap 경계 시각 위치(-1=앞 줄 끝, +1=다음 줄 시작). 기본 +1 = 1라운드 동작.
     const [sel, setSel] = useState<{ anchor: number; focus: number; affinity: Affinity }>({ anchor: buffer.length, focus: buffer.length, affinity: 1 });
@@ -391,10 +400,15 @@ export const CustomEditor = forwardRef<
     const [isNarrow, setIsNarrow] = useState(false);
     const isMobile = mounted && isNarrow;
 
-    // 모바일은 화면 폭 페이지(reflow), 데스크탑은 용지 규격 페이지(기존·무회귀).
+    // 웹 출판 = 연속(폭 맞춤 + 무한 높이), 모바일 = 화면 폭 페이지(reflow), 데스크탑 = 용지 규격 페이지(무회귀).
     const geo = useMemo(
-        () => (isMobile ? mobilePageGeometry(availWidth, fontSizePx) : pageGeometry(paperSize, fontSizePx)),
-        [isMobile, availWidth, paperSize, fontSizePx],
+        () =>
+            isWeb
+                ? webPageGeometry(availWidth, fontSizePx)
+                : isMobile
+                  ? mobilePageGeometry(availWidth, fontSizePx)
+                  : pageGeometry(paperSize, fontSizePx),
+        [isWeb, isMobile, availWidth, paperSize, fontSizePx],
     );
     // 버퍼뿐 아니라 blockAttrs(heading 토글) 변경도 리플로우 — 블록별 폰트가 측정·렌더에 관통.
     const view = useMemo<View>(() => (mounted ? relayout(model, geo) : { blocks: [], pages: [] }), [mounted, model, geo]);
@@ -441,7 +455,8 @@ export const CustomEditor = forwardRef<
     scaleRef.current = effectiveScale;
     // 데스크탑(EditContext 지원)은 검증된 기존 zoom 으로 fit-to-width 축소(무회귀).
     // 모바일(iOS)은 CSS zoom 이 글자·줄 배치 불균일(줄 겹침)이라 transform:scale 경로 + reflow(축소 대신).
-    const useTransformScale = isMobile;
+    // 웹 연속은 축소가 없어(scale=1) iOS 에서도 zoom:1 = identity 라 줄겹침 없음 → zoom 경로 사용.
+    const useTransformScale = isMobile && !isWeb;
 
     // fit-to-width(데스크탑) / reflow(모바일) — stage 가용 폭을 ResizeObserver 로 추종.
     //  - 데스크탑: 용지 폭+좌우 패딩(48*2=96)이 stage 에 들어가도록 축소비율(scale) 계산.
@@ -452,7 +467,11 @@ export const CustomEditor = forwardRef<
         if (!stage) return;
         const compute = () => {
             const avail = stage.clientWidth - 8; // 세로 스크롤바 여유
-            if (isMobile) {
+            if (isWeb) {
+                // 웹 연속 — zoom 경로 좌우 패딩(48*2=96) 제외한 폭에 칼럼을 맞춤, 축소 없음.
+                setAvailWidth(Math.max(280, avail - 96));
+                setScale(1);
+            } else if (isMobile) {
                 setAvailWidth(Math.max(280, avail - MOBILE_PAGE_PAD_PX * 2));
                 setScale(1);
             } else {
@@ -464,7 +483,7 @@ export const CustomEditor = forwardRef<
         const ro = new ResizeObserver(compute);
         ro.observe(stage);
         return () => ro.disconnect();
-    }, [geo.pageWidthPx, mounted, isMobile]);
+    }, [geo.pageWidthPx, mounted, isMobile, isWeb]);
 
     // inner(원본·축소 전) 크기 실측 — transform:scale wrapper 가 차지할 scaled 크기 계산용.
     useEffect(() => {

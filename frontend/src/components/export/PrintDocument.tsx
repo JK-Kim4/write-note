@@ -1,5 +1,4 @@
 "use client";
-import { Fragment } from "react";
 import { pageGeometry, type PaperSize as GeoPaperSize } from "@/components/custom-editor/geometry";
 import type { PaperSize as LayoutPaperSize } from "@/components/editor/pageLayout";
 import { FONT_FAMILY, IMG_SRC, relayout, renderRuns, type ParsedBlock } from "@/components/custom-editor/printLayout";
@@ -9,13 +8,13 @@ const FONT_SIZE_PX = 18;
 const MARGIN_MM = 25;
 const MM_TO_PX = 96 / 25.4;
 
-type Props = { models: DocModel[]; paperSize: LayoutPaperSize; lined: boolean };
+type Props = { models: DocModel[]; paperSize: LayoutPaperSize };
 
 /**
  * 인쇄 전용 문서 렌더. models 각각을 relayout 으로 페이지화해 모든 페이지를 break-after:page 로 잇는다.
  * geometry·FONT_FAMILY·FONT_SIZE_PX 는 화면 에디터(BCustomChapterEditor)와 동일 — 줄·페이지 정합.
  */
-export function PrintDocument({ models, paperSize, lined }: Props) {
+export function PrintDocument({ models, paperSize }: Props) {
   const geo = pageGeometry(paperSize as GeoPaperSize, FONT_SIZE_PX);
   const marginPx = MARGIN_MM * MM_TO_PX;
   const docPages = models.flatMap((model) => {
@@ -34,7 +33,6 @@ export function PrintDocument({ models, paperSize, lined }: Props) {
             breakAfter: pi < docPages.length - 1 ? "page" : "auto", overflow: "hidden",
           }}
         >
-          {lined && <LinedBackground geo={geo} marginPx={marginPx} />}
           <div style={{ position: "absolute", left: marginPx, top: marginPx, width: geo.contentWidthPx, height: geo.contentHeightPx }}>
             {page.fragments.map((f, idx) => {
               const b = byId[f.blockId] as ParsedBlock | undefined;
@@ -73,16 +71,5 @@ export function PrintDocument({ models, paperSize, lined }: Props) {
         </div>
       ))}
     </div>
-  );
-}
-
-function LinedBackground({ geo, marginPx }: { geo: { contentWidthPx: number; contentHeightPx: number; lineHeightPx: number }; marginPx: number }) {
-  const count = Math.floor(geo.contentHeightPx / geo.lineHeightPx);
-  return (
-    <Fragment>
-      {Array.from({ length: count }, (_, i) => (
-        <div key={i} style={{ position: "absolute", left: marginPx, top: marginPx + (i + 1) * geo.lineHeightPx, width: geo.contentWidthPx, borderBottom: "1px solid #e5e7eb" }} />
-      ))}
-    </Fragment>
   );
 }

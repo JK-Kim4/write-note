@@ -45,6 +45,8 @@ class ProjectService(
                     synopsis = request.synopsis,
                     worldNotes = request.worldNotes,
                     paperSize = validatedPaperSize(request.paperSize),
+                    layoutMode = validatedLayoutMode(request.layoutMode),
+                    fontScale = validatedFontScale(request.fontScale),
                 ),
             )
         documentRepository.save(Document(projectId = requireNotNull(project.id), sortOrder = 0))
@@ -147,6 +149,8 @@ class ProjectService(
         request.worldNotes?.let { project.worldNotes = it }
         request.nextScene?.let { project.nextScene = it }
         request.paperSize?.let { project.paperSize = validatedPaperSize(it) }
+        request.layoutMode?.let { project.layoutMode = validatedLayoutMode(it) }
+        request.fontScale?.let { project.fontScale = validatedFontScale(it) }
 
         return projectMapper.toResponse(project)
     }
@@ -156,6 +160,24 @@ class ProjectService(
         if (value == null) return "A4"
         if (value !in ALLOWED_PAPER_SIZES) {
             throw ValidationException("지원하지 않는 용지 크기입니다: $value")
+        }
+        return value
+    }
+
+    /** 출판 방식 허용값 검증(031) — null 이면 기본 'paper', 비허용값이면 [ValidationException]. */
+    private fun validatedLayoutMode(value: String?): String {
+        if (value == null) return "paper"
+        if (value !in ALLOWED_LAYOUT_MODES) {
+            throw ValidationException("지원하지 않는 출판 방식입니다: $value")
+        }
+        return value
+    }
+
+    /** 글자 크기 5단 검증(031 US5) — null 이면 기본 'm'(보통=판형 기본), 비허용값이면 [ValidationException]. */
+    private fun validatedFontScale(value: String?): String {
+        if (value == null) return "m"
+        if (value !in ALLOWED_FONT_SCALES) {
+            throw ValidationException("지원하지 않는 글자 크기입니다: $value")
         }
         return value
     }
@@ -204,6 +226,8 @@ class ProjectService(
     }
 
     companion object {
-        private val ALLOWED_PAPER_SIZES = setOf("A4", "A3", "A2", "B4")
+        private val ALLOWED_PAPER_SIZES = setOf("A4", "A3", "A2", "B4", "sinkukpan", "kukpan", "pan46", "mungopan")
+        private val ALLOWED_LAYOUT_MODES = setOf("paper", "web")
+        private val ALLOWED_FONT_SCALES = setOf("xs", "s", "m", "l", "xl")
     }
 }

@@ -1,6 +1,6 @@
 import { apiFetch } from "./client";
 import type { PaperSize } from "@/components/editor/pageLayout";
-import type { Page, ProjectCardResponse, ProjectResponse } from "@/types/api";
+import type { FontScale, LayoutMode, Page, ProjectCardResponse, ProjectResponse } from "@/types/api";
 
 /**
  * Projects placeholder query — Phase 1A `/api/projects` 호출.
@@ -48,6 +48,10 @@ export interface CreateProjectInput {
     nextScene?: string;
     /** 작품별 용지 크기 (트랙3). 미지정 시 백엔드 기본 A4. */
     paperSize?: PaperSize;
+    /** 출판 방식 (031). 생성 시 강제 선택(FE). 미지정 시 백엔드 기본 paper. */
+    layoutMode?: LayoutMode;
+    /** 글자 크기 5단 (031 US5). 미지정 시 백엔드 기본 m(보통). 조절은 집필실에서. */
+    fontScale?: FontScale;
 }
 
 export function createProject(input: CreateProjectInput): Promise<ProjectResponse> {

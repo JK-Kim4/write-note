@@ -119,3 +119,21 @@ describe("layout — 페이지네이션 엔진", () => {
         expect(pages[1].usedHeight).toBe(50);
     });
 });
+
+describe("layout — 웹 연속(031 US3): contentHeightPx=Infinity → 단일 페이지", () => {
+    it("긴 문단도 분할 없이 한 페이지에 전 줄 누적(offsetY=문서 절대 y)", () => {
+        const pages = layout([para("p", 200, 20)], Infinity);
+        expect(pages).toHaveLength(1);
+        expect(pages[0].fragments).toHaveLength(1);
+        expect(pages[0].fragments[0]).toMatchObject({ kind: "paragraph", blockId: "p", startLine: 0, endLine: 199 });
+        expect(pages[0].usedHeight).toBe(200 * 20);
+    });
+
+    it("여러 블록도 한 페이지에 순서대로 누적", () => {
+        const pages = layout([para("a", 10, 20), para("b", 10, 20)], Infinity);
+        expect(pages).toHaveLength(1);
+        expect(pages[0].fragments).toHaveLength(2);
+        // 두 번째 블록은 첫 블록(200px) 아래에서 시작
+        expect(pages[0].fragments[1].offsetY).toBe(200);
+    });
+});

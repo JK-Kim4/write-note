@@ -7,6 +7,12 @@
 
 import type { PaperSize } from "@/components/editor/pageLayout";
 
+/** 출판 방식 (031). paper=종이 출판(페이지 분할+판형), web=웹 출판(연속 글쓰기+글자수). */
+export type LayoutMode = "paper" | "web";
+
+/** 작품별 글자 크기 5단 (031 US5). m=보통(판형 기본). */
+export type FontScale = "xs" | "s" | "m" | "l" | "xl";
+
 export type Result<T> = SuccessResult<T> | FailureResult;
 
 export interface SuccessResult<T> {
@@ -46,6 +52,10 @@ export interface ProjectResponse {
     nextScene: string;
     /** 작품별 용지 크기 (트랙3 / V12). 백엔드 CHECK 로 4종 보장. */
     paperSize: PaperSize;
+    /** 출판 방식 (031 / V17). paper=종이 출판(페이지 분할+판형), web=웹 출판(연속+글자수). */
+    layoutMode: LayoutMode;
+    /** 작품별 글자 크기 5단 (031 US5 / V19). 판형 기본 위 덮어쓰기. 기본 m. */
+    fontScale: FontScale;
     archivedAt: string | null;
     createdAt: string;
     updatedAt: string;

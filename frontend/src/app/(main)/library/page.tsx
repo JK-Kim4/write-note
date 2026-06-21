@@ -13,7 +13,9 @@ import {
 } from "@/lib/query/useProjects";
 import { useModalDismiss } from "@/lib/useModalDismiss";
 import { usePreferences } from "@/stores/preferences";
-import { PAPER_PRESETS, type PaperSize } from "@/components/editor/pageLayout";
+import { PAPER_PRESETS, PAPER_SIZE_ORDER, type PaperSize } from "@/components/editor/pageLayout";
+import { PAPER_LABEL } from "@/components/custom-editor/geometry";
+import type { LayoutMode } from "@/types/api";
 import type { Project, ProjectCard } from "@/lib/types/domain";
 
 /**
@@ -110,10 +112,12 @@ type ProjectFormState = {
     worldNotes: string;
     nextScene: string;
     paperSize: PaperSize;
+    /** 출판 방식 (031). 생성 시 null=미선택(강제 선택). 편집은 기존 작품 값. */
+    layoutMode: LayoutMode | null;
 };
 
 function emptyForm(defaultPaperSize: PaperSize): ProjectFormState {
-    return { title: "", genre: "", targetLengthRaw: "", synopsis: "", toneNotes: "", worldNotes: "", nextScene: "", paperSize: defaultPaperSize };
+    return { title: "", genre: "", targetLengthRaw: "", synopsis: "", toneNotes: "", worldNotes: "", nextScene: "", paperSize: defaultPaperSize, layoutMode: null };
 }
 
 function fromProject(p: Project, defaultPaperSize: PaperSize): ProjectFormState {
@@ -126,6 +130,7 @@ function fromProject(p: Project, defaultPaperSize: PaperSize): ProjectFormState 
         worldNotes: p.worldNotes ?? "",
         nextScene: p.nextScene ?? "",
         paperSize: p.paperSize ?? defaultPaperSize,
+        layoutMode: p.layoutMode,
     };
 }
 
@@ -188,6 +193,39 @@ function ProjectFormModal({
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
             </label>
+            {mode === "create" && (
+                <fieldset className="mt-4">
+                    <legend className="text-sm text-gray-600">
+                        출판 방식 <span className="text-red-500">*</span>
+                    </legend>
+                    <div className="mt-1 grid grid-cols-2 gap-2">
+                        {(
+                            [
+                                { value: "paper", label: "종이 출판", desc: "판형·페이지 분할" },
+                                { value: "web", label: "웹 출판", desc: "연속 글쓰기·글자수" },
+                            ] as const
+                        ).map((opt) => {
+                            const selected = form.layoutMode === opt.value;
+                            return (
+                                <button
+                                    key={opt.value}
+                                    type="button"
+                                    aria-pressed={selected}
+                                    onClick={() => setForm((f) => ({ ...f, layoutMode: opt.value }))}
+                                    className={`rounded-md border px-3 py-2 text-left text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 ${
+                                        selected
+                                            ? "border-terracotta-500 bg-terracotta-50 text-terracotta-800"
+                                            : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                                    }`}
+                                >
+                                    <span className="block font-medium">{opt.label}</span>
+                                    <span className="block text-xs text-gray-500">{opt.desc}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </fieldset>
+            )}
             <label className="mt-3 block text-sm text-gray-600">
                 장르 (선택)
                 <input
@@ -198,20 +236,22 @@ function ProjectFormModal({
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
             </label>
-            <label className="mt-3 block text-sm text-gray-600">
-                용지 크기
-                <select
-                    value={form.paperSize}
-                    onChange={(e) => setForm((f) => ({ ...f, paperSize: e.target.value as PaperSize }))}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
-                >
-                    {(["A4", "A3", "A2", "B4"] as const).map((size) => (
-                        <option key={size} value={size}>
-                            {size} ({PAPER_PRESETS[size].widthMm}×{PAPER_PRESETS[size].heightMm}mm)
-                        </option>
-                    ))}
-                </select>
-            </label>
+            {form.layoutMode !== "web" && (
+                <label className="mt-3 block text-sm text-gray-600">
+                    용지 크기
+                    <select
+                        value={form.paperSize}
+                        onChange={(e) => setForm((f) => ({ ...f, paperSize: e.target.value as PaperSize }))}
+                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
+                    >
+                        {PAPER_SIZE_ORDER.map((size) => (
+                            <option key={size} value={size}>
+                                {PAPER_LABEL[size]} ({PAPER_PRESETS[size].widthMm}×{PAPER_PRESETS[size].heightMm}mm)
+                            </option>
+                        ))}
+                    </select>
+                </label>
+            )}
             <label className="mt-3 block text-sm text-gray-600">
                 목표 분량 (선택)
                 <input
@@ -280,7 +320,7 @@ function ProjectFormModal({
                 </button>
                 <button
                     type="submit"
-                    disabled={form.title.trim().length === 0 || isPending}
+                    disabled={form.title.trim().length === 0 || form.layoutMode === null || isPending}
                     className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700 disabled:opacity-50"
                 >
                     {isPending ? pendingLabel : submitLabel}
@@ -371,7 +411,8 @@ export default function BWorksPage() {
     const handleCreate = async (e: FormEvent) => {
         e.preventDefault();
         const trimmed = createForm.title.trim();
-        if (!trimmed || createProject.isPending) return;
+        // 출판 방식 강제 선택(FR-001) — 미선택이면 생성 진행 불가(제출 버튼도 비활성)
+        if (!trimmed || createForm.layoutMode === null || createProject.isPending) return;
         const { value: targetLength, error } = parseTargetLength(createForm.targetLengthRaw);
         if (error) { setCreateLengthError(error); return; }
         setCreateLengthError(null);
@@ -383,6 +424,7 @@ export default function BWorksPage() {
                 genre: createForm.genre.trim() || null,
                 targetLength,
                 paperSize: createForm.paperSize,
+                layoutMode: createForm.layoutMode,
                 synopsis: createForm.synopsis.trim() || null,
                 toneNotes: createForm.toneNotes.trim() || null,
                 worldNotes: createForm.worldNotes.trim() || null,

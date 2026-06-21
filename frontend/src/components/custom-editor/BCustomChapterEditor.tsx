@@ -28,16 +28,15 @@ import { CustomEditor, type CustomEditorRef } from "./CustomEditor";
 import { pmJsonToModel, modelToPmJson } from "./pmConvert";
 import { outlineFromModel, type OutlineItem } from "./outline";
 import type { DocModel } from "./model";
-import type { PaperSize as GeoPaperSize } from "./geometry";
+import { fontPxFor, type PaperSize as GeoPaperSize } from "./geometry";
+import { countChars } from "./charCount";
+import type { FontScale, LayoutMode } from "@/types/api";
 
-/** pageLayout PaperSize → geometry PaperSize 매핑. A4/A3/A2/B4 는 동일 문자열, 타입만 다름. */
+/** pageLayout PaperSize → geometry PaperSize 매핑. ISO·판형 동일 문자열, 타입만 다름(판형은 양쪽 동일 식별자). */
 function toGeoPaperSize(size: LayoutPaperSize): GeoPaperSize {
-    // geometry.ts 지원: "A5" | "A4" | "B4" | "A3" | "A2". pageLayout 의 A4/A3/A2/B4 는 전부 포함.
+    // geometry.ts 는 pageLayout 의 8종(A4/A3/A2/B4 + 판형 4종)을 모두 포함(+ A5).
     return size as GeoPaperSize;
 }
-
-/** 본문 fontSizePx 고정 상수 — 사용자 노출 없음. */
-const FONT_SIZE_PX = 18;
 
 const EMPTY_DOC = JSON.stringify({ type: "doc", content: [] });
 
@@ -46,6 +45,10 @@ interface BCustomChapterEditorProps {
     currentChapterId: number;
     projectId: number;
     paperSize: LayoutPaperSize;
+    fontScale: FontScale;
+    layoutMode: LayoutMode;
+    /** 실시간 글자수 보고(031 분량 지표). 안정 참조여야 함(셸 setState). */
+    onWordCountChange?: (count: number) => void;
     chapterTitle?: string;
     onChapterRename?: (title: string) => void;
     onSyncStatus: (status: BChapterEditorSyncStatus) => void;
@@ -55,7 +58,7 @@ interface BCustomChapterEditorProps {
 }
 
 export const BCustomChapterEditor = forwardRef<CustomEditorRef, BCustomChapterEditorProps>(function BCustomChapterEditor(
-    { currentChapterId, projectId, paperSize, onSyncStatus, onConflict, onOutlineChange },
+    { currentChapterId, projectId, paperSize, fontScale, layoutMode, onWordCountChange, onSyncStatus, onConflict, onOutlineChange },
     editorRef,
 ) {
     const documentId = currentChapterId;
@@ -194,6 +197,13 @@ export const BCustomChapterEditor = forwardRef<CustomEditorRef, BCustomChapterEd
         [],
     );
 
+    // 글자수 보고(031 분량 지표) — model 변경 시 셸로 올림. 타이핑마다 셸 리렌더되지 않게 디바운스(400ms)
+    // 해 입력 지연을 막는다. onWordCountChange 는 안정 참조(셸 setState).
+    useEffect(() => {
+        const id = setTimeout(() => onWordCountChange?.(countChars(model?.buffer ?? "")), 400);
+        return () => clearTimeout(id);
+    }, [model, onWordCountChange]);
+
     if (isLoading || (!doc && !isError)) {
         // 본문 로딩도 라우트·셸과 동일 스켈레톤 — 단계 간 깜빡임 없이 이어진다.
         return <StudioSkeleton />;
@@ -217,7 +227,8 @@ export const BCustomChapterEditor = forwardRef<CustomEditorRef, BCustomChapterEd
                 model={currentModel}
                 onModelChange={handleModelChange}
                 paperSize={toGeoPaperSize(paperSize)}
-                fontSizePx={FONT_SIZE_PX}
+                fontSizePx={fontPxFor(toGeoPaperSize(paperSize), fontScale)}
+                layoutMode={layoutMode}
             />
         </div>
     );
