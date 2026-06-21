@@ -26,6 +26,7 @@ import type { ProjectDocument } from "@/lib/types/domain";
 import { useDocumentSession } from "@/hooks/useDocumentSession";
 import { CustomEditor, type CustomEditorRef } from "./CustomEditor";
 import { pmJsonToModel, modelToPmJson } from "./pmConvert";
+import { outlineFromModel, type OutlineItem } from "./outline";
 import type { DocModel } from "./model";
 import type { PaperSize as GeoPaperSize } from "./geometry";
 
@@ -49,10 +50,12 @@ interface BCustomChapterEditorProps {
     onChapterRename?: (title: string) => void;
     onSyncStatus: (status: BChapterEditorSyncStatus) => void;
     onConflict: (handlers: BChapterEditorConflictHandlers) => void;
+    /** 전체 문서 모델에서 파생한 목차(여러 페이지에 걸친 heading 전부)를 page 로 올린다. */
+    onOutlineChange?: (items: OutlineItem[]) => void;
 }
 
 export const BCustomChapterEditor = forwardRef<CustomEditorRef, BCustomChapterEditorProps>(function BCustomChapterEditor(
-    { currentChapterId, projectId, paperSize, onSyncStatus, onConflict },
+    { currentChapterId, projectId, paperSize, onSyncStatus, onConflict, onOutlineChange },
     editorRef,
 ) {
     const documentId = currentChapterId;
@@ -107,6 +110,23 @@ export const BCustomChapterEditor = forwardRef<CustomEditorRef, BCustomChapterEd
     useEffect(() => {
         onSyncStatusRef.current({ syncStatus: session.syncStatus, flushDraft: flushLatest });
     }, [session.syncStatus, flushLatest]);
+
+    // 전체 문서 목차를 page 로 올린다(모델 파생). model 변경(키 입력 포함)마다 파생하되, 목차 시그니처가
+    // 실제로 바뀔 때만 onOutlineChange 호출 → 키 입력마다 부모 setState/리렌더 + 무한루프 회피.
+    // onOutlineChange 는 ref 로 안정화(매 렌더 새 인스턴스여도 effect 재실행 방지).
+    const onOutlineChangeRef = useRef(onOutlineChange);
+    useEffect(() => {
+        onOutlineChangeRef.current = onOutlineChange;
+    });
+    const outlineSigRef = useRef<string>("");
+    useEffect(() => {
+        if (model == null) return;
+        const items = outlineFromModel(model);
+        const sig = JSON.stringify(items);
+        if (sig === outlineSigRef.current) return;
+        outlineSigRef.current = sig;
+        onOutlineChangeRef.current?.(items);
+    }, [model]);
 
     // 충돌 해결 핸들러 — session 은 ref 로 참조해 안정(무한루프 회피).
     const handleReload = useCallback(() => {

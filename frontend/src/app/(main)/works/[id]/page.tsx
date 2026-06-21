@@ -5,7 +5,8 @@
  *
  * BStudioShell 에 BCustomChapterEditor(자체엔진)를 주입하는 얇은 래퍼.
  * - 챕터 관리·세션·충돌·작업종료·export·쪽지/인물 패널은 BStudioShell 이 처리.
- * - 아웃라인은 useCustomOutline(DOM 파생): items / activeIndex / selectItem.
+ * - 아웃라인은 모델 파생: 에디터가 onOutlineChange 로 전체 문서 목차(items)를 올리고, page 가 패널에 전달.
+ *   클릭 점프만 제공(activeIndex 강조 없음 — 페이지 넘김 뷰라 스크롤 기반 현재섹션 추적이 무의미).
  * - chapterUrlBase 생략 → 기본 `/works/[id]` 유지(챕터 전환 시 같은 라우트).
  *
  * 챕터 전환 시 BCustomChapterEditor 를 `key={currentChapterId}` 로 리마운트해 세션 재초기화
@@ -17,24 +18,26 @@ import Link from "next/link";
 import { BStudioShell } from "@/components/b/BStudioShell";
 import { BCustomChapterEditor } from "@/components/custom-editor/BCustomChapterEditor";
 import type { CustomEditorRef } from "@/components/custom-editor/CustomEditor";
-import { useCustomOutline } from "@/components/custom-editor/useCustomOutline";
+import type { OutlineItem } from "@/lib/editor/outline";
 
 export default function BWorkDetailPage() {
-    // DOM 파생 아웃라인 — CustomEditor 스크롤 컨테이너(.custom-editor-scroll)의
-    // [data-heading-level] 요소를 스캔해 items / activeIndex / selectItem 을 제공한다.
-    const outline = useCustomOutline(".custom-editor-scroll");
-    // 목차 클릭 → 에디터 caret 점프(heading 끝). 셸(BStudioShell)은 outline.selectItem 을 클릭에서
-    // 호출하므로, selectItem 을 래핑해 jumpToHeading 도 함께 부른다(스크롤·포커스는 에디터가 주도).
+    // 모델 파생 아웃라인 — 에디터(BCustomChapterEditor)가 onOutlineChange 로 전체 문서 모델에서 파생한
+    // 목차(여러 페이지에 걸친 heading 전부)를 올려준다. 기존 DOM 스캔(useCustomOutline)은 현재 보이는
+    // 페이지 1장만 긁어 페이지 전환 시 목차가 초기화됐다 → 전체 작품 기준으로 교체.
+    const [outlineItems, setOutlineItems] = useState<OutlineItem[]>([]);
+    // 목차 클릭 → 에디터 caret 점프(heading 끝). item.index 는 outlineFromModel 의 heading 순번 =
+    // jumpToHeading 의 view.blocks heading 순번과 동일(relayout 이 blockAttrs 순서를 보존) → 정확.
+    // 페이지 넘김 뷰라 스크롤 기반 현재섹션 강조는 의미가 없어 activeIndex 는 null(강조 없음).
     const editorRef = useRef<CustomEditorRef>(null);
-    const outlineWithJump = useMemo(
+    const outline = useMemo(
         () => ({
-            ...outline,
-            selectItem: (item: Parameters<typeof outline.selectItem>[0]) => {
+            items: outlineItems,
+            activeIndex: null,
+            selectItem: (item: OutlineItem) => {
                 editorRef.current?.jumpToHeading(item.index);
-                outline.selectItem(item);
             },
         }),
-        [outline],
+        [outlineItems],
     );
 
     // iOS(WebKit, EditContext 미지원)는 자체 글쓰기 엔진 미지원 → 집필실 자체를 열지 않는다(읽기 전용도 아님,
@@ -71,7 +74,7 @@ export default function BWorkDetailPage() {
 
     return (
         <BStudioShell
-            outline={outlineWithJump}
+            outline={outline}
             renderEditor={({ currentChapterId, projectId, paperSize, chapterTitle, onChapterRename, onSyncStatus, onConflict }) => (
                 <BCustomChapterEditor
                     key={currentChapterId}
@@ -83,6 +86,7 @@ export default function BWorkDetailPage() {
                     onChapterRename={onChapterRename}
                     onSyncStatus={onSyncStatus}
                     onConflict={onConflict}
+                    onOutlineChange={setOutlineItems}
                 />
             )}
         />
