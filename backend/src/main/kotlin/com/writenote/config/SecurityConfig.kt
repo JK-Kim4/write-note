@@ -31,6 +31,7 @@ class SecurityConfig {
         kakaoOAuth2UserService: KakaoOAuth2UserService,
         oauth2SuccessHandler: OAuth2SuccessHandler,
         oauth2FailureHandler: OAuth2FailureHandler,
+        adminAuthorizationManager: AdminAuthorizationManager,
     ): SecurityFilterChain =
         http
             .csrf { csrf -> csrf.disable() }
@@ -69,6 +70,12 @@ class SecurityConfig {
                     // 로그인 에러 페이지 (OAuth2FailureHandler 가 redirect) — Security 필터 외부 영역
                     .requestMatchers(HttpMethod.GET, "/auth/login-error")
                     .permitAll()
+                    // 공개 공지 조회 (030 운영 툴) — 비인증 허용, 공개 공지만 노출
+                    .requestMatchers(HttpMethod.GET, "/api/announcements", "/api/announcements/*")
+                    .permitAll()
+                    // 운영 툴 어드민 (030) — 단일 관리자(app.admin.email)만
+                    .requestMatchers("/api/admin/**")
+                    .access(adminAuthorizationManager)
                     // 본 spec US6 의 owner-context 교체 영역 — JWT 인증 강제
                     // (contracts/owner-context-migration.md §3)
                     .requestMatchers("/api/projects/**")

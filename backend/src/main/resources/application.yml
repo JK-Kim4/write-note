@@ -68,6 +68,9 @@ app:
     allowed-origins: http://localhost:3000
   cookie:
     secure: false
+  admin:
+    # 운영 툴(/api/admin/**) 단일 관리자 이메일. 빈값이면 누구도 통과 못 함(안전 기본값).
+    email: ${ADMIN_EMAIL:}
   auth:
     jwt:
       secret: ${JWT_SECRET:}
