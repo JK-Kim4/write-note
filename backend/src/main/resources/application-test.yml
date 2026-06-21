@@ -27,6 +27,8 @@ spring:
 app:
   cors:
     allowed-origins: http://localhost:3000
+  admin:
+    email: admin@writenote.test
   auth:
     jwt:
       secret: d24tdGVzdC1kZXRlcm1pbmlzdGljLWp3dC0zMmJ5dGU=
