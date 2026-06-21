@@ -7,6 +7,7 @@ import { signupEmail } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { resolveErrorMessage } from "@/lib/api/errors";
 import { FormInput } from "@/components/ui/FormInput";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { FormError } from "@/components/ui/FormError";
 import { PanelLink } from "@/components/auth/PanelLink";
 import { TermsModal } from "@/components/auth/TermsModal";
@@ -87,9 +88,8 @@ export function SignupEmailForm() {
                 </FormError>
             ) : null}
 
-            <FormInput
+            <PasswordInput
                 name="password"
-                type="password"
                 label="비밀번호"
                 error={Boolean(passwordError)}
                 autoComplete="new-password"
@@ -98,9 +98,8 @@ export function SignupEmailForm() {
             />
             {passwordError ? <FormError>{passwordError}</FormError> : null}
 
-            <FormInput
+            <PasswordInput
                 name="passwordConfirm"
-                type="password"
                 label="비밀번호 확인"
                 autoComplete="new-password"
                 value={passwordConfirm}
