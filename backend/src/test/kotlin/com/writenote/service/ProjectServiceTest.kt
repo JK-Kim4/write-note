@@ -55,6 +55,8 @@ class ProjectServiceTest {
                 worldNotes = project.worldNotes,
                 nextScene = project.nextScene,
                 paperSize = project.paperSize,
+                layoutMode = project.layoutMode,
+                fontScale = project.fontScale,
                 archivedAt = project.archivedAt,
                 createdAt = project.createdAt ?: Instant.now(),
                 updatedAt = project.updatedAt ?: Instant.now(),
