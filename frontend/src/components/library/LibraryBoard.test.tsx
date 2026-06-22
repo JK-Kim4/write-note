@@ -200,6 +200,8 @@ describe("LibraryBoard — 시리즈 내보내기", () => {
         await userEvent.click(screen.getByRole("button", { name: "가나다 열기" }));
         await userEvent.click(screen.getByRole("button", { name: "내보내기" }));
         expect(screen.getByRole("dialog", { name: "시리즈 내보내기" })).toBeInTheDocument();
+        // 작품 목록(체크박스)이 현재 folderCards 로 렌더되어야 — 다이얼로그 항상-마운트 시 빈 works 로 고정되는 버그 회귀 방지
+        expect(screen.getAllByRole("checkbox").length).toBeGreaterThan(0);
     });
 });
 

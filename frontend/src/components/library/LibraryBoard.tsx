@@ -434,13 +434,16 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
 
             {flying && <FlyingCard flying={flying} onDone={clearFlying} />}
 
-            <SeriesExportDialog
-                open={exportOpen}
-                works={folderCards}
-                seriesName={seriesName}
-                onSubmit={handleSeriesExport}
-                onClose={() => setExportOpen(false)}
-            />
+            {/* 조건부 마운트 — 열 때마다 현재 folderCards 로 다이얼로그 useState(order/selected) 초기화(항상 마운트 시 빈 works 로 고정되는 버그 방지) */}
+            {exportOpen && (
+                <SeriesExportDialog
+                    open
+                    works={folderCards}
+                    seriesName={seriesName}
+                    onSubmit={handleSeriesExport}
+                    onClose={() => setExportOpen(false)}
+                />
+            )}
             {printModels && <PrintOverlay models={printModels} paperSize={seriesPaper} onDone={clearPrint} />}
 
             {/* 시리즈 삭제 확인 — 작품은 미분류로 보존 */}
