@@ -13,6 +13,9 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.web.cors.CorsConfigurationSource
@@ -32,6 +35,7 @@ class SecurityConfig {
         oauth2SuccessHandler: OAuth2SuccessHandler,
         oauth2FailureHandler: OAuth2FailureHandler,
         adminAuthorizationManager: AdminAuthorizationManager,
+        kakaoAuthorizationRequestResolver: OAuth2AuthorizationRequestResolver,
     ): SecurityFilterChain =
         http
             .csrf { csrf -> csrf.disable() }
@@ -89,7 +93,7 @@ class SecurityConfig {
             .formLogin { form -> form.disable() }
             .oauth2Login { oauth2 ->
                 oauth2
-                    .authorizationEndpoint { it.baseUri("/api/auth/oauth") }
+                    .authorizationEndpoint { it.authorizationRequestResolver(kakaoAuthorizationRequestResolver) }
                     .redirectionEndpoint { it.baseUri("/api/auth/oauth/*/callback") }
                     .userInfoEndpoint { it.userService(kakaoOAuth2UserService) }
                     .successHandler(oauth2SuccessHandler)
@@ -99,4 +103,20 @@ class SecurityConfig {
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .addFilterBefore(loginAttemptFilter, JwtAuthenticationFilter::class.java)
             .build()
+
+    /**
+     * 카카오 인증 요청에 prompt=login 을 박아 매번 재로그인을 강제한다.
+     *
+     * 미설정 시 카카오 SSO 세션이 살아있으면 로그아웃 후 재로그인할 때 카카오가 로그인 화면을
+     * 건너뛰고 silent 재인증 → 계정 전환 불가. baseUri 는 authorizationEndpoint 와 동일하게 맞춘다.
+     */
+    @Bean
+    fun kakaoAuthorizationRequestResolver(clientRegistrationRepository: ClientRegistrationRepository): OAuth2AuthorizationRequestResolver {
+        val resolver =
+            DefaultOAuth2AuthorizationRequestResolver(clientRegistrationRepository, "/api/auth/oauth")
+        resolver.setAuthorizationRequestCustomizer { builder ->
+            builder.additionalParameters { params -> params["prompt"] = "login" }
+        }
+        return resolver
+    }
 }
