@@ -66,11 +66,7 @@ class ProjectServiceIT
             val request =
                 CreateProjectRequest(
                     title = "Phase 5 dogfooding",
-                    genre = "치유물",
                     targetLength = 4000,
-                    toneNotes = "잔잔",
-                    synopsis = "할머니",
-                    worldNotes = "1990s",
                 )
 
             val response = projectService.createProject(requireNotNull(user.id), request)

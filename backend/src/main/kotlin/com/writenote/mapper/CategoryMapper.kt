@@ -18,6 +18,8 @@ class CategoryMapper {
             projectCount = projectCount,
             paperSize = category.paperSize,
             layoutMode = category.layoutMode,
+            genre = category.genre,
+            synopsis = category.synopsis,
             createdAt = requireNotNull(category.createdAt),
             updatedAt = requireNotNull(category.updatedAt),
         )

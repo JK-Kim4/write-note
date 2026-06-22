@@ -49,4 +49,25 @@ class CategoryMapperTest {
         assertThat(response.paperSize).isEqualTo("kukpan")
         assertThat(response.layoutMode).isEqualTo("web")
     }
+
+    @Test
+    @DisplayName("toResponse — 시리즈 장르·줄거리 매핑(033 R3)")
+    fun `toResponse maps series genre and synopsis`() {
+        val now = Instant.parse("2026-06-22T00:00:00Z")
+        val category =
+            Category(
+                id = 3L,
+                userId = 1L,
+                name = "판타지 시리즈",
+                genre = "판타지",
+                synopsis = "용과 마법사 이야기",
+                createdAt = now,
+                updatedAt = now,
+            )
+
+        val response = mapper.toResponse(category, projectCount = 2)
+
+        assertThat(response.genre).isEqualTo("판타지")
+        assertThat(response.synopsis).isEqualTo("용과 마법사 이야기")
+    }
 }

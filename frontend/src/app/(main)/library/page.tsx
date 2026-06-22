@@ -24,33 +24,23 @@ import type { Project, ProjectCard } from "@/lib/types/domain";
 /**
  * 생성/편집 공용 폼 필드 상태.
  * 033 R2 — 판형·출판방식(paperSize/layoutMode)은 시리즈 종속으로 이동, 작품 폼에서 제거.
- * (genre/synopsis/toneNotes/worldNotes/nextScene 은 R3 영역이라 본 라운드에서 유지.)
+ * 033 R3 — 장르·줄거리·톤류·다음장면도 시리즈로 이동, 작품 폼에서 제거(제목 + 목표분량 중심).
  */
 type ProjectFormState = {
     title: string;
-    genre: string;
     targetLengthRaw: string;
-    synopsis: string;
-    toneNotes: string;
-    worldNotes: string;
-    nextScene: string;
     /** 소속 시리즈(032). null=미분류. 편집 모달에서만 변경 — 저장 시 moveProjectCategory 로 반영. */
     categoryId: number | null;
 };
 
 function emptyForm(): ProjectFormState {
-    return { title: "", genre: "", targetLengthRaw: "", synopsis: "", toneNotes: "", worldNotes: "", nextScene: "", categoryId: null };
+    return { title: "", targetLengthRaw: "", categoryId: null };
 }
 
 function fromProject(p: Project): ProjectFormState {
     return {
         title: p.title,
-        genre: p.genre ?? "",
         targetLengthRaw: p.targetLength != null ? String(p.targetLength) : "",
-        synopsis: p.synopsis ?? "",
-        toneNotes: p.toneNotes ?? "",
-        worldNotes: p.worldNotes ?? "",
-        nextScene: p.nextScene ?? "",
         categoryId: p.categoryId,
     };
 }
@@ -137,16 +127,6 @@ function ProjectFormModal({
                 </label>
             )}
             <label className="mt-3 block text-sm text-gray-600">
-                장르 (선택)
-                <input
-                    value={form.genre}
-                    onChange={(e) => setForm((f) => ({ ...f, genre: e.target.value }))}
-                    placeholder="예: 장편소설, 에세이"
-                    maxLength={100}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
-                />
-            </label>
-            <label className="mt-3 block text-sm text-gray-600">
                 목표 분량 (선택)
                 <input
                     type="number"
@@ -162,46 +142,6 @@ function ProjectFormModal({
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
                 {lengthError && <span className="mt-1 block text-xs text-red-600">{lengthError}</span>}
-            </label>
-            <label className="mt-3 block text-sm text-gray-600">
-                줄거리 (선택)
-                <textarea
-                    value={form.synopsis}
-                    onChange={(e) => setForm((f) => ({ ...f, synopsis: e.target.value }))}
-                    maxLength={5000}
-                    rows={3}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
-                />
-            </label>
-            <label className="mt-3 block text-sm text-gray-600">
-                톤·문체 (선택)
-                <textarea
-                    value={form.toneNotes}
-                    onChange={(e) => setForm((f) => ({ ...f, toneNotes: e.target.value }))}
-                    maxLength={2000}
-                    rows={3}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
-                />
-            </label>
-            <label className="mt-3 block text-sm text-gray-600">
-                세계관 (선택)
-                <textarea
-                    value={form.worldNotes}
-                    onChange={(e) => setForm((f) => ({ ...f, worldNotes: e.target.value }))}
-                    maxLength={10000}
-                    rows={3}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
-                />
-            </label>
-            <label className="mt-3 block text-sm text-gray-600">
-                다음 장면 (선택)
-                <input
-                    value={form.nextScene}
-                    onChange={(e) => setForm((f) => ({ ...f, nextScene: e.target.value }))}
-                    placeholder="다음에 쓸 장면 한 줄"
-                    maxLength={500}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
-                />
             </label>
             <div className="mt-5 flex justify-end gap-2">
                 <button
@@ -250,7 +190,6 @@ export default function BWorksPage() {
     const [createCategoryId, setCreateCategoryId] = useState<number | null>(null);
     const [createForm, setCreateForm] = useState<ProjectFormState>(() => emptyForm());
     const [createLengthError, setCreateLengthError] = useState<string | null>(null);
-    const [nextSceneWarning, setNextSceneWarning] = useState<string | null>(null);
     const createDialogRef = useRef<HTMLFormElement>(null);
 
     // 편집 모달
@@ -314,32 +253,19 @@ export default function BWorksPage() {
     const handleCreate = async (e: FormEvent) => {
         e.preventDefault();
         const trimmed = createForm.title.trim();
-        // 033 R2 — 판형·출판방식은 시리즈 종속이라 작품 생성 시 선택하지 않는다(제목만 필수).
+        // 033 R3 — 장르·줄거리·톤류·판형은 시리즈 종속이라 작품 생성 시 선택하지 않는다(제목만 필수).
         if (!trimmed || createProject.isPending) return;
         const { value: targetLength, error } = parseTargetLength(createForm.targetLengthRaw);
         if (error) { setCreateLengthError(error); return; }
         setCreateLengthError(null);
-        setNextSceneWarning(null);
         let created: Awaited<ReturnType<typeof createProject.mutateAsync>>;
         try {
             created = await createProject.mutateAsync({
                 title: trimmed,
-                genre: createForm.genre.trim() || null,
                 targetLength,
-                synopsis: createForm.synopsis.trim() || null,
-                toneNotes: createForm.toneNotes.trim() || null,
-                worldNotes: createForm.worldNotes.trim() || null,
             });
         } catch {
             return;
-        }
-        const trimmedNextScene = createForm.nextScene.trim();
-        if (trimmedNextScene) {
-            try {
-                await updateProject.mutateAsync({ id: created.project.id, patch: { nextScene: trimmedNextScene } });
-            } catch {
-                setNextSceneWarning("작품은 만들어졌지만 '다음 장면' 저장에 실패했어요. 작품을 열어 다시 입력해 주세요.");
-            }
         }
         // 시리즈 안에서 시작했으면 그 시리즈로 자동 배정(미분류면 생략)
         if (createCategoryId != null) {
@@ -367,12 +293,7 @@ export default function BWorksPage() {
                 id: editTarget.id,
                 patch: {
                     title: trimmed,
-                    genre: editForm.genre.trim() || null,
                     targetLength,
-                    synopsis: editForm.synopsis.trim() || null,
-                    toneNotes: editForm.toneNotes.trim() || null,
-                    worldNotes: editForm.worldNotes.trim() || null,
-                    nextScene: editForm.nextScene.trim(),
                 },
             });
             // 시리즈 변경분은 전용 엔드포인트로 반영(메타 PATCH 는 categoryId 미처리 — ProjectService.moveCategory 분리)
@@ -432,20 +353,6 @@ export default function BWorksPage() {
                 {/* 작품 생성 진입점은 보드의 "+ 새 작품 시작하기" 하나로 통일 — 위치에 따라 미분류/시리즈 자동 배정 */}
                 <h1 className="text-xl font-bold">내 작품</h1>
             </div>
-
-            {nextSceneWarning && (
-                <div className="mb-4 flex items-start justify-between gap-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700">
-                    <span>{nextSceneWarning}</span>
-                    <button
-                        type="button"
-                        aria-label="알림 닫기"
-                        onClick={() => setNextSceneWarning(null)}
-                        className="shrink-0 text-amber-500 hover:text-amber-700"
-                    >
-                        ×
-                    </button>
-                </div>
-            )}
 
             {isLoading ? (
                 <p className="py-12 text-center text-sm text-gray-400">불러오는 중…</p>
@@ -523,7 +430,7 @@ export default function BWorksPage() {
                         lengthError={createLengthError}
                         setLengthError={setCreateLengthError}
                         categories={categories ?? []}
-                        isPending={createProject.isPending || updateProject.isPending}
+                        isPending={createProject.isPending || moveProject.isPending}
                         isError={createProject.isError}
                         errorMessage={
                             createProject.error instanceof Error

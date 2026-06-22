@@ -48,6 +48,8 @@ class CategoryService(
                     sortOrder = categoryRepository.maxSortOrder(userId) + 1,
                     paperSize = validatedPaperSize(request.paperSize),
                     layoutMode = validatedLayoutMode(request.layoutMode),
+                    genre = request.genre,
+                    synopsis = request.synopsis,
                 ),
             )
         return categoryMapper.toResponse(category, projectCount = 0)
@@ -86,6 +88,8 @@ class CategoryService(
         request.sortOrder?.let { category.sortOrder = it }
         request.paperSize?.let { category.paperSize = validatedPaperSize(it) }
         request.layoutMode?.let { category.layoutMode = validatedLayoutMode(it) }
+        request.genre?.let { category.genre = it }
+        request.synopsis?.let { category.synopsis = it }
         val count =
             projectRepository
                 .countActiveByCategory(userId)

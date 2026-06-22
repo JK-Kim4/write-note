@@ -13,11 +13,15 @@ export function listCategories(): Promise<CategoryResponse[]> {
     return apiFetch<CategoryResponse[]>("/api/categories", { method: "GET" });
 }
 
-/** 시리즈 생성 시 함께 보낼 수 있는 출판 메타(033 R2) — 전부 선택, null=미설정. */
+/** 시리즈 생성 시 함께 보낼 수 있는 메타(033) — 전부 선택, null=미설정. */
 export interface CreateCategoryInput {
     name: string;
     paperSize?: PaperSize | null;
     layoutMode?: LayoutMode | null;
+    /** 시리즈 장르 (033 R3). null=미설정. */
+    genre?: string | null;
+    /** 시리즈 줄거리 (033 R3). null=미설정. */
+    synopsis?: string | null;
 }
 
 export function createCategory(input: CreateCategoryInput): Promise<CategoryResponse> {
@@ -32,6 +36,10 @@ export interface UpdateCategoryInput {
     sortOrder?: number;
     paperSize?: PaperSize | null;
     layoutMode?: LayoutMode | null;
+    /** 시리즈 장르 (033 R3). null=미설정. */
+    genre?: string | null;
+    /** 시리즈 줄거리 (033 R3). null=미설정. */
+    synopsis?: string | null;
 }
 
 export function updateCategory(id: number, input: UpdateCategoryInput): Promise<CategoryResponse> {

@@ -112,23 +112,23 @@
 
 ### 테스트 (TDD)
 
-- [ ] T038 [P] [US2] Category genre/synopsis 저장·응답 테스트 in `backend/.../`
-- [ ] T039 [P] [US5] 작품 생성/수정 시 톤류·장르·줄거리 입력 무시(미저장 변경) + 기존 톤류 데이터 보존 테스트 in `backend/.../`
+- [x] T038 [P] [US2] Category genre/synopsis 저장·응답 테스트 in `backend/.../`
+- [x] T039 [P] [US5] 작품 생성/수정 시 톤류·장르·줄거리 입력 무시(미저장 변경) + 기존 톤류 데이터 보존 테스트 in `backend/.../`
 
 ### BE
 
-- [ ] T040 [US2] `CreateCategoryRequest`/`UpdateCategoryRequest`/`CategoryResponse` 에 genre/synopsis 추가(T025~T027 연장) + Service/Mapper 매핑
-- [ ] T041 [US5] `backend/.../model/request/CreateProjectRequest.kt`·`UpdateProjectRequest.kt` 에서 genre/synopsis/toneNotes/worldNotes/nextScene 입력 제거(구 클라이언트 전송 시 무시, 400 아님). Project 컬럼은 보존(DROP 안 함)
-- [ ] T042 [US5] `backend/.../service/ProjectService.kt` 작품 생성/수정에서 위 메타 미반영(default 유지)
+- [x] T040 [US2] `CreateCategoryRequest`/`UpdateCategoryRequest`/`CategoryResponse` 에 genre/synopsis 추가(T025~T027 연장) + Service/Mapper 매핑
+- [x] T041 [US5] `backend/.../model/request/CreateProjectRequest.kt`·`UpdateProjectRequest.kt` 에서 genre/synopsis/toneNotes/worldNotes/nextScene 입력 제거(구 클라이언트 전송 시 무시, 400 아님). Project 컬럼은 보존(DROP 안 함)
+- [x] T042 [US5] `backend/.../service/ProjectService.kt` 작품 생성/수정에서 위 메타 미반영(default 유지)
 
 ### FE
 
-- [ ] T043 [US6] `frontend/src/app/(main)/library/page.tsx` 작품 폼(`ProjectFormState`/`emptyForm`/`fromProject`)에서 genre/synopsis/toneNotes/worldNotes/nextScene 입력 제거 → 제목+작품목표분량 중심
-- [ ] T044 [US5] `frontend/src/components/library/DraggableWorkCard.tsx` 에서 장르·줄거리·다음장면(nextScene) 표시 제거(FR-023)
-- [ ] T045 [P] [US5] `frontend/src/components/b/dashboard/BResumeCard.tsx` 등 nextScene 표시처 정리(작품 표면 노출 제거)
-- [ ] T046 [US2] `frontend/src/components/library/LibraryBoard.tsx`·`CategoryTile.tsx` 시리즈 폼에 장르·줄거리 입력 추가 + 시리즈 타일/표시에 장르 노출
-- [ ] T047 [US2] `frontend/src/types/api.ts`·`lib/api/categories.ts` genre/synopsis 반영
-- [ ] T048 [US5] backend verify + frontend verify GREEN
+- [x] T043 [US6] `frontend/src/app/(main)/library/page.tsx` 작품 폼(`ProjectFormState`/`emptyForm`/`fromProject`)에서 genre/synopsis/toneNotes/worldNotes/nextScene 입력 제거 → 제목+작품목표분량 중심
+- [x] T044 [US5] `frontend/src/components/library/DraggableWorkCard.tsx` 에서 장르·줄거리·다음장면(nextScene) 표시 제거(FR-023)
+- [x] T045 [P] [US5] `frontend/src/components/b/dashboard/BResumeCard.tsx` 등 nextScene 표시처 정리(작품 표면 노출 제거)
+- [x] T046 [US2] `frontend/src/components/library/LibraryBoard.tsx`·`CategoryTile.tsx` 시리즈 폼에 장르·줄거리 입력 추가 + 시리즈 타일/표시에 장르 노출
+- [x] T047 [US2] `frontend/src/types/api.ts`·`lib/api/categories.ts` genre/synopsis 반영
+- [x] T048 [US5] backend verify + frontend verify GREEN
 
 **Checkpoint**: 장르·줄거리 시리즈 이동 + 톤류 화면 제거(데이터 보존) dogfoodable.
 

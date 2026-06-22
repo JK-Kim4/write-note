@@ -78,8 +78,8 @@ class ProjectServiceTest {
     }
 
     @Test
-    @DisplayName("createProject — 메타 5 필드 모두 영속")
-    fun `createProject persists all metadata fields`() {
+    @DisplayName("createProject — title trim·targetLength 영속, 장르·톤류 메타는 무시(033 R3)")
+    fun `createProject persists title and targetLength and ignores meta`() {
         every { userRepository.existsById(eq(1L)) } returns true
         val captured = slot<Project>()
         every { projectRepository.save(capture(captured)) } answers { firstArg<Project>().apply { id = 100L } }
@@ -88,11 +88,7 @@ class ProjectServiceTest {
         val request =
             CreateProjectRequest(
                 title = "  Padded  ",
-                genre = "치유물",
                 targetLength = 4000,
-                toneNotes = "잔잔",
-                synopsis = "할머니",
-                worldNotes = "1990s",
             )
 
         every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
@@ -101,11 +97,13 @@ class ProjectServiceTest {
         val saved = captured.captured
         assertThat(saved.userId).isEqualTo(1L)
         assertThat(saved.title).isEqualTo("Padded")
-        assertThat(saved.genre).isEqualTo("치유물")
         assertThat(saved.targetLength).isEqualTo(4000)
-        assertThat(saved.toneNotes).isEqualTo("잔잔")
-        assertThat(saved.synopsis).isEqualTo("할머니")
-        assertThat(saved.worldNotes).isEqualTo("1990s")
+        // 장르·톤류 메타는 시리즈로 이동(033) — 작품에는 저장되지 않고 엔티티 기본값(null/빈값) 유지
+        assertThat(saved.genre).isNull()
+        assertThat(saved.toneNotes).isNull()
+        assertThat(saved.synopsis).isNull()
+        assertThat(saved.worldNotes).isNull()
+        assertThat(saved.nextScene).isEqualTo("")
     }
 
     @Test
@@ -150,8 +148,8 @@ class ProjectServiceTest {
     }
 
     @Test
-    @DisplayName("updateProject — null 필드는 미변경, 명시값은 갱신")
-    fun `updateProject only mutates specified fields`() {
+    @DisplayName("updateProject — title·targetLength 갱신, 기존 톤류 데이터 보존(033 R3 / FR-014)")
+    fun `updateProject mutates title and preserves existing tone data`() {
         val existing =
             Project(
                 id = 7L,
@@ -159,31 +157,31 @@ class ProjectServiceTest {
                 title = "Old title",
                 genre = "치유물",
                 targetLength = 1000,
-                toneNotes = "Old tone",
-                synopsis = "Old synopsis",
-                worldNotes = "Old world",
+                toneNotes = "기존 톤",
+                synopsis = "기존 줄거리",
+                worldNotes = "기존 세계관",
+                nextScene = "기존 다음장면",
                 createdAt = Instant.now(),
                 updatedAt = Instant.now(),
             )
         every { projectRepository.findByIdAndUserId(eq(7L), eq(2L)) } returns Optional.of(existing)
         every { projectMapper.toResponse(eq(existing), any()) } answers { stubMapper(existing) }
 
+        // 제목만 변경 — 장르·톤류 변경 경로는 요청에서 제거됨(033)
         service.updateProject(
             userId = 2L,
             projectId = 7L,
-            request =
-                UpdateProjectRequest(
-                    toneNotes = "New tone",
-                    synopsis = null,
-                ),
+            request = UpdateProjectRequest(title = "New title", targetLength = 2000),
         )
 
-        assertThat(existing.title).isEqualTo("Old title")
+        assertThat(existing.title).isEqualTo("New title")
+        assertThat(existing.targetLength).isEqualTo(2000)
+        // 톤류·장르·줄거리·세계관·다음장면은 요청으로 더 이상 변경 불가 — 기존 값 그대로 보존
         assertThat(existing.genre).isEqualTo("치유물")
-        assertThat(existing.targetLength).isEqualTo(1000)
-        assertThat(existing.toneNotes).isEqualTo("New tone")
-        assertThat(existing.synopsis).isEqualTo("Old synopsis")
-        assertThat(existing.worldNotes).isEqualTo("Old world")
+        assertThat(existing.toneNotes).isEqualTo("기존 톤")
+        assertThat(existing.synopsis).isEqualTo("기존 줄거리")
+        assertThat(existing.worldNotes).isEqualTo("기존 세계관")
+        assertThat(existing.nextScene).isEqualTo("기존 다음장면")
     }
 
     @Test

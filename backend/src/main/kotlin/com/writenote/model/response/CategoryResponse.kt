@@ -9,6 +9,7 @@ import java.time.Instant
  * [parentId] 는 N뎁스 설계용으로 v1 에서는 항상 null.
  *
  * [paperSize]·[layoutMode] 는 시리즈 출판 메타(033 R2, null=미설정). 하위 작품 effective 해석의 원천.
+ * [genre]·[synopsis] 는 시리즈 장르·줄거리(033 R3, null=미설정).
  */
 data class CategoryResponse(
     val id: Long,
@@ -18,6 +19,8 @@ data class CategoryResponse(
     val projectCount: Int,
     val paperSize: String?,
     val layoutMode: String?,
+    val genre: String?,
+    val synopsis: String?,
     val createdAt: Instant,
     val updatedAt: Instant,
 )

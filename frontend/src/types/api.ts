@@ -79,6 +79,10 @@ export interface CategoryResponse {
     paperSize: PaperSize | null;
     /** 시리즈 출판방식 (033 R2). null = 미설정 → 기본값 fallback. */
     layoutMode: LayoutMode | null;
+    /** 시리즈 장르 (033 R3). null = 미설정. */
+    genre: string | null;
+    /** 시리즈 줄거리 (033 R3). null = 미설정. */
+    synopsis: string | null;
     createdAt: string;
     updatedAt: string;
 }

@@ -35,18 +35,7 @@ export function DraggableWorkCard({ card, onDelete, onEdit, onArchive, overlay }
 
     const body = (
         <>
-            <div className="flex items-start justify-between gap-2">
-                <h2 className="text-lg font-bold text-gray-900">{card.title}</h2>
-                {card.genre && (
-                    <span className="shrink-0 rounded-full bg-terracotta-50 px-2.5 py-0.5 text-xs font-medium text-terracotta-700">
-                        {card.genre}
-                    </span>
-                )}
-            </div>
-            {card.synopsis && <p className="mt-2 line-clamp-2 text-sm text-gray-600">{card.synopsis}</p>}
-            {card.nextScene && (
-                <p className="mt-2 rounded-md bg-olive-50 px-2.5 py-1.5 text-xs text-olive-700">다음 장면 — {card.nextScene}</p>
-            )}
+            <h2 className="text-lg font-bold text-gray-900">{card.title}</h2>
             <div className="mt-3 flex items-center gap-3 text-xs text-gray-400">
                 <span>{card.wordCount.toLocaleString()}자</span>
                 <span>마지막 저장 {formatDate(card.docUpdatedAt)}</span>

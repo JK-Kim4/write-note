@@ -151,7 +151,9 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
 
     const [addingCat, setAddingCat] = useState(false);
     const [newCatName, setNewCatName] = useState("");
-    // 신규 시리즈 출판 메타(033 R2) — 선택, null=미설정(하위 작품 기본값 fallback).
+    // 신규 시리즈 메타(033) — 선택, 빈값=미설정(하위 작품 기본값 fallback).
+    const [newCatGenre, setNewCatGenre] = useState("");
+    const [newCatSynopsis, setNewCatSynopsis] = useState("");
     const [newCatPaperSize, setNewCatPaperSize] = useState<PaperSize | null>(null);
     const [newCatLayoutMode, setNewCatLayoutMode] = useState<LayoutMode | null>(null);
     const [deleteCatTarget, setDeleteCatTarget] = useState<CategoryResponse | null>(null);
@@ -199,6 +201,8 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
 
     const resetNewCat = () => {
         setNewCatName("");
+        setNewCatGenre("");
+        setNewCatSynopsis("");
         setNewCatPaperSize(null);
         setNewCatLayoutMode(null);
         setAddingCat(false);
@@ -206,14 +210,28 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
     const submitNewCat = () => {
         const trimmed = newCatName.trim();
         if (trimmed) {
-            const input: CreateCategoryInput = { name: trimmed, paperSize: newCatPaperSize, layoutMode: newCatLayoutMode };
+            const input: CreateCategoryInput = {
+                name: trimmed,
+                genre: newCatGenre.trim() || null,
+                synopsis: newCatSynopsis.trim() || null,
+                paperSize: newCatPaperSize,
+                layoutMode: newCatLayoutMode,
+            };
             createCategory.mutate(input);
         }
         resetNewCat();
     };
     const handleUpdateCat = useCallback(
-        (id: number, input: { name?: string; paperSize?: PaperSize | null; layoutMode?: LayoutMode | null }) =>
-            renameCategory.mutate({ id, input }),
+        (
+            id: number,
+            input: {
+                name?: string;
+                genre?: string | null;
+                synopsis?: string | null;
+                paperSize?: PaperSize | null;
+                layoutMode?: LayoutMode | null;
+            },
+        ) => renameCategory.mutate({ id, input }),
         [renameCategory],
     );
     const handleConfirmDeleteCat = async () => {
@@ -277,8 +295,12 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                                     <p className="mt-1 text-[11px] text-gray-400">예: 잿빛 탑 연대기 · 여름 단편선</p>
                                     <SeriesPublishFields
                                         idPrefix="new-series"
+                                        genre={newCatGenre}
+                                        synopsis={newCatSynopsis}
                                         paperSize={newCatPaperSize}
                                         layoutMode={newCatLayoutMode}
+                                        onGenreChange={setNewCatGenre}
+                                        onSynopsisChange={setNewCatSynopsis}
                                         onPaperSizeChange={setNewCatPaperSize}
                                         onLayoutModeChange={setNewCatLayoutMode}
                                     />

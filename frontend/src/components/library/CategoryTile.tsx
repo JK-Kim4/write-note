@@ -21,8 +21,14 @@ function hashId(id: number): number {
 const spineHeight = (id: number) => 30 + (hashId(id) % 35);
 const spineColor = (id: number) => SPINE_COLORS[hashId(id) % SPINE_COLORS.length];
 
-/** 시리즈 편집 시 보낼 수 있는 변경 필드(033 R2) — 이름 + 출판 메타(판형·출판방식). */
-export type CategoryUpdateInput = { name?: string; paperSize?: PaperSize | null; layoutMode?: LayoutMode | null };
+/** 시리즈 편집 시 보낼 수 있는 변경 필드(033) — 이름 + 메타(장르·줄거리·판형·출판방식). */
+export type CategoryUpdateInput = {
+    name?: string;
+    genre?: string | null;
+    synopsis?: string | null;
+    paperSize?: PaperSize | null;
+    layoutMode?: LayoutMode | null;
+};
 
 type CategoryTileProps = {
     category: CategoryResponse;
@@ -40,6 +46,8 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
     const [menuOpen, setMenuOpen] = useState(false);
     const [editing, setEditing] = useState(false);
     const [name, setName] = useState(category.name);
+    const [genre, setGenre] = useState(category.genre ?? "");
+    const [synopsis, setSynopsis] = useState(category.synopsis ?? "");
     const [paperSize, setPaperSize] = useState<PaperSize | null>(category.paperSize);
     const [layoutMode, setLayoutMode] = useState<LayoutMode | null>(category.layoutMode);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -55,12 +63,16 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
 
     const startEditing = () => {
         setName(category.name);
+        setGenre(category.genre ?? "");
+        setSynopsis(category.synopsis ?? "");
         setPaperSize(category.paperSize);
         setLayoutMode(category.layoutMode);
         setEditing(true);
     };
     const cancelEditing = () => {
         setName(category.name);
+        setGenre(category.genre ?? "");
+        setSynopsis(category.synopsis ?? "");
         setPaperSize(category.paperSize);
         setLayoutMode(category.layoutMode);
         setEditing(false);
@@ -69,6 +81,8 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
         const trimmed = name.trim();
         const next: CategoryUpdateInput = {
             name: trimmed || category.name,
+            genre: genre.trim() || null,
+            synopsis: synopsis.trim() || null,
             paperSize,
             layoutMode,
         };
@@ -136,8 +150,12 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
                     />
                     <SeriesPublishFields
                         idPrefix={`series-${category.id}`}
+                        genre={genre}
+                        synopsis={synopsis}
                         paperSize={paperSize}
                         layoutMode={layoutMode}
+                        onGenreChange={setGenre}
+                        onSynopsisChange={setSynopsis}
                         onPaperSizeChange={setPaperSize}
                         onLayoutModeChange={setLayoutMode}
                     />

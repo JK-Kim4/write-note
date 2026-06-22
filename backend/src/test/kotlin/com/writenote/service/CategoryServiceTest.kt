@@ -121,6 +121,26 @@ class CategoryServiceTest {
     }
 
     @Test
+    @DisplayName("create — 시리즈 장르·줄거리 영속(033 R3)")
+    fun `create persists series genre and synopsis`() {
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { categoryRepository.maxSortOrder(eq(1L)) } returns -1
+        val captured = slot<Category>()
+        every { categoryRepository.save(capture(captured)) } answers { savedCategory(firstArg()) }
+
+        val response =
+            service.create(
+                1L,
+                CreateCategoryRequest(name = "판타지 시리즈", genre = "판타지", synopsis = "용과 마법사 이야기"),
+            )
+
+        assertThat(captured.captured.genre).isEqualTo("판타지")
+        assertThat(captured.captured.synopsis).isEqualTo("용과 마법사 이야기")
+        assertThat(response.genre).isEqualTo("판타지")
+        assertThat(response.synopsis).isEqualTo("용과 마법사 이야기")
+    }
+
+    @Test
     @DisplayName("create — 비허용 layoutMode 는 ValidationException")
     fun `create rejects unknown layoutMode`() {
         every { userRepository.existsById(eq(1L)) } returns true
@@ -231,6 +251,23 @@ class CategoryServiceTest {
         assertThat(category.layoutMode).isEqualTo("paper")
         assertThat(response.paperSize).isEqualTo("sinkukpan")
         assertThat(response.layoutMode).isEqualTo("paper")
+    }
+
+    @Test
+    @DisplayName("rename — 시리즈 장르·줄거리 갱신(033 R3)")
+    fun `rename updates series genre and synopsis`() {
+        val category =
+            Category(id = 7L, userId = 1L, name = "시리즈", sortOrder = 0, createdAt = Instant.now(), updatedAt = Instant.now())
+        every { categoryRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns Optional.of(category)
+        every { projectRepository.countActiveByCategory(eq(1L)) } returns listOf(count(7L, 1L))
+
+        val response =
+            service.rename(1L, 7L, UpdateCategoryRequest(genre = "SF", synopsis = "근미래 도시"))
+
+        assertThat(category.genre).isEqualTo("SF")
+        assertThat(category.synopsis).isEqualTo("근미래 도시")
+        assertThat(response.genre).isEqualTo("SF")
+        assertThat(response.synopsis).isEqualTo("근미래 도시")
     }
 
     @Test

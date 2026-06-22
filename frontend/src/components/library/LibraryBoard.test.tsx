@@ -27,6 +27,8 @@ function cat(id: number, name: string, projectCount = 0): CategoryResponse {
         projectCount,
         paperSize: null,
         layoutMode: null,
+        genre: null,
+        synopsis: null,
         createdAt: "2026-06-22T00:00:00Z",
         updatedAt: "2026-06-22T00:00:00Z",
     };
@@ -155,8 +157,10 @@ describe("LibraryBoard — 시리즈 생성/이름변경/삭제", () => {
         await userEvent.clear(input);
         await userEvent.type(input, "가나다라{Enter}");
 
-        // 033 R2 — 편집 폼이 이름과 함께 판형·출판방식(미설정=null)도 보낸다.
-        await waitFor(() => expect(renamed).toEqual({ name: "가나다라", paperSize: null, layoutMode: null }));
+        // 033 — 편집 폼이 이름과 함께 장르·줄거리·판형·출판방식(미설정=null)도 보낸다.
+        await waitFor(() =>
+            expect(renamed).toEqual({ name: "가나다라", genre: null, synopsis: null, paperSize: null, layoutMode: null }),
+        );
     });
 
     it("시리즈 편집 폼에서 판형·출판방식을 설정해 저장한다", async () => {
@@ -173,7 +177,9 @@ describe("LibraryBoard — 시리즈 생성/이름변경/삭제", () => {
         await userEvent.selectOptions(screen.getByLabelText("판형"), "sinkukpan");
         await userEvent.click(screen.getByRole("button", { name: "저장" }));
 
-        await waitFor(() => expect(patched).toEqual({ name: "가나다", paperSize: "sinkukpan", layoutMode: "paper" }));
+        await waitFor(() =>
+            expect(patched).toEqual({ name: "가나다", genre: null, synopsis: null, paperSize: "sinkukpan", layoutMode: "paper" }),
+        );
     });
 
     it("시리즈 삭제 시 작품 보존 안내 confirm 을 보여준다", async () => {

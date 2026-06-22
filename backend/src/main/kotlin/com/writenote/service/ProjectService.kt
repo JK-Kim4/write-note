@@ -42,11 +42,8 @@ class ProjectService(
                 Project(
                     userId = userId,
                     title = request.title.trim(),
-                    genre = request.genre,
                     targetLength = request.targetLength,
-                    toneNotes = request.toneNotes,
-                    synopsis = request.synopsis,
-                    worldNotes = request.worldNotes,
+                    // 장르·줄거리·톤류는 시리즈로 이동(033 R3) — 작품 생성 시 미반영(엔티티 기본값 유지, 컬럼 보존)
                     paperSize = validatedPaperSize(request.paperSize),
                     layoutMode = validatedLayoutMode(request.layoutMode),
                     fontScale = validatedFontScale(request.fontScale),
@@ -150,12 +147,8 @@ class ProjectService(
         val project = requireOwnedProject(userId, projectId)
 
         request.title?.let { project.title = it.trim() }
-        request.genre?.let { project.genre = it }
         request.targetLength?.let { project.targetLength = it }
-        request.toneNotes?.let { project.toneNotes = it }
-        request.synopsis?.let { project.synopsis = it }
-        request.worldNotes?.let { project.worldNotes = it }
-        request.nextScene?.let { project.nextScene = it }
+        // 장르·줄거리·톤류는 시리즈로 이동(033 R3) — 변경 경로 제거(기존 컬럼·값 보존, FR-014)
         request.paperSize?.let { project.paperSize = validatedPaperSize(it) }
         request.layoutMode?.let { project.layoutMode = validatedLayoutMode(it) }
         request.fontScale?.let { project.fontScale = validatedFontScale(it) }
