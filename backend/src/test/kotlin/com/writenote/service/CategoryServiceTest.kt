@@ -87,6 +87,60 @@ class CategoryServiceTest {
     }
 
     @Test
+    @DisplayName("create — 시리즈 판형·출판방식 영속(033 R2)")
+    fun `create persists series paperSize and layoutMode`() {
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { categoryRepository.maxSortOrder(eq(1L)) } returns -1
+        val captured = slot<Category>()
+        every { categoryRepository.save(capture(captured)) } answers { savedCategory(firstArg()) }
+
+        val response =
+            service.create(
+                1L,
+                CreateCategoryRequest(name = "웹소설", paperSize = "kukpan", layoutMode = "web"),
+            )
+
+        assertThat(captured.captured.paperSize).isEqualTo("kukpan")
+        assertThat(captured.captured.layoutMode).isEqualTo("web")
+        assertThat(response.paperSize).isEqualTo("kukpan")
+        assertThat(response.layoutMode).isEqualTo("web")
+    }
+
+    @Test
+    @DisplayName("create — 판형·출판방식 미지정이면 null 영속(미설정)")
+    fun `create leaves series meta null when omitted`() {
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { categoryRepository.maxSortOrder(eq(1L)) } returns -1
+        val captured = slot<Category>()
+        every { categoryRepository.save(capture(captured)) } answers { savedCategory(firstArg()) }
+
+        service.create(1L, CreateCategoryRequest(name = "미설정 시리즈"))
+
+        assertThat(captured.captured.paperSize).isNull()
+        assertThat(captured.captured.layoutMode).isNull()
+    }
+
+    @Test
+    @DisplayName("create — 비허용 layoutMode 는 ValidationException")
+    fun `create rejects unknown layoutMode`() {
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { categoryRepository.maxSortOrder(eq(1L)) } returns -1
+
+        assertThatThrownBy { service.create(1L, CreateCategoryRequest(name = "x", layoutMode = "epub")) }
+            .isInstanceOf(ValidationException::class.java)
+    }
+
+    @Test
+    @DisplayName("create — 비허용 paperSize 는 ValidationException")
+    fun `create rejects unknown paperSize`() {
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { categoryRepository.maxSortOrder(eq(1L)) } returns -1
+
+        assertThatThrownBy { service.create(1L, CreateCategoryRequest(name = "x", paperSize = "A5")) }
+            .isInstanceOf(ValidationException::class.java)
+    }
+
+    @Test
     @DisplayName("create — parentId 비-null 은 ValidationException (v1 1뎁스 강제)")
     fun `create rejects non-null parentId`() {
         every { userRepository.existsById(eq(1L)) } returns true
@@ -160,6 +214,34 @@ class CategoryServiceTest {
         assertThat(category.name).isEqualTo("장편 판타지")
         assertThat(category.sortOrder).isEqualTo(3)
         assertThat(response.projectCount).isEqualTo(2)
+    }
+
+    @Test
+    @DisplayName("rename — 시리즈 판형·출판방식 갱신(033 R2)")
+    fun `rename updates series paperSize and layoutMode`() {
+        val category =
+            Category(id = 7L, userId = 1L, name = "시리즈", sortOrder = 0, createdAt = Instant.now(), updatedAt = Instant.now())
+        every { categoryRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns Optional.of(category)
+        every { projectRepository.countActiveByCategory(eq(1L)) } returns listOf(count(7L, 1L))
+
+        val response =
+            service.rename(1L, 7L, UpdateCategoryRequest(paperSize = "sinkukpan", layoutMode = "paper"))
+
+        assertThat(category.paperSize).isEqualTo("sinkukpan")
+        assertThat(category.layoutMode).isEqualTo("paper")
+        assertThat(response.paperSize).isEqualTo("sinkukpan")
+        assertThat(response.layoutMode).isEqualTo("paper")
+    }
+
+    @Test
+    @DisplayName("rename — 비허용 layoutMode 는 ValidationException")
+    fun `rename rejects unknown layoutMode`() {
+        val category =
+            Category(id = 7L, userId = 1L, name = "시리즈", createdAt = Instant.now(), updatedAt = Instant.now())
+        every { categoryRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns Optional.of(category)
+
+        assertThatThrownBy { service.rename(1L, 7L, UpdateCategoryRequest(layoutMode = "pdf")) }
+            .isInstanceOf(ValidationException::class.java)
     }
 
     @Test

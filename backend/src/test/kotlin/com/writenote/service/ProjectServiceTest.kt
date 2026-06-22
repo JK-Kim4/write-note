@@ -71,8 +71,9 @@ class ProjectServiceTest {
                 archivedAt = project.archivedAt,
                 createdAt = project.createdAt ?: Instant.now(),
                 updatedAt = project.updatedAt ?: Instant.now(),
+                categoryId = project.categoryId,
             )
-        every { projectMapper.toResponse(eq(project)) } returns response
+        every { projectMapper.toResponse(eq(project), any()) } returns response
         return response
     }
 
@@ -94,7 +95,7 @@ class ProjectServiceTest {
                 worldNotes = "1990s",
             )
 
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
         service.createProject(1L, request)
 
         val saved = captured.captured
@@ -112,7 +113,7 @@ class ProjectServiceTest {
     fun `createProject persists paperSize and defaults to A4`() {
         every { userRepository.existsById(eq(1L)) } returns true
         every { documentRepository.save(any<Document>()) } answers { firstArg() }
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         val withPaper = slot<Project>()
         every { projectRepository.save(capture(withPaper)) } answers { firstArg<Project>().apply { id = 100L } }
@@ -140,7 +141,7 @@ class ProjectServiceTest {
         every { projectRepository.save(any()) } answers { firstArg<Project>().apply { id = 100L } }
         val capturedDoc = slot<Document>()
         every { documentRepository.save(capture(capturedDoc)) } answers { firstArg() }
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         service.createProject(1L, CreateProjectRequest(title = "test"))
 
@@ -165,7 +166,7 @@ class ProjectServiceTest {
                 updatedAt = Instant.now(),
             )
         every { projectRepository.findByIdAndUserId(eq(7L), eq(2L)) } returns Optional.of(existing)
-        every { projectMapper.toResponse(eq(existing)) } answers { stubMapper(existing) }
+        every { projectMapper.toResponse(eq(existing), any()) } answers { stubMapper(existing) }
 
         service.updateProject(
             userId = 2L,
@@ -199,7 +200,7 @@ class ProjectServiceTest {
                 updatedAt = Instant.now(),
             )
         every { projectRepository.findByIdAndUserId(eq(11L), eq(3L)) } returns Optional.of(project)
-        every { projectMapper.toResponse(eq(project)) } answers { stubMapper(project) }
+        every { projectMapper.toResponse(eq(project), any()) } answers { stubMapper(project) }
 
         service.archiveProject(3L, 11L)
 
@@ -219,7 +220,7 @@ class ProjectServiceTest {
                 updatedAt = Instant.now(),
             )
         every { projectRepository.findByIdAndUserId(eq(12L), eq(3L)) } returns Optional.of(project)
-        every { projectMapper.toResponse(eq(project)) } answers { stubMapper(project) }
+        every { projectMapper.toResponse(eq(project), any()) } answers { stubMapper(project) }
 
         service.unarchiveProject(3L, 12L)
 
@@ -263,7 +264,8 @@ class ProjectServiceTest {
             Project(id = 5L, userId = 1L, title = "x", createdAt = Instant.now(), updatedAt = Instant.now())
         every { projectRepository.findByIdAndUserId(eq(5L), eq(1L)) } returns Optional.of(project)
         every { categoryRepository.existsByIdAndUserId(eq(9L), eq(1L)) } returns true
-        every { projectMapper.toResponse(eq(project)) } answers { stubMapper(project) }
+        every { categoryRepository.findById(eq(9L)) } returns Optional.empty()
+        every { projectMapper.toResponse(eq(project), any()) } answers { stubMapper(project) }
 
         service.moveCategory(userId = 1L, projectId = 5L, categoryId = 9L)
 
@@ -276,7 +278,7 @@ class ProjectServiceTest {
         val project =
             Project(id = 5L, userId = 1L, title = "x", categoryId = 9L, createdAt = Instant.now(), updatedAt = Instant.now())
         every { projectRepository.findByIdAndUserId(eq(5L), eq(1L)) } returns Optional.of(project)
-        every { projectMapper.toResponse(eq(project)) } answers { stubMapper(project) }
+        every { projectMapper.toResponse(eq(project), any()) } answers { stubMapper(project) }
 
         service.moveCategory(userId = 1L, projectId = 5L, categoryId = null)
 
@@ -348,7 +350,7 @@ class ProjectServiceTest {
                 endedSession(100L, Instant.parse("2026-06-09T10:00:00Z"), durationMs = 1_200_000L),
                 endedSession(100L, Instant.parse("2026-06-09T12:00:00Z"), durationMs = 600_000L),
             )
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         val cards = service.listCards(userId = 1L)
 
@@ -371,7 +373,7 @@ class ProjectServiceTest {
         every { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(100L))) } returns
             listOf(docOf(100L, wordCount = 0, updatedAt = Instant.parse("2026-06-10T00:00:00Z")))
         every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(100L))) } returns emptyList()
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         val cards = service.listCards(userId = 1L)
 
@@ -415,7 +417,7 @@ class ProjectServiceTest {
                 docOf(100L, wordCount = 500, updatedAt = older, id = 1003L),
             )
         every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(100L))) } returns emptyList()
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         val cards = service.listCards(userId = 1L)
 
@@ -447,7 +449,7 @@ class ProjectServiceTest {
                 docOf(300L, wordCount = 1200, updatedAt = t1, id = 3001L),
             )
         every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(200L, 300L))) } returns emptyList()
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         val cards = service.listCards(userId = 1L)
 
@@ -475,7 +477,7 @@ class ProjectServiceTest {
                 docOf(100L, wordCount = 400, updatedAt = t, id = 1004L),
             )
         every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(100L))) } returns emptyList()
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         service.listCards(userId = 1L)
 
@@ -519,7 +521,7 @@ class ProjectServiceTest {
                 docWithBody(100L, wordCount = 200, updatedAt = newer, body = newerBody, id = 1002L),
             )
         every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(100L))) } returns emptyList()
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         val cards = service.listCards(userId = 1L)
 
@@ -543,7 +545,7 @@ class ProjectServiceTest {
         every { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(200L))) } returns
             listOf(docWithBody(200L, wordCount = 50, updatedAt = t1, body = activeBody, id = 2001L))
         every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(200L))) } returns emptyList()
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         val cards = service.listCards(userId = 1L)
 
@@ -558,7 +560,7 @@ class ProjectServiceTest {
         every { projectRepository.findByUserIdAndArchivedAtIsNull(eq(1L)) } returns listOf(activeProject(300L, "소설C"))
         every { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(300L))) } returns emptyList()
         every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(300L))) } returns emptyList()
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         val cards = service.listCards(userId = 1L)
 

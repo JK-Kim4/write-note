@@ -66,7 +66,7 @@ export function ExportDialog({ open, document, paperSize, onExportPdf, onExportW
                         ))}
                     </select>
                 </label>
-                <p className="export-dialog__paper">용지 {PAPER_LABEL[paperSize]} (작품 설정)</p>
+                <p className="export-dialog__paper">용지 {PAPER_LABEL[paperSize]} (시리즈 설정)</p>
                 <div className="export-dialog__actions">
                     <button type="button" onClick={handleExport}>내보내기</button>
                     <button type="button" onClick={onClose}>닫기</button>

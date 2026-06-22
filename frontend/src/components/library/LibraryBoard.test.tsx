@@ -25,6 +25,8 @@ function cat(id: number, name: string, projectCount = 0): CategoryResponse {
         parentId: null,
         sortOrder: id,
         projectCount,
+        paperSize: null,
+        layoutMode: null,
         createdAt: "2026-06-22T00:00:00Z",
         updatedAt: "2026-06-22T00:00:00Z",
     };
@@ -43,6 +45,8 @@ function card(id: number, categoryId: number | null): ProjectCard {
         categoryId,
         paperSize: "A4",
         layoutMode: "paper",
+        effectivePaperSize: "A4",
+        effectiveLayoutMode: "paper",
         fontScale: "m",
         archivedAt: null,
         createdAt: "2026-06-22T00:00:00Z",
@@ -151,7 +155,25 @@ describe("LibraryBoard — 시리즈 생성/이름변경/삭제", () => {
         await userEvent.clear(input);
         await userEvent.type(input, "가나다라{Enter}");
 
-        await waitFor(() => expect(renamed).toEqual({ name: "가나다라" }));
+        // 033 R2 — 편집 폼이 이름과 함께 판형·출판방식(미설정=null)도 보낸다.
+        await waitFor(() => expect(renamed).toEqual({ name: "가나다라", paperSize: null, layoutMode: null }));
+    });
+
+    it("시리즈 편집 폼에서 판형·출판방식을 설정해 저장한다", async () => {
+        let patched: unknown = null;
+        server.use(
+            http.patch(`${ORIGIN}/api/categories/7`, async ({ request }) => {
+                patched = await request.json();
+                return HttpResponse.json({ success: true, data: cat(7, "가나다"), error: null });
+            }),
+        );
+        setup([cat(7, "가나다")], []);
+        await userEvent.click(screen.getByRole("button", { name: "가나다" }));
+        await userEvent.selectOptions(screen.getByLabelText("출판 방식"), "paper");
+        await userEvent.selectOptions(screen.getByLabelText("판형"), "sinkukpan");
+        await userEvent.click(screen.getByRole("button", { name: "저장" }));
+
+        await waitFor(() => expect(patched).toEqual({ name: "가나다", paperSize: "sinkukpan", layoutMode: "paper" }));
     });
 
     it("시리즈 삭제 시 작품 보존 안내 confirm 을 보여준다", async () => {

@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useProjectDocument } from "@/lib/query/useDocument";
 import { useProject, useUpdateProject } from "@/lib/query/useProjects";
-import { PAPER_PRESETS, PAPER_SIZE_ORDER, type PaperSize } from "@/components/editor/pageLayout";
+import { PAPER_PRESETS, type PaperSize } from "@/components/editor/pageLayout";
 import { PAPER_LABEL, FONT_SCALE_ORDER, FONT_SCALE_LABEL } from "@/components/custom-editor/geometry";
 import type { FontScale, LayoutMode } from "@/types/api";
 import { StudioSkeleton } from "./StudioSkeleton";
@@ -136,8 +136,10 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
     const { endWithLog } = useWorkSession(projectId);
     const updateProject = useUpdateProject();
 
-    // 용지 크기는 작품 속성 — 변경 시 PATCH → 비율 즉시 반영.
-    const paperSize: PaperSize = projectQuery.data?.paperSize ?? "A4";
+    // 판형·출판방식은 시리즈 종속(033 R2) — 작품 단위 개별 설정 불가(FR-007). BE 가 시리즈값 or 기본값으로
+    // 해석한 effective 값을 그대로 쓴다. 변경은 시리즈(라이브러리)에서만 한다.
+    const paperSize: PaperSize = projectQuery.data?.effectivePaperSize ?? "A4";
+    const layoutMode: LayoutMode = projectQuery.data?.effectiveLayoutMode ?? "paper";
     const fontScale: FontScale = projectQuery.data?.fontScale ?? "m";
     // 분량 지표(031) — 에디터가 보고하는 실시간 글자수(미보고 시 저장값 fallback). 종이=원고지 매수, 웹=글자수.
     const savedWordCount = documentQuery.data?.wordCount ?? 0;
@@ -145,20 +147,10 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
     const displayWordCount = liveWordCount ?? savedWordCount;
     const totalWordCount = displayWordCount;
     const targetLength = projectQuery.data?.targetLength ?? null;
-    const layoutMode: LayoutMode = projectQuery.data?.layoutMode ?? "paper";
     const exportWord = useWordExport(projectId, paperSize);
-    const handlePaperSizeChange = (next: PaperSize) => {
-        if (next === paperSize) return;
-        updateProject.mutate({ id: projectId, patch: { paperSize: next } });
-    };
     const handleFontScaleChange = (next: FontScale) => {
         if (next === fontScale) return;
         updateProject.mutate({ id: projectId, patch: { fontScale: next } });
-    };
-    // 출판 방식 전환(031 US4) — 종이↔웹. 본문(DocModel)은 렌더와 독립이라 텍스트 무손실, 표시 형태만 바뀜.
-    const handleLayoutModeChange = (next: LayoutMode) => {
-        if (next === layoutMode) return;
-        updateProject.mutate({ id: projectId, patch: { layoutMode: next } });
     };
 
     useEffect(() => {
@@ -247,41 +239,13 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
                         다음 장면 — {projectQuery.data.nextScene}
                     </p>
                 )}
-                <div className="mt-2 flex items-center gap-2">
-                    <label htmlFor="b-layout-mode" className="shrink-0 text-xs text-gray-400">
-                        출판
-                    </label>
-                    <select
-                        id="b-layout-mode"
-                        value={layoutMode}
-                        onChange={(e) => handleLayoutModeChange(e.target.value as LayoutMode)}
-                        disabled={updateProject.isPending || projectQuery.data == null}
-                        className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 disabled:opacity-50"
-                    >
-                        <option value="paper">종이 출판 (페이지·판형)</option>
-                        <option value="web">웹 출판 (연속·글자수)</option>
-                    </select>
-                </div>
-                {layoutMode === "paper" && (
-                    <div className="mt-2 flex items-center gap-2">
-                        <label htmlFor="b-paper-size" className="shrink-0 text-xs text-gray-400">
-                            용지
-                        </label>
-                        <select
-                            id="b-paper-size"
-                            value={paperSize}
-                            onChange={(e) => handlePaperSizeChange(e.target.value as PaperSize)}
-                            disabled={updateProject.isPending || projectQuery.data == null}
-                            className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 disabled:opacity-50"
-                        >
-                            {PAPER_SIZE_ORDER.map((size) => (
-                                <option key={size} value={size}>
-                                    {PAPER_LABEL[size]} ({PAPER_PRESETS[size].widthMm}×{PAPER_PRESETS[size].heightMm}mm)
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                )}
+                {/* 판형·출판방식은 시리즈에서 설정(033 R2 / FR-007). 집필실은 effective 값 표시만. */}
+                <p className="mt-2 text-xs text-gray-400">
+                    {layoutMode === "web"
+                        ? "웹 출판 (연속·글자수)"
+                        : `종이 출판 · ${PAPER_LABEL[paperSize]} (${PAPER_PRESETS[paperSize].widthMm}×${PAPER_PRESETS[paperSize].heightMm}mm)`}
+                    <span className="ml-1 text-gray-300">· 시리즈 설정</span>
+                </p>
                 <div className="mt-2 flex items-center gap-2">
                     <label htmlFor="b-font-scale" className="shrink-0 text-xs text-gray-400">
                         글자 크기

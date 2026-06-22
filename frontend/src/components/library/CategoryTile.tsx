@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
-import type { CategoryResponse } from "@/types/api";
+import { SeriesPublishFields } from "./SeriesPublishFields";
+import type { CategoryResponse, LayoutMode } from "@/types/api";
+import type { PaperSize } from "@/components/editor/pageLayout";
 import type { ProjectCard } from "@/lib/types/domain";
 
 export const categoryDropId = (id: number) => `cat:${id}`;
@@ -19,22 +21,27 @@ function hashId(id: number): number {
 const spineHeight = (id: number) => 30 + (hashId(id) % 35);
 const spineColor = (id: number) => SPINE_COLORS[hashId(id) % SPINE_COLORS.length];
 
+/** 시리즈 편집 시 보낼 수 있는 변경 필드(033 R2) — 이름 + 출판 메타(판형·출판방식). */
+export type CategoryUpdateInput = { name?: string; paperSize?: PaperSize | null; layoutMode?: LayoutMode | null };
+
 type CategoryTileProps = {
     category: CategoryResponse;
     works: ProjectCard[];
     onOpen: (id: number) => void;
-    onRename: (id: number, name: string) => void;
+    onUpdate: (id: number, input: CategoryUpdateInput) => void;
     onDelete: (category: CategoryResponse) => void;
     /** 드롭 직후 흡수 펄스 */
     absorbing?: boolean;
 };
 
-/** 시리즈 타일 — 책등 스택 미리보기 + droppable(작품 드롭으로 분류). 단일 클릭=열기, 이름 클릭/⋯=이름변경·삭제. */
-export function CategoryTile({ category, works, onOpen, onRename, onDelete, absorbing }: CategoryTileProps) {
+/** 시리즈 타일 — 책등 스택 미리보기 + droppable(작품 드롭으로 분류). 단일 클릭=열기, ⋯/이름 클릭=편집(이름·판형·출판방식)·삭제. */
+export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, absorbing }: CategoryTileProps) {
     const { setNodeRef, isOver } = useDroppable({ id: categoryDropId(category.id) });
     const [menuOpen, setMenuOpen] = useState(false);
     const [editing, setEditing] = useState(false);
     const [name, setName] = useState(category.name);
+    const [paperSize, setPaperSize] = useState<PaperSize | null>(category.paperSize);
+    const [layoutMode, setLayoutMode] = useState<LayoutMode | null>(category.layoutMode);
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -46,10 +53,26 @@ export function CategoryTile({ category, works, onOpen, onRename, onDelete, abso
         return () => document.removeEventListener("mousedown", onDocClick);
     }, [menuOpen]);
 
-    const submitRename = () => {
+    const startEditing = () => {
+        setName(category.name);
+        setPaperSize(category.paperSize);
+        setLayoutMode(category.layoutMode);
+        setEditing(true);
+    };
+    const cancelEditing = () => {
+        setName(category.name);
+        setPaperSize(category.paperSize);
+        setLayoutMode(category.layoutMode);
+        setEditing(false);
+    };
+    const submitEdit = () => {
         const trimmed = name.trim();
-        if (trimmed && trimmed !== category.name) onRename(category.id, trimmed);
-        else setName(category.name);
+        const next: CategoryUpdateInput = {
+            name: trimmed || category.name,
+            paperSize,
+            layoutMode,
+        };
+        onUpdate(category.id, next);
         setEditing(false);
     };
 
@@ -96,33 +119,54 @@ export function CategoryTile({ category, works, onOpen, onRename, onDelete, abso
                 )}
             </div>
 
-            {/* 이름 */}
+            {/* 이름 + 출판 메타(033 R2) */}
             {editing ? (
-                <input
-                    autoFocus
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    onBlur={submitRename}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") submitRename();
-                        if (e.key === "Escape") {
-                            setName(category.name);
-                            setEditing(false);
-                        }
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    maxLength={60}
-                    aria-label="시리즈 이름"
-                    className="mt-2.5 w-full rounded-md border border-terracotta-300 px-2 py-1 text-sm font-bold focus:border-terracotta-500 focus:outline-none"
-                />
+                <div onClick={(e) => e.stopPropagation()}>
+                    <input
+                        autoFocus
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") submitEdit();
+                            if (e.key === "Escape") cancelEditing();
+                        }}
+                        maxLength={60}
+                        aria-label="시리즈 이름"
+                        className="mt-2.5 w-full rounded-md border border-terracotta-300 px-2 py-1 text-sm font-bold focus:border-terracotta-500 focus:outline-none"
+                    />
+                    <SeriesPublishFields
+                        idPrefix={`series-${category.id}`}
+                        paperSize={paperSize}
+                        layoutMode={layoutMode}
+                        onPaperSizeChange={setPaperSize}
+                        onLayoutModeChange={setLayoutMode}
+                    />
+                    <div className="mt-2 flex gap-1.5">
+                        <button
+                            type="button"
+                            onClick={submitEdit}
+                            disabled={name.trim() === ""}
+                            className="rounded-md bg-terracotta-600 px-3 py-1 text-xs font-semibold text-white hover:bg-terracotta-700 disabled:opacity-50"
+                        >
+                            저장
+                        </button>
+                        <button
+                            type="button"
+                            onClick={cancelEditing}
+                            className="rounded-md border border-gray-200 px-3 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                        >
+                            취소
+                        </button>
+                    </div>
+                </div>
             ) : (
                 <button
                     type="button"
                     onClick={(e) => {
                         e.stopPropagation();
-                        setEditing(true);
+                        startEditing();
                     }}
-                    className="group/name mt-2.5 flex items-center gap-1 text-left text-base font-bold text-gray-900 hover:text-terracotta-700"
+                    className="group/name mt-2.5 flex max-w-full self-start items-center gap-1 text-left text-base font-bold text-gray-900 hover:text-terracotta-700"
                 >
                     <span className="truncate">{category.name}</span>
                     <span aria-hidden className="text-xs text-gray-300 opacity-0 group-hover/name:opacity-100">
@@ -130,7 +174,7 @@ export function CategoryTile({ category, works, onOpen, onRename, onDelete, abso
                     </span>
                 </button>
             )}
-            <div className="mt-0.5 text-xs text-gray-500">작품 {works.length}편</div>
+            {!editing && <div className="mt-0.5 text-xs text-gray-500">작품 {works.length}편</div>}
 
             <button
                 type="button"
@@ -149,12 +193,12 @@ export function CategoryTile({ category, works, onOpen, onRename, onDelete, abso
                         type="button"
                         role="menuitem"
                         onClick={() => {
-                            setEditing(true);
+                            startEditing();
                             setMenuOpen(false);
                         }}
                         className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-gray-700 hover:bg-terracotta-50 hover:text-terracotta-700"
                     >
-                        이름 변경
+                        편집
                     </button>
                     <button
                         type="button"

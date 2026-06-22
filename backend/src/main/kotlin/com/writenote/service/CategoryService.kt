@@ -46,6 +46,8 @@ class CategoryService(
                     name = name,
                     parentId = null,
                     sortOrder = categoryRepository.maxSortOrder(userId) + 1,
+                    paperSize = validatedPaperSize(request.paperSize),
+                    layoutMode = validatedLayoutMode(request.layoutMode),
                 ),
             )
         return categoryMapper.toResponse(category, projectCount = 0)
@@ -82,6 +84,8 @@ class CategoryService(
             category.name = name
         }
         request.sortOrder?.let { category.sortOrder = it }
+        request.paperSize?.let { category.paperSize = validatedPaperSize(it) }
+        request.layoutMode?.let { category.layoutMode = validatedLayoutMode(it) }
         val count =
             projectRepository
                 .countActiveByCategory(userId)
@@ -101,6 +105,24 @@ class CategoryService(
         categoryRepository.delete(category)
     }
 
+    /** 시리즈 판형 검증(033 R2) — null=미설정(허용), 비허용 식별자면 [ValidationException]. */
+    private fun validatedPaperSize(value: String?): String? {
+        if (value == null) return null
+        if (value !in ALLOWED_PAPER_SIZES) {
+            throw ValidationException("지원하지 않는 용지 크기입니다: $value")
+        }
+        return value
+    }
+
+    /** 시리즈 출판방식 검증(033 R2) — null=미설정(허용), paper/web 외 값이면 [ValidationException]. */
+    private fun validatedLayoutMode(value: String?): String? {
+        if (value == null) return null
+        if (value !in ALLOWED_LAYOUT_MODES) {
+            throw ValidationException("지원하지 않는 출판 방식입니다: $value")
+        }
+        return value
+    }
+
     private fun requireOwnedCategory(
         userId: Long,
         categoryId: Long,
@@ -113,5 +135,10 @@ class CategoryService(
         if (!userRepository.existsById(userId)) {
             throw ResourceNotFoundException("User not found")
         }
+    }
+
+    companion object {
+        private val ALLOWED_PAPER_SIZES = setOf("A4", "A3", "A2", "B4", "sinkukpan", "kukpan", "pan46", "mungopan")
+        private val ALLOWED_LAYOUT_MODES = setOf("paper", "web")
     }
 }

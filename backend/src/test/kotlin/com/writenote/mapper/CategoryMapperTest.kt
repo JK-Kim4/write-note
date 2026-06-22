@@ -23,7 +23,30 @@ class CategoryMapperTest {
         assertThat(response.parentId).isNull()
         assertThat(response.sortOrder).isEqualTo(2)
         assertThat(response.projectCount).isEqualTo(5)
+        assertThat(response.paperSize).isNull()
+        assertThat(response.layoutMode).isNull()
         assertThat(response.createdAt).isEqualTo(now)
         assertThat(response.updatedAt).isEqualTo(now)
+    }
+
+    @Test
+    @DisplayName("toResponse — 시리즈 판형·출판방식 매핑(033 R2)")
+    fun `toResponse maps series paperSize and layoutMode`() {
+        val now = Instant.parse("2026-06-22T00:00:00Z")
+        val category =
+            Category(
+                id = 3L,
+                userId = 1L,
+                name = "웹소설 시리즈",
+                paperSize = "kukpan",
+                layoutMode = "web",
+                createdAt = now,
+                updatedAt = now,
+            )
+
+        val response = mapper.toResponse(category, projectCount = 2)
+
+        assertThat(response.paperSize).isEqualTo("kukpan")
+        assertThat(response.layoutMode).isEqualTo("web")
     }
 }

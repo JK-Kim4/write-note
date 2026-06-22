@@ -3,6 +3,7 @@ package com.writenote.service
 import com.writenote.entity.Character
 import com.writenote.entity.Document
 import com.writenote.entity.User
+import com.writenote.model.request.CreateCategoryRequest
 import com.writenote.model.request.CreateProjectRequest
 import com.writenote.repository.CharacterRepository
 import com.writenote.repository.DocumentRepository
@@ -39,6 +40,7 @@ class ProjectServiceIT
     @Autowired
     constructor(
         private val projectService: ProjectService,
+        private val categoryService: CategoryService,
         private val projectRepository: ProjectRepository,
         private val userRepository: UserRepository,
         private val documentRepository: DocumentRepository,
@@ -88,6 +90,61 @@ class ProjectServiceIT
             assertThat(document.wordCount).isEqualTo(0)
             assertThat(document.createdAt).isNotNull()
             assertThat(document.updatedAt).isNotNull()
+        }
+
+        @Test
+        @DisplayName("effective 판형/출판방식 — 미분류=기본값, 시리즈 이동 후 시리즈값으로 재해석(033 R2 / FR-022)")
+        fun `effective layout resolves from series and re-interprets after move`() {
+            val userId = requireNotNull(savedUser().id)
+            val created = projectService.createProject(userId, CreateProjectRequest(title = "시리즈 이동 대상"))
+
+            // (a) 미분류 작품 → 시스템 기본값 A4/paper
+            assertThat(created.effectivePaperSize).isEqualTo("A4")
+            assertThat(created.effectiveLayoutMode).isEqualTo("paper")
+
+            // 시리즈(판형 sinkukpan/web) 생성
+            val series =
+                categoryService.create(
+                    userId,
+                    CreateCategoryRequest(name = "웹 시리즈", paperSize = "sinkukpan", layoutMode = "web"),
+                )
+
+            entityManager.flush()
+            entityManager.clear()
+
+            // (b) 시리즈로 이동 → effective 가 시리즈값으로 재해석
+            val moved = projectService.moveCategory(userId, created.id, series.id)
+            assertThat(moved.effectivePaperSize).isEqualTo("sinkukpan")
+            assertThat(moved.effectiveLayoutMode).isEqualTo("web")
+
+            entityManager.flush()
+            entityManager.clear()
+
+            // 단건 재조회도 시리즈값
+            val refetched = projectService.getProject(userId, created.id)
+            assertThat(refetched.effectivePaperSize).isEqualTo("sinkukpan")
+            assertThat(refetched.effectiveLayoutMode).isEqualTo("web")
+
+            // (c) 미분류로 다시 빼면 기본값 fallback
+            val unmoved = projectService.moveCategory(userId, created.id, null)
+            assertThat(unmoved.effectivePaperSize).isEqualTo("A4")
+            assertThat(unmoved.effectiveLayoutMode).isEqualTo("paper")
+        }
+
+        @Test
+        @DisplayName("effective 판형 — 시리즈 판형 미설정(null) 작품은 시스템 기본값 fallback (FR-021)")
+        fun `effective layout falls back to defaults when series unset`() {
+            val userId = requireNotNull(savedUser().id)
+            val created = projectService.createProject(userId, CreateProjectRequest(title = "판형 미설정 시리즈 작품"))
+            // 판형·출판방식 미설정 시리즈
+            val series = categoryService.create(userId, CreateCategoryRequest(name = "메타 없는 시리즈"))
+
+            entityManager.flush()
+            entityManager.clear()
+
+            val moved = projectService.moveCategory(userId, created.id, series.id)
+            assertThat(moved.effectivePaperSize).isEqualTo("A4")
+            assertThat(moved.effectiveLayoutMode).isEqualTo("paper")
         }
 
         @Test

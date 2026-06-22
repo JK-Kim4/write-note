@@ -50,7 +50,7 @@ describe("webElectronApi.categories", () => {
             }),
         );
 
-        const result = await categories.create("새 모음");
+        const result = await categories.create({ name: "새 모음" });
 
         expect(result.id).toBe(9);
         expect(result.name).toBe("새 모음");

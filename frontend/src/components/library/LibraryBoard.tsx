@@ -20,7 +20,10 @@ import {
 } from "@/lib/query/useCategories";
 import { DraggableWorkCard, workDragId } from "./DraggableWorkCard";
 import { CategoryTile, categoryDropId } from "./CategoryTile";
-import type { CategoryResponse } from "@/types/api";
+import { SeriesPublishFields } from "./SeriesPublishFields";
+import type { CreateCategoryInput } from "@/lib/api/categories";
+import type { CategoryResponse, LayoutMode } from "@/types/api";
+import type { PaperSize } from "@/components/editor/pageLayout";
 import type { ProjectCard } from "@/lib/types/domain";
 
 /** 경로 "내 작품" — 시리즈 안에서 카드를 여기로 드롭하면 미분류로 빠짐(droppable id="root"). */
@@ -148,6 +151,9 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
 
     const [addingCat, setAddingCat] = useState(false);
     const [newCatName, setNewCatName] = useState("");
+    // 신규 시리즈 출판 메타(033 R2) — 선택, null=미설정(하위 작품 기본값 fallback).
+    const [newCatPaperSize, setNewCatPaperSize] = useState<PaperSize | null>(null);
+    const [newCatLayoutMode, setNewCatLayoutMode] = useState<LayoutMode | null>(null);
     const [deleteCatTarget, setDeleteCatTarget] = useState<CategoryResponse | null>(null);
     const [activeDragId, setActiveDragId] = useState<string | null>(null);
     const [flying, setFlying] = useState<FlyingState | null>(null);
@@ -191,14 +197,23 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
         moveProject.mutate({ projectId, categoryId: targetCat });
     };
 
-    const submitNewCat = () => {
-        const trimmed = newCatName.trim();
-        if (trimmed) createCategory.mutate(trimmed);
+    const resetNewCat = () => {
         setNewCatName("");
+        setNewCatPaperSize(null);
+        setNewCatLayoutMode(null);
         setAddingCat(false);
     };
-    const handleRenameCat = useCallback(
-        (id: number, name: string) => renameCategory.mutate({ id, input: { name } }),
+    const submitNewCat = () => {
+        const trimmed = newCatName.trim();
+        if (trimmed) {
+            const input: CreateCategoryInput = { name: trimmed, paperSize: newCatPaperSize, layoutMode: newCatLayoutMode };
+            createCategory.mutate(input);
+        }
+        resetNewCat();
+    };
+    const handleUpdateCat = useCallback(
+        (id: number, input: { name?: string; paperSize?: PaperSize | null; layoutMode?: LayoutMode | null }) =>
+            renameCategory.mutate({ id, input }),
         [renameCategory],
     );
     const handleConfirmDeleteCat = async () => {
@@ -236,7 +251,7 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                                     category={c}
                                     works={cards.filter((w) => w.categoryId === c.id)}
                                     onOpen={navigateFolder}
-                                    onRename={handleRenameCat}
+                                    onUpdate={handleUpdateCat}
                                     onDelete={setDeleteCatTarget}
                                     absorbing={absorbId === categoryDropId(c.id)}
                                 />
@@ -252,10 +267,7 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                                         onChange={(e) => setNewCatName(e.target.value)}
                                         onKeyDown={(e) => {
                                             if (e.key === "Enter") submitNewCat();
-                                            if (e.key === "Escape") {
-                                                setNewCatName("");
-                                                setAddingCat(false);
-                                            }
+                                            if (e.key === "Escape") resetNewCat();
                                         }}
                                         placeholder="시리즈 이름"
                                         maxLength={60}
@@ -263,6 +275,13 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                                         className="mt-2.5 w-full rounded-md border border-terracotta-300 px-2 py-1 text-sm font-bold focus:border-terracotta-500 focus:outline-none"
                                     />
                                     <p className="mt-1 text-[11px] text-gray-400">예: 잿빛 탑 연대기 · 여름 단편선</p>
+                                    <SeriesPublishFields
+                                        idPrefix="new-series"
+                                        paperSize={newCatPaperSize}
+                                        layoutMode={newCatLayoutMode}
+                                        onPaperSizeChange={setNewCatPaperSize}
+                                        onLayoutModeChange={setNewCatLayoutMode}
+                                    />
                                     <div className="mt-2 flex gap-1.5">
                                         <button
                                             type="button"
@@ -274,10 +293,7 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                setNewCatName("");
-                                                setAddingCat(false);
-                                            }}
+                                            onClick={resetNewCat}
                                             className="rounded-md border border-gray-200 px-3 py-1 text-xs text-gray-600 hover:bg-gray-50"
                                         >
                                             취소

@@ -22,6 +22,10 @@ data class ProjectCardResponse(
     val updatedAt: Instant,
     /** 소속 모음 id. null = 미분류(032). FE 가 루트/모음으로 그룹핑. */
     val categoryId: Long?,
+    /** 적용 판형(033 R2) — 시리즈값 or "A4" fallback. */
+    val effectivePaperSize: String,
+    /** 적용 출판방식(033 R2) — 시리즈값 or "paper" fallback. */
+    val effectiveLayoutMode: String,
     /** 활성 챕터 word_count 합. */
     val wordCount: Int,
     /** 활성 챕터 중 최신 updated_at — "최근에 집필함" 기준. */
@@ -56,6 +60,8 @@ data class ProjectCardResponse(
                 createdAt = base.createdAt,
                 updatedAt = base.updatedAt,
                 categoryId = base.categoryId,
+                effectivePaperSize = base.effectivePaperSize,
+                effectiveLayoutMode = base.effectiveLayoutMode,
                 wordCount = wordCount,
                 documentUpdatedAt = documentUpdatedAt,
                 totalDurationMs = totalDurationMs,

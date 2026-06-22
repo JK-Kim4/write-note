@@ -23,9 +23,9 @@
 
 **목표**: Category(시리즈)에 출판 메타 컬럼을 additive 추가. 모든 메타 라운드(R2/R3/R4)의 전제.
 
-- [ ] T003 V21 마이그레이션 작성 in `backend/.../db/migration/V21__add_series_metadata_to_categories.sql` — `categories` 에 `paper_size VARCHAR(16) NULL`, `layout_mode VARCHAR(16) NULL`, `genre VARCHAR(100) NULL`, `synopsis TEXT NULL`, `target_length INTEGER NULL` 추가(전부 nullable, data-model.md 기준)
-- [ ] T004 [P] Category 엔티티 확장 in `backend/.../entity/Category.kt` — paperSize/layoutMode/genre/synopsis/targetLength nullable 필드 추가
-- [ ] T005 V21 적용 후 스키마 검증 통합 테스트 in `backend/.../` (Testcontainers) — categories 신규 컬럼 존재·nullable 확인
+- [x] T003 V21 마이그레이션 작성 in `backend/.../db/migration/V21__add_series_metadata_to_categories.sql` — `categories` 에 `paper_size VARCHAR(16) NULL`, `layout_mode VARCHAR(16) NULL`, `genre VARCHAR(100) NULL`, `synopsis TEXT NULL`, `target_length INTEGER NULL` 추가(전부 nullable, data-model.md 기준)
+- [x] T004 [P] Category 엔티티 확장 in `backend/.../entity/Category.kt` — paperSize/layoutMode/genre/synopsis/targetLength nullable 필드 추가
+- [x] T005 V21 적용 후 스키마 검증 통합 테스트 in `backend/.../` (Testcontainers) — categories 신규 컬럼 존재·nullable 확인
 
 **Checkpoint**: Category 메타 컬럼 준비 완료 → R2/R3/R4 진입 가능. (R1 은 본 Phase 와 무관하게 병렬 진행 가능)
 
@@ -77,28 +77,28 @@
 
 ### 테스트 (TDD)
 
-- [ ] T022 [P] [US2] effective 판형 해석 단위 테스트 in `backend/.../` — (a)시리즈값 (b)미분류→"A4"/"paper" (c)시리즈 미설정→기본값 (data-model.md 규칙)
-- [ ] T023 [P] [US3] 작품 시리즈 이동(PATCH category) 후 effective 재해석 테스트 in `backend/.../`
-- [ ] T024 [P] [US2] Category 생성/수정 시 판형·출판방식 저장·응답 테스트 in `backend/.../`
+- [x] T022 [P] [US2] effective 판형 해석 단위 테스트 in `backend/.../` — (a)시리즈값 (b)미분류→"A4"/"paper" (c)시리즈 미설정→기본값 (data-model.md 규칙)
+- [x] T023 [P] [US3] 작품 시리즈 이동(PATCH category) 후 effective 재해석 테스트 in `backend/.../`
+- [x] T024 [P] [US2] Category 생성/수정 시 판형·출판방식 저장·응답 테스트 in `backend/.../`
 
 ### BE
 
-- [ ] T025 [US2] `backend/.../model/request/CreateCategoryRequest.kt`·`UpdateCategoryRequest.kt` 에 paperSize/layoutMode 필드 추가(optional, layoutMode 검증 paper/web·null 허용)
-- [ ] T026 [US2] `backend/.../model/response/CategoryResponse.kt` 에 paperSize/layoutMode 추가
-- [ ] T027 [US2] `backend/.../service/CategoryService.kt`·`mapper/CategoryMapper.kt` 에 판형·출판방식 저장/매핑
-- [ ] T028 [US2] `backend/.../model/response/ProjectResponse.kt`·`ProjectCardResponse.kt` 에 `effectivePaperSize`·`effectiveLayoutMode` 추가
-- [ ] T029 [US2] `backend/.../mapper/ProjectMapper.kt`(또는 ProjectService) 에 effective 해석 구현(시리즈 join, fallback "A4"/"paper")
-- [ ] T030 [P] [US2] 시스템 기본값 상수 정의(`"A4"`/`"paper"`) — 현행 Project default 재사용 위치에 단일 상수
+- [x] T025 [US2] `backend/.../model/request/CreateCategoryRequest.kt`·`UpdateCategoryRequest.kt` 에 paperSize/layoutMode 필드 추가(optional, layoutMode 검증 paper/web·null 허용)
+- [x] T026 [US2] `backend/.../model/response/CategoryResponse.kt` 에 paperSize/layoutMode 추가
+- [x] T027 [US2] `backend/.../service/CategoryService.kt`·`mapper/CategoryMapper.kt` 에 판형·출판방식 저장/매핑
+- [x] T028 [US2] `backend/.../model/response/ProjectResponse.kt`·`ProjectCardResponse.kt` 에 `effectivePaperSize`·`effectiveLayoutMode` 추가
+- [x] T029 [US2] `backend/.../mapper/ProjectMapper.kt`(또는 ProjectService) 에 effective 해석 구현(시리즈 join, fallback "A4"/"paper")
+- [x] T030 [P] [US2] 시스템 기본값 상수 정의(`"A4"`/`"paper"`) — 현행 Project default 재사용 위치에 단일 상수
 
 ### FE
 
-- [ ] T031 [US2] `frontend/src/types/api.ts` — CategoryResponse(paperSize/layoutMode), ProjectResponse(effectivePaperSize/effectiveLayoutMode) 타입 확장
-- [ ] T032 [US2] `frontend/src/components/library/LibraryBoard.tsx`·`CategoryTile.tsx` 시리즈 생성·편집 폼에 판형·출판방식 입력 추가
-- [ ] T033 [US2] `frontend/src/app/(main)/library/page.tsx` 작품 폼(`ProjectFormState`)에서 판형·출판방식 입력 제거
-- [ ] T034 [US2] `frontend/src/lib/api/categories.ts` createCategory/updateCategory 시그니처에 판형·출판방식 반영
-- [ ] T035 [US3] 집필실 effective 결선 — `frontend/src/components/custom-editor/CustomEditor.tsx`·`BCustomChapterEditor.tsx`·`components/b/BStudioShell.tsx`·`app/(main)/works/[id]/page.tsx` 에서 `project.paperSize`/`layoutMode` → `effectivePaperSize`/`effectiveLayoutMode` 전환
-- [ ] T036 [US3] 내보내기 effective 결선 — `frontend/src/components/export/PrintDocument.tsx`·`PrintOverlay.tsx`·`ExportDialog.tsx` 에서 effective 판형 사용
-- [ ] T037 [US2] backend verify + frontend verify GREEN
+- [x] T031 [US2] `frontend/src/types/api.ts` — CategoryResponse(paperSize/layoutMode), ProjectResponse(effectivePaperSize/effectiveLayoutMode) 타입 확장
+- [x] T032 [US2] `frontend/src/components/library/LibraryBoard.tsx`·`CategoryTile.tsx` 시리즈 생성·편집 폼에 판형·출판방식 입력 추가
+- [x] T033 [US2] `frontend/src/app/(main)/library/page.tsx` 작품 폼(`ProjectFormState`)에서 판형·출판방식 입력 제거
+- [x] T034 [US2] `frontend/src/lib/api/categories.ts` createCategory/updateCategory 시그니처에 판형·출판방식 반영
+- [x] T035 [US3] 집필실 effective 결선 — `frontend/src/components/custom-editor/CustomEditor.tsx`·`BCustomChapterEditor.tsx`·`components/b/BStudioShell.tsx`·`app/(main)/works/[id]/page.tsx` 에서 `project.paperSize`/`layoutMode` → `effectivePaperSize`/`effectiveLayoutMode` 전환
+- [x] T036 [US3] 내보내기 effective 결선 — `frontend/src/components/export/PrintDocument.tsx`·`PrintOverlay.tsx`·`ExportDialog.tsx` 에서 effective 판형 사용
+- [x] T037 [US2] backend verify + frontend verify GREEN
 
 **Checkpoint**: 판형·출판방식 시리즈 종속 + 미분류 fallback dogfoodable.
 

@@ -16,6 +16,8 @@ class CategoryMapper {
             parentId = category.parentId,
             sortOrder = category.sortOrder,
             projectCount = projectCount,
+            paperSize = category.paperSize,
+            layoutMode = category.layoutMode,
             createdAt = requireNotNull(category.createdAt),
             updatedAt = requireNotNull(category.updatedAt),
         )

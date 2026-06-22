@@ -1,6 +1,7 @@
 package com.writenote.service
 
 import com.writenote.components.documents.ProseMirrorText
+import com.writenote.entity.Category
 import com.writenote.entity.Document
 import com.writenote.entity.Project
 import com.writenote.error.ResourceNotFoundException
@@ -52,7 +53,7 @@ class ProjectService(
                 ),
             )
         documentRepository.save(Document(projectId = requireNotNull(project.id), sortOrder = 0))
-        return projectMapper.toResponse(project)
+        return toResponse(project)
     }
 
     @Transactional(readOnly = true)
@@ -74,7 +75,10 @@ class ProjectService(
                 projectRepository.findByUserIdAndArchivedAtIsNullOrderByUpdatedAtDesc(userId, pageable)
             }
 
-        return PageResponse.from(projects.map(projectMapper::toResponse))
+        val categoryById = categoriesByProjects(projects.content)
+        return PageResponse.from(
+            projects.map { project -> projectMapper.toResponse(project, categoryById[project.categoryId]) },
+        )
     }
 
     /**
@@ -90,6 +94,8 @@ class ProjectService(
         }
 
         val projectIds = projects.map { requireNotNull(it.id) }
+        // 소속 시리즈 일괄 조회 — projectId 마다 개별 조회 금지 (effective 해석용, N+1 금지)
+        val categoryById = categoriesByProjects(projects)
         // 활성 챕터 전량 일괄 조회 — groupBy 로 projectId 별 그룹 조립 (N+1 금지)
         val chaptersByProjectId =
             documentRepository.findByProjectIdInAndDeletedAtIsNull(projectIds).groupBy { it.projectId }
@@ -116,7 +122,7 @@ class ProjectService(
             val lastSentenceSource =
                 latestChapter?.let { ProseMirrorText.extractPlainText(it.body) } ?: ""
             ProjectCardResponse.from(
-                base = projectMapper.toResponse(project),
+                base = projectMapper.toResponse(project, categoryById[project.categoryId]),
                 wordCount = wordCount,
                 documentUpdatedAt = documentUpdatedAt,
                 totalDurationMs = durationByProjectId[projectId] ?: 0L,
@@ -132,7 +138,7 @@ class ProjectService(
     ): ProjectResponse =
         projectRepository
             .findByIdAndUserId(projectId, userId)
-            .map(projectMapper::toResponse)
+            .map { toResponse(it) }
             .orElseThrow { ResourceNotFoundException("Project not found") }
 
     @Transactional(rollbackFor = [Exception::class])
@@ -154,7 +160,7 @@ class ProjectService(
         request.layoutMode?.let { project.layoutMode = validatedLayoutMode(it) }
         request.fontScale?.let { project.fontScale = validatedFontScale(it) }
 
-        return projectMapper.toResponse(project)
+        return toResponse(project)
     }
 
     /** 용지 크기 허용값 검증 — null 이면 기본 'A4', 비허용값이면 [ValidationException]. */
@@ -199,7 +205,7 @@ class ProjectService(
             throw ResourceNotFoundException("Category not found")
         }
         project.categoryId = categoryId
-        return projectMapper.toResponse(project)
+        return toResponse(project)
     }
 
     @Transactional(rollbackFor = [Exception::class])
@@ -209,7 +215,7 @@ class ProjectService(
     ): ProjectResponse {
         val project = requireOwnedProject(userId, projectId)
         project.archive(Instant.now())
-        return projectMapper.toResponse(project)
+        return toResponse(project)
     }
 
     @Transactional(rollbackFor = [Exception::class])
@@ -219,7 +225,7 @@ class ProjectService(
     ): ProjectResponse {
         val project = requireOwnedProject(userId, projectId)
         project.unarchive()
-        return projectMapper.toResponse(project)
+        return toResponse(project)
     }
 
     @Transactional(rollbackFor = [Exception::class])
@@ -229,6 +235,21 @@ class ProjectService(
     ) {
         val project = requireOwnedProject(userId, projectId)
         projectRepository.delete(project)
+    }
+
+    /** 단건 작품 → 응답 (effective 해석 포함). 소속 시리즈 1건만 조회. */
+    private fun toResponse(project: Project): ProjectResponse {
+        val category = project.categoryId?.let { categoryRepository.findById(it).orElse(null) }
+        return projectMapper.toResponse(project, category)
+    }
+
+    /** 다수 작품의 소속 시리즈를 일괄 조회해 id→Category map 으로 반환 (effective 해석용, N+1 금지). */
+    private fun categoriesByProjects(projects: List<Project>): Map<Long, Category> {
+        val categoryIds = projects.mapNotNull { it.categoryId }.distinct()
+        if (categoryIds.isEmpty()) {
+            return emptyMap()
+        }
+        return categoryRepository.findAllById(categoryIds).associateBy { requireNotNull(it.id) }
     }
 
     fun requireOwnedProject(

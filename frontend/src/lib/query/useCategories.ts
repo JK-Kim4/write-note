@@ -7,7 +7,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { webElectronApi } from "@/lib/electron-api";
 import { projectKeys } from "./useProjects";
-import type { UpdateCategoryInput } from "@/lib/api/categories";
+import type { CreateCategoryInput, UpdateCategoryInput } from "@/lib/api/categories";
 import type { ProjectCard } from "@/lib/types/domain";
 
 export const categoryKeys = {
@@ -25,7 +25,7 @@ export function useCategories() {
 export function useCreateCategory() {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (name: string) => webElectronApi.categories.create(name),
+        mutationFn: (input: CreateCategoryInput) => webElectronApi.categories.create(input),
         onSuccess: () => qc.invalidateQueries({ queryKey: categoryKeys.all }),
     });
 }
@@ -35,7 +35,11 @@ export function useRenameCategory() {
     return useMutation({
         mutationFn: ({ id, input }: { id: number; input: UpdateCategoryInput }) =>
             webElectronApi.categories.update(id, input),
-        onSuccess: () => qc.invalidateQueries({ queryKey: categoryKeys.all }),
+        // 시리즈 판형·출판방식 변경은 하위 작품 effective 에 영향 → projects(detail 포함) 무효화(033 R2 이슈3)
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: categoryKeys.all });
+            qc.invalidateQueries({ queryKey: projectKeys.all });
+        },
     });
 }
 
@@ -73,7 +77,8 @@ export function useMoveProjectCategory() {
             }
         },
         onSettled: () => {
-            qc.invalidateQueries({ queryKey: projectKeys.cards() });
+            // 이동은 작품 effective 판형을 바꾸므로 cards 뿐 아니라 detail(집필실)까지 무효화(033 R2 이슈5)
+            qc.invalidateQueries({ queryKey: projectKeys.all });
             qc.invalidateQueries({ queryKey: categoryKeys.all });
         },
     });

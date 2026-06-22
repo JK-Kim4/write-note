@@ -9,12 +9,12 @@ import {
     moveProjectCategory,
     updateCategory,
 } from "@/lib/api/categories";
-import type { UpdateCategoryInput } from "@/lib/api/categories";
+import type { CreateCategoryInput, UpdateCategoryInput } from "@/lib/api/categories";
 import type { CategoryResponse } from "@/types/api";
 
 export const categories = {
     list: (): Promise<CategoryResponse[]> => listCategories(),
-    create: (name: string): Promise<CategoryResponse> => createCategory(name),
+    create: (input: CreateCategoryInput): Promise<CategoryResponse> => createCategory(input),
     update: (id: number, input: UpdateCategoryInput): Promise<CategoryResponse> => updateCategory(id, input),
     delete: async (id: number): Promise<boolean> => {
         await deleteCategory(id);

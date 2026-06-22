@@ -58,6 +58,10 @@ export interface ProjectResponse {
     fontScale: FontScale;
     /** 소속 모음(카테고리) id (032 / V20). null = 미분류. */
     categoryId: number | null;
+    /** effective 판형 (033 R2) — 시리즈값 or 시스템 기본값 "A4". BE 가 해석해 내려줌. 집필실·내보내기는 이 값을 쓴다. */
+    effectivePaperSize: PaperSize;
+    /** effective 출판방식 (033 R2) — 시리즈값 or 시스템 기본값 "paper". BE 가 해석해 내려줌. */
+    effectiveLayoutMode: LayoutMode;
     archivedAt: string | null;
     createdAt: string;
     updatedAt: string;
@@ -71,6 +75,10 @@ export interface CategoryResponse {
     sortOrder: number;
     /** 해당 모음의 활성 작품 수(보관 제외). 빈 모음=0. */
     projectCount: number;
+    /** 시리즈 판형 (033 R2). null = 미설정 → 하위 작품은 시스템 기본값 fallback. */
+    paperSize: PaperSize | null;
+    /** 시리즈 출판방식 (033 R2). null = 미설정 → 기본값 fallback. */
+    layoutMode: LayoutMode | null;
     createdAt: string;
     updatedAt: string;
 }

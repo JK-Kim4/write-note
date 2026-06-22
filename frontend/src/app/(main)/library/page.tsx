@@ -13,10 +13,7 @@ import {
 import { useCategories, useMoveProjectCategory } from "@/lib/query/useCategories";
 import { LibraryBoard } from "@/components/library/LibraryBoard";
 import { useModalDismiss } from "@/lib/useModalDismiss";
-import { usePreferences } from "@/stores/preferences";
-import { PAPER_PRESETS, PAPER_SIZE_ORDER, type PaperSize } from "@/components/editor/pageLayout";
-import { PAPER_LABEL } from "@/components/custom-editor/geometry";
-import type { CategoryResponse, LayoutMode } from "@/types/api";
+import type { CategoryResponse } from "@/types/api";
 import type { Project, ProjectCard } from "@/lib/types/domain";
 
 /**
@@ -24,7 +21,11 @@ import type { Project, ProjectCard } from "@/lib/types/domain";
  * 모음 타일·드래그 분류·드릴인은 LibraryBoard 에 분리(메모이제이션 격리). 본 컴포넌트는 데이터 로드 + 모달 소유.
  */
 
-/** 생성/편집 공용 폼 필드 상태 */
+/**
+ * 생성/편집 공용 폼 필드 상태.
+ * 033 R2 — 판형·출판방식(paperSize/layoutMode)은 시리즈 종속으로 이동, 작품 폼에서 제거.
+ * (genre/synopsis/toneNotes/worldNotes/nextScene 은 R3 영역이라 본 라운드에서 유지.)
+ */
 type ProjectFormState = {
     title: string;
     genre: string;
@@ -33,18 +34,15 @@ type ProjectFormState = {
     toneNotes: string;
     worldNotes: string;
     nextScene: string;
-    paperSize: PaperSize;
-    /** 출판 방식 (031). 생성 시 null=미선택(강제 선택). 편집은 기존 작품 값. */
-    layoutMode: LayoutMode | null;
     /** 소속 시리즈(032). null=미분류. 편집 모달에서만 변경 — 저장 시 moveProjectCategory 로 반영. */
     categoryId: number | null;
 };
 
-function emptyForm(defaultPaperSize: PaperSize): ProjectFormState {
-    return { title: "", genre: "", targetLengthRaw: "", synopsis: "", toneNotes: "", worldNotes: "", nextScene: "", paperSize: defaultPaperSize, layoutMode: null, categoryId: null };
+function emptyForm(): ProjectFormState {
+    return { title: "", genre: "", targetLengthRaw: "", synopsis: "", toneNotes: "", worldNotes: "", nextScene: "", categoryId: null };
 }
 
-function fromProject(p: Project, defaultPaperSize: PaperSize): ProjectFormState {
+function fromProject(p: Project): ProjectFormState {
     return {
         title: p.title,
         genre: p.genre ?? "",
@@ -53,8 +51,6 @@ function fromProject(p: Project, defaultPaperSize: PaperSize): ProjectFormState 
         toneNotes: p.toneNotes ?? "",
         worldNotes: p.worldNotes ?? "",
         nextScene: p.nextScene ?? "",
-        paperSize: p.paperSize ?? defaultPaperSize,
-        layoutMode: p.layoutMode,
         categoryId: p.categoryId,
     };
 }
@@ -140,39 +136,6 @@ function ProjectFormModal({
                     </select>
                 </label>
             )}
-            {mode === "create" && (
-                <fieldset className="mt-4">
-                    <legend className="text-sm text-gray-600">
-                        출판 방식 <span className="text-red-500">*</span>
-                    </legend>
-                    <div className="mt-1 grid grid-cols-2 gap-2">
-                        {(
-                            [
-                                { value: "paper", label: "종이 출판", desc: "판형·페이지 분할" },
-                                { value: "web", label: "웹 출판", desc: "연속 글쓰기·글자수" },
-                            ] as const
-                        ).map((opt) => {
-                            const selected = form.layoutMode === opt.value;
-                            return (
-                                <button
-                                    key={opt.value}
-                                    type="button"
-                                    aria-pressed={selected}
-                                    onClick={() => setForm((f) => ({ ...f, layoutMode: opt.value }))}
-                                    className={`rounded-md border px-3 py-2 text-left text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 ${
-                                        selected
-                                            ? "border-terracotta-500 bg-terracotta-50 text-terracotta-800"
-                                            : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                                    }`}
-                                >
-                                    <span className="block font-medium">{opt.label}</span>
-                                    <span className="block text-xs text-gray-500">{opt.desc}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </fieldset>
-            )}
             <label className="mt-3 block text-sm text-gray-600">
                 장르 (선택)
                 <input
@@ -183,22 +146,6 @@ function ProjectFormModal({
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
             </label>
-            {form.layoutMode !== "web" && (
-                <label className="mt-3 block text-sm text-gray-600">
-                    용지 크기
-                    <select
-                        value={form.paperSize}
-                        onChange={(e) => setForm((f) => ({ ...f, paperSize: e.target.value as PaperSize }))}
-                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
-                    >
-                        {PAPER_SIZE_ORDER.map((size) => (
-                            <option key={size} value={size}>
-                                {PAPER_LABEL[size]} ({PAPER_PRESETS[size].widthMm}×{PAPER_PRESETS[size].heightMm}mm)
-                            </option>
-                        ))}
-                    </select>
-                </label>
-            )}
             <label className="mt-3 block text-sm text-gray-600">
                 목표 분량 (선택)
                 <input
@@ -267,7 +214,7 @@ function ProjectFormModal({
                 </button>
                 <button
                     type="submit"
-                    disabled={form.title.trim().length === 0 || form.layoutMode === null || isPending}
+                    disabled={form.title.trim().length === 0 || isPending}
                     className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700 disabled:opacity-50"
                 >
                     {isPending ? pendingLabel : submitLabel}
@@ -297,20 +244,18 @@ export default function BWorksPage() {
     const { data: categories } = useCategories();
     const moveProject = useMoveProjectCategory();
 
-    const defaultPaperSize = usePreferences((s) => s.paperSize);
-
     // 생성 모달
     const [isCreating, setIsCreating] = useState(false);
     // 생성 시 자동 배정할 시리즈(시리즈 안에서 "새 작품"을 누른 경우). null = 미분류.
     const [createCategoryId, setCreateCategoryId] = useState<number | null>(null);
-    const [createForm, setCreateForm] = useState<ProjectFormState>(() => emptyForm(defaultPaperSize));
+    const [createForm, setCreateForm] = useState<ProjectFormState>(() => emptyForm());
     const [createLengthError, setCreateLengthError] = useState<string | null>(null);
     const [nextSceneWarning, setNextSceneWarning] = useState<string | null>(null);
     const createDialogRef = useRef<HTMLFormElement>(null);
 
     // 편집 모달
     const [editTarget, setEditTarget] = useState<ProjectCard | null>(null);
-    const [editForm, setEditForm] = useState<ProjectFormState>(() => emptyForm(defaultPaperSize));
+    const [editForm, setEditForm] = useState<ProjectFormState>(() => emptyForm());
     const [editLengthError, setEditLengthError] = useState<string | null>(null);
     const editDialogRef = useRef<HTMLFormElement>(null);
 
@@ -331,12 +276,12 @@ export default function BWorksPage() {
     }, []);
 
     const closeCreate = useCallback(() => {
-        setCreateForm(emptyForm(defaultPaperSize));
+        setCreateForm(emptyForm());
         setCreateLengthError(null);
         setCreateCategoryId(null);
         createProject.reset();
         setIsCreating(false);
-    }, [defaultPaperSize, createProject]);
+    }, [createProject]);
 
     // 새 작품 시작 — categoryId 가 있으면 생성 후 그 시리즈로 자동 배정(시리즈 안에서 시작한 경우).
     const openCreate = useCallback((categoryId: number | null) => {
@@ -345,11 +290,11 @@ export default function BWorksPage() {
     }, []);
 
     const closeEdit = useCallback(() => {
-        setEditForm(emptyForm(defaultPaperSize));
+        setEditForm(emptyForm());
         setEditLengthError(null);
         updateProject.reset();
         setEditTarget(null);
-    }, [defaultPaperSize, updateProject]);
+    }, [updateProject]);
 
     const closeDelete = useCallback(() => {
         deleteProject.reset();
@@ -358,19 +303,19 @@ export default function BWorksPage() {
 
     const openEdit = useCallback(
         (card: ProjectCard) => {
-            setEditForm(fromProject(card, defaultPaperSize));
+            setEditForm(fromProject(card));
             setEditLengthError(null);
             updateProject.reset();
             setEditTarget(card);
         },
-        [defaultPaperSize, updateProject],
+        [updateProject],
     );
 
     const handleCreate = async (e: FormEvent) => {
         e.preventDefault();
         const trimmed = createForm.title.trim();
-        // 출판 방식 강제 선택(FR-001) — 미선택이면 생성 진행 불가(제출 버튼도 비활성)
-        if (!trimmed || createForm.layoutMode === null || createProject.isPending) return;
+        // 033 R2 — 판형·출판방식은 시리즈 종속이라 작품 생성 시 선택하지 않는다(제목만 필수).
+        if (!trimmed || createProject.isPending) return;
         const { value: targetLength, error } = parseTargetLength(createForm.targetLengthRaw);
         if (error) { setCreateLengthError(error); return; }
         setCreateLengthError(null);
@@ -381,8 +326,6 @@ export default function BWorksPage() {
                 title: trimmed,
                 genre: createForm.genre.trim() || null,
                 targetLength,
-                paperSize: createForm.paperSize,
-                layoutMode: createForm.layoutMode,
                 synopsis: createForm.synopsis.trim() || null,
                 toneNotes: createForm.toneNotes.trim() || null,
                 worldNotes: createForm.worldNotes.trim() || null,
@@ -406,7 +349,7 @@ export default function BWorksPage() {
                 // 자동 배정 실패 — 작품은 미분류로 남음(치명적 아님)
             }
         }
-        setCreateForm(emptyForm(defaultPaperSize));
+        setCreateForm(emptyForm());
         setCreateCategoryId(null);
         setIsCreating(false);
     };
@@ -426,7 +369,6 @@ export default function BWorksPage() {
                     title: trimmed,
                     genre: editForm.genre.trim() || null,
                     targetLength,
-                    paperSize: editForm.paperSize,
                     synopsis: editForm.synopsis.trim() || null,
                     toneNotes: editForm.toneNotes.trim() || null,
                     worldNotes: editForm.worldNotes.trim() || null,

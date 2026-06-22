@@ -30,6 +30,16 @@ class Category(
     var parentId: Long? = null,
     @Column(name = "sort_order", nullable = false)
     var sortOrder: Int = 0,
+    @Column(name = "paper_size", length = 16)
+    var paperSize: String? = null,
+    @Column(name = "layout_mode", length = 16)
+    var layoutMode: String? = null,
+    @Column(length = 100)
+    var genre: String? = null,
+    @Column(columnDefinition = "TEXT")
+    var synopsis: String? = null,
+    @Column(name = "target_length")
+    var targetLength: Int? = null,
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: Instant? = null,
     @Column(name = "updated_at", nullable = false)

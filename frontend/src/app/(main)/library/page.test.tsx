@@ -123,9 +123,8 @@ describe("BWorksPage — 편집 모달 시리즈 이동", () => {
         // 시리즈 드릴인 → 그 안의 '새 작품' 시작
         await userEvent.click(await screen.findByRole("button", { name: "가나다 열기" }));
         await userEvent.click(screen.getByRole("button", { name: "+ 새 작품 시작하기" }));
-        // 생성 모달 — 제목 + 출판 방식(필수) 입력 후 만들기
+        // 생성 모달 — 033 R2: 판형·출판방식은 시리즈 종속이라 작품 생성은 제목만 입력
         await userEvent.type(screen.getByLabelText("제목"), "새 단편");
-        await userEvent.click(screen.getByRole("button", { name: /종이 출판/ }));
         await userEvent.click(screen.getByRole("button", { name: "만들기" }));
 
         await waitFor(() => expect(categoryBody).toEqual({ categoryId: 7 }));

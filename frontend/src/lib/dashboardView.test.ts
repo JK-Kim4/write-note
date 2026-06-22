@@ -14,6 +14,8 @@ function card(over: Partial<ProjectCard> & { id: number; docUpdatedAt: string })
         categoryId: null,
         paperSize: "A4",
         layoutMode: "paper",
+        effectivePaperSize: "A4",
+        effectiveLayoutMode: "paper",
         fontScale: "m",
         archivedAt: null,
         createdAt: "2026-06-01T00:00:00Z",
