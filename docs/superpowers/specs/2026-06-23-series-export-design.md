@@ -33,7 +33,7 @@
 - 입력 prop: 시리즈 작품 목록(`folderCards: ProjectCard[]`) + 시리즈 판형(effective) + export 핸들러.
 - UI:
   - **작품 선택**: 작품별 체크박스(기본 전체 선택).
-  - **순서 조절**: 선택 작품을 @dnd-kit 드래그로 재정렬(032에서 쓰는 드래그 재사용). 기본 순서 = 시리즈 내 작품 표시 순서.
+  - **순서 조절**: 선택 작품을 위/아래(↑↓) 버튼으로 재정렬(v1 — 키보드·접근성·테스트 단순. @dnd-kit 드래그는 후속 dogfooding 후 여력 시 교체). 기본 순서 = 시리즈 내 작품 표시 순서.
   - **소제목 포함**: `joinMode`(`page-title` / `body-only`).
   - **형식**: `format`(pdf/hwpx/docx/txt/json) — 기존 `ExportDialog`와 동일.
 - 동작: 선택·정렬된 작품 → 각 `getProjectDocument(projectId)`로 본문 수집 → `orderedIds = [본문 id, 순서대로]` → 기존 export 핸들러 호출 → 합본 1파일.

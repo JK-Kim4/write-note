@@ -180,7 +180,7 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
 
     // 시리즈 내보내기(033)
     const [exportOpen, setExportOpen] = useState(false);
-    const seriesPaper: PaperSize = (currentCategory?.paperSize as PaperSize | null) ?? "A4";
+    const seriesPaper: PaperSize = currentCategory?.paperSize ?? "A4";
     const seriesName = currentCategory?.name ?? "시리즈";
     const { printModels, exportPdf, clearPrint } = usePdfExport();
     const exportText = useTextExport(seriesName);
