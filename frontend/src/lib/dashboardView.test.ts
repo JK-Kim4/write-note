@@ -11,6 +11,7 @@ function card(over: Partial<ProjectCard> & { id: number; docUpdatedAt: string })
         synopsis: null,
         worldNotes: null,
         nextScene: "",
+        categoryId: null,
         paperSize: "A4",
         layoutMode: "paper",
         fontScale: "m",

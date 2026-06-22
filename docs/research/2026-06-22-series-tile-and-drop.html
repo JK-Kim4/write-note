@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>시리즈 타일 · 생성 UX · 드롭 애니메이션 목업</title>
+<style>
+  :root {
+    --parchment: #f3ede1;
+    --canvas: #fffdf8;
+    --ink: #2a2620;
+    --hairline: #e3d8c5;
+    --hairline-soft: #ece3d4;
+    --meta: #6b6356;
+    --meta-2: #8a8070;
+    --terracotta-50: #fbf3ee;
+    --terracotta-100: #f6e3d6;
+    --terracotta-200: #ecc7ad;
+    --terracotta-400: #d48d62;
+    --terracotta-500: #c77a4f;
+    --terracotta-600: #a8542e;
+    --terracotta-700: #8a4325;
+    --olive-600: #76753f;
+    --olive-700: #5e5d32;
+    --teal-600: #087194;
+    --font-ui: "SF Pro Text", system-ui, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    --r-card: 14px;
+    --r-tile: 16px;
+    --shadow-card: 0 1px 2px rgba(42,38,32,.05);
+    --shadow-hover: 0 8px 24px -10px rgba(42,38,32,.25);
+    --shadow-lift: 0 20px 44px -12px rgba(42,38,32,.4);
+    --ease: cubic-bezier(.22,1,.36,1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-ui);
+    background: var(--parchment);
+    color: var(--ink);
+    line-height: 1.47;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 5rem;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 1.25rem; }
+
+  header.doc { padding: 2rem 0 1rem; display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .doc h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; }
+  .doc .eyebrow { font-size: 0.76rem; color: var(--terracotta-700); font-weight: 600; }
+  .doc p { color: var(--meta); font-size: 0.9rem; margin-top: 0.35rem; max-width: 58ch; }
+
+  /* 이름 전환 */
+  .name-switch { display: inline-flex; gap: 0.25rem; background: var(--canvas); border: 1px solid var(--hairline); border-radius: 9999px; padding: 0.25rem; }
+  .name-switch button {
+    border: none; background: transparent; font-family: inherit; font-size: 0.85rem; font-weight: 600;
+    color: var(--meta); padding: 0.35rem 0.8rem; border-radius: 9999px; cursor: pointer; transition: .15s;
+  }
+  .name-switch button[aria-pressed="true"] { background: var(--terracotta-600); color: #fff; }
+
+  .section-label { font-size: 0.78rem; font-weight: 600; color: var(--meta-2); margin: 1.6rem 0 0.8rem; }
+
+  /* ===== 시리즈 타일 ===== */
+  .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+  .tile {
+    position: relative;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-tile);
+    background: var(--canvas);
+    padding: 0.9rem 0.9rem 1rem;
+    cursor: pointer;
+    transition: box-shadow .2s var(--ease), transform .14s var(--ease), border-color .15s, background .15s;
+    min-height: 150px;
+    display: flex; flex-direction: column;
+  }
+  .tile:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); border-color: var(--terracotta-200); }
+  .tile.drop-hot { border-color: var(--terracotta-600); box-shadow: 0 0 0 3px rgba(168,84,46,.18); background: var(--terracotta-50); transform: translateY(-3px); }
+  .tile.absorb { animation: absorb .5s var(--ease); }
+  @keyframes absorb { 0%{transform:translateY(-3px) scale(1)} 35%{transform:translateY(-3px) scale(1.05)} 100%{transform:translateY(-2px) scale(1)} }
+
+  /* 책등 스택 — 시리즈 안 작품 미리보기 */
+  .spines { display: flex; align-items: flex-end; gap: 4px; height: 64px; padding: 0 2px; }
+  .spine {
+    width: 13px; border-radius: 3px 3px 1px 1px;
+    box-shadow: inset -2px 0 0 rgba(0,0,0,.08), 0 1px 1px rgba(42,38,32,.12);
+    transform-origin: bottom center;
+  }
+  .spine.pop { animation: pop .42s var(--ease); }
+  @keyframes pop { 0%{transform:scaleY(0);opacity:0} 60%{transform:scaleY(1.08)} 100%{transform:scaleY(1);opacity:1} }
+  /* 진척 모드 — 균일 높이 트랙 + 채움(달성률) */
+  .spine.track { width: 13px; height: 64px; border: 1.5px solid var(--hairline); border-radius: 3px; background: transparent; position: relative; overflow: hidden; box-shadow: none; }
+  .spine.track.no-target { border-style: dashed; opacity: .7; }
+  .spine.track .fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 0 0 1px 1px; }
+  .spine.track .fill.pop { animation: fillpop .42s var(--ease); }
+  @keyframes fillpop { 0%{height:0 !important} }
+  /* 하이브리드 — 길이 막대(solid) + 목표 고스트 */
+  .spine-hybrid { width: 13px; position: relative; }
+  .spine-hybrid .ghost { position: absolute; inset: 0; border: 1.5px dashed var(--hairline); border-radius: 3px; }
+  .spine-hybrid .solid { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 3px 3px 1px 1px; box-shadow: inset -2px 0 0 rgba(0,0,0,.08); }
+  .spines .more { align-self: center; font-size: 0.7rem; color: var(--meta-2); margin-left: 2px; }
+  .spines.empty { align-items: center; justify-content: center; color: var(--meta-2); font-size: 0.78rem; border: 1.5px dashed var(--hairline); border-radius: 8px; }
+
+  .tile .t-name { margin-top: 0.7rem; font-size: 1rem; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 0.3rem; }
+  .tile .t-name .edit-hint { opacity: 0; font-size: 0.8rem; color: var(--meta-2); transition: .15s; }
+  .tile:hover .t-name .edit-hint { opacity: 1; }
+  .tile .t-count { margin-top: 0.15rem; font-size: 0.78rem; color: var(--meta); }
+
+  .tile .t-menu { position: absolute; top: 0.6rem; right: 0.6rem; border: none; background: rgba(255,253,248,.7); border-radius: 8px; width: 1.6rem; height: 1.6rem; color: var(--meta-2); cursor: pointer; opacity: 0; transition: .15s; }
+  .tile:hover .t-menu { opacity: 1; }
+  .tile .t-menu:hover { background: var(--terracotta-50); color: var(--terracotta-700); }
+
+  .t-rename-input, .t-create-input {
+    width: 100%; border: 1px solid var(--terracotta-400); border-radius: 8px;
+    padding: 0.4rem 0.55rem; font-family: inherit; font-size: 0.95rem; font-weight: 600; color: var(--ink);
+    background: #fff; outline: none;
+  }
+  .t-rename-input:focus, .t-create-input:focus { box-shadow: 0 0 0 3px rgba(168,84,46,.15); }
+
+  /* 생성 타일 */
+  .tile.create { border-style: dashed; border-color: var(--hairline); background: transparent; align-items: center; justify-content: center; color: var(--meta); cursor: pointer; gap: 0.3rem; }
+  .tile.create:hover { border-color: var(--terracotta-400); color: var(--terracotta-600); background: var(--terracotta-50); }
+  .tile.create .plus { font-size: 1.5rem; line-height: 1; }
+  .tile.creating { border-style: solid; border-color: var(--terracotta-400); background: var(--canvas); cursor: default; align-items: stretch; justify-content: flex-start; }
+  .create-form-hint { font-size: 0.74rem; color: var(--meta-2); margin: 0.5rem 0 0.4rem; }
+  .create-actions { display: flex; gap: 0.4rem; margin-top: 0.6rem; }
+  .btn { border: 1px solid var(--hairline); background: var(--canvas); font-family: inherit; font-size: 0.82rem; padding: 0.35rem 0.7rem; border-radius: 8px; cursor: pointer; color: var(--meta); }
+  .btn.primary { background: var(--terracotta-600); border-color: var(--terracotta-600); color: #fff; font-weight: 600; }
+  .btn.primary:disabled { opacity: .5; cursor: not-allowed; }
+  .btn:hover:not(:disabled) { border-color: var(--terracotta-300); }
+
+  /* 메뉴 popover */
+  .popmenu { position: absolute; top: 2.2rem; right: 0.6rem; z-index: 20; width: 9rem; background: var(--canvas); border: 1px solid var(--hairline); border-radius: 10px; box-shadow: var(--shadow-lift); padding: 0.3rem; }
+  .popmenu button { display: block; width: 100%; text-align: left; border: none; background: none; font-family: inherit; font-size: 0.85rem; padding: 0.4rem 0.55rem; border-radius: 7px; cursor: pointer; color: var(--ink); }
+  .popmenu button:hover { background: var(--terracotta-50); color: var(--terracotta-700); }
+  .popmenu button.danger { color: #b3261e; }
+  .popmenu button.danger:hover { background: #fdecea; }
+
+  /* ===== 작품 카드 ===== */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.9rem; }
+  .card {
+    position: relative; background: var(--canvas); border: 1px solid var(--hairline); border-radius: var(--r-card);
+    padding: 1rem; box-shadow: var(--shadow-card); cursor: grab; user-select: none; touch-action: none;
+    transition: box-shadow .18s var(--ease), opacity .2s, border-color .15s;
+  }
+  .card:hover { box-shadow: var(--shadow-hover); border-color: var(--terracotta-200); }
+  .card:active { cursor: grabbing; }
+  .card.placeholder { opacity: .35; border-style: dashed; box-shadow: none; }
+  .card h3 { font-size: 1rem; font-weight: 700; }
+  .card .genre { display: inline-block; margin-top: 0.3rem; font-size: 0.72rem; font-weight: 600; color: var(--terracotta-700); background: var(--terracotta-50); border-radius: 9999px; padding: 0.1rem 0.5rem; }
+  .card .syn { margin-top: 0.45rem; font-size: 0.84rem; color: var(--meta); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .card .meta { margin-top: 0.6rem; font-size: 0.74rem; color: var(--meta-2); }
+
+  .drag-clone { position: fixed; z-index: 1000; pointer-events: none; width: 240px; transform: rotate(-2deg); box-shadow: var(--shadow-lift); border-radius: var(--r-card); }
+  body.dragging * { cursor: grabbing !important; }
+
+  /* 드릴인 */
+  .crumbs { display: flex; align-items: center; gap: 0.4rem; margin: 1.6rem 0 0.9rem; font-size: 0.95rem; }
+  .crumb { background: none; border: none; font-family: inherit; font-size: inherit; font-weight: 600; color: var(--terracotta-700); cursor: pointer; padding: 0.25rem 0.5rem; border-radius: 8px; }
+  .crumb:hover { background: var(--terracotta-50); }
+  .crumb.drop-hot { background: var(--terracotta-100); box-shadow: 0 0 0 3px rgba(168,84,46,.15); }
+  .crumb.cur { color: var(--ink); cursor: default; }
+
+  .toast-wrap { position: fixed; bottom: 1.4rem; left: 50%; transform: translateX(-50%); z-index: 900; display: flex; flex-direction: column; gap: .5rem; align-items: center; }
+  .toast { background: var(--ink); color: var(--canvas); font-size: .86rem; padding: .55rem 1rem; border-radius: 9999px; box-shadow: var(--shadow-lift); animation: tin .3s var(--ease); }
+  .toast b { color: var(--terracotta-400); }
+  @keyframes tin { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+  .foot { margin-top: 2.5rem; color: var(--meta-2); font-size: 0.8rem; border-top: 1px solid var(--hairline-soft); padding-top: 1rem; }
+
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="doc">
+      <div>
+        <div class="eyebrow">작품 분류 · 타일 / 생성 UX / 드롭 애니메이션 목업</div>
+        <h1 id="title">내 작품</h1>
+        <p>카드를 <b>시리즈 타일로 끌어다 놓으면 안으로 빨려 들어갑니다</b>(취소 시에만 제자리 복귀). 타일의 <span style="font-weight:600">+ 새 시리즈</span>로 이름을 짓고, 이름을 눌러 바꿔보세요. 위 전환으로 이름이 어떤 게 잘 읽히는지 비교할 수 있어요.</p>
+      </div>
+      <div class="name-switch" role="group" aria-label="컨테이너 이름 전환">
+        <button data-name="시리즈" aria-pressed="true">시리즈</button>
+        <button data-name="서가" aria-pressed="false">서가</button>
+        <button data-name="책장" aria-pressed="false">책장</button>
+      </div>
+    </header>
+
+    <main id="root"></main>
+
+    <p class="foot">탐색용 정적 목업입니다(production 코드 아님). 실제 구현에서 드롭 애니메이션은 <code>@dnd-kit</code>의 기본 snap-back <code>dropAnimation</code>을 끄고 "타일로 날아 들어가기"로 교체합니다.</p>
+  </div>
+  <div id="toasts" class="toast-wrap" aria-live="polite"></div>
+
+<script>
+/* ---------- 데이터 ---------- */
+const SPINE_COLORS = ["#a8542e","#76753f","#087194","#c77a4f","#5e5d32","#8a4325","#3d8aa3","#6f361f"];
+let NAME = "시리즈";
+
+const state = {
+  series: [
+    { id: "s1", name: "잿빛 탑 연대기", works: ["s1a","s1b","s1c"] },
+    { id: "s2", name: "여름 단편선", works: ["s2a"] },
+  ],
+  works: {
+    s1a:{id:"s1a",title:"잿빛 탑의 서약",genre:"판타지",syn:"무너진 왕국의 마지막 사서가 금지된 탑에 오른다.",words:48210,target:50000},
+    s1b:{id:"s1b",title:"용의 계절",genre:"판타지",syn:"용이 돌아온 해, 국경 마을 대장장이의 딸이 검을 든다.",words:31980,target:60000},
+    s1c:{id:"s1c",title:"북쪽 성문",genre:"판타지",syn:"세 번째 권. 성문이 열린다.",words:12040,target:40000},
+    s2a:{id:"s2a",title:"한낮의 유령",genre:"단편",syn:"낮에만 보이는 유령과 불면증 작가의 동거.",words:8800,target:0},
+    w1:{id:"w1",title:"북역 7번 출구",genre:"드라마",syn:"매일 같은 시간 같은 자리에서 마주치는 두 사람.",words:6740,target:0},
+    w2:{id:"w2",title:"모래시계",genre:"SF",syn:"시간이 거꾸로 흐르는 도시의 우편배달부.",words:2100,target:30000},
+    w3:{id:"w3",title:"엄마의 레시피 노트",genre:"에세이",syn:"낡은 수첩에 적힌 손맛을 따라가는 기록.",words:5600,target:0},
+  },
+  uncat: ["w1","w2","w3"],
+  open: null,        // 드릴인 시리즈 id (오버플로우는 _seedBigSeries 12권으로 데모)
+  creating: false,
+  renaming: null,    // 이름 변경 중 시리즈 id
+  menu: null,        // 열린 메뉴 시리즈 id
+};
+
+/* 오버플로우 데모 — 12권 든 대하소설 전집 */
+(function _seedBigSeries(){
+  const titles=["1권 여명","2권 성벽","3권 강 건너","4권 폐허","5권 재건","6권 맹약","7권 배신","8권 남쪽 길","9권 겨울","10권 불씨","11권 귀환","12권 약속"];
+  const ids=titles.map((t,i)=>{ const id="s3"+i; const words=4000+(i*5300)%44000; state.works[id]={id,title:t,genre:"대하소설",syn:t,words,target:i%2?Math.round(words*1.6):0}; return id; });
+  state.series.push({id:"s3",name:"대하소설 전집",works:ids});
+})();
+
+const $ = (s, el=document) => el.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const spineColor = (workId) => SPINE_COLORS[(workId.charCodeAt(workId.length-1)) % SPINE_COLORS.length];
+
+function toast(title, seriesName) {
+  const w = $("#toasts"); const t = document.createElement("div"); t.className = "toast";
+  t.innerHTML = seriesName===null ? `「${esc(title)}」 미분류로 빼냈어요` : `「${esc(title)}」 <b>${esc(seriesName)}</b> ${NAME}에 담았어요`;
+  w.appendChild(t); setTimeout(()=>{t.style.opacity="0";t.style.transform="translateY(6px)";t.style.transition=".3s";},1700); setTimeout(()=>t.remove(),2100);
+}
+
+/* ---------- 책등 스택 ----------
+ * 책등 높이는 "장식" — 작품 길이를 의미하지 않는다(소설은 대부분 길어 길이 비교가 안 됨).
+ * 단 작품 id로 시드한 *결정적* 변화라 한 번 정해지면 안 변한다(매 렌더 재랜덤 = 버그처럼 들썩임 방지).
+ * 정확한 권수는 "작품 N편" 배지가 책임. 보이는 책등은 CAP권, 나머지는 "+N"(오버플로우 방지). */
+const SPINE_CAP = 8;
+function hashStr(s) { let h=2166136261; for (let i=0;i<s.length;i++){ h=(h^s.charCodeAt(i))*16777619>>>0; } return h>>>0; }
+function spineHeight(wid) { return 30 + (hashStr(wid) % 35); }      // 30..64, 작품마다 고정
+function spinesHTML(workIds, popLastId) {
+  if (!workIds.length) return `<div class="spines empty">아직 비어 있어요</div>`;
+  const bars = workIds.slice(0, SPINE_CAP).map((wid) => {
+    const wk = state.works[wid];
+    const pop = wid===popLastId ? " pop" : "";
+    return `<div class="spine${pop}" style="height:${spineHeight(wid)}px;background:${spineColor(wid)}" title="${esc(wk?.title||"")}"></div>`;
+  }).join("");
+  const more = workIds.length>SPINE_CAP ? `<span class="more">+${workIds.length-SPINE_CAP}</span>` : "";
+  return `<div class="spines">${bars}${more}</div>`;
+}
+
+/* ---------- 카드 ---------- */
+function cardHTML(w) {
+  return `<article class="card" data-work="${w.id}" tabindex="0">
+    <h3>${esc(w.title)}</h3>
+    ${w.genre?`<span class="genre">${esc(w.genre)}</span>`:""}
+    <p class="syn">${esc(w.syn)}</p>
+    <div class="meta">${w.words.toLocaleString()}자</div>
+  </article>`;
+}
+
+/* ---------- 타일 ---------- */
+function tileHTML(s) {
+  if (state.renaming === s.id) {
+    return `<div class="tile" data-series="${s.id}">
+      ${spinesHTML(s.works)}
+      <input class="t-rename-input" data-rename="${s.id}" value="${esc(s.name)}" maxlength="40" aria-label="${NAME} 이름" style="margin-top:.7rem" />
+      <div class="t-count">작품 ${s.works.length}편</div>
+    </div>`;
+  }
+  const menu = state.menu===s.id ? `<div class="popmenu" data-menufor="${s.id}">
+      <button data-act="rename" data-id="${s.id}">이름 변경</button>
+      <button class="danger" data-act="delete" data-id="${s.id}">삭제</button>
+    </div>` : "";
+  return `<div class="tile" data-series="${s.id}" data-drop="series:${s.id}">
+    <button class="t-menu" data-menu="${s.id}" aria-label="${esc(s.name)} 메뉴">⋯</button>
+    ${spinesHTML(s.works)}
+    <div class="t-name">${esc(s.name)} <span class="edit-hint">✎</span></div>
+    <div class="t-count">작품 ${s.works.length}편</div>
+    ${menu}
+  </div>`;
+}
+
+function createTileHTML() {
+  if (state.creating) {
+    return `<div class="tile create creating">
+      <div class="spines empty">새 ${NAME}</div>
+      <input class="t-create-input" id="create-input" placeholder="${NAME} 이름" maxlength="40" aria-label="새 ${NAME} 이름" style="margin-top:.7rem" />
+      <div class="create-form-hint">예: 잿빛 탑 연대기 · 여름 단편선</div>
+      <div class="create-actions">
+        <button class="btn primary" id="create-confirm" disabled>만들기</button>
+        <button class="btn" id="create-cancel">취소</button>
+      </div>
+    </div>`;
+  }
+  return `<button class="tile create" id="create-open"><span class="plus">+</span><span>새 ${NAME}</span></button>`;
+}
+
+/* ---------- 렌더 ---------- */
+function render() {
+  $("#title").textContent = "내 작품";
+  const root = $("#root");
+  if (state.open) {
+    const s = state.series.find(x=>x.id===state.open);
+    const works = s.works.map(id=>state.works[id]);
+    root.innerHTML = `
+      <div class="crumbs">
+        <button class="crumb" data-crumb data-drop="root">내 작품</button>
+        <span style="color:var(--meta-2)">/</span>
+        <span class="crumb cur">${esc(s.name)} · ${works.length}편</span>
+      </div>
+      <div class="card-grid">${works.map(cardHTML).join("")}</div>`;
+    return;
+  }
+  const tiles = state.series.map(tileHTML).join("") + createTileHTML();
+  const uncatWorks = state.uncat.map(id=>state.works[id]);
+  root.innerHTML = `
+    <div class="section-label">${NAME} <span style="font-weight:400;color:var(--meta-2)">· 책등은 장식(작품마다 고정된 높이) · 정확한 권수는 배지 · 8권 초과는 +N</span></div>
+    <div class="tile-grid">${tiles}</div>
+    <div class="section-label">미분류 작품</div>
+    <div class="card-grid">${uncatWorks.map(cardHTML).join("")}${uncatWorks.length===0?'<p style="color:var(--meta-2);font-size:.88rem">모든 작품이 '+NAME+'에 담겨 있어요.</p>':''}</div>`;
+  // 생성 input 포커스
+  if (state.creating) { const i=$("#create-input"); if(i){i.focus();} }
+  if (state.renaming) { const i=$(`[data-rename="${state.renaming}"]`); if(i){i.focus(); i.select();} }
+}
+
+/* ---------- 이름 전환 ---------- */
+document.querySelectorAll("[data-name]").forEach(b=>{
+  b.addEventListener("click",()=>{
+    NAME=b.dataset.name;
+    document.querySelectorAll("[data-name]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    render();
+  });
+});
+
+/* ---------- 클릭 위임 ---------- */
+$("#root").addEventListener("click",(e)=>{
+  const openBtn=e.target.closest("#create-open");
+  if(openBtn){ state.creating=true; render(); return; }
+  if(e.target.closest("#create-cancel")){ state.creating=false; render(); return; }
+  if(e.target.closest("#create-confirm")){ confirmCreate(); return; }
+
+  const menuBtn=e.target.closest("[data-menu]");
+  if(menuBtn){ e.stopPropagation(); state.menu = state.menu===menuBtn.dataset.menu?null:menuBtn.dataset.menu; render(); return; }
+  const act=e.target.closest("[data-act]");
+  if(act){
+    if(act.dataset.act==="rename"){ state.renaming=act.dataset.id; state.menu=null; render(); }
+    else if(act.dataset.act==="delete"){ deleteSeries(act.dataset.id); }
+    return;
+  }
+  const crumb=e.target.closest("[data-crumb]");
+  if(crumb){ state.open=null; render(); return; }
+
+  const name=e.target.closest(".t-name");
+  if(name){ const tile=name.closest("[data-series]"); state.renaming=tile.dataset.series; render(); return; }
+
+  // 타일 본문 클릭 = 드릴인 (메뉴/이름변경 중이 아닐 때)
+  const tile=e.target.closest("[data-series]");
+  if(tile && !e.target.closest(".t-menu, .popmenu, .t-name, input")){ state.open=tile.dataset.series; render(); return; }
+});
+document.addEventListener("click",(e)=>{ if(state.menu && !e.target.closest(".popmenu,[data-menu]")){ state.menu=null; render(); } });
+
+/* create / rename input */
+$("#root").addEventListener("input",(e)=>{
+  if(e.target.id==="create-input"){ const c=$("#create-confirm"); if(c) c.disabled = e.target.value.trim()==="" ; }
+});
+$("#root").addEventListener("keydown",(e)=>{
+  if(e.target.id==="create-input"){ if(e.key==="Enter") confirmCreate(); if(e.key==="Escape"){ state.creating=false; render(); } }
+  if(e.target.matches("[data-rename]")){ if(e.key==="Enter") confirmRename(e.target); if(e.key==="Escape"){ state.renaming=null; render(); } }
+});
+$("#root").addEventListener("blur",(e)=>{ if(e.target.matches("[data-rename]")) confirmRename(e.target); },true);
+
+function confirmCreate(){
+  const v=$("#create-input")?.value.trim(); if(!v){ return; }
+  const id="s"+Date.now();
+  state.series.push({id,name:v,works:[]}); state.creating=false; render();
+}
+function confirmRename(input){
+  const id=input.dataset.rename; const v=input.value.trim();
+  const s=state.series.find(x=>x.id===id); if(s && v) s.name=v;
+  state.renaming=null; render();
+}
+function deleteSeries(id){
+  const s=state.series.find(x=>x.id===id); if(!s) return;
+  // 작품은 미분류로 보존
+  state.uncat.push(...s.works);
+  state.series=state.series.filter(x=>x.id!==id);
+  state.menu=null; if(state.open===id) state.open=null;
+  render(); toast(`${s.name} 삭제 — 작품 ${s.works.length}편`, null);
+}
+
+/* ---------- 포인터 드래그 + 드롭 애니메이션 ---------- */
+let drag=null;
+const TH=6;
+$("#root").addEventListener("pointerdown",(e)=>{
+  if(e.button!==0) return;
+  if(e.target.closest("button,input")) return;
+  const card=e.target.closest(".card[data-work]");
+  if(!card) return;
+  drag={ workId:card.dataset.work, src:card, x0:e.clientX, y0:e.clientY, started:false, clone:null, zones:[], hot:null };
+});
+window.addEventListener("pointermove",(e)=>{
+  if(!drag) return;
+  const dx=e.clientX-drag.x0, dy=e.clientY-drag.y0;
+  if(!drag.started){ if(Math.hypot(dx,dy)<TH) return; begin(e); }
+  drag.clone.style.left=(e.clientX-drag.offX)+"px";
+  drag.clone.style.top=(e.clientY-drag.offY)+"px";
+  drag.clone.style.display="none";
+  const under=document.elementFromPoint(e.clientX,e.clientY);
+  drag.clone.style.display="";
+  const zone=under?under.closest("[data-drop]"):null;
+  const valid = zone && drag.zones.includes(zone);
+  if((valid?zone:null)!==drag.hot){
+    if(drag.hot) drag.hot.classList.remove("drop-hot");
+    drag.hot = valid?zone:null;
+    if(drag.hot) drag.hot.classList.add("drop-hot");
+  }
+});
+window.addEventListener("pointerup",()=>{
+  if(!drag) return;
+  if(drag.started){
+    const target=drag.hot;
+    document.body.classList.remove("dragging");
+    drag.zones.forEach(z=>z.classList.remove("drop-hot"));
+    if(target){ flyIntoTarget(target); }     // 성공: 타일로 빨려 들어감
+    else { snapBack(); }                       // 취소: 제자리 복귀
+  }
+  drag=null;
+});
+
+function begin(e){
+  drag.started=true; document.body.classList.add("dragging");
+  const r=drag.src.getBoundingClientRect();
+  drag.srcRect=r;
+  const clone=drag.src.cloneNode(true);
+  clone.classList.add("drag-clone"); clone.classList.remove("placeholder");
+  clone.style.width=r.width+"px"; clone.style.left=r.left+"px"; clone.style.top=r.top+"px";
+  document.body.appendChild(clone);
+  drag.clone=clone; drag.offX=e.clientX-r.left; drag.offY=e.clientY-r.top;
+  drag.src.classList.add("placeholder");
+  drag.zones=Array.from(document.querySelectorAll("[data-drop]"));
+}
+
+function flyIntoTarget(target){
+  const clone=drag.clone;
+  const cr=clone.getBoundingClientRect();
+  const tr=target.getBoundingClientRect();
+  const dx=(tr.left+tr.width/2)-(cr.left+cr.width/2);
+  const dy=(tr.top+tr.height/2)-(cr.top+cr.height/2);
+  clone.style.transition="transform .4s var(--ease), opacity .4s var(--ease)";
+  // 현재 위치 고정 후 타일 중심으로 축소+회전+페이드
+  requestAnimationFrame(()=>{ clone.style.transform=`translate(${dx}px,${dy}px) scale(.16) rotate(10deg)`; clone.style.opacity="0"; });
+  const ds=target.dataset.drop;
+  if(ds.startsWith("series:")){ const tileEl=target; tileEl.classList.add("absorb"); }
+  const workId=drag.workId;
+  setTimeout(()=>{
+    clone.remove();
+    applyMove(workId, ds==="root"?null:ds.slice(7));
+  },400);
+}
+function snapBack(){
+  const clone=drag.clone, r=drag.srcRect;
+  clone.style.transition="left .28s var(--ease), top .28s var(--ease), transform .28s var(--ease)";
+  requestAnimationFrame(()=>{ clone.style.left=r.left+"px"; clone.style.top=r.top+"px"; clone.style.transform="rotate(0deg)"; });
+  const src=drag.src;
+  setTimeout(()=>{ clone.remove(); src.classList.remove("placeholder"); },300);
+}
+
+function applyMove(workId, seriesId){
+  // 데이터 갱신: 어디서든 제거 후 목적지에 추가
+  state.uncat=state.uncat.filter(id=>id!==workId);
+  state.series.forEach(s=>{ s.works=s.works.filter(id=>id!==workId); });
+  let destName=null, popId=workId;
+  if(seriesId){ const s=state.series.find(x=>x.id===seriesId); s.works.push(workId); destName=s.name; }
+  else { state.uncat.push(workId); }
+  render();
+  // 책등 pop 애니메이션 재적용 (해당 타일 마지막 spine)
+  if(seriesId){
+    const tile=$(`[data-series="${seriesId}"]`);
+    if(tile){
+      tile.classList.add("absorb"); setTimeout(()=>tile.classList.remove("absorb"),500);
+      const spines=tile.querySelector(".spines");
+      const last=spines?spines.lastElementChild:null;
+      if(last && !last.classList.contains("more")){ (last.querySelector(".fill,.solid")||last).classList.add("pop"); }
+    }
+  }
+  toast(state.works[workId].title, destName);
+}
+
+render();
+</script>
+</body>
+</html>

@@ -17,4 +17,6 @@ data class ProjectResponse(
     val archivedAt: Instant?,
     val createdAt: Instant,
     val updatedAt: Instant,
+    /** 소속 모음 id. null = 미분류(032). */
+    val categoryId: Long? = null,
 )

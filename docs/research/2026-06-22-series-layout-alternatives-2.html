@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>032 시리즈 — 대안 레이아웃 2차 (완전히 다른 결)</title>
+<style>
+  :root{
+    --terracotta-50:#fbf3ee; --terracotta-100:#f6e3d6; --terracotta-200:#ecc7ad; --terracotta-300:#e0a781;
+    --terracotta-500:#c77a4f; --terracotta-600:#a8542e; --terracotta-700:#8a4325;
+    --olive-50:#f2f2e9; --olive-500:#76753f; --olive-600:#5e5d32; --teal:#087194;
+    --gray-50:#f9fafb; --gray-100:#f3f4f6; --gray-200:#e5e7eb; --gray-300:#d1d5db;
+    --gray-400:#9ca3af; --gray-500:#6b7280; --gray-600:#4b5563; --gray-700:#374151; --gray-900:#111827;
+    --red-200:#fecaca; --red-600:#dc2626; --bg:#f6f6f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:"Apple SD Gothic Neo","Noto Sans KR",system-ui,-apple-system,sans-serif;color:var(--gray-900);padding:32px;line-height:1.4;}
+  h1.page{font-size:26px;font-weight:800;margin:0 0 4px;}
+  .lead{color:var(--gray-500);font-size:13px;margin:0 0 26px;max-width:900px;}
+  .panel{background:#fff;border:1px solid var(--gray-200);border-radius:18px;padding:24px;margin-bottom:24px;box-shadow:0 1px 2px rgba(42,38,32,.04);}
+  .tag{display:inline-block;font-size:12px;font-weight:700;color:var(--terracotta-700);background:var(--terracotta-50);border-radius:999px;padding:4px 11px;margin-bottom:8px;}
+  .note{color:var(--gray-500);font-size:12.5px;margin:4px 0 20px;line-height:1.55;max-width:900px;}
+  .note b{color:var(--gray-700);}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .pillbtn{font-size:13px;font-weight:600;border-radius:9px;padding:8px 14px;border:none;background:var(--terracotta-600);color:#fff;cursor:pointer;}
+  .ghostbtn{font-size:13px;font-weight:600;border-radius:9px;padding:8px 14px;border:1px solid var(--gray-300);background:#fff;color:var(--gray-700);cursor:pointer;}
+
+  /* ===== A: 라벨형 단일 그리드 ===== */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:14px;}
+  .card{border:1px solid var(--gray-200);border-radius:14px;background:#fff;padding:18px;position:relative;}
+  .card h2{font-size:16px;font-weight:800;margin:0;}
+  .serieslabel{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 10px;margin-bottom:10px;}
+  .serieslabel .dot{width:7px;height:7px;border-radius:50%;}
+  .sl-gn{background:var(--terracotta-50);color:var(--terracotta-700);}
+  .sl-gn .dot{background:var(--terracotta-500);}
+  .sl-none{background:var(--gray-100);color:var(--gray-500);}
+  .sl-none .dot{background:var(--gray-400);}
+  .meta{display:flex;align-items:center;gap:10px;color:var(--gray-400);font-size:12px;margin-top:12px;}
+  .actions{display:flex;gap:5px;justify-content:flex-end;margin-top:14px;}
+  .btn{font-size:12px;border-radius:8px;padding:5px 10px;border:1px solid var(--gray-200);color:var(--gray-600);background:#fff;cursor:pointer;}
+  .btn.del{border-color:var(--red-200);color:var(--red-600);}
+  .addcard{display:flex;align-items:center;justify-content:center;border:1px dashed var(--gray-300);border-radius:14px;color:var(--gray-500);font-size:13px;min-height:130px;cursor:pointer;}
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center;}
+  .legend .hint{color:var(--gray-400);font-size:12px;margin-right:4px;}
+
+  /* ===== B: 책장형 ===== */
+  .shelf{margin-bottom:26px;}
+  .shelfhead{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;}
+  .shelfhead h3{margin:0;font-size:15px;font-weight:800;}
+  .shelfhead .count{color:var(--gray-400);font-size:13px;}
+  .shelfhead .secact{margin-left:auto;display:flex;gap:6px;opacity:0;transition:.15s;}
+  .shelf:hover .secact{opacity:1;}
+  .books{display:flex;align-items:flex-end;gap:10px;min-height:160px;padding:14px 18px 0;background:linear-gradient(180deg,#fff, #faf7f3);border-radius:12px 12px 0 0;border:1px solid var(--gray-200);border-bottom:none;}
+  .shelfboard{height:14px;border-radius:0 0 12px 12px;background:linear-gradient(180deg,#d8b48c,#b98a5e);border:1px solid #a9794e;border-top:none;box-shadow:0 6px 10px -6px rgba(42,38,32,.35);}
+  .book{width:96px;border-radius:7px 7px 3px 3px;padding:12px 10px;color:#fff;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;box-shadow:inset -3px 0 0 rgba(0,0,0,.12), 0 2px 4px rgba(42,38,32,.18);transition:transform .15s;}
+  .book:hover{transform:translateY(-6px);}
+  .book .bt{font-size:14px;font-weight:800;line-height:1.25;}
+  .book .bm{font-size:10.5px;opacity:.85;}
+  .book.add{background:none;border:2px dashed var(--gray-300);color:var(--gray-500);box-shadow:none;align-items:center;justify-content:center;font-size:13px;}
+  .desk{background:repeating-linear-gradient(45deg,#f4efe7,#f4efe7 8px,#f1ebe1 8px,#f1ebe1 16px);}
+
+  /* ===== C: 표형 ===== */
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{text-align:left;color:var(--gray-500);font-weight:700;font-size:12px;padding:8px 12px;border-bottom:1px solid var(--gray-200);}
+  tbody td{padding:12px;border-bottom:1px solid var(--gray-100);vertical-align:middle;}
+  tbody tr:hover{background:var(--gray-50);}
+  .rowtitle{font-weight:700;font-size:14px;}
+  select.ser{font-size:13px;border:1px solid var(--gray-300);border-radius:8px;padding:5px 8px;background:#fff;color:var(--gray-700);}
+  td.num{color:var(--gray-500);}
+  td.act{text-align:right;white-space:nowrap;}
+  .toggle{display:inline-flex;gap:0;border:1px solid var(--gray-300);border-radius:9px;overflow:hidden;font-size:12.5px;}
+  .toggle button{border:none;background:#fff;padding:6px 12px;cursor:pointer;color:var(--gray-600);}
+  .toggle button.on{background:var(--terracotta-600);color:#fff;}
+  .grouprow td{background:var(--gray-50);font-weight:800;font-size:12.5px;color:var(--gray-600);}
+</style>
+</head>
+<body>
+  <h1 class="page">내 작품 — 시리즈 레이아웃 대안 (2차)</h1>
+  <p class="lead">앞선 폴더/섹션/사이드바/칩 전부 폐기. 이번엔 결이 다른 3가지: 시리즈를 <b>컨테이너가 아닌 꼬리표</b>로 보는 라벨형, 작가툴다운 <b>책장형</b>, 밀도 높은 <b>표형</b>. 모두 한 화면·뒤로가기 없음, 드래그 분류 유지.</p>
+
+  <!-- ===== A 라벨형 ===== -->
+  <div class="panel">
+    <span class="tag">A · 라벨형 단일 그리드 (시리즈 = 꼬리표)</span>
+    <div class="note">폴더·구역이 아예 없음. 작품은 <b>한 그리드</b>에 다 모이고, 각 카드 위에 소속 시리즈가 <b>색 꼬리표</b>로 붙음. 시리즈 이름을 누르면 그 시리즈만 보기(선택). 이동=카드 '편집'의 시리즈 드롭다운 또는 꼬리표 클릭. <b>가장 단순</b> — 시리즈는 분류 라벨일 뿐, 드나들 공간이 없음.</div>
+    <div class="topbar"><strong style="font-size:18px;">내 작품</strong><button class="pillbtn">+ 새 작품</button></div>
+    <div class="legend"><span class="hint">시리즈로 보기:</span>
+      <span class="serieslabel sl-gn"><span class="dot"></span>가나나나 2</span>
+      <span class="serieslabel sl-none"><span class="dot"></span>미분류 1</span>
+      <button class="btn">＋ 새 시리즈</button>
+    </div>
+    <div class="grid">
+      <div class="card"><span class="serieslabel sl-gn"><span class="dot"></span>가나나나</span><h2>종이출판</h2><div class="meta"><span>548자</span><span>2026.06.22</span></div><div class="actions"><button class="btn">편집</button><button class="btn">보관</button><button class="btn del">삭제</button></div></div>
+      <div class="card"><span class="serieslabel sl-gn"><span class="dot"></span>가나나나</span><h2>웹출판</h2><div class="meta"><span>195자</span><span>2026.06.21</span></div><div class="actions"><button class="btn">편집</button><button class="btn">보관</button><button class="btn del">삭제</button></div></div>
+      <div class="card"><span class="serieslabel sl-none"><span class="dot"></span>분류 없음</span><h2>새 단편</h2><div class="meta"><span>0자</span><span>2026.06.22</span></div><div class="actions"><button class="btn">편집</button><button class="btn">보관</button><button class="btn del">삭제</button></div></div>
+      <div class="addcard">＋ 새 작품 시작하기</div>
+    </div>
+  </div>
+
+  <!-- ===== B 책장형 ===== -->
+  <div class="panel">
+    <span class="tag">B · 책장형 (선반 = 시리즈, 책 = 작품)</span>
+    <div class="note">시리즈마다 <b>책꽂이 선반</b> 한 칸. 작품은 표지 색을 가진 <b>책</b>으로 선반에 꽂힘. 미분류는 '책상 위'. 책 클릭=열기, 다른 선반으로 끌면 이동. 소설 집필툴다운 분위기 + 모든 작품이 한눈에. (작품이 아주 많으면 선반이 가로로 길어져 스크롤)</div>
+    <div class="topbar"><strong style="font-size:18px;">내 작품</strong><div style="display:flex;gap:8px;"><button class="ghostbtn">+ 새 시리즈</button><button class="pillbtn">+ 새 작품</button></div></div>
+
+    <div class="shelf">
+      <div class="shelfhead"><h3>📖 가나나나</h3><span class="count">2편</span><span class="secact"><button class="btn">이름 변경</button><button class="btn del">삭제</button></span></div>
+      <div class="books">
+        <div class="book" style="height:140px;background:var(--terracotta-600);"><div class="bt">종이<br>출판</div><div class="bm">548자</div></div>
+        <div class="book" style="height:120px;background:var(--olive-600);"><div class="bt">웹<br>출판</div><div class="bm">195자</div></div>
+        <div class="book add" style="height:96px;">＋</div>
+      </div>
+      <div class="shelfboard"></div>
+    </div>
+
+    <div class="shelf">
+      <div class="shelfhead"><h3>미분류</h3><span class="count">1편</span></div>
+      <div class="books desk">
+        <div class="book" style="height:110px;background:var(--teal);"><div class="bt">새<br>단편</div><div class="bm">0자</div></div>
+        <div class="book add" style="height:96px;">＋</div>
+      </div>
+      <div class="shelfboard"></div>
+    </div>
+  </div>
+
+  <!-- ===== C 표형 ===== -->
+  <div class="panel">
+    <span class="tag">C · 표(리스트)형 — 인라인 시리즈 열</span>
+    <div class="note">작품을 <b>행</b>으로, '시리즈' 열을 <b>인라인 드롭다운</b>으로 바로 바꿈(모달·드래그 불필요). 글자수·저장일 정렬, '시리즈로 묶기' 토글로 그룹 보기. 작품이 많아질수록 효율적이고 한눈에 비교됨. (시각적 매력은 가장 낮음)</div>
+    <div class="topbar"><strong style="font-size:18px;">내 작품</strong>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span class="toggle"><button>전체</button><button class="on">시리즈로 묶기</button></span>
+        <button class="pillbtn">+ 새 작품</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>제목</th><th>시리즈</th><th>글자수</th><th>마지막 저장</th><th></th></tr></thead>
+      <tbody>
+        <tr class="grouprow"><td colspan="5">📖 가나나나 · 2편</td></tr>
+        <tr><td class="rowtitle">종이출판</td><td><select class="ser"><option selected>가나나나</option><option>미분류</option><option>＋ 새 시리즈…</option></select></td><td class="num">548자</td><td class="num">2026.06.22</td><td class="act"><button class="btn">편집</button> <button class="btn">보관</button> <button class="btn del">삭제</button></td></tr>
+        <tr><td class="rowtitle">웹출판</td><td><select class="ser"><option selected>가나나나</option><option>미분류</option><option>＋ 새 시리즈…</option></select></td><td class="num">195자</td><td class="num">2026.06.21</td><td class="act"><button class="btn">편집</button> <button class="btn">보관</button> <button class="btn del">삭제</button></td></tr>
+        <tr class="grouprow"><td colspan="5">미분류 · 1편</td></tr>
+        <tr><td class="rowtitle">새 단편</td><td><select class="ser"><option>가나나나</option><option selected>미분류</option><option>＋ 새 시리즈…</option></select></td><td class="num">0자</td><td class="num">2026.06.22</td><td class="act"><button class="btn">편집</button> <button class="btn">보관</button> <button class="btn del">삭제</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>작품 카테고리 분류 — 인터랙션 비교 예시</title>
+<style>
+  :root {
+    /* 실제 앱 토큰 (frontend/src/styles/tokens.css + globals.css) */
+    --parchment: #f3ede1;      /* 페이지 배경 — 웜 양피지 */
+    --canvas: #fffdf8;         /* 카드 화이트 (살짝 웜) */
+    --ink: #2a2620;            /* 본문 — 웜 near-black */
+    --hairline: #e3d8c5;       /* 웜 hairline */
+    --hairline-soft: #ece3d4;
+    --meta: #6b6356;           /* 보조 텍스트 (대비 ≥4.5:1) */
+    --meta-2: #8a8070;
+
+    --terracotta-50: #fbf3ee;
+    --terracotta-100: #f6e3d6;
+    --terracotta-200: #ecc7ad;
+    --terracotta-400: #d48d62;
+    --terracotta-500: #c77a4f;
+    --terracotta-600: #a8542e;
+    --terracotta-700: #8a4325;
+
+    --olive-50: #f3f3e6;
+    --olive-700: #5e5d32;
+
+    --teal-50: #ecf5f8;
+    --teal-600: #087194;
+    --teal-700: #0a5c79;
+
+    --font-ui: "SF Pro Text", system-ui, -apple-system, BlinkMacSystemFont,
+      "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    --font-serif: var(--font-noto-serif-kr), "Apple SD Gothic Neo", "Noto Serif KR", serif;
+
+    --r-card: 14px;
+    --r-tile: 16px;
+    --shadow-card: 0 1px 2px rgba(42, 38, 32, 0.04);
+    --shadow-hover: 0 6px 20px -8px rgba(42, 38, 32, 0.22);
+    --shadow-lift: 0 18px 40px -12px rgba(42, 38, 32, 0.38);
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    --z-drag: 1000;
+    --z-menu: 800;
+    --z-toast: 900;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    font-family: var(--font-ui);
+    background: var(--parchment);
+    color: var(--ink);
+    line-height: 1.47;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 6rem;
+  }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 1.25rem; }
+
+  /* ===== 안내 헤더 ===== */
+  .doc-head {
+    padding: 2.25rem 0 1.25rem;
+  }
+  .doc-eyebrow {
+    font-size: 0.78rem;
+    color: var(--terracotta-700);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .doc-head h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-top: 0.4rem;
+    letter-spacing: -0.02em;
+  }
+  .doc-head p {
+    color: var(--meta);
+    font-size: 0.95rem;
+    margin-top: 0.5rem;
+    max-width: 64ch;
+  }
+  .doc-head kbd {
+    font-family: var(--font-ui);
+    font-size: 0.82em;
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    padding: 0.05em 0.4em;
+    color: var(--ink);
+  }
+
+  /* ===== 탭 ===== */
+  .tabs {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    gap: 0.4rem;
+    padding: 0.7rem 0;
+    background: linear-gradient(var(--parchment) 70%, transparent);
+    backdrop-filter: blur(2px);
+    flex-wrap: wrap;
+  }
+  .tab {
+    appearance: none;
+    border: 1px solid var(--hairline);
+    background: var(--canvas);
+    color: var(--meta);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.5rem 0.95rem;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.1s;
+  }
+  .tab:hover { color: var(--ink); border-color: var(--terracotta-200); }
+  .tab:active { transform: scale(0.96); }
+  .tab[aria-selected="true"] {
+    background: var(--terracotta-600);
+    border-color: var(--terracotta-600);
+    color: #fff;
+  }
+  .tab .tab-key {
+    font-weight: 700;
+    opacity: 0.7;
+    margin-right: 0.35rem;
+  }
+  .tab[aria-selected="true"] .tab-key { opacity: 0.9; }
+
+  /* ===== 패턴 설명 캡션 ===== */
+  .caption {
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    padding: 0.85rem 1.05rem;
+    margin: 0.4rem 0 1.4rem;
+    font-size: 0.88rem;
+    color: var(--meta);
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    align-items: baseline;
+  }
+  .caption b { color: var(--ink); font-weight: 600; }
+  .caption .pro::before { content: "좋은 점 "; color: var(--olive-700); font-weight: 600; }
+  .caption .con::before { content: "약한 점 "; color: var(--terracotta-700); font-weight: 600; }
+
+  /* ===== 작품 카드 (실제 WorkCard 미러) ===== */
+  .card {
+    position: relative;
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-card);
+    padding: 1rem 1.05rem 0.95rem;
+    box-shadow: var(--shadow-card);
+    cursor: grab;
+    transition: box-shadow 0.18s var(--ease), transform 0.12s var(--ease),
+      border-color 0.15s, opacity 0.15s;
+    touch-action: none;
+    user-select: none;
+  }
+  .card:hover { box-shadow: var(--shadow-hover); border-color: var(--terracotta-200); }
+  .card:active { cursor: grabbing; }
+  .card.dragging-source {
+    opacity: 0.35;
+    border-style: dashed;
+    box-shadow: none;
+  }
+  .card .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
+  .card h3 { font-size: 1.02rem; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; }
+  .badge-genre {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--terracotta-700);
+    background: var(--terracotta-50);
+    border-radius: 9999px;
+    padding: 0.12rem 0.55rem;
+    white-space: nowrap;
+  }
+  .card .synopsis {
+    margin-top: 0.45rem;
+    font-size: 0.85rem;
+    color: var(--meta);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card .next-scene {
+    margin-top: 0.55rem;
+    font-size: 0.76rem;
+    color: var(--olive-700);
+    background: var(--olive-50);
+    border-radius: 8px;
+    padding: 0.35rem 0.55rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card .meta {
+    margin-top: 0.7rem;
+    font-size: 0.74rem;
+    color: var(--meta-2);
+    display: flex;
+    gap: 0.7rem;
+  }
+  .card-menu-btn {
+    position: absolute;
+    top: 0.55rem; right: 0.55rem;
+    width: 1.7rem; height: 1.7rem;
+    border: none; background: transparent;
+    border-radius: 8px;
+    color: var(--meta-2);
+    font-size: 1.05rem; line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+  }
+  .card:hover .card-menu-btn,
+  .card:focus-within .card-menu-btn { opacity: 1; }
+  .card-menu-btn:hover { background: var(--terracotta-50); color: var(--terracotta-700); }
+
+  /* compact card variant (사이드바형 그리드와 동일하되 약간 작게) */
+
+  /* ===== 그리드 ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+    gap: 0.9rem;
+  }
+
+  /* ===== 패턴 A: 섹션 아코디언 ===== */
+  .section {
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-tile);
+    background: rgba(255, 253, 248, 0.5);
+    margin-bottom: 1rem;
+    overflow: hidden;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  }
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.85rem 1.05rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .section-head .chevron {
+    color: var(--meta-2);
+    transition: transform 0.2s var(--ease);
+    font-size: 0.8rem;
+  }
+  .section.collapsed .chevron { transform: rotate(-90deg); }
+  .section-head .folder-ico { color: var(--terracotta-500); display: inline-flex; }
+  .section-head h2 { font-size: 1rem; font-weight: 700; }
+  .section-head .count {
+    font-size: 0.78rem; color: var(--meta-2);
+    background: var(--parchment);
+    border-radius: 9999px; padding: 0.05rem 0.5rem;
+  }
+  .section-body { padding: 0 1.05rem 1.05rem; }
+  .section.collapsed .section-body { display: none; }
+  .section.uncat { background: transparent; border-style: dashed; }
+  .section.uncat .folder-ico { color: var(--meta-2); }
+
+  /* drop 활성 (섹션) */
+  .section.drop-ok { border-color: var(--terracotta-200); }
+  .section.drop-hot {
+    border-color: var(--terracotta-600);
+    background: var(--terracotta-50);
+    box-shadow: 0 0 0 3px rgba(168, 84, 46, 0.16);
+  }
+
+  .empty-hint {
+    border: 1.5px dashed var(--hairline);
+    border-radius: 12px;
+    padding: 1.1rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--meta-2);
+  }
+
+  /* ===== 패턴 B: 사이드바 + 그리드 ===== */
+  .b-layout { display: grid; grid-template-columns: 232px 1fr; gap: 1.4rem; align-items: start; }
+  @media (max-width: 720px) { .b-layout { grid-template-columns: 1fr; } }
+  .rail {
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-tile);
+    background: var(--canvas);
+    padding: 0.55rem;
+    position: sticky; top: 4rem;
+  }
+  .rail-title {
+    font-size: 0.74rem; font-weight: 600; color: var(--meta-2);
+    padding: 0.4rem 0.6rem 0.5rem; letter-spacing: 0.02em;
+  }
+  .folder-row {
+    display: flex; align-items: center; gap: 0.55rem;
+    padding: 0.5rem 0.6rem;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--ink);
+    border: 1px solid transparent;
+    transition: background 0.13s, border-color 0.13s, color 0.13s;
+  }
+  .folder-row:hover { background: var(--terracotta-50); }
+  .folder-row[aria-current="true"] {
+    background: var(--terracotta-50);
+    color: var(--terracotta-700);
+    font-weight: 600;
+  }
+  .folder-row .folder-ico { color: var(--terracotta-500); display: inline-flex; }
+  .folder-row[aria-current="true"] .folder-ico { color: var(--terracotta-600); }
+  .folder-row .f-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .folder-row .f-count { font-size: 0.76rem; color: var(--meta-2); }
+  .folder-row.drop-hot {
+    border-color: var(--terracotta-600);
+    background: var(--terracotta-100);
+    box-shadow: 0 0 0 3px rgba(168, 84, 46, 0.14);
+  }
+  .rail-divider { height: 1px; background: var(--hairline-soft); margin: 0.4rem 0.3rem; }
+  .rail-newcat {
+    width: 100%; text-align: left;
+    padding: 0.5rem 0.6rem; border-radius: 9px;
+    border: 1px dashed var(--hairline); background: transparent;
+    color: var(--meta); font-family: inherit; font-size: 0.86rem;
+    cursor: pointer; margin-top: 0.2rem;
+  }
+  .rail-newcat:hover { color: var(--terracotta-700); border-color: var(--terracotta-200); }
+  .b-main-head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.9rem; }
+  .b-main-head h2 { font-size: 1.15rem; font-weight: 700; }
+  .b-main-head .count { font-size: 0.84rem; color: var(--meta-2); }
+
+  /* ===== 패턴 C: 폴더 타일 드릴인 ===== */
+  .crumbs { display: flex; align-items: center; gap: 0.45rem; margin-bottom: 1rem; font-size: 0.95rem; }
+  .crumb {
+    background: none; border: none; font-family: inherit; font-size: inherit;
+    color: var(--terracotta-700); font-weight: 600; cursor: pointer;
+    padding: 0.25rem 0.5rem; border-radius: 8px;
+  }
+  .crumb:hover { background: var(--terracotta-50); }
+  .crumb.current { color: var(--ink); cursor: default; }
+  .crumb.current:hover { background: none; }
+  .crumb.drop-hot { background: var(--terracotta-100); box-shadow: 0 0 0 3px rgba(168,84,46,0.14); }
+  .crumb-sep { color: var(--meta-2); }
+
+  .folder-tile {
+    position: relative;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-tile);
+    background: linear-gradient(170deg, var(--terracotta-50), var(--canvas) 60%);
+    padding: 1.05rem;
+    cursor: pointer;
+    min-height: 132px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    transition: box-shadow 0.18s var(--ease), transform 0.12s var(--ease), border-color 0.15s, background 0.15s;
+  }
+  .folder-tile:hover { box-shadow: var(--shadow-hover); border-color: var(--terracotta-200); transform: translateY(-1px); }
+  .folder-tile .ft-ico { color: var(--terracotta-500); }
+  .folder-tile h3 { font-size: 1.02rem; font-weight: 700; margin-top: 0.5rem; }
+  .folder-tile .ft-count { font-size: 0.78rem; color: var(--meta); margin-top: 0.2rem; }
+  .folder-tile .ft-peek {
+    position: absolute; right: 0.85rem; top: 0.95rem;
+    font-size: 0.7rem; color: var(--meta-2);
+    background: var(--canvas); border: 1px solid var(--hairline);
+    border-radius: 9999px; padding: 0.08rem 0.5rem;
+  }
+  .folder-tile.drop-hot {
+    border-color: var(--terracotta-600);
+    background: var(--terracotta-100);
+    box-shadow: 0 0 0 3px rgba(168, 84, 46, 0.18);
+    transform: translateY(-2px);
+  }
+  .c-grouplabel { font-size: 0.78rem; font-weight: 600; color: var(--meta-2); margin: 1.6rem 0 0.7rem; letter-spacing: 0.02em; }
+
+  /* ===== 드래그 클론 ===== */
+  .drag-clone {
+    position: fixed;
+    z-index: var(--z-drag);
+    pointer-events: none;
+    width: 248px;
+    transform: rotate(-2.5deg) scale(1.03);
+    box-shadow: var(--shadow-lift);
+    border-radius: var(--r-card);
+    opacity: 0.97;
+  }
+  body.is-dragging { cursor: grabbing; }
+  body.is-dragging * { cursor: grabbing !important; }
+
+  /* ===== 카드 메뉴 popover ===== */
+  .menu {
+    position: fixed;
+    z-index: var(--z-menu);
+    min-width: 180px;
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lift);
+    padding: 0.35rem;
+    font-size: 0.88rem;
+  }
+  .menu .menu-label { font-size: 0.72rem; color: var(--meta-2); padding: 0.35rem 0.6rem 0.25rem; }
+  .menu button {
+    display: flex; align-items: center; gap: 0.5rem;
+    width: 100%; text-align: left;
+    background: none; border: none; font-family: inherit; font-size: 0.88rem;
+    color: var(--ink);
+    padding: 0.45rem 0.6rem; border-radius: 8px; cursor: pointer;
+  }
+  .menu button:hover { background: var(--terracotta-50); color: var(--terracotta-700); }
+  .menu button .check { margin-left: auto; color: var(--terracotta-600); }
+  .menu .menu-div { height: 1px; background: var(--hairline-soft); margin: 0.3rem 0.2rem; }
+
+  /* ===== toast ===== */
+  .toast-wrap {
+    position: fixed; bottom: 1.4rem; left: 50%; transform: translateX(-50%);
+    z-index: var(--z-toast);
+    display: flex; flex-direction: column; gap: 0.5rem; align-items: center;
+  }
+  .toast {
+    background: var(--ink); color: var(--canvas);
+    font-size: 0.86rem; font-weight: 500;
+    padding: 0.6rem 1rem; border-radius: 9999px;
+    box-shadow: var(--shadow-lift);
+    animation: toast-in 0.32s var(--ease);
+  }
+  .toast b { color: var(--terracotta-400); font-weight: 700; }
+  @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    .drag-clone { transform: scale(1.02); }
+  }
+
+  .foot { margin-top: 2.5rem; color: var(--meta-2); font-size: 0.82rem; border-top: 1px solid var(--hairline-soft); padding-top: 1rem; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="doc-head">
+      <div class="doc-eyebrow">작품 카테고리 분류 · 인터랙션 비교 예시</div>
+      <h1>작품을 폴더로 옮기는 방식, 3가지를 직접 끌어보세요</h1>
+      <p>
+        카드를 <b>마우스로 집어서 폴더로 끌어다 놓으면</b> 분류됩니다. 카드의
+        <kbd>⋯</kbd> 메뉴로도 옮길 수 있어요(터치·키보드 대안). 세 방식은 같은 데이터를 공유하니,
+        한 방식에서 옮긴 작품이 다른 탭에도 그대로 반영됩니다. 마음에 드는 인터랙션을 고르면 그걸로 실제 구현을 설계할게요.
+      </p>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="인터랙션 방식">
+      <button class="tab" role="tab" data-view="A" aria-selected="true"><span class="tab-key">A</span>섹션 아코디언</button>
+      <button class="tab" role="tab" data-view="B" aria-selected="false"><span class="tab-key">B</span>사이드바 폴더</button>
+      <button class="tab" role="tab" data-view="C" aria-selected="false"><span class="tab-key">C</span>폴더 타일(디렉토리)</button>
+    </nav>
+
+    <div id="caption" class="caption"></div>
+    <main id="stage" aria-live="polite"></main>
+
+    <p class="foot">
+      탐색용 정적 프로토타입입니다 (production React 코드 아님). 드래그 엔진은 포인터 기반 — 데스크탑 마우스 기준.
+      실제 구현에서는 터치/키보드 접근성, React Query 캐시 갱신, 서버 저장이 더해집니다.
+    </p>
+  </div>
+
+  <div id="toasts" class="toast-wrap" aria-live="polite"></div>
+
+<script>
+/* ----------------------------------------------------------------------------
+ * 샘플 데이터 (탭 간 공유 — state.works[].catId 가 분류 상태)
+ * -------------------------------------------------------------------------- */
+const ICON_FOLDER = '<svg class="folder-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+const ICON_FOLDER_BIG = '<svg class="ft-ico" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+const ICON_INBOX = '<svg class="folder-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13h4l1.5 2.5h5L16 13h4"/><path d="M4 13 6 5h12l2 8v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/></svg>';
+
+const state = {
+  view: 'A',
+  categories: [
+    { id: 'c1', name: '장편 판타지' },
+    { id: 'c2', name: '단편 모음' },
+    { id: 'c3', name: '습작·아이디어' },
+  ],
+  works: [
+    { id: 'w1', title: '잿빛 탑의 서약', genre: '판타지', synopsis: '무너진 왕국의 마지막 사서가 금지된 탑에 오른다.', next: '사서가 탑의 1층 문을 여는 장면', words: 48210, cat: 'c1' },
+    { id: 'w2', title: '용의 계절', genre: '판타지', synopsis: '용이 돌아온 해, 국경 마을 대장장이의 딸이 검을 든다.', next: '대장간에 첫 손님이 찾아온다', words: 31980, cat: 'c1' },
+    { id: 'w3', title: '북역 7번 출구', genre: '드라마', synopsis: '매일 같은 시간 같은 자리에서 마주치는 두 사람.', next: '비 오는 날 우산을 나눠 쓴다', words: 12040, cat: 'c2' },
+    { id: 'w4', title: '한낮의 유령', genre: '단편', synopsis: '낮에만 보이는 유령과 불면증 작가의 동거.', next: '', words: 8800, cat: 'c2' },
+    { id: 'w5', title: '제목 미정 (가제: 모래시계)', genre: 'SF', synopsis: '시간이 거꾸로 흐르는 도시의 우편배달부.', next: '편지 한 통이 어제로 배달된다', words: 2100, cat: null },
+    { id: 'w6', title: '엄마의 레시피 노트', genre: '에세이', synopsis: '낡은 수첩에 적힌 손맛을 따라가는 기록.', next: '', words: 5600, cat: null },
+    { id: 'w7', title: '심야 라디오', genre: '단편', synopsis: '새벽 2시, 사연 없는 라디오 DJ에게 걸려온 전화.', next: '첫 사연이 도착한다', words: 6740, cat: 'c3' },
+    { id: 'w8', title: '깃털과 자물쇠', genre: '', synopsis: '아직 장르도 정하지 못한 첫 문장들.', next: '', words: 320, cat: null },
+  ],
+  // 패턴별 로컬 뷰 상태
+  bFolder: 'all',     // 'all' | 'uncat' | catId
+  cPath: null,        // null = 루트 | catId = 폴더 안
+  collapsed: {},      // 패턴 A 접힌 섹션
+};
+
+/* ----------------------------------------------------------------------------
+ * 헬퍼
+ * -------------------------------------------------------------------------- */
+const $ = (sel, el = document) => el.querySelector(sel);
+const catName = (id) => state.categories.find((c) => c.id === id)?.name ?? '미분류';
+const worksIn = (catId) => state.works.filter((w) => w.cat === catId);   // catId=null → 미분류
+const countIn = (catId) => worksIn(catId).length;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function moveWork(workId, targetCat) {
+  const w = state.works.find((x) => x.id === workId);
+  if (!w || w.cat === targetCat) return false;
+  w.cat = targetCat;
+  toast(w.title, targetCat);
+  return true;
+}
+
+function toast(title, targetCat) {
+  const wrap = $('#toasts');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  const dest = targetCat === null ? '<b>미분류</b>로 빼냈어요' : `<b>${esc(catName(targetCat))}</b>(으)로 옮겼어요`;
+  t.innerHTML = `「${esc(title)}」 ${dest}`;
+  wrap.appendChild(t);
+  setTimeout(() => { t.style.transition = 'opacity .3s, transform .3s'; t.style.opacity = '0'; t.style.transform = 'translateY(6px)'; }, 1900);
+  setTimeout(() => t.remove(), 2300);
+}
+
+/* ----------------------------------------------------------------------------
+ * 작품 카드 마크업
+ * -------------------------------------------------------------------------- */
+function cardHTML(w) {
+  return `
+    <article class="card" data-work-id="${w.id}" tabindex="0">
+      <button class="card-menu-btn" data-menu="${w.id}" aria-label="작품 메뉴" title="이동·메뉴">⋯</button>
+      <div class="card-top">
+        <h3>${esc(w.title)}</h3>
+        ${w.genre ? `<span class="badge-genre">${esc(w.genre)}</span>` : ''}
+      </div>
+      ${w.synopsis ? `<p class="synopsis">${esc(w.synopsis)}</p>` : ''}
+      ${w.next ? `<p class="next-scene">다음 장면 — ${esc(w.next)}</p>` : ''}
+      <div class="meta"><span>${w.words.toLocaleString()}자</span></div>
+    </article>`;
+}
+
+/* ----------------------------------------------------------------------------
+ * 캡션
+ * -------------------------------------------------------------------------- */
+const CAPTIONS = {
+  A: `<span><b>섹션 아코디언</b> — 폴더가 한 화면에 세로로 펼쳐집니다. 카드를 다른 섹션으로 끌어 넣어 분류, 섹션 머리를 눌러 접기.</span>
+      <span class="pro">모든 폴더·작품이 한눈에. 끌어 넣기가 직관적.</span>
+      <span class="con">폴더·작품이 많으면 스크롤이 길어짐.</span>`,
+  B: `<span><b>사이드바 폴더</b> — 왼쪽 폴더를 누르면 그 폴더의 작품만 그리드에 보입니다. 카드를 왼쪽 폴더로 끌어 이동(파일탐색기·메일함형).</span>
+      <span class="pro">폴더가 많아도 깔끔. 현재 그리드를 그대로 유지.</span>
+      <span class="con">한 번에 한 폴더만 보임.</span>`,
+  C: `<span><b>폴더 타일(디렉토리)</b> — 폴더를 더블클릭해 안으로 들어가고, 위 경로로 빠져나옵니다. 카드를 폴더 타일로 끌어 넣기. N뎁스(폴더 안 폴더) 확장에 가장 자연스러움.</span>
+      <span class="pro">'디렉토리' 메타포에 가장 충실. N뎁스 확장 자연.</span>
+      <span class="con">폴더를 열고 들어가는 이동 비용.</span>`,
+};
+
+/* ----------------------------------------------------------------------------
+ * 렌더 — 패턴 A: 섹션 아코디언
+ * -------------------------------------------------------------------------- */
+function renderA() {
+  const sections = [];
+  // 미분류 먼저
+  const uncat = worksIn(null);
+  sections.push(sectionHTML(null, '미분류', uncat, true));
+  for (const c of state.categories) {
+    sections.push(sectionHTML(c.id, c.name, worksIn(c.id), false));
+  }
+  return sections.join('');
+}
+function sectionHTML(catId, name, works, isUncat) {
+  const key = catId ?? '__uncat__';
+  const collapsed = state.collapsed[key] ? ' collapsed' : '';
+  const dropAttr = `data-drop="${catId === null ? 'uncat' : 'cat:' + catId}"`;
+  const ico = isUncat ? ICON_INBOX : ICON_FOLDER;
+  const body = works.length
+    ? `<div class="grid">${works.map(cardHTML).join('')}</div>`
+    : `<div class="empty-hint">${isUncat ? '미분류 작품이 없습니다.' : '여기로 작품을 끌어다 놓으세요.'}</div>`;
+  return `
+    <section class="section${collapsed}${isUncat ? ' uncat' : ''}" ${dropAttr} data-section="${key}">
+      <div class="section-head" data-toggle="${key}">
+        <span class="chevron">▼</span>
+        ${ico}
+        <h2>${esc(name)}</h2>
+        <span class="count">${works.length}</span>
+      </div>
+      <div class="section-body">${body}</div>
+    </section>`;
+}
+
+/* ----------------------------------------------------------------------------
+ * 렌더 — 패턴 B: 사이드바 + 그리드
+ * -------------------------------------------------------------------------- */
+function renderB() {
+  const sel = state.bFolder;
+  const railRows = [];
+  railRows.push(folderRowHTML('all', '전체 작품', state.works.length, sel === 'all', null));
+  railRows.push(folderRowHTML('uncat', '미분류', countIn(null), sel === 'uncat', 'uncat'));
+  railRows.push('<div class="rail-divider"></div>');
+  for (const c of state.categories) {
+    railRows.push(folderRowHTML(c.id, c.name, countIn(c.id), sel === c.id, 'cat:' + c.id));
+  }
+
+  let shown, heading;
+  if (sel === 'all') { shown = state.works; heading = '전체 작품'; }
+  else if (sel === 'uncat') { shown = worksIn(null); heading = '미분류'; }
+  else { shown = worksIn(sel); heading = catName(sel); }
+
+  const main = shown.length
+    ? `<div class="grid">${shown.map(cardHTML).join('')}</div>`
+    : `<div class="empty-hint">이 폴더에는 작품이 없습니다. 왼쪽이나 카드 메뉴로 작품을 옮겨보세요.</div>`;
+
+  return `
+    <div class="b-layout">
+      <aside class="rail">
+        <div class="rail-title">폴더</div>
+        ${railRows.join('')}
+        <button class="rail-newcat">+ 새 카테고리</button>
+      </aside>
+      <div>
+        <div class="b-main-head"><h2>${esc(heading)}</h2><span class="count">${shown.length}개</span></div>
+        ${main}
+      </div>
+    </div>`;
+}
+function folderRowHTML(key, name, count, current, dropTarget) {
+  const ico = key === 'uncat' ? ICON_INBOX : (key === 'all' ? '' : ICON_FOLDER);
+  const dropAttr = dropTarget ? `data-drop="${dropTarget}"` : '';
+  return `
+    <div class="folder-row" data-folder="${key}" ${dropAttr} ${current ? 'aria-current="true"' : ''} role="button" tabindex="0">
+      ${ico || '<span style="width:18px"></span>'}
+      <span class="f-name">${esc(name)}</span>
+      <span class="f-count">${count}</span>
+    </div>`;
+}
+
+/* ----------------------------------------------------------------------------
+ * 렌더 — 패턴 C: 폴더 타일 드릴인
+ * -------------------------------------------------------------------------- */
+function renderC() {
+  if (state.cPath === null) {
+    // 루트: 폴더 타일 + 미분류 작품
+    const tiles = state.categories.map((c) => `
+      <div class="folder-tile" data-drop="cat:${c.id}" data-enter="${c.id}" role="button" tabindex="0">
+        <span class="ft-peek">${countIn(c.id)}편</span>
+        ${ICON_FOLDER_BIG}
+        <div>
+          <h3>${esc(c.name)}</h3>
+          <div class="ft-count">작품 ${countIn(c.id)}편</div>
+        </div>
+      </div>`).join('');
+    const uncat = worksIn(null);
+    const uncatBlock = uncat.length
+      ? `<div class="c-grouplabel">미분류 작품</div><div class="grid">${uncat.map(cardHTML).join('')}</div>`
+      : '';
+    return `
+      <div class="crumbs"><span class="crumb current">내 작품</span></div>
+      <div class="grid">${tiles}</div>
+      ${uncatBlock}`;
+  }
+  // 폴더 안
+  const works = worksIn(state.cPath);
+  const body = works.length
+    ? `<div class="grid">${works.map(cardHTML).join('')}</div>`
+    : `<div class="empty-hint">이 폴더에는 작품이 없습니다. 위 <b>내 작품</b>으로 끌면 폴더에서 빼낼 수 있어요.</div>`;
+  return `
+    <div class="crumbs">
+      <button class="crumb" data-crumb="root" data-drop="uncat">내 작품</button>
+      <span class="crumb-sep">/</span>
+      <span class="crumb current">${esc(catName(state.cPath))} · ${works.length}편</span>
+    </div>
+    ${body}`;
+}
+
+/* ----------------------------------------------------------------------------
+ * 메인 렌더
+ * -------------------------------------------------------------------------- */
+function render() {
+  closeMenu();
+  $('#caption').innerHTML = CAPTIONS[state.view];
+  const stage = $('#stage');
+  if (state.view === 'A') stage.innerHTML = renderA();
+  else if (state.view === 'B') stage.innerHTML = renderB();
+  else stage.innerHTML = renderC();
+}
+
+/* ----------------------------------------------------------------------------
+ * 탭 전환
+ * -------------------------------------------------------------------------- */
+document.querySelectorAll('.tab').forEach((tab) => {
+  tab.addEventListener('click', () => {
+    state.view = tab.dataset.view;
+    document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
+    render();
+  });
+});
+window.addEventListener('keydown', (e) => {
+  if (e.target.matches('input, textarea')) return;
+  const k = e.key.toUpperCase();
+  if (['A', 'B', 'C'].includes(k)) {
+    const tab = document.querySelector(`.tab[data-view="${k}"]`);
+    if (tab) tab.click();
+  }
+});
+
+/* ----------------------------------------------------------------------------
+ * 클릭 위임 — 섹션 접기 / 폴더 선택 / 폴더 진입 / 경로 / 메뉴
+ * -------------------------------------------------------------------------- */
+$('#stage').addEventListener('click', (e) => {
+  const toggle = e.target.closest('[data-toggle]');
+  if (toggle) {
+    const key = toggle.dataset.toggle;
+    state.collapsed[key] = !state.collapsed[key];
+    render();
+    return;
+  }
+  const folder = e.target.closest('[data-folder]');
+  if (folder) { state.bFolder = folder.dataset.folder; render(); return; }
+
+  const crumb = e.target.closest('[data-crumb]');
+  if (crumb) { state.cPath = null; render(); return; }
+
+  const menuBtn = e.target.closest('[data-menu]');
+  if (menuBtn) { e.stopPropagation(); openMenu(menuBtn); return; }
+});
+// 폴더 타일 진입 = 더블클릭(끌기와 구분)
+$('#stage').addEventListener('dblclick', (e) => {
+  const tile = e.target.closest('[data-enter]');
+  if (tile) { state.cPath = tile.dataset.enter; render(); }
+});
+
+/* ----------------------------------------------------------------------------
+ * 카드 ⋯ 메뉴 (터치·키보드 대안)
+ * -------------------------------------------------------------------------- */
+let openMenuEl = null;
+function closeMenu() { if (openMenuEl) { openMenuEl.remove(); openMenuEl = null; } }
+function openMenu(btn) {
+  closeMenu();
+  const workId = btn.dataset.menu;
+  const w = state.works.find((x) => x.id === workId);
+  const rows = state.categories.map((c) => `
+    <button data-move="${c.id}">${ICON_FOLDER}<span>${esc(c.name)}</span>${w.cat === c.id ? '<span class="check">✓</span>' : ''}</button>`).join('');
+  const menu = document.createElement('div');
+  menu.className = 'menu';
+  menu.innerHTML = `
+    <div class="menu-label">「${esc(w.title)}」 이동</div>
+    ${rows}
+    <div class="menu-div"></div>
+    <button data-move="__null__">${ICON_INBOX}<span>분류 없음(미분류)</span>${w.cat === null ? '<span class="check">✓</span>' : ''}</button>`;
+  document.body.appendChild(menu);
+  const r = btn.getBoundingClientRect();
+  let left = r.right - 184, top = r.bottom + 6;
+  if (top + menu.offsetHeight > innerHeight - 8) top = r.top - menu.offsetHeight - 6;
+  if (left < 8) left = 8;
+  menu.style.left = left + 'px';
+  menu.style.top = top + 'px';
+  openMenuEl = menu;
+  menu.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-move]');
+    if (!b) return;
+    const target = b.dataset.move === '__null__' ? null : b.dataset.move;
+    moveWork(workId, target);
+    closeMenu();
+    render();
+  });
+}
+document.addEventListener('click', (e) => {
+  if (openMenuEl && !e.target.closest('.menu') && !e.target.closest('[data-menu]')) closeMenu();
+});
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+
+/* ----------------------------------------------------------------------------
+ * 포인터 드래그 엔진 — "들어올린 종이"
+ * -------------------------------------------------------------------------- */
+let drag = null;
+const THRESHOLD = 6;
+
+$('#stage').addEventListener('pointerdown', (e) => {
+  if (e.button !== 0) return;
+  if (e.target.closest('button, a, input, textarea, .card-menu-btn')) return;
+  const card = e.target.closest('.card[data-work-id]');
+  if (!card) return;
+  drag = {
+    workId: card.dataset.workId,
+    sourceEl: card,
+    startX: e.clientX, startY: e.clientY,
+    started: false,
+    clone: null,
+    zones: [],
+    hot: null,
+  };
+});
+
+window.addEventListener('pointermove', (e) => {
+  if (!drag) return;
+  const dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
+  if (!drag.started) {
+    if (Math.hypot(dx, dy) < THRESHOLD) return;
+    beginDrag(e);
+  }
+  // 클론 위치
+  drag.clone.style.left = (e.clientX - drag.offX) + 'px';
+  drag.clone.style.top = (e.clientY - drag.offY) + 'px';
+  // 드롭존 hit-test
+  drag.clone.style.display = 'none';
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  drag.clone.style.display = '';
+  const zone = under ? under.closest('[data-drop]') : null;
+  if (zone !== drag.hot) {
+    if (drag.hot) drag.hot.classList.remove('drop-hot');
+    drag.hot = zone && drag.zones.includes(zone) ? zone : null;
+    if (drag.hot) drag.hot.classList.add('drop-hot');
+  }
+});
+
+window.addEventListener('pointerup', (e) => {
+  if (!drag) return;
+  if (drag.started) {
+    const target = drag.hot;
+    document.body.classList.remove('is-dragging');
+    drag.zones.forEach((z) => z.classList.remove('drop-ok', 'drop-hot'));
+    drag.clone.remove();
+    if (target) {
+      const ds = target.dataset.drop;
+      const targetCat = ds === 'uncat' ? null : ds.slice(4); // "cat:cX"
+      moveWork(drag.workId, targetCat);
+      render();
+    } else {
+      drag.sourceEl.classList.remove('dragging-source');
+    }
+  }
+  drag = null;
+});
+
+function beginDrag(e) {
+  drag.started = true;
+  document.body.classList.add('is-dragging');
+  const card = drag.sourceEl;
+  const rect = card.getBoundingClientRect();
+  // 클론
+  const clone = card.cloneNode(true);
+  clone.classList.add('drag-clone');
+  clone.classList.remove('dragging-source');
+  clone.style.width = rect.width + 'px';
+  document.body.appendChild(clone);
+  drag.clone = clone;
+  drag.offX = e.clientX - rect.left;
+  drag.offY = e.clientY - rect.top;
+  card.classList.add('dragging-source');
+  // 활성 드롭존 수집 + 표식
+  drag.zones = Array.from(document.querySelectorAll('[data-drop]'));
+  // 현재 작품이 이미 속한 폴더는 살짝만(여전히 drop 가능 — 취소처럼 동작)
+  drag.zones.forEach((z) => z.classList.add('drop-ok'));
+}
+
+/* ----------------------------------------------------------------------------
+ * init
+ * -------------------------------------------------------------------------- */
+render();
+</script>
+</body>
+</html>

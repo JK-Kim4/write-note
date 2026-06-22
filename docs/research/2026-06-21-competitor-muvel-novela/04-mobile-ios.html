@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4. iOS 한글 · 모바일 집필 — 경쟁 조사</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">📚 창작 에디터 경쟁 조사
+      <small>뮤블(Muvel) · 노벨라(Novela) vs 소설비(Soseolbi)<br>조사일 2026-06-21</small>
+    </div>
+    <nav>
+      <div class="nav-group">리포트</div>
+      <a href="index.html"><span class="num">0</span>표지 &amp; 목차</a>
+      <a href="01-overview.html"><span class="num">1</span>개요 &amp; 명칭 정정</a>
+      <a href="02-tech-stack.html"><span class="num">2</span>기술 스택</a>
+      <a href="03-metrics.html"><span class="num">3</span>사용자 · 매출</a>
+      <a href="04-mobile-ios.html" class="active"><span class="num">4</span>iOS 한글 · 모바일 집필</a>
+      <a href="05-features.html"><span class="num">5</span>기능 비교표</a>
+      <a href="06-scorecard.html"><span class="num">6</span>완성도 점수화</a>
+      <a href="07-sources.html"><span class="num">7</span>출처 · 신뢰도 · 한계</a>
+    </nav>
+    <div class="foot">deep-research 워크플로우 기반<br>확인 불가 수치는 ‘공개 자료 없음’ 표기</div>
+  </aside>
+
+  <main class="main">
+  <div class="content">
+    <p class="eyebrow">Section 4 · 핵심 관심사</p>
+    <h1>iOS 한글 입력 · 모바일 집필</h1>
+    <p class="lead">우리가 자체 에디터에서 겪은 <strong>iOS Safari/WebKit 한글 IME 문제</strong>를 두 경쟁사는 어떻게 다루는가 — 가장 중요한 질문입니다. 정직하게: <strong>두 서비스의 iOS 한글 IME가 ‘정상 동작한다’를 직접 검증한 1차 출처는 없습니다.</strong> 하지만 그들의 <strong>아키텍처 선택</strong>에서 전략을 읽을 수 있습니다.</p>
+
+    <div class="callout warn">
+      <span class="t">⚠️ 직접 검증의 한계</span>
+      <p>iOS WebKit에서 한글 조합(빠른 타자·조합 중 mark·한자 변환·Backspace 분해)이 실제로 정상 동작하는지를 두 서비스에 대해 직접 dogfooding한 출처는 없습니다. 아래는 <strong>공개된 플랫폼 전략</strong> 기반 분석입니다.</p>
+    </div>
+
+    <h2>핵심 통찰 — “네이티브 앱은 WebKit IME 지옥을 우회한다”</h2>
+    <p>우리가 겪은 문제의 뿌리는 <strong>iOS WebKit의 <code>contenteditable</code>/<code>EditContext</code>에서 한글 조합 이벤트가 비정상 동작</strong>한다는 것입니다. 핵심은 이 문제를 피하는 길이 둘이라는 점입니다:</p>
+    <div class="grid grid-2">
+      <div class="card" style="border-top:4px solid var(--novela)">
+        <h3>길 A — 네이티브 텍스트 입력 <span class="badge novela">노벨라</span></h3>
+        <p>iOS 네이티브 앱은 <code>UITextView</code> 등 <strong>OS 네이티브 입력기</strong>를 쓴다. 한글 조합을 OS가 처리하므로 WebKit IME 버그를 <strong>원천적으로 회피</strong>. 노벨라는 2025-12 네이티브 iOS 앱을 출시 → 모바일 집필을 <em>웹 에디터가 아닌 앱</em>으로 푼 것으로 <strong>추정</strong>.</p>
+      </div>
+      <div class="card" style="border-top:4px solid var(--muvel)">
+        <h3>길 B — 웹 + 베타 보류 <span class="badge muvel">뮤블</span></h3>
+        <p>뮤블은 Tauri(=웹뷰=WebKit on iOS) 기반 크로스플랫폼. 데스크톱·Android·웹은 정식인데 <strong>iOS만 ‘베타(⚠️)’로 격리</strong>. 이는 <em>iOS WebKit 환경의 미성숙(한글 IME 포함 가능성)을 그들도 안고 있다</em>는 강한 정황.</p>
+      </div>
+    </div>
+
+    <h2>플랫폼 성숙도 매트릭스</h2>
+    <table>
+      <thead><tr><th>플랫폼</th><th class="c">뮤블</th><th class="c">노벨라</th><th class="c">소설비(현재)</th></tr></thead>
+      <tbody>
+        <tr><td>데스크톱</td><td class="c"><span class="check">정식</span></td><td class="c"><span class="partial">실행파일(엔진 미상)</span></td><td class="c"><span class="check">정식(Electron)</span></td></tr>
+        <tr><td>웹(브라우저)</td><td class="c"><span class="check">정식 ✅</span></td><td class="c"><span class="check">정식(주력)</span></td><td class="c"><span class="check">정식(주력)</span></td></tr>
+        <tr><td>Android 앱</td><td class="c"><span class="check">정식</span></td><td class="c"><span class="check">정식(2025-12)</span></td><td class="c"><span class="cross">없음</span></td></tr>
+        <tr><td><strong>iOS 앱</strong></td><td class="c"><span class="partial">⚠️ 베타</span></td><td class="c"><span class="check">정식(2025-12)</span></td><td class="c"><span class="cross">없음</span></td></tr>
+        <tr><td><strong>iOS 한글 웹 집필</strong></td><td class="c"><span class="unknown">미검증</span></td><td class="c"><span class="unknown">미검증</span></td><td class="c"><span class="partial">자체 엔진 과제(026)</span></td></tr>
+        <tr><td>모바일 캡처</td><td class="c"><span class="partial">앱 내</span></td><td class="c"><span class="partial">앱 내</span></td><td class="c"><span class="check">iOS Shortcut→API</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>우리(소설비)의 상황과 대조</h2>
+    <p>우리 코드베이스 기록(spec 026 ‘모바일 집필 지원’)상, 자체 CustomEditor는 데스크톱에서 <strong>EditContext API</strong>로 입력을 받지만 <strong>iOS WebKit은 EditContext 미지원</strong>이라, 입력 결합부를 <code>InputAdapter</code>로 추상화해 <strong>iOS는 <code>contenteditable</code> 어댑터로 분기</strong>하는 전략을 설계했습니다. 즉 우리는 <em>웹 에디터를 끝까지 끌고 가는</em> 어려운 길(길 B의 극단)을 택했습니다.</p>
+
+    <div class="callout">
+      <span class="t">전략적 결론 — 가장 중요한 시사점</span>
+      <p><strong>경쟁사들은 iOS 한글 입력 문제를 ‘웹에서 풀지 않고’ 네이티브 앱(노벨라)이나 베타 격리(뮤블)로 비껴갔습니다.</strong> 반면 소설비는 자체 페이지 분할 엔진 때문에 <em>웹 에디터를 iOS에서도 직접 동작</em>시켜야 하는, 셋 중 가장 어려운 길 위에 있습니다.<br><br>→ <strong>선택지 두 갈래</strong>: ① 이 어려운 웹 IME 문제를 끝까지 풀어 <em>“앱 설치 없이 iOS 브라우저에서 책 형태로 쓰는” 유일한 서비스</em>가 되거나(차별화 극대화), ② 모바일은 네이티브 앱/캡처로 우회하고 <em>페이지 분할 집필은 데스크톱·웹에 집중</em>. 이 결정은 사용자 컨펌이 필요한 제품 방향 문제입니다.</p>
+    </div>
+
+    <div class="callout warn">
+      <span class="t">검증 제안</span>
+      <p>‘경쟁사 iOS 한글이 멀쩡한가’는 공개 자료로 답이 안 나옵니다. <strong>실제 iOS 기기에서 뮤블 베타·노벨라 앱에 한글 4케이스(빠른 타자/조합 중 굵게/한자 변환/Backspace 분해)를 직접 입력해보는 dogfooding</strong>이 유일한 확실한 검증입니다. 원하시면 검증 체크리스트를 만들어 드리겠습니다.</p>
+    </div>
+
+    <div class="pagenav">
+      <a href="03-metrics.html"><span class="dir">← 이전</span><span class="ttl">3. 사용자 · 매출</span></a>
+      <a class="next" href="05-features.html"><span class="dir">다음 →</span><span class="ttl">5. 기능 비교표</span></a>
+    </div>
+  </div>
+  </main>
+</div>
+</body>
+</html>

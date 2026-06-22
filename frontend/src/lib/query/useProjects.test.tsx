@@ -26,6 +26,7 @@ function makeProject(overrides: Partial<ProjectResponse> = {}): ProjectResponse 
         synopsis: null,
         worldNotes: null,
         nextScene: "",
+        categoryId: null,
         paperSize: "A4",
         layoutMode: "paper",
         fontScale: "m",
@@ -107,18 +108,30 @@ describe("useArchivedProjects — 보관 목록 조회", () => {
     const active = makeProject({ id: 3, title: "활성 작품", archivedAt: null });
 
     beforeEach(() => {
+        // 백엔드가 archived 파라미터로 분리 조회 — archived=true 면 보관함만 반환
         server.use(
-            http.get(`${ORIGIN}/api/projects`, () =>
-                HttpResponse.json({
+            http.get(`${ORIGIN}/api/projects`, ({ request }) => {
+                const url = new URL(request.url);
+                // 백엔드 계약: size 는 1..100 만 허용, 초과 시 400 INVALID_PARAMETER (ProjectService.listProjects)
+                const size = Number(url.searchParams.get("size") ?? "20");
+                if (!(size >= 1 && size <= 100)) {
+                    return HttpResponse.json(
+                        { success: false, data: null, error: { code: "INVALID_PARAMETER", message: "size must be between 1 and 100" } },
+                        { status: 400 },
+                    );
+                }
+                const isArchived = url.searchParams.get("archived") === "true";
+                const content = isArchived ? [archived] : [active];
+                return HttpResponse.json({
                     success: true,
-                    data: { content: [archived, active], totalElements: 2, totalPages: 1, number: 0, size: 200 },
+                    data: { content, totalElements: content.length, totalPages: 1, number: 0, size },
                     error: null,
-                }),
-            ),
+                });
+            }),
         );
     });
 
-    it("enabled=true 면 archivedAt!=null 인 작품만 반환한다", async () => {
+    it("enabled=true 면 archived=true 로 보관 작품만 조회한다", async () => {
         const { result } = renderHook(() => useArchivedProjects(true), { wrapper });
         await waitFor(() => expect(result.current.isSuccess).toBe(true));
         expect(result.current.data).toHaveLength(1);

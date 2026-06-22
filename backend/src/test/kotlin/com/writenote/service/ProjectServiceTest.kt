@@ -9,6 +9,7 @@ import com.writenote.mapper.ProjectMapper
 import com.writenote.model.request.CreateProjectRequest
 import com.writenote.model.request.UpdateProjectRequest
 import com.writenote.model.response.ProjectResponse
+import com.writenote.repository.CategoryRepository
 import com.writenote.repository.DocumentRepository
 import com.writenote.repository.ProjectRepository
 import com.writenote.repository.UserRepository
@@ -31,6 +32,7 @@ class ProjectServiceTest {
     private lateinit var projectMapper: ProjectMapper
     private lateinit var documentRepository: DocumentRepository
     private lateinit var workSessionRepository: WorkSessionRepository
+    private lateinit var categoryRepository: CategoryRepository
     private lateinit var service: ProjectService
 
     @BeforeEach
@@ -40,7 +42,16 @@ class ProjectServiceTest {
         projectMapper = mockk()
         documentRepository = mockk()
         workSessionRepository = mockk()
-        service = ProjectService(projectRepository, userRepository, projectMapper, documentRepository, workSessionRepository)
+        categoryRepository = mockk()
+        service =
+            ProjectService(
+                projectRepository,
+                userRepository,
+                projectMapper,
+                documentRepository,
+                workSessionRepository,
+                categoryRepository,
+            )
     }
 
     private fun stubMapper(project: Project): ProjectResponse {
@@ -240,6 +251,56 @@ class ProjectServiceTest {
         every { projectRepository.findByIdAndUserId(eq(99L), eq(5L)) } returns Optional.empty()
 
         assertThatThrownBy { service.archiveProject(5L, 99L) }
+            .isInstanceOf(ResourceNotFoundException::class.java)
+    }
+
+    // ── 032 모음 이동 moveCategory ───────────────────────────────────────────
+
+    @Test
+    @DisplayName("moveCategory — 본인 모음 지정 시 categoryId 설정")
+    fun `moveCategory sets categoryId when category owned`() {
+        val project =
+            Project(id = 5L, userId = 1L, title = "x", createdAt = Instant.now(), updatedAt = Instant.now())
+        every { projectRepository.findByIdAndUserId(eq(5L), eq(1L)) } returns Optional.of(project)
+        every { categoryRepository.existsByIdAndUserId(eq(9L), eq(1L)) } returns true
+        every { projectMapper.toResponse(eq(project)) } answers { stubMapper(project) }
+
+        service.moveCategory(userId = 1L, projectId = 5L, categoryId = 9L)
+
+        assertThat(project.categoryId).isEqualTo(9L)
+    }
+
+    @Test
+    @DisplayName("moveCategory — categoryId null 이면 미분류(null)로 빼냄")
+    fun `moveCategory clears categoryId when null`() {
+        val project =
+            Project(id = 5L, userId = 1L, title = "x", categoryId = 9L, createdAt = Instant.now(), updatedAt = Instant.now())
+        every { projectRepository.findByIdAndUserId(eq(5L), eq(1L)) } returns Optional.of(project)
+        every { projectMapper.toResponse(eq(project)) } answers { stubMapper(project) }
+
+        service.moveCategory(userId = 1L, projectId = 5L, categoryId = null)
+
+        assertThat(project.categoryId).isNull()
+    }
+
+    @Test
+    @DisplayName("moveCategory — 본인 작품 아니면 ResourceNotFoundException")
+    fun `moveCategory rejects non-owned project`() {
+        every { projectRepository.findByIdAndUserId(eq(99L), eq(1L)) } returns Optional.empty()
+
+        assertThatThrownBy { service.moveCategory(userId = 1L, projectId = 99L, categoryId = 9L) }
+            .isInstanceOf(ResourceNotFoundException::class.java)
+    }
+
+    @Test
+    @DisplayName("moveCategory — 남의/없는 모음 지정 시 ResourceNotFoundException")
+    fun `moveCategory rejects unknown category`() {
+        val project =
+            Project(id = 5L, userId = 1L, title = "x", createdAt = Instant.now(), updatedAt = Instant.now())
+        every { projectRepository.findByIdAndUserId(eq(5L), eq(1L)) } returns Optional.of(project)
+        every { categoryRepository.existsByIdAndUserId(eq(77L), eq(1L)) } returns false
+
+        assertThatThrownBy { service.moveCategory(userId = 1L, projectId = 5L, categoryId = 77L) }
             .isInstanceOf(ResourceNotFoundException::class.java)
     }
 

@@ -22,5 +22,6 @@ class ProjectMapper {
             archivedAt = project.archivedAt,
             createdAt = requireNotNull(project.createdAt),
             updatedAt = requireNotNull(project.updatedAt),
+            categoryId = project.categoryId,
         )
 }

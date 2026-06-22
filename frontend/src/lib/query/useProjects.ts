@@ -70,8 +70,9 @@ export function useArchivedProjects(enabled: boolean) {
     return useQuery({
         queryKey: [...projectKeys.all, "archived"] as const,
         queryFn: async (): Promise<Project[]> => {
-            const page = await listProjects({ size: 200 });
-            return page.content.filter((p) => p.archivedAt != null);
+            // archived=true 로 보관함만 조회. size 는 백엔드 상한(1..100) 이내 — 초과 시 400 (베타 작품 수엔 100 충분)
+            const page = await listProjects({ size: 100, archived: true });
+            return page.content;
         },
         enabled,
     });

@@ -11,6 +11,7 @@ import com.writenote.model.request.UpdateProjectRequest
 import com.writenote.model.response.PageResponse
 import com.writenote.model.response.ProjectCardResponse
 import com.writenote.model.response.ProjectResponse
+import com.writenote.repository.CategoryRepository
 import com.writenote.repository.DocumentRepository
 import com.writenote.repository.ProjectRepository
 import com.writenote.repository.UserRepository
@@ -27,6 +28,7 @@ class ProjectService(
     private val projectMapper: ProjectMapper,
     private val documentRepository: DocumentRepository,
     private val workSessionRepository: WorkSessionRepository,
+    private val categoryRepository: CategoryRepository,
 ) {
     @Transactional(rollbackFor = [Exception::class])
     fun createProject(
@@ -180,6 +182,24 @@ class ProjectService(
             throw ValidationException("지원하지 않는 글자 크기입니다: $value")
         }
         return value
+    }
+
+    /**
+     * 작품을 모음으로 이동(032) — [categoryId] null = 미분류로 빼냄.
+     * 본인 작품·모음만(아니면 404). 기존 PATCH 와 별도(null-vs-absent 모호 회피).
+     */
+    @Transactional(rollbackFor = [Exception::class])
+    fun moveCategory(
+        userId: Long,
+        projectId: Long,
+        categoryId: Long?,
+    ): ProjectResponse {
+        val project = requireOwnedProject(userId, projectId)
+        if (categoryId != null && !categoryRepository.existsByIdAndUserId(categoryId, userId)) {
+            throw ResourceNotFoundException("Category not found")
+        }
+        project.categoryId = categoryId
+        return projectMapper.toResponse(project)
     }
 
     @Transactional(rollbackFor = [Exception::class])

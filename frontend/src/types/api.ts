@@ -56,7 +56,21 @@ export interface ProjectResponse {
     layoutMode: LayoutMode;
     /** 작품별 글자 크기 5단 (031 US5 / V19). 판형 기본 위 덮어쓰기. 기본 m. */
     fontScale: FontScale;
+    /** 소속 모음(카테고리) id (032 / V20). null = 미분류. */
+    categoryId: number | null;
     archivedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+/** 모음(카테고리) 응답 (032) — GET /api/categories. parentId 는 v1 항상 null(N뎁스 설계용). */
+export interface CategoryResponse {
+    id: number;
+    name: string;
+    parentId: number | null;
+    sortOrder: number;
+    /** 해당 모음의 활성 작품 수(보관 제외). 빈 모음=0. */
+    projectCount: number;
     createdAt: string;
     updatedAt: string;
 }

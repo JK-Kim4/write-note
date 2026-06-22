@@ -29,10 +29,6 @@ const TOUR_STEPS = [
         element: '[data-tour="nav-characters"]',
         popover: { title: "인물", description: "등장인물을 한곳에 정리해요", side: "bottom" },
     },
-    {
-        element: '[data-tour="nav-write"]',
-        popover: { title: "집필", description: "작품으로 들어가 이어 써요", side: "bottom" },
-    },
 ] as const;
 
 export function OnboardingTour() {
