@@ -185,21 +185,19 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
     const { printModels, exportPdf, clearPrint } = usePdfExport();
     const exportText = useTextExport(seriesName);
 
-    const handleSeriesExport = useCallback(
-        async (s: SeriesExportSubmit) => {
-            setExportOpen(false);
-            const orderedIds = await collectSeriesOrderedIds(s.orderedProjectIds, getProjectDocument);
-            const req = { orderedIds, joinMode: s.joinMode };
-            if (s.target.kind === "pdf") {
-                exportPdf(req);
-            } else if (s.target.kind === "text") {
-                exportText(s.target.format, req);
-            } else {
-                await exportSeriesWord(s.orderedProjectIds[0], seriesPaper, seriesName, s.target.format, req);
-            }
-        },
-        [exportPdf, exportText, seriesPaper, seriesName],
-    );
+    // React Compiler 가 auto-memo (이 파일의 다른 핸들러처럼 수동 useCallback 안 씀 — 수동 deps 는 컴파일러와 충돌)
+    const handleSeriesExport = async (s: SeriesExportSubmit) => {
+        setExportOpen(false);
+        const orderedIds = await collectSeriesOrderedIds(s.orderedProjectIds, getProjectDocument);
+        const req = { orderedIds, joinMode: s.joinMode };
+        if (s.target.kind === "pdf") {
+            exportPdf(req);
+        } else if (s.target.kind === "text") {
+            exportText(s.target.format, req);
+        } else {
+            await exportSeriesWord(s.orderedProjectIds[0], seriesPaper, seriesName, s.target.format, req);
+        }
+    };
 
     const handleDragStart = (e: DragStartEvent) => setActiveDragId(String(e.active.id));
     const handleDragEnd = (e: DragEndEvent) => {
