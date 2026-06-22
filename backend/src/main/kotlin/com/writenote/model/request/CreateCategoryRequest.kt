@@ -1,6 +1,7 @@
 package com.writenote.model.request
 
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.PositiveOrZero
 import jakarta.validation.constraints.Size
 
 /**
@@ -8,7 +9,7 @@ import jakarta.validation.constraints.Size
  *
  * [paperSize]·[layoutMode] 는 시리즈 출판 메타(033 R2, optional·null 허용). 값이 있으면 서비스가
  * 허용 식별자 집합으로 검증한다. [genre]·[synopsis] 는 시리즈 장르·줄거리(033 R3, optional·null 허용).
- * (targetLength 는 R4 범위로 본 요청 미노출.)
+ * [targetLength] 는 시리즈 총 목표 분량(033 R4, optional·null=미설정, ≥0).
  */
 data class CreateCategoryRequest(
     @field:NotBlank
@@ -20,4 +21,6 @@ data class CreateCategoryRequest(
     @field:Size(max = 100)
     val genre: String? = null,
     val synopsis: String? = null,
+    @field:PositiveOrZero
+    val targetLength: Int? = null,
 )

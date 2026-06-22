@@ -1,5 +1,6 @@
 package com.writenote.model.request
 
+import jakarta.validation.constraints.PositiveOrZero
 import jakarta.validation.constraints.Size
 
 /**
@@ -7,7 +8,7 @@ import jakarta.validation.constraints.Size
  *
  * [paperSize]·[layoutMode] 는 시리즈 출판 메타(033 R2). null=미변경. layoutMode 는 값이 있으면
  * `paper`/`web` 중 하나로 검증한다. [genre]·[synopsis] 는 시리즈 장르·줄거리(033 R3, null=미변경).
- * (targetLength 는 R4 범위로 본 요청 미노출.)
+ * [targetLength] 는 시리즈 총 목표 분량(033 R4, null=미변경, ≥0).
  */
 data class UpdateCategoryRequest(
     @field:Size(min = 1, max = 60)
@@ -18,4 +19,6 @@ data class UpdateCategoryRequest(
     @field:Size(max = 100)
     val genre: String? = null,
     val synopsis: String? = null,
+    @field:PositiveOrZero
+    val targetLength: Int? = null,
 )

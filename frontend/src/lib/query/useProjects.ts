@@ -21,6 +21,8 @@ export function useProjectCards() {
     return useQuery({
         queryKey: projectKeys.cards(),
         queryFn: () => webElectronApi.projects.listCards(),
+        // 집필(본문 글자수 변경) 후 라이브러리 복귀마다 카드 글자수·시리즈 진척 최신화 — 기본 staleTime 60s 캐시 미반영 방지(028 패턴)
+        refetchOnMount: "always",
     });
 }
 
@@ -53,7 +55,11 @@ export function useArchiveProject() {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (id: number) => archiveProject(id),
-        onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.all }),
+        // 보관은 시리즈 진척(archived 제외 totalWordCount)·작품수를 바꾸므로 시리즈 캐시도 무효화(categoryKeys.all=["categories"], 순환 import 회피 인라인)
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: projectKeys.all });
+            qc.invalidateQueries({ queryKey: ["categories"] });
+        },
     });
 }
 
@@ -61,7 +67,11 @@ export function useUnarchiveProject() {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (id: number) => unarchiveProject(id),
-        onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.all }),
+        // 복원도 시리즈 진척·작품수에 영향 → 시리즈 캐시 무효화
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: projectKeys.all });
+            qc.invalidateQueries({ queryKey: ["categories"] });
+        },
     });
 }
 
@@ -98,6 +108,8 @@ export function useDeleteProject() {
         },
         onSettled: () => {
             qc.invalidateQueries({ queryKey: projectKeys.all });
+            // 삭제는 시리즈 진척(totalWordCount)·작품수를 바꾸므로 시리즈 캐시도 무효화
+            qc.invalidateQueries({ queryKey: ["categories"] });
         },
     });
 }

@@ -29,6 +29,8 @@ function cat(id: number, name: string, projectCount = 0): CategoryResponse {
         layoutMode: null,
         genre: null,
         synopsis: null,
+        targetLength: null,
+        totalWordCount: 0,
         createdAt: "2026-06-22T00:00:00Z",
         updatedAt: "2026-06-22T00:00:00Z",
     };
@@ -159,7 +161,7 @@ describe("LibraryBoard — 시리즈 생성/이름변경/삭제", () => {
 
         // 033 — 편집 폼이 이름과 함께 장르·줄거리·판형·출판방식(미설정=null)도 보낸다.
         await waitFor(() =>
-            expect(renamed).toEqual({ name: "가나다라", genre: null, synopsis: null, paperSize: null, layoutMode: null }),
+            expect(renamed).toEqual({ name: "가나다라", genre: null, synopsis: null, paperSize: null, layoutMode: null, targetLength: null }),
         );
     });
 
@@ -178,7 +180,7 @@ describe("LibraryBoard — 시리즈 생성/이름변경/삭제", () => {
         await userEvent.click(screen.getByRole("button", { name: "저장" }));
 
         await waitFor(() =>
-            expect(patched).toEqual({ name: "가나다", genre: null, synopsis: null, paperSize: "sinkukpan", layoutMode: "paper" }),
+            expect(patched).toEqual({ name: "가나다", genre: null, synopsis: null, paperSize: "sinkukpan", layoutMode: "paper", targetLength: null }),
         );
     });
 

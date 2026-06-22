@@ -19,6 +19,8 @@ export function useCategories() {
     return useQuery({
         queryKey: categoryKeys.list(),
         queryFn: () => webElectronApi.categories.list(),
+        // 본문 글자수 변경 후 라이브러리 복귀마다 시리즈 진척(totalWordCount) 최신화 — 기본 staleTime 60s 캐시 미반영 방지(028 패턴)
+        refetchOnMount: "always",
     });
 }
 

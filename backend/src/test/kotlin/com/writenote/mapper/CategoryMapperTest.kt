@@ -16,7 +16,7 @@ class CategoryMapperTest {
         val category =
             Category(id = 3L, userId = 1L, name = "장편 판타지", parentId = null, sortOrder = 2, createdAt = now, updatedAt = now)
 
-        val response = mapper.toResponse(category, projectCount = 5)
+        val response = mapper.toResponse(category, projectCount = 5, totalWordCount = 8000)
 
         assertThat(response.id).isEqualTo(3L)
         assertThat(response.name).isEqualTo("장편 판타지")
@@ -25,8 +25,30 @@ class CategoryMapperTest {
         assertThat(response.projectCount).isEqualTo(5)
         assertThat(response.paperSize).isNull()
         assertThat(response.layoutMode).isNull()
+        assertThat(response.targetLength).isNull()
+        assertThat(response.totalWordCount).isEqualTo(8000)
         assertThat(response.createdAt).isEqualTo(now)
         assertThat(response.updatedAt).isEqualTo(now)
+    }
+
+    @Test
+    @DisplayName("toResponse — 시리즈 총 목표 분량 매핑(033 R4)")
+    fun `toResponse maps series targetLength and totalWordCount`() {
+        val now = Instant.parse("2026-06-22T00:00:00Z")
+        val category =
+            Category(
+                id = 3L,
+                userId = 1L,
+                name = "대하소설",
+                targetLength = 500000,
+                createdAt = now,
+                updatedAt = now,
+            )
+
+        val response = mapper.toResponse(category, projectCount = 2, totalWordCount = 123400)
+
+        assertThat(response.targetLength).isEqualTo(500000)
+        assertThat(response.totalWordCount).isEqualTo(123400)
     }
 
     @Test

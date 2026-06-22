@@ -142,20 +142,20 @@
 
 ### 테스트 (TDD)
 
-- [ ] T049 [P] [US4] Category target_length 저장·응답 테스트 in `backend/.../`
-- [ ] T050 [P] [US4] totalWordCount 집계 테스트 in `backend/.../` — 하위 작품(archived 제외) 활성 본문 word_count 합, 목표 null/0 가드
+- [x] T049 [P] [US4] Category target_length 저장·응답 테스트 in `backend/.../`
+- [x] T050 [P] [US4] totalWordCount 집계 테스트 in `backend/.../` — 하위 작품(archived 제외) 활성 본문 word_count 합, 목표 null/0 가드
 
 ### BE
 
-- [ ] T051 [US4] `CreateCategoryRequest`/`UpdateCategoryRequest`/`CategoryResponse` 에 targetLength 추가 + `CategoryResponse.totalWordCount` 추가
-- [ ] T052 [US4] `backend/.../service/CategoryService.kt` 시리즈 진척 집계(하위 작품 word_count 합) — 기존 ProjectCardResponse 집계 경로 재사용
+- [x] T051 [US4] `CreateCategoryRequest`/`UpdateCategoryRequest`/`CategoryResponse` 에 targetLength 추가 + `CategoryResponse.totalWordCount` 추가
+- [x] T052 [US4] `backend/.../service/CategoryService.kt` 시리즈 진척 집계(하위 작품 word_count 합) — 기존 ProjectCardResponse 집계 경로 재사용
 
 ### FE
 
-- [ ] T053 [US4] `frontend/src/components/library/LibraryBoard.tsx`·`CategoryTile.tsx` 시리즈 폼에 총 목표 입력 + 진척(totalWordCount/targetLength) 표시(목표 없음/0 나눗셈 가드)
-- [ ] T054 [US4] `frontend/src/app/(main)/library/page.tsx` 작품 폼 작품 목표(targetLength) 입력 유지 확인(시리즈 총 목표와 독립)
-- [ ] T055 [P] [US4] `frontend/src/types/api.ts`·`lib/api/categories.ts` targetLength/totalWordCount 반영
-- [ ] T056 [US4] backend verify + frontend verify GREEN
+- [x] T053 [US4] `frontend/src/components/library/LibraryBoard.tsx`·`CategoryTile.tsx` 시리즈 폼에 총 목표 입력 + 진척(totalWordCount/targetLength) 표시(목표 없음/0 나눗셈 가드)
+- [x] T054 [US4] `frontend/src/app/(main)/library/page.tsx` 작품 폼 작품 목표(targetLength) 입력 유지 확인(시리즈 총 목표와 독립)
+- [x] T055 [P] [US4] `frontend/src/types/api.ts`·`lib/api/categories.ts` targetLength/totalWordCount 반영
+- [x] T056 [US4] backend verify + frontend verify GREEN
 
 **Checkpoint**: 두 층위 목표 분량 dogfoodable.
 

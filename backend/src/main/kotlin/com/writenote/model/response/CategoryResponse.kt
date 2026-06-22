@@ -10,6 +10,9 @@ import java.time.Instant
  *
  * [paperSize]·[layoutMode] 는 시리즈 출판 메타(033 R2, null=미설정). 하위 작품 effective 해석의 원천.
  * [genre]·[synopsis] 는 시리즈 장르·줄거리(033 R3, null=미설정).
+ *
+ * [targetLength] 는 시리즈 총 목표 분량(033 R4, null=미설정). [totalWordCount] 는 해당 시리즈 소속의
+ * 보관(archived) 아닌 작품들의 활성 본문(deleted_at IS NULL) word_count 합. 진척률·0 나눗셈 가드는 FE 책임.
  */
 data class CategoryResponse(
     val id: Long,
@@ -21,6 +24,8 @@ data class CategoryResponse(
     val layoutMode: String?,
     val genre: String?,
     val synopsis: String?,
+    val targetLength: Int?,
+    val totalWordCount: Int,
     val createdAt: Instant,
     val updatedAt: Instant,
 )

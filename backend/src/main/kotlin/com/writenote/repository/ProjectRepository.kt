@@ -19,6 +19,12 @@ interface CategoryProjectCount {
     val cnt: Long
 }
 
+/** 시리즈 진척(033 R4) — categoryId 별 활성 본문 word_count 합 projection(N+1 회피). */
+interface CategoryWordCount {
+    val categoryId: Long
+    val totalWordCount: Long
+}
+
 interface ProjectRepository : JpaRepository<Project, Long> {
     @Query(
         "SELECT p.userId AS userId, COUNT(p) AS cnt FROM Project p WHERE p.userId IN :userIds GROUP BY p.userId",
@@ -49,4 +55,16 @@ interface ProjectRepository : JpaRepository<Project, Long> {
             "WHERE p.userId = :userId AND p.categoryId IS NOT NULL AND p.archivedAt IS NULL GROUP BY p.categoryId",
     )
     fun countActiveByCategory(userId: Long): List<CategoryProjectCount>
+
+    /**
+     * 시리즈 진척(033 R4) — 작가의 시리즈별 활성 본문 word_count 합(N+1 금지, 한 번의 group-by).
+     * 보관 아닌 작품(archived_at IS NULL) × 활성 본문(deleted_at IS NULL)만. 미분류(category_id NULL) 제외.
+     */
+    @Query(
+        "SELECT p.categoryId AS categoryId, COALESCE(SUM(d.wordCount), 0) AS totalWordCount FROM Project p " +
+            "JOIN Document d ON d.projectId = p.id AND d.deletedAt IS NULL " +
+            "WHERE p.userId = :userId AND p.categoryId IS NOT NULL AND p.archivedAt IS NULL " +
+            "GROUP BY p.categoryId",
+    )
+    fun sumWordCountByCategory(userId: Long): List<CategoryWordCount>
 }

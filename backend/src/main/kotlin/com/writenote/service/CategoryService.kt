@@ -50,9 +50,11 @@ class CategoryService(
                     layoutMode = validatedLayoutMode(request.layoutMode),
                     genre = request.genre,
                     synopsis = request.synopsis,
+                    targetLength = request.targetLength,
                 ),
             )
-        return categoryMapper.toResponse(category, projectCount = 0)
+        // 신규 시리즈는 소속 작품 0 → totalWordCount 0(집계 쿼리 불필요)
+        return categoryMapper.toResponse(category, projectCount = 0, totalWordCount = 0)
     }
 
     @Transactional(readOnly = true)
@@ -66,8 +68,16 @@ class CategoryService(
             projectRepository
                 .countActiveByCategory(userId)
                 .associate { it.categoryId to it.cnt.toInt() }
+        val wordCountByCategoryId =
+            projectRepository
+                .sumWordCountByCategory(userId)
+                .associate { it.categoryId to it.totalWordCount.toInt() }
         return categories.map { category ->
-            categoryMapper.toResponse(category, projectCount = countByCategoryId[category.id] ?: 0)
+            categoryMapper.toResponse(
+                category,
+                projectCount = countByCategoryId[category.id] ?: 0,
+                totalWordCount = wordCountByCategoryId[category.id] ?: 0,
+            )
         }
     }
 
@@ -90,13 +100,20 @@ class CategoryService(
         request.layoutMode?.let { category.layoutMode = validatedLayoutMode(it) }
         request.genre?.let { category.genre = it }
         request.synopsis?.let { category.synopsis = it }
+        request.targetLength?.let { category.targetLength = it }
         val count =
             projectRepository
                 .countActiveByCategory(userId)
                 .firstOrNull { it.categoryId == categoryId }
                 ?.cnt
                 ?.toInt() ?: 0
-        return categoryMapper.toResponse(category, projectCount = count)
+        val totalWordCount =
+            projectRepository
+                .sumWordCountByCategory(userId)
+                .firstOrNull { it.categoryId == categoryId }
+                ?.totalWordCount
+                ?.toInt() ?: 0
+        return categoryMapper.toResponse(category, projectCount = count, totalWordCount = totalWordCount)
     }
 
     @Transactional(rollbackFor = [Exception::class])

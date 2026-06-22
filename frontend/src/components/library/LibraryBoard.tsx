@@ -19,7 +19,7 @@ import {
     useRenameCategory,
 } from "@/lib/query/useCategories";
 import { DraggableWorkCard, workDragId } from "./DraggableWorkCard";
-import { CategoryTile, categoryDropId } from "./CategoryTile";
+import { CategoryTile, categoryDropId, type CategoryUpdateInput } from "./CategoryTile";
 import { SeriesPublishFields } from "./SeriesPublishFields";
 import type { CreateCategoryInput } from "@/lib/api/categories";
 import type { CategoryResponse, LayoutMode } from "@/types/api";
@@ -156,6 +156,7 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
     const [newCatSynopsis, setNewCatSynopsis] = useState("");
     const [newCatPaperSize, setNewCatPaperSize] = useState<PaperSize | null>(null);
     const [newCatLayoutMode, setNewCatLayoutMode] = useState<LayoutMode | null>(null);
+    const [newCatTargetLength, setNewCatTargetLength] = useState<number | null>(null);
     const [deleteCatTarget, setDeleteCatTarget] = useState<CategoryResponse | null>(null);
     const [activeDragId, setActiveDragId] = useState<string | null>(null);
     const [flying, setFlying] = useState<FlyingState | null>(null);
@@ -205,6 +206,7 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
         setNewCatSynopsis("");
         setNewCatPaperSize(null);
         setNewCatLayoutMode(null);
+        setNewCatTargetLength(null);
         setAddingCat(false);
     };
     const submitNewCat = () => {
@@ -216,22 +218,14 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                 synopsis: newCatSynopsis.trim() || null,
                 paperSize: newCatPaperSize,
                 layoutMode: newCatLayoutMode,
+                targetLength: newCatTargetLength,
             };
             createCategory.mutate(input);
         }
         resetNewCat();
     };
     const handleUpdateCat = useCallback(
-        (
-            id: number,
-            input: {
-                name?: string;
-                genre?: string | null;
-                synopsis?: string | null;
-                paperSize?: PaperSize | null;
-                layoutMode?: LayoutMode | null;
-            },
-        ) => renameCategory.mutate({ id, input }),
+        (id: number, input: CategoryUpdateInput) => renameCategory.mutate({ id, input }),
         [renameCategory],
     );
     const handleConfirmDeleteCat = async () => {
@@ -299,10 +293,12 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                                         synopsis={newCatSynopsis}
                                         paperSize={newCatPaperSize}
                                         layoutMode={newCatLayoutMode}
+                                        targetLength={newCatTargetLength}
                                         onGenreChange={setNewCatGenre}
                                         onSynopsisChange={setNewCatSynopsis}
                                         onPaperSizeChange={setNewCatPaperSize}
                                         onLayoutModeChange={setNewCatLayoutMode}
+                                        onTargetLengthChange={setNewCatTargetLength}
                                     />
                                     <div className="mt-2 flex gap-1.5">
                                         <button

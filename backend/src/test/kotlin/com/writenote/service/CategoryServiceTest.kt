@@ -8,6 +8,7 @@ import com.writenote.model.request.CreateCategoryRequest
 import com.writenote.model.request.UpdateCategoryRequest
 import com.writenote.repository.CategoryProjectCount
 import com.writenote.repository.CategoryRepository
+import com.writenote.repository.CategoryWordCount
 import com.writenote.repository.ProjectRepository
 import com.writenote.repository.UserRepository
 import io.mockk.every
@@ -45,6 +46,15 @@ class CategoryServiceTest {
         object : CategoryProjectCount {
             override val categoryId = categoryId
             override val cnt = cnt
+        }
+
+    private fun words(
+        categoryId: Long,
+        totalWordCount: Long,
+    ): CategoryWordCount =
+        object : CategoryWordCount {
+            override val categoryId = categoryId
+            override val totalWordCount = totalWordCount
         }
 
     private fun savedCategory(c: Category): Category =
@@ -141,6 +151,35 @@ class CategoryServiceTest {
     }
 
     @Test
+    @DisplayName("create — 시리즈 총 목표 분량 영속(033 R4)")
+    fun `create persists series targetLength`() {
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { categoryRepository.maxSortOrder(eq(1L)) } returns -1
+        val captured = slot<Category>()
+        every { categoryRepository.save(capture(captured)) } answers { savedCategory(firstArg()) }
+
+        val response = service.create(1L, CreateCategoryRequest(name = "대하소설", targetLength = 500000))
+
+        assertThat(captured.captured.targetLength).isEqualTo(500000)
+        assertThat(response.targetLength).isEqualTo(500000)
+        assertThat(response.totalWordCount).isEqualTo(0)
+    }
+
+    @Test
+    @DisplayName("create — targetLength 미지정이면 null 영속(미설정)")
+    fun `create leaves targetLength null when omitted`() {
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { categoryRepository.maxSortOrder(eq(1L)) } returns -1
+        val captured = slot<Category>()
+        every { categoryRepository.save(capture(captured)) } answers { savedCategory(firstArg()) }
+
+        val response = service.create(1L, CreateCategoryRequest(name = "미설정"))
+
+        assertThat(captured.captured.targetLength).isNull()
+        assertThat(response.targetLength).isNull()
+    }
+
+    @Test
     @DisplayName("create — 비허용 layoutMode 는 ValidationException")
     fun `create rejects unknown layoutMode`() {
         every { userRepository.existsById(eq(1L)) } returns true
@@ -201,12 +240,33 @@ class CategoryServiceTest {
                 Category(id = 20L, userId = 1L, name = "B(빈)", sortOrder = 1, createdAt = now, updatedAt = now),
             )
         every { projectRepository.countActiveByCategory(eq(1L)) } returns listOf(count(10L, 3L))
+        every { projectRepository.sumWordCountByCategory(eq(1L)) } returns emptyList()
 
         val result = service.list(1L)
 
         assertThat(result).hasSize(2)
         assertThat(result.first { it.id == 10L }.projectCount).isEqualTo(3)
         assertThat(result.first { it.id == 20L }.projectCount).isEqualTo(0)
+    }
+
+    @Test
+    @DisplayName("list — totalWordCount 매핑(없으면 0, group-by 1회)")
+    fun `list maps totalWordCount including empty categories`() {
+        val now = Instant.now()
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { categoryRepository.findByUserIdOrderBySortOrderAscIdAsc(eq(1L)) } returns
+            listOf(
+                Category(id = 10L, userId = 1L, name = "A", sortOrder = 0, createdAt = now, updatedAt = now),
+                Category(id = 20L, userId = 1L, name = "B(빈)", sortOrder = 1, createdAt = now, updatedAt = now),
+            )
+        every { projectRepository.countActiveByCategory(eq(1L)) } returns emptyList()
+        every { projectRepository.sumWordCountByCategory(eq(1L)) } returns listOf(words(10L, 1200L))
+
+        val result = service.list(1L)
+
+        assertThat(result.first { it.id == 10L }.totalWordCount).isEqualTo(1200)
+        assertThat(result.first { it.id == 20L }.totalWordCount).isEqualTo(0)
+        verify(exactly = 1) { projectRepository.sumWordCountByCategory(eq(1L)) }
     }
 
     @Test
@@ -228,6 +288,7 @@ class CategoryServiceTest {
             Category(id = 7L, userId = 1L, name = "임시", sortOrder = 0, createdAt = Instant.now(), updatedAt = Instant.now())
         every { categoryRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns Optional.of(category)
         every { projectRepository.countActiveByCategory(eq(1L)) } returns listOf(count(7L, 2L))
+        every { projectRepository.sumWordCountByCategory(eq(1L)) } returns emptyList()
 
         val response = service.rename(1L, 7L, UpdateCategoryRequest(name = "  장편 판타지  ", sortOrder = 3))
 
@@ -243,6 +304,7 @@ class CategoryServiceTest {
             Category(id = 7L, userId = 1L, name = "시리즈", sortOrder = 0, createdAt = Instant.now(), updatedAt = Instant.now())
         every { categoryRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns Optional.of(category)
         every { projectRepository.countActiveByCategory(eq(1L)) } returns listOf(count(7L, 1L))
+        every { projectRepository.sumWordCountByCategory(eq(1L)) } returns emptyList()
 
         val response =
             service.rename(1L, 7L, UpdateCategoryRequest(paperSize = "sinkukpan", layoutMode = "paper"))
@@ -260,6 +322,7 @@ class CategoryServiceTest {
             Category(id = 7L, userId = 1L, name = "시리즈", sortOrder = 0, createdAt = Instant.now(), updatedAt = Instant.now())
         every { categoryRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns Optional.of(category)
         every { projectRepository.countActiveByCategory(eq(1L)) } returns listOf(count(7L, 1L))
+        every { projectRepository.sumWordCountByCategory(eq(1L)) } returns emptyList()
 
         val response =
             service.rename(1L, 7L, UpdateCategoryRequest(genre = "SF", synopsis = "근미래 도시"))
@@ -268,6 +331,22 @@ class CategoryServiceTest {
         assertThat(category.synopsis).isEqualTo("근미래 도시")
         assertThat(response.genre).isEqualTo("SF")
         assertThat(response.synopsis).isEqualTo("근미래 도시")
+    }
+
+    @Test
+    @DisplayName("rename — 시리즈 총 목표 분량 갱신(033 R4)")
+    fun `rename updates series targetLength`() {
+        val category =
+            Category(id = 7L, userId = 1L, name = "시리즈", sortOrder = 0, createdAt = Instant.now(), updatedAt = Instant.now())
+        every { categoryRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns Optional.of(category)
+        every { projectRepository.countActiveByCategory(eq(1L)) } returns listOf(count(7L, 1L))
+        every { projectRepository.sumWordCountByCategory(eq(1L)) } returns listOf(words(7L, 42000L))
+
+        val response = service.rename(1L, 7L, UpdateCategoryRequest(targetLength = 300000))
+
+        assertThat(category.targetLength).isEqualTo(300000)
+        assertThat(response.targetLength).isEqualTo(300000)
+        assertThat(response.totalWordCount).isEqualTo(42000)
     }
 
     @Test

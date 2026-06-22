@@ -32,10 +32,13 @@ type SeriesPublishFieldsProps = {
     synopsis: string;
     paperSize: PaperSize | null;
     layoutMode: LayoutMode | null;
+    /** 시리즈 총 목표 분량 글자수(033 R4). null=미설정(빈값). */
+    targetLength: number | null;
     onGenreChange: (genre: string) => void;
     onSynopsisChange: (synopsis: string) => void;
     onPaperSizeChange: (size: PaperSize | null) => void;
     onLayoutModeChange: (mode: LayoutMode | null) => void;
+    onTargetLengthChange: (length: number | null) => void;
 };
 
 export function SeriesPublishFields({
@@ -44,10 +47,12 @@ export function SeriesPublishFields({
     synopsis,
     paperSize,
     layoutMode,
+    targetLength,
     onGenreChange,
     onSynopsisChange,
     onPaperSizeChange,
     onLayoutModeChange,
+    onTargetLengthChange,
 }: SeriesPublishFieldsProps) {
     // 장르: 드롭다운(추천 18종 + "직접 입력") — 클릭 선택 확실. 직접 입력 선택 시 자유 텍스트 칸.
     // 초기엔 현재 genre 가 프리셋 밖(이미 직접 입력해 둔 값)이면 직접 입력 모드로 연다.
@@ -100,6 +105,27 @@ export function SeriesPublishFields({
                     onChange={(e) => onSynopsisChange(e.target.value)}
                     rows={3}
                     maxLength={5000}
+                    className={FIELD_CLASS}
+                />
+            </label>
+            <label htmlFor={`${idPrefix}-target`} className="block text-xs text-gray-500">
+                목표 분량(글자수)
+                <input
+                    id={`${idPrefix}-target`}
+                    type="number"
+                    value={targetLength ?? ""}
+                    onChange={(e) => {
+                        const raw = e.target.value.trim();
+                        if (raw === "") {
+                            onTargetLengthChange(null);
+                            return;
+                        }
+                        const parsed = Math.trunc(Number(raw));
+                        onTargetLengthChange(Number.isFinite(parsed) && parsed >= 0 ? parsed : null);
+                    }}
+                    min={0}
+                    step={1}
+                    placeholder="예: 300000"
                     className={FIELD_CLASS}
                 />
             </label>

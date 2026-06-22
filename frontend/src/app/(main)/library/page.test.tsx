@@ -61,8 +61,8 @@ describe("BWorksPage — 편집 모달 시리즈 이동", () => {
                 HttpResponse.json({
                     success: true,
                     data: [
-                        { id: 7, name: "가나다", parentId: null, sortOrder: 1, projectCount: 0, createdAt: "", updatedAt: "" },
-                        { id: 8, name: "마바사", parentId: null, sortOrder: 2, projectCount: 0, createdAt: "", updatedAt: "" },
+                        { id: 7, name: "가나다", parentId: null, sortOrder: 1, projectCount: 0, targetLength: null, totalWordCount: 0, createdAt: "", updatedAt: "" },
+                        { id: 8, name: "마바사", parentId: null, sortOrder: 2, projectCount: 0, targetLength: null, totalWordCount: 0, createdAt: "", updatedAt: "" },
                     ],
                     error: null,
                 }),
@@ -98,7 +98,7 @@ describe("BWorksPage — 편집 모달 시리즈 이동", () => {
             http.get(`${ORIGIN}/api/categories`, () =>
                 HttpResponse.json({
                     success: true,
-                    data: [{ id: 7, name: "가나다", parentId: null, sortOrder: 1, projectCount: 0, createdAt: "", updatedAt: "" }],
+                    data: [{ id: 7, name: "가나다", parentId: null, sortOrder: 1, projectCount: 0, targetLength: null, totalWordCount: 0, createdAt: "", updatedAt: "" }],
                     error: null,
                 }),
             ),
@@ -139,7 +139,7 @@ describe("BWorksPage — 편집 모달 시리즈 이동", () => {
             http.get(`${ORIGIN}/api/categories`, () =>
                 HttpResponse.json({
                     success: true,
-                    data: [{ id: 7, name: "가나다", parentId: null, sortOrder: 1, projectCount: 1, createdAt: "", updatedAt: "" }],
+                    data: [{ id: 7, name: "가나다", parentId: null, sortOrder: 1, projectCount: 1, targetLength: null, totalWordCount: 0, createdAt: "", updatedAt: "" }],
                     error: null,
                 }),
             ),

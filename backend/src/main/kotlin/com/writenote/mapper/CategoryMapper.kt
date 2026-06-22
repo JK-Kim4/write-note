@@ -9,6 +9,7 @@ class CategoryMapper {
     fun toResponse(
         category: Category,
         projectCount: Int,
+        totalWordCount: Int = 0,
     ): CategoryResponse =
         CategoryResponse(
             id = requireNotNull(category.id),
@@ -20,6 +21,8 @@ class CategoryMapper {
             layoutMode = category.layoutMode,
             genre = category.genre,
             synopsis = category.synopsis,
+            targetLength = category.targetLength,
+            totalWordCount = totalWordCount,
             createdAt = requireNotNull(category.createdAt),
             updatedAt = requireNotNull(category.updatedAt),
         )

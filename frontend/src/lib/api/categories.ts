@@ -22,6 +22,8 @@ export interface CreateCategoryInput {
     genre?: string | null;
     /** 시리즈 줄거리 (033 R3). null=미설정. */
     synopsis?: string | null;
+    /** 시리즈 총 목표 분량 글자수 (033 R4). null=미설정. */
+    targetLength?: number | null;
 }
 
 export function createCategory(input: CreateCategoryInput): Promise<CategoryResponse> {
@@ -40,6 +42,8 @@ export interface UpdateCategoryInput {
     genre?: string | null;
     /** 시리즈 줄거리 (033 R3). null=미설정. */
     synopsis?: string | null;
+    /** 시리즈 총 목표 분량 글자수 (033 R4). null=미설정. */
+    targetLength?: number | null;
 }
 
 export function updateCategory(id: number, input: UpdateCategoryInput): Promise<CategoryResponse> {

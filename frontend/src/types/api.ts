@@ -83,6 +83,10 @@ export interface CategoryResponse {
     genre: string | null;
     /** 시리즈 줄거리 (033 R3). null = 미설정. */
     synopsis: string | null;
+    /** 시리즈 총 목표 분량 글자수 (033 R4). null = 미설정. */
+    targetLength: number | null;
+    /** 하위 작품(미archive) 활성 본문 word_count 합 (033 R4). BE 집계. */
+    totalWordCount: number;
     createdAt: string;
     updatedAt: string;
 }

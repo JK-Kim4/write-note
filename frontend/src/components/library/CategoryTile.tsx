@@ -28,6 +28,7 @@ export type CategoryUpdateInput = {
     synopsis?: string | null;
     paperSize?: PaperSize | null;
     layoutMode?: LayoutMode | null;
+    targetLength?: number | null;
 };
 
 type CategoryTileProps = {
@@ -50,6 +51,7 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
     const [synopsis, setSynopsis] = useState(category.synopsis ?? "");
     const [paperSize, setPaperSize] = useState<PaperSize | null>(category.paperSize);
     const [layoutMode, setLayoutMode] = useState<LayoutMode | null>(category.layoutMode);
+    const [targetLength, setTargetLength] = useState<number | null>(category.targetLength);
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -67,6 +69,7 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
         setSynopsis(category.synopsis ?? "");
         setPaperSize(category.paperSize);
         setLayoutMode(category.layoutMode);
+        setTargetLength(category.targetLength);
         setEditing(true);
     };
     const cancelEditing = () => {
@@ -75,6 +78,7 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
         setSynopsis(category.synopsis ?? "");
         setPaperSize(category.paperSize);
         setLayoutMode(category.layoutMode);
+        setTargetLength(category.targetLength);
         setEditing(false);
     };
     const submitEdit = () => {
@@ -85,12 +89,18 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
             synopsis: synopsis.trim() || null,
             paperSize,
             layoutMode,
+            targetLength,
         };
         onUpdate(category.id, next);
         setEditing(false);
     };
 
     const shown = works.slice(0, SPINE_CAP);
+
+    // 시리즈 진척(033 R4) — 목표 있으면(>0) 비율 막대, 없으면 글자수 텍스트. 0 나눗셈·100% 초과 가드.
+    const target = category.targetLength ?? 0;
+    const hasTarget = target > 0;
+    const progressRatio = hasTarget ? Math.min(1, category.totalWordCount / target) : 0;
 
     return (
         <div
@@ -154,10 +164,12 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
                         synopsis={synopsis}
                         paperSize={paperSize}
                         layoutMode={layoutMode}
+                        targetLength={targetLength}
                         onGenreChange={setGenre}
                         onSynopsisChange={setSynopsis}
                         onPaperSizeChange={setPaperSize}
                         onLayoutModeChange={setLayoutMode}
+                        onTargetLengthChange={setTargetLength}
                     />
                     <div className="mt-2 flex gap-1.5">
                         <button
@@ -192,7 +204,26 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
                     </span>
                 </button>
             )}
-            {!editing && <div className="mt-0.5 text-xs text-gray-500">작품 {works.length}편</div>}
+            {!editing && (
+                <div className="mt-0.5">
+                    <div className="text-xs text-gray-500">작품 {works.length}편</div>
+                    {hasTarget ? (
+                        <div className="mt-1">
+                            <div className="text-[11px] text-gray-600">
+                                {category.totalWordCount.toLocaleString()} / {target.toLocaleString()}자
+                            </div>
+                            <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                                <div
+                                    className="h-full rounded-full bg-terracotta-500"
+                                    style={{ width: `${Math.round(progressRatio * 100)}%` }}
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="mt-1 text-[11px] text-gray-600">{category.totalWordCount.toLocaleString()}자</div>
+                    )}
+                </div>
+            )}
 
             <button
                 type="button"
