@@ -49,8 +49,6 @@ interface BCustomChapterEditorProps {
     layoutMode: LayoutMode;
     /** 실시간 글자수 보고(031 분량 지표). 안정 참조여야 함(셸 setState). */
     onWordCountChange?: (count: number) => void;
-    chapterTitle?: string;
-    onChapterRename?: (title: string) => void;
     onSyncStatus: (status: BChapterEditorSyncStatus) => void;
     onConflict: (handlers: BChapterEditorConflictHandlers) => void;
     /** 전체 문서 모델에서 파생한 목차(여러 페이지에 걸친 heading 전부)를 page 로 올린다. */

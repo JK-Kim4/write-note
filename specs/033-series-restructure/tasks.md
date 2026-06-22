@@ -39,31 +39,31 @@
 
 ### 테스트 (TDD, 제거 후 잔존 경로 보호)
 
-- [ ] T006 [US1] 단일 본문 조회·저장 통합 테스트 보강 in `backend/.../` — `GET /api/projects/{id}/document`, `GET/PUT /api/documents/{id}`(016 @Version 유지)가 챕터 endpoint 제거 후에도 GREEN
-- [ ] T007 [P] [US1] 작품 생성 시 본문 1개 동반 생성 테스트 in `backend/.../` (다중 본문 생성 경로 부재 확인)
+- [x] T006 [US1] 단일 본문 조회·저장 통합 테스트 보강 in `backend/.../` — `GET /api/projects/{id}/document`, `GET/PUT /api/documents/{id}`(016 @Version 유지)가 챕터 endpoint 제거 후에도 GREEN
+- [x] T007 [P] [US1] 작품 생성 시 본문 1개 동반 생성 테스트 in `backend/.../` (다중 본문 생성 경로 부재 확인)
 
 ### BE 챕터 제거
 
-- [ ] T008 [US1] `backend/.../controller/DocumentController.kt` 에서 챕터 endpoint 6개 제거 — 목록(`GET /projects/{id}/documents`)·생성(`POST /projects/{id}/documents`)·순서(`PUT /projects/{id}/documents/order`)·제목(`PATCH /documents/{id}/title`)·삭제(`DELETE /documents/{id}`)·복구(`POST /documents/{id}/restore`). 단일 본문 3 endpoint 유지
-- [ ] T009 [US1] `backend/.../service/DocumentService.kt` 에서 챕터 목록/생성/순서/삭제/복구 로직 제거, 단일 본문 조회·저장만 유지
-- [ ] T010 [P] [US1] 챕터 전용 DTO 제거: `backend/.../model/response/ChapterResponse.kt`, `ChapterMetaResponse.kt`, `backend/.../model/request/CreateChapterRequest.kt`
-- [ ] T011 [P] [US1] 챕터 순서 검증기 제거: `backend/.../components/documents/ChapterReorderValidator.kt` + `backend/src/test/.../ChapterReorderValidatorTest.kt`
-- [ ] T012 [P] [US1] 마지막 챕터 가드 제거: `backend/.../error/LastChapterException.kt` (409 LAST_CHAPTER_UNDELETABLE 사용 중단) + 참조처 정리
-- [ ] T013 [US1] `backend/.../repository/DocumentRepository.kt` 챕터 쿼리(reorder/다중 목록) 정리, 활성 단일 본문 조회만 유지
+- [x] T008 [US1] `backend/.../controller/DocumentController.kt` 에서 챕터 endpoint 6개 제거 — 목록(`GET /projects/{id}/documents`)·생성(`POST /projects/{id}/documents`)·순서(`PUT /projects/{id}/documents/order`)·제목(`PATCH /documents/{id}/title`)·삭제(`DELETE /documents/{id}`)·복구(`POST /documents/{id}/restore`). 단일 본문 3 endpoint 유지
+- [x] T009 [US1] `backend/.../service/DocumentService.kt` 에서 챕터 목록/생성/순서/삭제/복구 로직 제거, 단일 본문 조회·저장만 유지
+- [x] T010 [P] [US1] 챕터 전용 DTO 제거: `backend/.../model/response/ChapterResponse.kt`, `ChapterMetaResponse.kt`, `backend/.../model/request/CreateChapterRequest.kt`
+- [x] T011 [P] [US1] 챕터 순서 검증기 제거: `backend/.../components/documents/ChapterReorderValidator.kt` + `backend/src/test/.../ChapterReorderValidatorTest.kt`
+- [x] T012 [P] [US1] 마지막 챕터 가드 제거: `backend/.../error/LastChapterException.kt` (409 LAST_CHAPTER_UNDELETABLE 사용 중단) + 참조처 정리
+- [x] T013 [US1] `backend/.../repository/DocumentRepository.kt` 챕터 쿼리(reorder/다중 목록) 정리, 활성 단일 본문 조회만 유지
 
 ### FE 챕터 UI 제거
 
-- [ ] T014 [P] [US1] `frontend/src/components/editor/ChapterList.tsx` + `ChapterList.test.tsx` 제거
-- [ ] T015 [US1] `frontend/src/components/b/BStudioShell.tsx` 에서 챕터 목록·전환·추가 UI 및 `?chapter` URL 파라미터 처리 제거, 단일 본문 집필로 단순화
-- [ ] T016 [US1] `frontend/src/components/custom-editor/BCustomChapterEditor.tsx` 를 단일 본문 에디터로 정리(챕터 전환 리마운트 로직 제거; 016 세션 documentId 단위 유지)
-- [ ] T017 [P] [US1] `frontend/src/lib/api/document.ts` 챕터 호출(목록/생성/순서/제목/삭제/복구) 제거, 단일 본문 조회·저장만
-- [ ] T018 [P] [US1] `frontend/src/lib/query/useDocument.ts` 챕터 훅(useProjectChapters/useCreateChapter/useDeleteChapter/useRestoreChapter/useReorderChapters) 제거
-- [ ] T019 [US1] `frontend/src/lib/export/collectChapters.ts`·`mergeChapters.ts`(+테스트) 를 단일 본문 수집으로 정리(다중 챕터 병합 경로 제거)
-- [ ] T020 [US1] `frontend/src/app/(main)/works/[id]/page.tsx` 챕터 props·상태 정리
+- [x] T014 [P] [US1] `frontend/src/components/editor/ChapterList.tsx` + `ChapterList.test.tsx` 제거
+- [x] T015 [US1] `frontend/src/components/b/BStudioShell.tsx` 에서 챕터 목록·전환·추가 UI 및 `?chapter` URL 파라미터 처리 제거, 단일 본문 집필로 단순화
+- [x] T016 [US1] `frontend/src/components/custom-editor/BCustomChapterEditor.tsx` 를 단일 본문 에디터로 정리(챕터 전환 리마운트 로직 제거; 016 세션 documentId 단위 유지)
+- [x] T017 [P] [US1] `frontend/src/lib/api/document.ts` 챕터 호출(목록/생성/순서/제목/삭제/복구) 제거, 단일 본문 조회·저장만
+- [x] T018 [P] [US1] `frontend/src/lib/query/useDocument.ts` 챕터 훅(useProjectChapters/useCreateChapter/useDeleteChapter/useRestoreChapter/useReorderChapters) 제거
+- [x] T019 [US1] `frontend/src/lib/export/collectChapters.ts`·`mergeChapters.ts`(+테스트) 를 단일 본문 수집으로 정리(다중 챕터 병합 경로 제거)
+- [x] T020 [US1] `frontend/src/app/(main)/works/[id]/page.tsx` 챕터 props·상태 정리
 
 ### 검증
 
-- [ ] T021 [US1] backend verify + frontend verify GREEN (`cd backend && ./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` / `cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build`)
+- [x] T021 [US1] backend verify + frontend verify GREEN (`cd backend && ./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` / `cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build`)
 
 **Checkpoint**: 챕터 제거 완결 — 단일 본문 집필 dogfoodable. (016 거짓 409 경로 소멸 확인)
 

@@ -34,16 +34,6 @@ export type ProjectDocument = {
     updatedAt: string;
 };
 
-/** 챕터 목록 항목 (022 US1) — 본문 제외 메타. 목록 표시·정렬·선택에 사용. */
-export type ChapterMeta = {
-    id: number;
-    projectId: number;
-    title: string;
-    sortOrder: number;
-    wordCount: number;
-    updatedAt: string;
-};
-
 /** 메모에 연결된 작품(제목 포함) — 책상 칩·붙이기 팝오버 표시용(desktop LinkedProject). */
 export type LinkedProject = { id: number; title: string };
 

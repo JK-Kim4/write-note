@@ -105,10 +105,7 @@ describe("BWorksPage — 편집 모달 시리즈 이동", () => {
             http.post(`${ORIGIN}/api/projects`, () =>
                 HttpResponse.json({ success: true, data: serverCard(99, null), error: null }),
             ),
-            http.get(`${ORIGIN}/api/projects/99/documents`, () =>
-                HttpResponse.json({ success: true, data: [{ id: 500, title: "새 챕터", sortOrder: 0, wordCount: 0 }], error: null }),
-            ),
-            http.get(`${ORIGIN}/api/documents/500`, () =>
+            http.get(`${ORIGIN}/api/projects/99/document`, () =>
                 HttpResponse.json({
                     success: true,
                     data: { id: 500, projectId: 99, title: "", body: "{}", wordCount: 0, version: "v1", updatedAt: "2026-06-22T00:00:00Z" },

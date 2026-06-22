@@ -15,7 +15,6 @@ import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -23,7 +22,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.UUID
 
 /**
- * DocumentController Web 계층 통합 테스트 — D1~D4 endpoint.
+ * DocumentController Web 계층 통합 테스트 — D1~D3 endpoint.
  *
  * 실제 Spring Security + JWT 필터 + DB 포함.
  * 409 충돌 응답 계약(currentVersion, currentBody) 검증 포함.
@@ -238,44 +237,5 @@ class DocumentControllerWebTest {
             .andExpect(jsonPath("$.error.code").value("DOCUMENT_VERSION_CONFLICT"))
             .andExpect(jsonPath("$.data.currentVersion").isString)
             .andExpect(jsonPath("$.data.currentBody").exists())
-    }
-
-    // D4: PATCH /api/documents/{id}/title
-
-    @Test
-    @DisplayName("D4 — title 갱신 200 응답 (D4)")
-    fun `D4 update title returns 200`() {
-        val owner = createUser()
-        val bearer = bearerFor(owner)
-        val (_, document) = createProjectAndGetDocument(bearer)
-
-        mockMvc
-            .perform(
-                patch("/api/documents/{id}/title", document.id)
-                    .header("Authorization", bearer)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"title":"새 제목"}"""),
-            ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.title").value("새 제목"))
-            .andExpect(jsonPath("$.data.id").value(document.id))
-    }
-
-    @Test
-    @DisplayName("D4 — title 120자 초과 400 VALIDATION_FAILED")
-    fun `D4 rejects title over 120 characters`() {
-        val owner = createUser()
-        val bearer = bearerFor(owner)
-        val (_, document) = createProjectAndGetDocument(bearer)
-        val longTitle = "x".repeat(121)
-
-        mockMvc
-            .perform(
-                patch("/api/documents/{id}/title", document.id)
-                    .header("Authorization", bearer)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"title":"$longTitle"}"""),
-            ).andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"))
     }
 }
