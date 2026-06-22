@@ -147,6 +147,9 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
     const displayWordCount = liveWordCount ?? savedWordCount;
     const totalWordCount = displayWordCount;
     const targetLength = projectQuery.data?.targetLength ?? null;
+    // 작품 목록 복귀: 작품이 시리즈 소속이면 그 시리즈 드릴인(?folder=)으로, 미분류면 루트로(있던 곳 복원).
+    const backHref =
+        projectQuery.data?.categoryId != null ? `/library?folder=${projectQuery.data.categoryId}` : "/library";
     const exportWord = useWordExport(projectId, paperSize);
     const handleFontScaleChange = (next: FontScale) => {
         if (next === fontScale) return;
@@ -167,7 +170,7 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
             await queryClient.invalidateQueries({ queryKey: logKeys.all });
             setEndWorkOpen(false);
             setEndWorkBody("");
-            router.push("/library");
+            router.push(backHref);
         } catch {
             setEndWorkError("기록 저장에 실패했습니다. 다시 시도해 주세요.");
         } finally {
@@ -228,7 +231,7 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
     const outlinePanel = (
         <>
             <div className="border-b border-gray-200 p-3">
-                <Link href="/library" className="text-xs text-gray-400 hover:text-terracotta-600">
+                <Link href={backHref} className="text-xs text-gray-400 hover:text-terracotta-600">
                     ← 작품 목록
                 </Link>
                 <h1 className="mt-1 truncate text-base font-bold text-gray-900" title={projectTitle}>
@@ -456,14 +459,14 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
                 // 작품 자체가 없음(잘못된 URL/삭제됨) — 명확히 안내.
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white">
                     <p className="text-sm text-gray-500">작품을 찾을 수 없습니다.</p>
-                    <Link href="/library" className="text-sm font-medium text-terracotta-600 hover:underline">
+                    <Link href={backHref} className="text-sm font-medium text-terracotta-600 hover:underline">
                         작품 목록으로
                     </Link>
                 </div>
             ) : documentId == null ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white">
                     <p className="text-sm text-gray-400">본문을 불러올 수 없습니다.</p>
-                    <Link href="/library" className="text-xs text-terracotta-600 hover:underline">
+                    <Link href={backHref} className="text-xs text-terracotta-600 hover:underline">
                         작품 목록으로
                     </Link>
                 </div>
