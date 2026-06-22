@@ -194,6 +194,15 @@ describe("LibraryBoard — 시리즈 생성/이름변경/삭제", () => {
     });
 });
 
+describe("LibraryBoard — 시리즈 내보내기", () => {
+    it("시리즈 드릴인에서 내보내기 버튼으로 다이얼로그를 연다", async () => {
+        setup([cat(7, "가나다", 1)], [card(1, 7)]);
+        await userEvent.click(screen.getByRole("button", { name: "가나다 열기" }));
+        await userEvent.click(screen.getByRole("button", { name: "내보내기" }));
+        expect(screen.getByRole("dialog", { name: "시리즈 내보내기" })).toBeInTheDocument();
+    });
+});
+
 describe("LibraryBoard — 빈 상태", () => {
     it("시리즈가 없으면 안내를 보여준다", () => {
         setup([], [card(1, null)]);

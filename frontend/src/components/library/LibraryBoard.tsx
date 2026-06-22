@@ -21,6 +21,13 @@ import {
 import { DraggableWorkCard, workDragId } from "./DraggableWorkCard";
 import { CategoryTile, categoryDropId, type CategoryUpdateInput } from "./CategoryTile";
 import { SeriesPublishFields } from "./SeriesPublishFields";
+import { SeriesExportDialog, type SeriesExportSubmit } from "./SeriesExportDialog";
+import { PrintOverlay } from "@/components/export/PrintOverlay";
+import { usePdfExport } from "@/lib/export/usePdfExport";
+import { exportSeriesWord } from "@/lib/export/useWordExport";
+import { useTextExport } from "@/lib/export/useTextExport";
+import { collectSeriesOrderedIds } from "@/lib/export/seriesExport";
+import { getProjectDocument } from "@/lib/api/document";
 import type { CreateCategoryInput } from "@/lib/api/categories";
 import type { CategoryResponse, LayoutMode } from "@/types/api";
 import type { PaperSize } from "@/components/editor/pageLayout";
@@ -170,6 +177,29 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
     const uncategorized = cards.filter((c) => c.categoryId == null);
     const folderCards = activeFolder == null ? [] : cards.filter((c) => c.categoryId === activeFolder);
     const activeCard = activeDragId ? cards.find((c) => workDragId(c.id) === activeDragId) ?? null : null;
+
+    // 시리즈 내보내기(033)
+    const [exportOpen, setExportOpen] = useState(false);
+    const seriesPaper: PaperSize = (currentCategory?.paperSize as PaperSize | null) ?? "A4";
+    const seriesName = currentCategory?.name ?? "시리즈";
+    const { printModels, exportPdf, clearPrint } = usePdfExport();
+    const exportText = useTextExport(seriesName);
+
+    const handleSeriesExport = useCallback(
+        async (s: SeriesExportSubmit) => {
+            setExportOpen(false);
+            const orderedIds = await collectSeriesOrderedIds(s.orderedProjectIds, getProjectDocument);
+            const req = { orderedIds, joinMode: s.joinMode };
+            if (s.target.kind === "pdf") {
+                exportPdf(req);
+            } else if (s.target.kind === "text") {
+                exportText(s.target.format, req);
+            } else {
+                await exportSeriesWord(s.orderedProjectIds[0], seriesPaper, seriesName, s.target.format, req);
+            }
+        },
+        [exportPdf, exportText, seriesPaper, seriesName],
+    );
 
     const handleDragStart = (e: DragStartEvent) => setActiveDragId(String(e.active.id));
     const handleDragEnd = (e: DragEndEvent) => {
@@ -362,6 +392,15 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                         <span className="text-sm font-semibold text-gray-900">
                             {currentCategory?.name ?? "시리즈"} · {folderCards.length}편
                         </span>
+                        {folderCards.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setExportOpen(true)}
+                                className="ml-auto rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-terracotta-50 hover:text-terracotta-700"
+                            >
+                                내보내기
+                            </button>
+                        )}
                     </div>
                     {/* 상위(내 작품)로 빼내는 드롭존 — 드릴인 상태에서 카드를 끌어다 놓으면 미분류로 이동 */}
                     <DropToParent active={activeDragId != null} />
@@ -396,6 +435,15 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
             </DragOverlay>
 
             {flying && <FlyingCard flying={flying} onDone={clearFlying} />}
+
+            <SeriesExportDialog
+                open={exportOpen}
+                works={folderCards}
+                seriesName={seriesName}
+                onSubmit={handleSeriesExport}
+                onClose={() => setExportOpen(false)}
+            />
+            {printModels && <PrintOverlay models={printModels} paperSize={seriesPaper} onDone={clearPrint} />}
 
             {/* 시리즈 삭제 확인 — 작품은 미분류로 보존 */}
             {deleteCatTarget && (
