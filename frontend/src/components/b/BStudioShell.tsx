@@ -101,6 +101,8 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
     }, [editorReady]);
 
     const [endWorkOpen, setEndWorkOpen] = useState(false);
+    // 종료 모달을 열 때 타이머를 일시정지했는지 — 취소 시 이어서 재개할지 판단.
+    const [stopModalWasRunning, setStopModalWasRunning] = useState(false);
     const [endWorkBody, setEndWorkBody] = useState("");
     const [endWorkError, setEndWorkError] = useState<string | null>(null);
     const [isEndingWork, setIsEndingWork] = useState(false);
@@ -189,13 +191,36 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
         }
     };
 
+    // "집필 종료" 클릭 — 모달 여는 동안 타이머를 일시정지(시간 멈춤). 취소하면 이어서 재개.
+    const handleRequestStop = () => {
+        if (timewatch.status === "running") {
+            setStopModalWasRunning(true);
+            timewatch.pause();
+        } else {
+            setStopModalWasRunning(false);
+        }
+        setEndWorkBody("");
+        setEndWorkError(null);
+        setEndWorkOpen(true);
+    };
+
+    // 종료 모달 취소(✕·바깥·ESC) — 모달 열 때 일시정지했으면 다시 시작해 이어서 측정.
+    const closeStopModal = () => {
+        if (isEndingWork) return;
+        setEndWorkOpen(false);
+        if (stopModalWasRunning) {
+            timewatch.resume();
+            setStopModalWasRunning(false);
+        }
+    };
+
     // ESC 키로 열린 drawer·종료 모달 닫기
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key !== "Escape") return;
             if (leftDrawerOpen) setLeftDrawerOpen(false);
             if (rightDrawerOpen) setRightDrawerOpen(false);
-            if (endWorkOpen && !isEndingWork) setEndWorkOpen(false);
+            if (endWorkOpen && !isEndingWork) closeStopModal();
         };
         document.addEventListener("keydown", handleKeyDown);
         return () => document.removeEventListener("keydown", handleKeyDown);
@@ -450,11 +475,7 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
                             onStart={timewatch.start}
                             onPause={timewatch.pause}
                             onResume={timewatch.resume}
-                            onRequestStop={() => {
-                                setEndWorkBody("");
-                                setEndWorkError(null);
-                                setEndWorkOpen(true);
-                            }}
+                            onRequestStop={handleRequestStop}
                         />
                     </div>
                     <BWorkSidePanel
@@ -522,11 +543,7 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
                     onStart={timewatch.start}
                     onPause={timewatch.pause}
                     onResume={timewatch.resume}
-                    onRequestStop={() => {
-                        setEndWorkBody("");
-                        setEndWorkError(null);
-                        setEndWorkOpen(true);
-                    }}
+                    onRequestStop={handleRequestStop}
                 />
                 <BWorkSidePanel
                     projectId={projectId}
@@ -589,7 +606,7 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
             {endWorkOpen && (
                 <div
                     className="fixed inset-0 z-30 flex items-center justify-center bg-gray-900/40 p-4"
-                    onClick={() => !isEndingWork && setEndWorkOpen(false)}
+                    onClick={closeStopModal}
                 >
                     <div
                         ref={endWorkModalRef}
@@ -602,7 +619,7 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
                         <button
                             type="button"
                             aria-label="닫기"
-                            onClick={() => !isEndingWork && setEndWorkOpen(false)}
+                            onClick={closeStopModal}
                             className="absolute right-3 top-3 rounded-md px-2 py-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                         >
                             ✕
