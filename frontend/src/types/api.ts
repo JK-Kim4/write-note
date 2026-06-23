@@ -87,6 +87,8 @@ export interface CategoryResponse {
     targetLength: number | null;
     /** 하위 작품(미archive) 활성 본문 word_count 합 (033 R4). BE 집계. */
     totalWordCount: number;
+    /** 시리즈 소속 작품 종료 세션 시간 합(ms). BE 집계. */
+    totalDurationMs: number;
     createdAt: string;
     updatedAt: string;
 }

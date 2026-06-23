@@ -73,6 +73,30 @@ class CategoryMapperTest {
     }
 
     @Test
+    @DisplayName("toResponse — 총 집필 시간(ms) 매핑(timewatch)")
+    fun `toResponse maps totalDurationMs`() {
+        val now = Instant.parse("2026-06-24T00:00:00Z")
+        val category =
+            Category(id = 3L, userId = 1L, name = "집필 시간 시리즈", parentId = null, sortOrder = 0, createdAt = now, updatedAt = now)
+
+        val response = mapper.toResponse(category, projectCount = 1, totalWordCount = 0, totalDurationMs = 3600000L)
+
+        assertThat(response.totalDurationMs).isEqualTo(3600000L)
+    }
+
+    @Test
+    @DisplayName("toResponse — totalDurationMs 기본값 0")
+    fun `toResponse defaults totalDurationMs to zero`() {
+        val now = Instant.parse("2026-06-24T00:00:00Z")
+        val category =
+            Category(id = 3L, userId = 1L, name = "기본값 시리즈", parentId = null, sortOrder = 0, createdAt = now, updatedAt = now)
+
+        val response = mapper.toResponse(category, projectCount = 0)
+
+        assertThat(response.totalDurationMs).isEqualTo(0L)
+    }
+
+    @Test
     @DisplayName("toResponse — 시리즈 장르·줄거리 매핑(033 R3)")
     fun `toResponse maps series genre and synopsis`() {
         val now = Instant.parse("2026-06-22T00:00:00Z")

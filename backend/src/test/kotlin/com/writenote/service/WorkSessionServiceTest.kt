@@ -10,6 +10,7 @@ import com.writenote.repository.WorkSessionRepository
 import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
+import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -66,6 +67,21 @@ class WorkSessionServiceTest {
         every { workSessionRepository.findFirstByProjectIdAndEndedAtIsNull(100L) } returns null
 
         assertThat(service.end(userId = 1L, projectId = 100L)).isNull()
+    }
+
+    @Test
+    @DisplayName("end — 30초 미만 세션도 폐기하지 않고 보존한다(타임워치)")
+    fun `end preserves session shorter than threshold`() {
+        val open = WorkSession(id = 7L, userId = 1L, projectId = 100L, startedAt = Instant.now().minusSeconds(5))
+        every { projectRepository.findByIdAndUserId(100L, 1L) } returns Optional.of(Project(id = 100L, userId = 1L))
+        every { workSessionRepository.findFirstByProjectIdAndEndedAtIsNull(100L) } returns open
+        every { workSessionRepository.save(any<WorkSession>()) } answers { firstArg() }
+
+        val result = service.end(userId = 1L, projectId = 100L)
+
+        assertThat(result).isNotNull()
+        assertThat(open.endedAt).isNotNull() // 5s < 30s 이지만 보존
+        verify(exactly = 0) { workSessionRepository.delete(any<WorkSession>()) }
     }
 
     @Test

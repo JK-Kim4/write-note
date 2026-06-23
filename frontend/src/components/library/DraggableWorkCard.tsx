@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDraggable } from "@dnd-kit/core";
+import { formatDurationKo } from "@/lib/formatDuration";
 import type { ProjectCard } from "@/lib/types/domain";
 
 function formatDate(iso: string): string {
@@ -69,6 +70,14 @@ export function DraggableWorkCard({ card, onDelete, onEdit, onArchive, overlay }
                 </Link>
             )}
 
+            {!overlay && (
+                <div
+                    role="tooltip"
+                    className="pointer-events-none invisible absolute bottom-full left-3 z-20 mb-1.5 whitespace-nowrap rounded-lg bg-[#2a2620] px-2.5 py-1.5 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:visible group-hover:opacity-100"
+                >
+                    {formatDate(card.createdAt)} 생성 · 집필 시간 <span className="font-semibold">{formatDurationKo(card.totalDurationMs)}</span>
+                </div>
+            )}
             {!overlay && (
                 <div className="absolute right-3 bottom-3 z-10 flex gap-1">
                     <button

@@ -35,6 +35,7 @@ function cat(id: number, name: string, projectCount = 0): CategoryResponse {
         synopsis: null,
         targetLength: null,
         totalWordCount: 0,
+        totalDurationMs: 0,
         createdAt: "2026-06-22T00:00:00Z",
         updatedAt: "2026-06-22T00:00:00Z",
     };
@@ -206,6 +207,21 @@ describe("LibraryBoard — 시리즈 내보내기", () => {
         expect(screen.getByRole("dialog", { name: "시리즈 내보내기" })).toBeInTheDocument();
         // 작품 목록(체크박스)이 현재 folderCards 로 렌더되어야 — 다이얼로그 항상-마운트 시 빈 works 로 고정되는 버그 회귀 방지
         expect(screen.getAllByRole("checkbox").length).toBeGreaterThan(0);
+    });
+});
+
+describe("LibraryBoard — 시리즈 타일 집필 시간", () => {
+    it("시리즈 타일에 '총 집필 시간'이 표시된다", () => {
+        const category = { ...cat(7, "가나다"), totalDurationMs: (2 * 3600 + 10 * 60) * 1000 };
+        setup([category], []);
+        expect(screen.getByText(/총 집필 시간/)).toBeInTheDocument();
+        expect(screen.getByText("2시간 10분")).toBeInTheDocument();
+    });
+
+    it("totalDurationMs=0 이면 '0분'을 표시한다", () => {
+        const category = { ...cat(7, "가나다"), totalDurationMs: 0 };
+        setup([category], []);
+        expect(screen.getByText("0분")).toBeInTheDocument();
     });
 });
 

@@ -1,8 +1,14 @@
 package com.writenote.controller
 
 import com.writenote.auth.JwtTokenProvider
+import com.writenote.entity.Project
 import com.writenote.entity.User
+import com.writenote.entity.WorkSession
+import com.writenote.repository.CategoryRepository
+import com.writenote.repository.ProjectRepository
 import com.writenote.repository.UserRepository
+import com.writenote.repository.WorkSessionRepository
+import org.hamcrest.Matchers.greaterThanOrEqualTo
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -17,6 +23,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.Instant
 import java.util.UUID
 
 @SpringBootTest
@@ -28,6 +35,15 @@ class CategoryControllerIT {
 
     @Autowired
     private lateinit var userRepository: UserRepository
+
+    @Autowired
+    private lateinit var projectRepository: ProjectRepository
+
+    @Autowired
+    private lateinit var categoryRepository: CategoryRepository
+
+    @Autowired
+    private lateinit var workSessionRepository: WorkSessionRepository
 
     @Autowired
     private lateinit var jwtTokenProvider: JwtTokenProvider
@@ -203,6 +219,72 @@ class CategoryControllerIT {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.data[0].totalWordCount").value(0))
             .andExpect(jsonPath("$.data[0].targetLength").doesNotExist())
+    }
+
+    @Test
+    fun `category list reports totalDurationMs from ended work sessions`() {
+        val user = createUser()
+        val bearer = bearerFor(user)
+
+        // 시리즈 생성
+        val categoryId =
+            mockMvc
+                .perform(
+                    post("/api/categories")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"name":"집필 시간 테스트 시리즈"}"""),
+                ).andExpect(status().isCreated)
+                .andReturn()
+                .response.contentAsString
+                .let(::extractId)
+
+        // 작품 생성 후 시리즈로 이동
+        val project =
+            projectRepository.saveAndFlush(
+                Project(userId = user.id!!, title = "세션 테스트 작품"),
+            )
+        mockMvc
+            .perform(
+                patch("/api/projects/{id}/category", project.id!!)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"categoryId":$categoryId}"""),
+            ).andExpect(status().isOk)
+
+        // 종료된 work_session 저장 (1시간 = 3600000ms)
+        workSessionRepository.saveAndFlush(
+            WorkSession(
+                userId = user.id!!,
+                projectId = project.id!!,
+                startedAt = Instant.now().minusSeconds(3600),
+                endedAt = Instant.now(),
+            ),
+        )
+
+        // 목록 — totalDurationMs >= 3500000 (native 쿼리 집계 검증)
+        mockMvc
+            .perform(get("/api/categories").header("Authorization", bearer))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data[0].id").value(categoryId))
+            .andExpect(jsonPath("$.data[0].totalDurationMs").value(greaterThanOrEqualTo(3500000)))
+    }
+
+    @Test
+    fun `category list reports totalDurationMs zero for empty series`() {
+        val bearer = bearerFor(createUser())
+        mockMvc
+            .perform(
+                post("/api/categories")
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"name":"빈 시리즈(집필시간)"}"""),
+            ).andExpect(status().isCreated)
+
+        mockMvc
+            .perform(get("/api/categories").header("Authorization", bearer))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data[0].totalDurationMs").value(0))
     }
 
     @Test
