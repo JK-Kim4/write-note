@@ -73,7 +73,7 @@ export function DraggableWorkCard({ card, onDelete, onEdit, onArchive, overlay }
             {!overlay && (
                 <div
                     role="tooltip"
-                    className="pointer-events-none absolute bottom-full left-3 z-20 mb-1.5 hidden whitespace-nowrap rounded-lg bg-[#2a2620] px-2.5 py-1.5 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:block group-hover:opacity-100"
+                    className="pointer-events-none invisible absolute bottom-full left-3 z-20 mb-1.5 whitespace-nowrap rounded-lg bg-[#2a2620] px-2.5 py-1.5 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:visible group-hover:opacity-100"
                 >
                     {formatDate(card.createdAt)} 생성 · 집필 시간 <span className="font-semibold">{formatDurationKo(card.totalDurationMs)}</span>
                 </div>
