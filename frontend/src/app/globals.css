@@ -120,3 +120,298 @@ html {
   body > *:not(.print-root) { display: none !important; }
   .print-root { display: block !important; }
 }
+
+/* ── 온보딩 인트로 카드(driver.js popover .ob-intro) 일러스트 + 애니메이션 ──────────
+   popover 가 body 에 append 되므로 전역 스코프 필요. 일러스트는 onboardingIllustrations.ts.
+   목업: docs/research/2026-06-23-onboarding-intro-animations.html */
+.driver-popover.ob-intro .ob-illus {
+  margin: -2px -2px 14px;
+  /* 고정 라이트 색 — driver popover 는 항상 흰색이라 테마 토큰(다크모드 플립) 쓰면 안 됨 */
+  background: #fbf7ee;
+  border-bottom: 1px solid #e7ddcc;
+  border-radius: 6px 6px 0 0;
+  display: grid;
+  place-items: center;
+  padding: 6px 0 4px;
+}
+.driver-popover.ob-intro .ob-illus svg { width: 252px; height: 112px; display: block; }
+.driver-popover.ob-intro .ob-title {
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #2a2620;
+  margin: 0 0 6px;
+  text-wrap: balance;
+}
+.driver-popover.ob-intro .ob-text {
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: #6b6256;
+  margin: 0;
+}
+
+@keyframes obSpineRise {
+  0% { transform: translateY(26px); opacity: 0; }
+  14% { transform: translateY(0); opacity: 1; }
+  76% { transform: translateY(0); opacity: 1; }
+  90%, 100% { transform: translateY(8px); opacity: 0; }
+}
+@keyframes obPlusPop {
+  0%, 40% { transform: scale(0); opacity: 0; }
+  52% { transform: scale(1.18); opacity: 1; }
+  60%, 76% { transform: scale(1); opacity: 1; }
+  88%, 100% { transform: scale(1); opacity: 0; }
+}
+@keyframes obWorkFly {
+  0% { transform: translate(-46px, 8px) scale(.8); opacity: 0; }
+  16% { transform: translate(0, 0) scale(1); opacity: 1; }
+  44% { transform: translate(0, 0) scale(1); opacity: 1; }
+  72% { transform: translate(132px, -2px) scale(.6); opacity: 1; }
+  84%, 100% { transform: translate(172px, -8px) scale(.28); opacity: 0; }
+}
+@keyframes obNewSpine {
+  0%, 62% { transform: scaleY(0); opacity: 0; }
+  74% { transform: scaleY(1.06); opacity: 1; }
+  82%, 100% { transform: scaleY(1); opacity: 1; }
+}
+@keyframes obMergeSpine {
+  0%, 18% { transform: translateX(0); opacity: 1; }
+  40% { transform: translateX(var(--mx, 0)); opacity: 0; }
+  100% { transform: translateX(var(--mx, 0)); opacity: 0; }
+}
+@keyframes obSheetIn {
+  0%, 34% { transform: translateY(-4px) scale(0.7); opacity: 0; }
+  48% { transform: translateY(0) scale(1); opacity: 1; }
+  64% { transform: translateY(0) scale(1); opacity: 1; }
+  82% { transform: translateY(34px) scale(0.94); opacity: 0.9; }
+  92%, 100% { transform: translateY(48px) scale(0.9); opacity: 0; }
+}
+@keyframes obExportArrow {
+  0%, 60% { transform: translateY(-6px); opacity: 0; }
+  72% { transform: translateY(0); opacity: 1; }
+  84% { transform: translateY(8px); opacity: 1; }
+  94%, 100% { transform: translateY(14px); opacity: 0; }
+}
+@keyframes obTagPop {
+  0%, 66% { opacity: 0; transform: scale(0.7); }
+  78% { opacity: 1; transform: scale(1); }
+  90%, 100% { opacity: 0; transform: scale(1); }
+}
+
+.ob-intro .ob-spine-rise { animation: obSpineRise 4.2s cubic-bezier(0.22, 1, 0.36, 1) infinite; transform-box: fill-box; transform-origin: bottom; }
+.ob-intro .ob-plus-pop { animation: obPlusPop 4.2s cubic-bezier(0.22, 1, 0.36, 1) infinite; transform-box: fill-box; transform-origin: center; }
+.ob-intro .ob-work-fly { animation: obWorkFly 3.8s cubic-bezier(0.22, 1, 0.36, 1) infinite; transform-box: fill-box; transform-origin: center; }
+.ob-intro .ob-new-spine { animation: obNewSpine 3.8s cubic-bezier(0.22, 1, 0.36, 1) infinite; transform-box: fill-box; transform-origin: bottom; }
+.ob-intro .ob-merge-spine { animation: obMergeSpine 4.4s cubic-bezier(0.22, 1, 0.36, 1) infinite; transform-box: fill-box; }
+.ob-intro .ob-sheet-in { animation: obSheetIn 4.4s cubic-bezier(0.22, 1, 0.36, 1) infinite; transform-box: fill-box; transform-origin: center top; }
+.ob-intro .ob-export-arrow { animation: obExportArrow 4.4s cubic-bezier(0.22, 1, 0.36, 1) infinite; transform-box: fill-box; transform-origin: center; }
+.ob-intro .ob-tag-pop { animation: obTagPop 4.4s cubic-bezier(0.22, 1, 0.36, 1) infinite; transform-box: fill-box; transform-origin: center; }
+
+/* 모션 줄이기 — 애니메이션 정지(최종/기본 프레임으로 개념 유지) */
+@media (prefers-reduced-motion: reduce) {
+  .ob-intro .ob-spine-rise, .ob-intro .ob-plus-pop, .ob-intro .ob-work-fly,
+  .ob-intro .ob-new-spine, .ob-intro .ob-merge-spine, .ob-intro .ob-sheet-in,
+  .ob-intro .ob-export-arrow, .ob-intro .ob-tag-pop { animation: none !important; }
+  .ob-intro .ob-work-fly { opacity: 1; transform: none; }
+  .ob-intro .ob-new-spine { opacity: 1; transform: scaleY(1); }
+  .ob-intro .ob-sheet-in { opacity: 1; transform: translateY(0) scale(1); }
+  .ob-intro .ob-merge-spine { opacity: 1; }
+  .ob-intro .ob-plus-pop, .ob-intro .ob-export-arrow, .ob-intro .ob-tag-pop { opacity: 1; transform: none; }
+}
+
+/* ── 온보딩 완료 축하 오버레이 (.ob-celebrate) — 시안 E 대형 씰 슬램 ──────────────
+   전체 화면 오버레이로 1회 재생 후 자동 fade-out.
+   목업: docs/research/2026-06-23-onboarding-completion-celebration-big.html §E */
+
+/* 씰 슬램 — 위에서 쾅 내려와 정착 */
+@keyframes obCelebrateSlamIn {
+  0%   { transform: translateY(-70px) scale(2); opacity: 0; }
+  55%  { opacity: 1; }
+  75%  { transform: translateY(6px) scale(0.94); }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+/* 충격파 링 — 슬램 후 확산 */
+@keyframes obCelebrateShockOut {
+  0%   { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+/* 잉크 방울 방사 */
+@keyframes obCelebrateInkSplatter {
+  0%   { transform: translate(0, 0) scale(0.3); opacity: 0; }
+  30%  { opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(1); opacity: 0; }
+}
+/* confetti 낙하 */
+@keyframes obCelebrateFall {
+  0%   { transform: translate(-50%, -50%) rotate(0) scale(0.4); opacity: 0; }
+  14%  { opacity: 1; }
+  40%  { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) rotate(var(--r)) scale(1); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--tx) * 1.1), calc(-50% + 220px)) rotate(calc(var(--r) + 220deg)) scale(0.9); opacity: 0; }
+}
+/* 헤드라인 상승 */
+@keyframes obCelebrateRiseBig {
+  0%   { opacity: 0; transform: translateY(16px) scale(0.9); }
+  70%  { transform: translateY(0) scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+/* 전체 fade-out */
+@keyframes obCelebrateFadeOut {
+  0%   { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+/* 화면 흔들림 */
+@keyframes obCelebrateShake {
+  0%, 100% { transform: translate(0, 0); }
+  20%       { transform: translate(-5px, 2px); }
+  40%       { transform: translate(5px, -2px); }
+  60%       { transform: translate(-3px, 1px); }
+  80%       { transform: translate(3px, -1px); }
+}
+
+/* 오버레이 루트 */
+.ob-celebrate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  /* warm 종이 스크림 — 브랜드(따뜻한 작업실). 다크 모달 아님(목업 정합). 씰/잉크가 위에서 돋보임. */
+  background: rgba(243, 237, 225, 0.92);
+}
+
+/* 애니메이션 활성 상태 */
+.ob-celebrate--animated {
+  animation: obCelebrateFadeOut 2.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.ob-celebrate--animated .ob-celebrate__stage {
+  animation: obCelebrateShake 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.04s;
+}
+.ob-celebrate--animated .ob-celebrate__seal {
+  animation: obCelebrateSlamIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.ob-celebrate--animated .ob-celebrate__shock {
+  animation: obCelebrateShockOut 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
+}
+.ob-celebrate--animated .ob-celebrate__ink {
+  animation: obCelebrateInkSplatter 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.26s both;
+}
+.ob-celebrate--animated .ob-celebrate__confetti {
+  animation: obCelebrateFall 1.5s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0s) both;
+}
+.ob-celebrate--animated .ob-celebrate__headline {
+  animation: obCelebrateRiseBig 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s both;
+}
+
+/* 스테이지 (상대 위치 기준) */
+.ob-celebrate__stage {
+  position: relative;
+  width: min(440px, 90vw);
+  height: 340px;
+  background: radial-gradient(130% 90% at 50% 40%, #fbf7ee, #fffdf8 72%);
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+/* 중앙 요소 묶음 */
+.ob-celebrate__center {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  display: grid;
+  place-items: center;
+}
+
+/* 씰(인감 도장) */
+.ob-celebrate__seal {
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  background: #a8542e;
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.3), 0 8px 20px -6px rgba(168, 84, 46, 0.5);
+}
+.ob-celebrate__seal svg {
+  width: 58px;
+  height: 58px;
+}
+
+/* 충격파 링 */
+.ob-celebrate__shock {
+  position: absolute;
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  border: 4px solid #a8542e;
+  opacity: 0;
+}
+
+/* 잉크 방울 */
+.ob-celebrate__ink {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #a8542e;
+  opacity: 0;
+}
+
+/* confetti 조각 */
+.ob-celebrate__confetti {
+  position: absolute;
+  width: 11px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0;
+  top: 42%;
+  left: 50%;
+  background: var(--bg, #a8542e);
+}
+
+/* 헤드라인 */
+.ob-celebrate__headline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 30px;
+  text-align: center;
+  opacity: 0;
+}
+/* 애니메이션 없을 때(prefers-reduced-motion 또는 미활성)는 즉시 표시 */
+.ob-celebrate:not(.ob-celebrate--animated) .ob-celebrate__headline {
+  opacity: 1;
+}
+.ob-celebrate__headline strong {
+  display: block;
+  font-family: var(--w-font-display, system-ui);
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #2a2620;
+}
+.ob-celebrate__headline span {
+  display: block;
+  font-size: 0.86rem;
+  color: #6b6256;
+  margin-top: 4px;
+}
+
+/* prefers-reduced-motion — 애니메이션 정지, 씰+헤드라인 즉시 표시 */
+@media (prefers-reduced-motion: reduce) {
+  .ob-celebrate--animated,
+  .ob-celebrate--animated .ob-celebrate__stage,
+  .ob-celebrate--animated .ob-celebrate__seal,
+  .ob-celebrate--animated .ob-celebrate__shock,
+  .ob-celebrate--animated .ob-celebrate__ink,
+  .ob-celebrate--animated .ob-celebrate__confetti,
+  .ob-celebrate--animated .ob-celebrate__headline { animation: none !important; }
+  .ob-celebrate--animated .ob-celebrate__seal { opacity: 1; transform: none; }
+  .ob-celebrate--animated .ob-celebrate__headline { opacity: 1; }
+  .ob-celebrate--animated .ob-celebrate__shock,
+  .ob-celebrate--animated .ob-celebrate__ink,
+  .ob-celebrate--animated .ob-celebrate__confetti { opacity: 0 !important; }
+}

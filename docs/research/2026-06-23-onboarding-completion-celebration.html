@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>온보딩 완료 축하 애니메이션 — 시안 4종</title>
+<style>
+  :root {
+    --canvas: #fffdf8; --parchment: #f3ede1; --cream: #fbf7ee; --ink: #2a2620; --ink-soft: #6b6256;
+    --accent: #a8542e; --accent-soft: #f6e3d6; --accent-mid: #d48d62; --olive: #76753f; --hairline: #e7ddcc;
+    --font-ui: "SF Pro Text", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+    --font-display: "SF Pro Display", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--parchment); color: var(--ink); font-family: var(--font-ui); -webkit-font-smoothing: antialiased; padding: 44px 24px 80px; }
+  .page { max-width: 1100px; margin: 0 auto; }
+  h1 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; text-align: center; margin: 0 0 4px; }
+  .sub { text-align: center; color: var(--ink-soft); font-size: 0.9rem; margin: 0 0 32px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 26px; }
+
+  .variant { background: var(--canvas); border: 1px solid var(--hairline); border-radius: 16px; overflow: hidden; box-shadow: 0 12px 30px -14px rgba(42,38,32,.2); }
+  .variant header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--hairline); }
+  .variant header .name { font-weight: 700; font-size: 0.92rem; }
+  .variant header .tag { font-size: 0.74rem; color: var(--ink-soft); }
+  .variant .replay { font: inherit; font-size: 0.76rem; cursor: pointer; border: 1px solid var(--hairline); background: var(--cream); color: var(--ink); padding: 5px 11px; border-radius: 999px; }
+  .variant .replay:hover { border-color: var(--accent-mid); }
+
+  /* 축하 무대 — 실제 구현 시 화면 전체 오버레이. 목업에선 패널. */
+  .stage { position: relative; height: 240px; background: radial-gradient(120% 90% at 50% 38%, var(--cream) 0%, var(--canvas) 70%); display: grid; place-items: center; overflow: hidden; }
+  .stage .center { position: relative; width: 120px; height: 120px; display: grid; place-items: center; }
+  .headline { position: absolute; left: 0; right: 0; bottom: 26px; text-align: center; }
+  .headline strong { display: block; font-family: var(--font-display); font-size: 1.04rem; font-weight: 700; color: var(--ink); }
+  .headline span { display: block; font-size: 0.8rem; color: var(--ink-soft); margin-top: 3px; }
+  .headline { opacity: 0; }
+  .stage.play .headline { animation: riseIn .5s var(--ease) .5s both; }
+  @keyframes riseIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ══ A — 잉크 도장(씰 스탬프) ══ */
+  .seal { width: 84px; height: 84px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; box-shadow: inset 0 0 0 3px rgba(255,255,255,.28); }
+  .seal svg { width: 42px; height: 42px; }
+  .stage.play .seal { animation: stampDrop .5s var(--spring) both; }
+  @keyframes stampDrop { 0% { transform: translateY(-40px) scale(1.7); opacity: 0; } 60% { opacity: 1; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+  .ring { position: absolute; width: 84px; height: 84px; border-radius: 50%; border: 2px solid var(--accent); opacity: 0; }
+  .stage.play .ring { animation: ringOut .7s var(--ease) .26s both; }
+  @keyframes ringOut { 0% { transform: scale(1); opacity: .5; } 100% { transform: scale(2.4); opacity: 0; } }
+  .droplet { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); opacity: 0; }
+  .stage.play .droplet { animation: splat .6s var(--ease) .28s both; }
+  @keyframes splat { 0% { transform: translate(0,0) scale(.3); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(1); opacity: 0; } }
+
+  /* ══ B — 펜 플로리시(서명 획 + 반짝임) ══ */
+  .flourish { width: 150px; height: 90px; }
+  .flourish path { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 240; stroke-dashoffset: 240; }
+  .stage.play .flourish path { animation: draw 1s var(--ease) .1s both; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  .nib { fill: var(--ink); opacity: 0; }
+  .stage.play .nib { animation: nibMove 1s var(--ease) .1s both; }
+  @keyframes nibMove { 0% { opacity: 1; } 90% { opacity: 1; } 100% { opacity: 0; } offset-rotate: 0deg; }
+  .spark { position: absolute; color: var(--accent-mid); opacity: 0; }
+  .stage.play .spark { animation: sparkPop .5s var(--spring) both; }
+  @keyframes sparkPop { 0% { transform: scale(0) rotate(0); opacity: 0; } 60% { transform: scale(1.2) rotate(20deg); opacity: 1; } 100% { transform: scale(1) rotate(0); opacity: 0; } }
+
+  /* ══ C — 책 펼침 + 종이꽃잎 버스트 ══ */
+  .book { width: 92px; height: 70px; position: relative; perspective: 400px; }
+  .book .cover, .book .pages { position: absolute; inset: 0; border-radius: 4px 8px 8px 4px; }
+  .book .pages { background: var(--canvas); border: 1px solid var(--hairline); }
+  .book .pages::before, .book .pages::after { content: ""; position: absolute; left: 12px; right: 12px; height: 3px; background: var(--hairline); border-radius: 2px; top: 24px; }
+  .book .pages::after { top: 34px; right: 26px; }
+  .book .cover { background: var(--accent); transform-origin: left center; box-shadow: inset -8px 0 0 rgba(0,0,0,.08); }
+  .stage.play .book .cover { animation: openCover .6s var(--ease) .15s both; }
+  @keyframes openCover { 0% { transform: rotateY(0); } 100% { transform: rotateY(-150deg); } }
+  .petal { position: absolute; width: 10px; height: 7px; border-radius: 60% 60% 60% 0; opacity: 0; }
+  .stage.play .petal { animation: burst 1s var(--ease) .3s both; }
+  @keyframes burst { 0% { transform: translate(0,0) rotate(0) scale(.4); opacity: 0; } 25% { opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(1); opacity: 0; } }
+
+  /* ══ D — 체크 씰 + 임팩트 라인 ══ */
+  .check { width: 80px; height: 80px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; }
+  .check svg { width: 40px; height: 40px; }
+  .check svg path { fill: none; stroke: #fff; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; stroke-dashoffset: 40; }
+  .stage.play .check { animation: checkPop .5s var(--spring) both; }
+  @keyframes checkPop { 0% { transform: scale(0); } 70% { transform: scale(1.12); } 100% { transform: scale(1); } }
+  .stage.play .check svg path { animation: draw2 .35s var(--ease) .3s both; }
+  @keyframes draw2 { to { stroke-dashoffset: 0; } }
+  .impact { position: absolute; width: 3px; height: 16px; background: var(--accent); border-radius: 2px; opacity: 0; transform-origin: center -34px; }
+  .stage.play .impact { animation: impactOut .5s var(--ease) .22s both; }
+  @keyframes impactOut { 0% { transform: rotate(var(--a)) translateY(0) scaleY(.3); opacity: 0; } 40% { opacity: 1; } 100% { transform: rotate(var(--a)) translateY(-12px) scaleY(1); opacity: 0; } }
+
+  .note { text-align: center; margin-top: 28px; font-size: 0.8rem; color: var(--ink-soft); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stage.play * { animation-duration: .001s !important; }
+    .headline { opacity: 1 !important; }
+    .flourish path { stroke-dashoffset: 0 !important; }
+    .check svg path { stroke-dashoffset: 0 !important; }
+    .book .cover { transform: rotateY(-150deg); }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>온보딩 완료 축하 — 시안 4종</h1>
+  <p class="sub">튜토리얼을 끝까지 마쳤을 때 1회 재생. 종이·잉크·도장·책 재료로 "작업실 완성"을 축하 (warm·완결성). 각 카드 "다시 재생".</p>
+
+  <div class="grid">
+
+    <!-- A -->
+    <div class="variant">
+      <header><span><span class="name">A · 잉크 도장</span> <span class="tag">씰이 쾅 + 임팩트 링 + 잉크 방울</span></span><button class="replay">다시 재생</button></header>
+      <div class="stage play" data-variant="a">
+        <div class="center">
+          <div class="ring"></div>
+          <div class="droplet" style="--tx:-46px;--ty:-30px"></div>
+          <div class="droplet" style="--tx:44px;--ty:-34px"></div>
+          <div class="droplet" style="--tx:-52px;--ty:24px"></div>
+          <div class="droplet" style="--tx:50px;--ty:28px"></div>
+          <div class="droplet" style="--tx:0;--ty:-54px"></div>
+          <div class="seal">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zM20.7 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+          </div>
+        </div>
+        <div class="headline"><strong>작업실이 준비됐어요</strong><span>이제 첫 작품을 시작해 보세요.</span></div>
+      </div>
+    </div>
+
+    <!-- B -->
+    <div class="variant">
+      <header><span><span class="name">B · 펜 플로리시</span> <span class="tag">서명 획이 그려지고 반짝임 (우아)</span></span><button class="replay">다시 재생</button></header>
+      <div class="stage play" data-variant="b">
+        <div class="center" style="width:160px">
+          <svg class="flourish" viewBox="0 0 150 90" aria-hidden="true">
+            <path d="M12 60 C 30 20, 55 20, 70 50 S 110 80, 138 30" />
+            <circle class="nib" cx="138" cy="30" r="4" />
+          </svg>
+          <span class="spark" style="left:18px;top:48px">✦</span>
+          <span class="spark" style="left:74px;top:24px;animation-delay:.9s">✦</span>
+          <span class="spark" style="right:14px;top:30px;animation-delay:1.05s">✦</span>
+        </div>
+        <div class="headline"><strong>작업실이 준비됐어요</strong><span>이제 첫 작품을 시작해 보세요.</span></div>
+      </div>
+    </div>
+
+    <!-- C -->
+    <div class="variant">
+      <header><span><span class="name">C · 책 펼침 + 종이꽃잎</span> <span class="tag">책이 열리며 종이조각 버스트 (축제)</span></span><button class="replay">다시 재생</button></header>
+      <div class="stage play" data-variant="c">
+        <div class="center">
+          <div class="book"><div class="pages"></div><div class="cover"></div></div>
+          <div class="petal" style="--tx:-60px;--ty:-50px;--rot:120deg;background:var(--accent)"></div>
+          <div class="petal" style="--tx:62px;--ty:-46px;--rot:-90deg;background:var(--accent-mid)"></div>
+          <div class="petal" style="--tx:-72px;--ty:6px;--rot:60deg;background:var(--olive)"></div>
+          <div class="petal" style="--tx:70px;--ty:10px;--rot:-140deg;background:var(--accent)"></div>
+          <div class="petal" style="--tx:-30px;--ty:-66px;--rot:200deg;background:var(--accent-mid)"></div>
+          <div class="petal" style="--tx:34px;--ty:-62px;--rot:-40deg;background:var(--olive)"></div>
+          <div class="petal" style="--tx:-50px;--ty:-20px;--rot:90deg;background:var(--accent-soft)"></div>
+          <div class="petal" style="--tx:52px;--ty:-22px;--rot:-110deg;background:var(--accent-soft)"></div>
+        </div>
+        <div class="headline"><strong>작업실이 준비됐어요</strong><span>이제 첫 작품을 시작해 보세요.</span></div>
+      </div>
+    </div>
+
+    <!-- D -->
+    <div class="variant">
+      <header><span><span class="name">D · 체크 씰 + 임팩트 라인</span> <span class="tag">체크 스프링 + 방사선 (펀치)</span></span><button class="replay">다시 재생</button></header>
+      <div class="stage play" data-variant="d">
+        <div class="center">
+          <div class="impact" style="--a:0deg"></div><div class="impact" style="--a:45deg"></div>
+          <div class="impact" style="--a:90deg"></div><div class="impact" style="--a:135deg"></div>
+          <div class="impact" style="--a:180deg"></div><div class="impact" style="--a:225deg"></div>
+          <div class="impact" style="--a:270deg"></div><div class="impact" style="--a:315deg"></div>
+          <div class="check"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5 L10 18.5 L20 6.5" /></svg></div>
+        </div>
+        <div class="headline"><strong>작업실이 준비됐어요</strong><span>이제 첫 작품을 시작해 보세요.</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="note">
+    실제 구현 시엔 driver.js 가 아니라 별도 화면 오버레이로 띄움(투어 진짜 종료 시점 1회 재생 → 자동 fade-out).
+    모든 모션 transform/opacity 중심 · <code>prefers-reduced-motion</code> 에서 정지.
+  </p>
+</div>
+
+<script>
+  document.querySelectorAll(".replay").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const stage = btn.closest(".variant").querySelector(".stage");
+      stage.classList.remove("play");
+      void stage.offsetWidth; // reflow
+      requestAnimationFrame(() => requestAnimationFrame(() => stage.classList.add("play")));
+    });
+  });
+</script>
+</body>
+</html>
+</content>
