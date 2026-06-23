@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useLogCards, useProjectLogs } from "@/lib/query/useLogs";
 import { useAllTimeTotal } from "@/lib/query/useSessions";
 import { lastSentence } from "@/lib/lastSentence";
+import { formatDurationKo } from "@/lib/formatDuration";
 import type { LogCard } from "@/lib/types/domain";
 
 /**
@@ -11,17 +12,6 @@ import type { LogCard } from "@/lib/types/domain";
  * 상단 합계 카드(총 글자수 / 총 작업시간 / 작품 수) + 작품별 진척 카드(펼치면 누적 기록).
  * 공백 최소화: 별도 대시보드 없이 기록 화면이 통계까지 겸한다.
  */
-
-function formatDuration(ms: number): string {
-    const minutes = Math.floor(ms / 60_000);
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    // 1분 미만(예: 40초) 작업이 "0분"으로 사라지지 않도록 분기 — 0보다 크면 "1분 미만".
-    if (h === 0 && m === 0) return ms > 0 ? "1분 미만" : "0분";
-    if (h === 0) return `${m}분`;
-    if (m === 0) return `${h}시간`;
-    return `${h}시간 ${m}분`;
-}
 
 function formatDateTime(iso: string): string {
     const d = new Date(iso);
@@ -61,7 +51,7 @@ function ProjectLogCard({ card }: { card: LogCard }) {
                 <div className="min-w-0">
                     <h2 className="truncate text-base font-bold text-gray-900">{card.project.title}</h2>
                     <p className="mt-0.5 text-xs text-gray-400">
-                        {card.wordCount.toLocaleString()}자 · 누적 {formatDuration(card.totalDurationMs)}
+                        {card.wordCount.toLocaleString()}자 · 누적 {formatDurationKo(card.totalDurationMs)}
                     </p>
                     {sentence && (
                         <p className="mt-1 truncate text-sm text-gray-600">마지막 문장 — {sentence}</p>
@@ -145,7 +135,7 @@ export default function BLogsPage() {
                 <>
                     <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <StatCard label="총 글자수" value={totalWordCount.toLocaleString()} unit="자" />
-                        <StatCard label="총 작업시간" value={formatDuration(totalDurationMs)} unit="" />
+                        <StatCard label="총 작업시간" value={formatDurationKo(totalDurationMs)} unit="" />
                         <StatCard label="작품" value={String((cards ?? []).length)} unit="편" />
                     </div>
                     <div className="space-y-3">

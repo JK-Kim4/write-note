@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SeriesPublishFields } from "./SeriesPublishFields";
+import { formatDurationKo } from "@/lib/formatDuration";
 import type { CategoryResponse, LayoutMode } from "@/types/api";
 import type { PaperSize } from "@/components/editor/pageLayout";
 import type { ProjectCard } from "@/lib/types/domain";
@@ -222,6 +223,9 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
                     ) : (
                         <div className="mt-1 text-[11px] text-gray-600">{category.totalWordCount.toLocaleString()}자</div>
                     )}
+                    <div className="mt-1 flex items-center gap-1 text-[11px] text-terracotta-700">
+                        <span aria-hidden>⏱</span> 총 집필 시간 <span className="font-semibold">{formatDurationKo(category.totalDurationMs)}</span>
+                    </div>
                 </div>
             )}
 
