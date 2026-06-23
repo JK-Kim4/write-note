@@ -23,7 +23,7 @@ describe("공개 랜딩 콘텐츠", () => {
         render(<LandingContent />);
         expect(screen.getByText("맥락이 죽지 않아요")).toBeInTheDocument();
         expect(screen.getByText("메모와 집필이 한곳에")).toBeInTheDocument();
-        expect(screen.getByText("챕터로 쓰고 내보내기")).toBeInTheDocument();
+        expect(screen.getByText("시리즈로 묶어 내보내기")).toBeInTheDocument();
     });
 
     it("푸터 문의하기가 /contact 로 연결된다", () => {
