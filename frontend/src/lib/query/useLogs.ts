@@ -2,7 +2,7 @@
 
 /**
  * logs React Query 훅 (015 US3) — 기록 화면 카드 집계 + 작품별 기록 lazy 조회.
- * endWithLog 는 useWorkSession 이 closedRef 와 함께 소유하므로, 무효화는 호출부(집필실)가 logKeys.all 로 수행.
+ * endWithLog 는 useTimewatch(타임워치 stop) 가 소유하며, logKeys.all 무효화도 그 안에서 수행한다.
  */
 import { useQuery } from "@tanstack/react-query";
 import { webElectronApi } from "@/lib/electron-api";
