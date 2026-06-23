@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>7. 출처 · 신뢰도 · 한계 — 경쟁 조사</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">📚 창작 에디터 경쟁 조사
+      <small>뮤블(Muvel) · 노벨라(Novela) vs 소설비(Soseolbi)<br>조사일 2026-06-21</small>
+    </div>
+    <nav>
+      <div class="nav-group">리포트</div>
+      <a href="index.html"><span class="num">0</span>표지 &amp; 목차</a>
+      <a href="01-overview.html"><span class="num">1</span>개요 &amp; 명칭 정정</a>
+      <a href="02-tech-stack.html"><span class="num">2</span>기술 스택</a>
+      <a href="03-metrics.html"><span class="num">3</span>사용자 · 매출</a>
+      <a href="04-mobile-ios.html"><span class="num">4</span>iOS 한글 · 모바일 집필</a>
+      <a href="05-features.html"><span class="num">5</span>기능 비교표</a>
+      <a href="06-scorecard.html"><span class="num">6</span>완성도 점수화</a>
+      <a href="07-sources.html" class="active"><span class="num">7</span>출처 · 신뢰도 · 한계</a>
+    </nav>
+    <div class="foot">deep-research 워크플로우 기반<br>확인 불가 수치는 ‘공개 자료 없음’ 표기</div>
+  </aside>
+
+  <main class="main">
+  <div class="content">
+    <p class="eyebrow">Section 7</p>
+    <h1>출처 · 신뢰도 · 한계</h1>
+    <p class="lead">이 리포트는 deep-research 워크플로우로 <strong>16개 출처 → 62개 주장 추출 → 25개 적대적 교차검증(주장당 3표, 2표 이상 반증 시 폐기)</strong>을 거쳤습니다. 22개 확정, 3개 폐기. 아래는 전체 출처와 신뢰도, 폐기된 주장, 미해결 질문입니다.</p>
+
+    <div class="card" style="padding:14px 20px;">
+      <strong>신뢰도 등급</strong> &nbsp;
+      <span class="q primary">primary</span> 1차(공식·공식GitHub·텀블벅) &nbsp;
+      <span class="q secondary">secondary</span> 2차(나무위키·채용) &nbsp;
+      <span class="q forum">forum/blog</span> 커뮤니티/블로그 &nbsp;
+      <span class="q unreliable">unreliable</span> 신뢰 낮음
+    </div>
+
+    <h2>전체 출처 (16)</h2>
+    <table>
+      <thead><tr><th>출처</th><th class="c">등급</th><th>조사 각도</th></tr></thead>
+      <tbody>
+        <tr><td class="src-link"><a class="inline" href="https://muvel.app/info">muvel.app/info</a></td><td class="c"><span class="q primary">primary</span></td><td>뮤블 개요</td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://muvel.app/en">muvel.app/en</a></td><td class="c"><span class="q primary">primary</span></td><td>뮤블 플랫폼·모바일</td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://guide.muvel.app/novel">guide.muvel.app/novel</a></td><td class="c"><span class="q primary">primary</span></td><td>뮤블 기능</td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://guide.muvel.app/getting-started/editor-comparison">guide.muvel.app/…/editor-comparison</a></td><td class="c"><span class="q primary">primary</span></td><td>뮤블 플랫폼 비교표(iOS 베타)</td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://github.com/KimuSoft/muvel-public/releases">github.com/KimuSoft/muvel-public/releases</a></td><td class="c"><span class="q primary">primary</span></td><td><strong>뮤블 기술스택(Tauri)</strong></td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://novela.so/">novela.so</a></td><td class="c"><span class="q primary">primary</span></td><td>노벨라 기능</td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://tumblbug.com/novela">tumblbug.com/novela</a></td><td class="c"><span class="q primary">primary</span></td><td>노벨라 펀딩(2,009만원)</td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://intercom.help/novela-studio">intercom.help/novela-studio</a></td><td class="c"><span class="q secondary">secondary</span></td><td>노벨라 도움말(버전·타이머)</td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://blog.novela.so/novela-renewal-announcement">blog.novela.so/renewal</a></td><td class="c"><span class="q primary">primary</span></td><td>노벨라 2025 리뉴얼</td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://novela.featurebase.app">novela.featurebase.app</a></td><td class="c"><span class="q secondary">secondary</span></td><td>노벨라 기능 요청</td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://apps.apple.com/us/app/novela-writing-app-for-novels/id6753945666">App Store · Novela id6753945666</a></td><td class="c"><span class="q primary">primary</span></td><td>노벨라 iOS 앱(2025-12)</td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://play.google.com/store/apps/details?id=so.novela">Google Play · so.novela</a></td><td class="c"><span class="q primary">primary</span></td><td>노벨라 Android</td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://play.google.com/store/apps/details?id=com.muvel">Google Play · com.muvel</a></td><td class="c"><span class="q primary">primary</span></td><td>뮤블 Android</td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://www.wanted.co.kr/company/48709">wanted.co.kr/company/48709</a></td><td class="c"><span class="q secondary">secondary</span></td><td>노벨라 ‘1만+ 작가’(자기보고)</td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://namu.wiki/w/뮤블">namu.wiki/w/뮤블</a></td><td class="c"><span class="q forum">2차</span></td><td>뮤블 교차확인</td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://namu.wiki/w/노벨라">namu.wiki/w/노벨라</a></td><td class="c"><span class="q secondary">2차</span></td><td>노벨라 교차확인</td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://pensiv.so/ko/blog/muvel-alternative">pensiv.so/ko/blog/muvel-alternative</a></td><td class="c"><span class="q blog">blog</span></td><td>뮤블 기능 보강</td></tr>
+        <tr><td class="src-link"><a class="inline" href="https://thevc.kr/novelastudio">thevc.kr/novelastudio</a></td><td class="c"><span class="q unreliable">접근차단</span></td><td>노벨라 설립일(403)</td></tr>
+      </tbody>
+    </table>
+    <p><small>※ 디시·아카라이브 등 커뮤니티 글은 검증 과정에서 신뢰도 미달로 필터링되어 주장 인용에서 제외되었습니다.</small></p>
+
+    <h2>반증되어 폐기된 주장 (3)</h2>
+    <p>아래는 검증 과정에서 다수표로 반증되어 <strong>본 리포트에 인용하지 않은</strong> 주장입니다. 투명성을 위해 공개합니다.</p>
+    <table>
+      <thead><tr><th>폐기된 주장</th><th class="c">표결</th></tr></thead>
+      <tbody>
+        <tr><td><span class="cross">✗</span> 노벨라 ‘5만+ 작가 · 79.8억 자 작성’</td><td class="c"><span class="badge none">0-3 전원반증</span></td></tr>
+        <tr><td><span class="cross">✗</span> 노벨라 데스크톱 = Electron 단순 웹뷰어, 오프라인 불가</td><td class="c"><span class="badge none">1-2 반증</span></td></tr>
+        <tr><td><span class="cross">✗</span> 노벨라 모바일이 원래 PWA였다가 2026년 앱 출시</td><td class="c"><span class="badge none">1-2 반증</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>미해결 질문 (추가 조사 필요)</h2>
+    <ul class="clean">
+      <li><strong>노벨라 기술 스택</strong> — 프론트 프레임워크·에디터 엔진·백엔드·호스팅 공개 자료 미발견.</li>
+      <li><strong>정확한 MAU·매출</strong> — 노벨라 ‘1만+’(자기보고) 외 제3자 검증 수치 없음. 두 서비스 매출 전무.</li>
+      <li><strong>iOS 한글 IME 실동작</strong> — 두 서비스 모두 직접 검증 출처 없음. <em>실기기 dogfooding이 유일한 확인 경로</em>.</li>
+      <li><strong>네이티브 vs 래퍼</strong> — 노벨라 데스크톱/모바일과 뮤블 모바일이 진짜 네이티브인지 web-wrapper(Electron/Capacitor/Tauri모바일)인지 미확인.</li>
+    </ul>
+
+    <h2>이 리포트를 읽을 때 주의</h2>
+    <div class="callout warn">
+      <span class="t">⚠️ 핵심 한계 3가지</span>
+      <p><strong>① 시간 민감성</strong> — 두 서비스 모두 활발히 개발 중(뮤블 v2.10대, 노벨라 2025 리뉴얼·앱 출시). 기능·상태는 2026-06 기준이며 빠르게 변합니다.<br>
+      <strong>② 정보 비대칭</strong> — 경쟁사 내부(엔진·서버·실사용 품질)는 공개되지 않아, 마케팅 문구를 ‘기능 있음’으로 과대 해석하지 않도록 보수적으로 표기했습니다.<br>
+      <strong>③ 점수의 주관성</strong> — §6 점수는 소설비 관점의 정성 평가입니다. 절대 순위가 아니라 <strong>‘어디서 이기고 어디서 지는가’의 방향</strong>으로 읽으십시오.</p>
+    </div>
+
+    <h2>다음 액션 제안</h2>
+    <ul class="clean">
+      <li>📱 <strong>iOS 실기기 검증</strong> — 뮤블 베타·노벨라 앱에 한글 4케이스 직접 입력 테스트(체크리스트 제공 가능).</li>
+      <li>📊 <strong>Export 영역 점수 끌어올리기</strong> — 진행 중 PDF/HWPX/DOCX를 완료(◐→●)하면 종합 점수 +2~3점.</li>
+      <li>🧭 <strong>모바일 전략 결정</strong> — 웹 IME 완주 vs 네이티브 앱/캡처 우회(§4) — 제품 방향 컨펌 필요.</li>
+    </ul>
+
+    <div class="pagenav">
+      <a href="06-scorecard.html"><span class="dir">← 이전</span><span class="ttl">6. 완성도 점수화</span></a>
+      <a class="next" href="index.html"><span class="dir">처음으로 →</span><span class="ttl">0. 표지 &amp; 목차</span></a>
+    </div>
+  </div>
+  </main>
+</div>
+</body>
+</html>

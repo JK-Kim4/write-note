@@ -38,6 +38,8 @@ class Project(
     var layoutMode: String = "paper",
     @Column(name = "font_scale", nullable = false, length = 2)
     var fontScale: String = "m",
+    @Column(name = "category_id")
+    var categoryId: Long? = null,
     @Column(name = "archived_at")
     var archivedAt: Instant? = null,
     @Column(name = "created_at", nullable = false, updatable = false)

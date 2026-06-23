@@ -56,7 +56,37 @@ export interface ProjectResponse {
     layoutMode: LayoutMode;
     /** 작품별 글자 크기 5단 (031 US5 / V19). 판형 기본 위 덮어쓰기. 기본 m. */
     fontScale: FontScale;
+    /** 소속 모음(카테고리) id (032 / V20). null = 미분류. */
+    categoryId: number | null;
+    /** effective 판형 (033 R2) — 시리즈값 or 시스템 기본값 "A4". BE 가 해석해 내려줌. 집필실·내보내기는 이 값을 쓴다. */
+    effectivePaperSize: PaperSize;
+    /** effective 출판방식 (033 R2) — 시리즈값 or 시스템 기본값 "paper". BE 가 해석해 내려줌. */
+    effectiveLayoutMode: LayoutMode;
     archivedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+/** 모음(카테고리) 응답 (032) — GET /api/categories. parentId 는 v1 항상 null(N뎁스 설계용). */
+export interface CategoryResponse {
+    id: number;
+    name: string;
+    parentId: number | null;
+    sortOrder: number;
+    /** 해당 모음의 활성 작품 수(보관 제외). 빈 모음=0. */
+    projectCount: number;
+    /** 시리즈 판형 (033 R2). null = 미설정 → 하위 작품은 시스템 기본값 fallback. */
+    paperSize: PaperSize | null;
+    /** 시리즈 출판방식 (033 R2). null = 미설정 → 기본값 fallback. */
+    layoutMode: LayoutMode | null;
+    /** 시리즈 장르 (033 R3). null = 미설정. */
+    genre: string | null;
+    /** 시리즈 줄거리 (033 R3). null = 미설정. */
+    synopsis: string | null;
+    /** 시리즈 총 목표 분량 글자수 (033 R4). null = 미설정. */
+    targetLength: number | null;
+    /** 하위 작품(미archive) 활성 본문 word_count 합 (033 R4). BE 집계. */
+    totalWordCount: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -105,21 +135,6 @@ export interface DocumentResponse {
     /** 016 — updatedAt 겸용 불투명 버전 토큰(ISO8601 문자열). 파싱·증감 금지, 받은 값 그대로 전달. */
     version: string;
     updatedAt: string;
-}
-
-/** 챕터 목록 항목 (022 US1) — GET /api/projects/{projectId}/documents 응답 원소. 본문 미포함 메타만. */
-export interface ChapterMetaResponse {
-    id: number;
-    projectId: number;
-    title: string;
-    sortOrder: number;
-    wordCount: number;
-    updatedAt: string;
-}
-
-/** 챕터 생성 요청 (022 US1) — POST /api/projects/{projectId}/documents */
-export interface CreateChapterInput {
-    title?: string;
 }
 
 /** 메모에 연결된 등장인물 (006 US4) — MemoProjectResponse.characters 원소 */
@@ -222,12 +237,5 @@ export interface DocumentSaveResponse {
     wordCount: number;
     /** 016 — flush 후 확정된 새 버전 토큰(ISO8601 문자열, 불투명). */
     version: string;
-    updatedAt: string;
-}
-
-/** PATCH /api/documents/{id}/title 성공 응답 */
-export interface DocumentTitleResponse {
-    id: number;
-    title: string;
     updatedAt: string;
 }

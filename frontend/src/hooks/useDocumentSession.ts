@@ -63,6 +63,12 @@ export interface UseDocumentSessionResult {
      * IME 조합 중(onChange 차단 구간)에도, 언마운트 직전에도 작성분을 보존하기 위한 통로.
      */
     flushDraft: (body: string) => void;
+    /**
+     * 미동기화분을 **즉시 서버에 저장하고 완료까지 기다린다**(이탈 동기 저장). debounce 를 건너뛰고
+     * 정상 저장 경로(saveDocument → CSRF 헤더 + 응답으로 캐시 version 전진)를 탄다. 작품 목록/작업 종료 등
+     * 이탈 직전 `await flushNow()` 로 호출하면 유실·재진입 충돌 없이 시리즈 글자수가 즉시 동기화된다.
+     */
+    flushNow: () => Promise<void>;
 }
 
 export interface DocumentSessionTiming {
@@ -103,8 +109,8 @@ export function useDocumentSession(
     const baselineBodyRef = useRef(serverBody);
     const latestBodyRef = useRef(serverBody);
 
-    // 저장 직렬화 / 하이브리드 타이머 / 충돌 차단.
-    const isSavingRef = useRef(false);
+    // 저장 직렬화(드레인 단일 비행) / 하이브리드 타이머 / 충돌 차단.
+    const drainRef = useRef<Promise<void> | null>(null);
     const conflictRef = useRef(false);
     const lastSyncAtRef = useRef(0);
     const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -129,63 +135,75 @@ export function useDocumentSession(
         setVersion(serverVersion);
     }, [documentId, serverVersion, serverBody]);
 
-    // 실제 저장 실행 — version 은 항상 세션 소유 토큰(versionRef)으로 보낸다.
-    // latest-ref 패턴: 매 렌더의 최신 클로저를 ref 에 보관해 타이머/큐잉 콜백이 stale 값을 안 잡게 한다(onSavedRef 와 동일 패턴).
-    const runSync = useRef<() => void>(() => {});
+    // 단일 저장 실행 — version 은 항상 세션 소유 토큰(versionRef)으로 보낸다. drain 이 dirty·non-conflict 를
+    // 보장한 뒤 호출한다. latest-ref 패턴: 매 렌더의 최신 클로저를 ref 에 보관(타이머/드레인 콜백 stale 방지).
+    const performSync = useRef<() => Promise<void>>(() => Promise.resolve());
     // eslint-disable-next-line react-hooks/refs
-    runSync.current = () => {
-        if (conflictRef.current) return;
-        // dirty 아님(현재 본문 = 마지막 동기화 본문)이면 저장 불필요.
-        if (latestBodyRef.current === baselineBodyRef.current) return;
-        // 저장 중이면 큐잉 — 완료 후 finally 에서 dirty 재확인해 재실행.
-        if (isSavingRef.current) return;
-
-        isSavingRef.current = true;
+    performSync.current = async () => {
         lastSyncAtRef.current = Date.now();
         const bodyToSave = latestBodyRef.current;
         const versionToSave = versionRef.current;
         setSyncStatus("syncing");
-
-        saveDocument(documentId, { body: bodyToSave, version: versionToSave })
-            .then((res) => {
-                versionRef.current = res.version;
-                baselineBodyRef.current = bodyToSave;
-                setVersion(res.version);
-                setWordCount(res.wordCount);
-                setSyncStatus("synced");
-                // no-clobber: 동기화 중 추가 입력이 없었으면 서버가 최신 → 로컬 draft 정리.
-                // 추가 입력이 있었으면(latest != bodyToSave) 최신 로컬을 dirty 로 유지(절대 stale 본문으로 덮지 않음).
-                if (latestBodyRef.current === bodyToSave) {
-                    clearDraft(documentId);
+        try {
+            const res = await saveDocument(documentId, { body: bodyToSave, version: versionToSave });
+            versionRef.current = res.version;
+            baselineBodyRef.current = bodyToSave;
+            setVersion(res.version);
+            setWordCount(res.wordCount);
+            setSyncStatus("synced");
+            // no-clobber: 동기화 중 추가 입력이 없었으면 서버가 최신 → 로컬 draft 정리.
+            // 추가 입력이 있었으면(latest != bodyToSave) 최신 로컬을 dirty 로 유지(절대 stale 본문으로 덮지 않음).
+            if (latestBodyRef.current === bodyToSave) {
+                clearDraft(documentId);
+            } else {
+                writeDraft({
+                    documentId,
+                    projectId,
+                    body: latestBodyRef.current,
+                    baseVersion: res.version,
+                    dirty: true,
+                    updatedAt: Date.now(),
+                });
+            }
+            onSavedRef.current?.(res);
+        } catch (err: unknown) {
+            if (err instanceof ConflictError) {
+                // 거짓충돌 백스톱 — 서버 currentBody 가 내가 보낸 본문과 같으면(내 이탈 flush 가 먼저 도달해
+                // 같은 본문을 이미 썼고 토큰만 전진한 상태) 진짜 충돌이 아니다. 서버 토큰을 조용히 채택해
+                // 재진입 직후의 자가 409 race 를 닫는다(다이얼로그 없이). 캐시 wordCount 는 다음 정상 저장이 갱신.
+                if (err.currentBody === bodyToSave) {
+                    versionRef.current = err.currentVersion;
+                    baselineBodyRef.current = bodyToSave;
+                    setVersion(err.currentVersion);
+                    setSyncStatus("synced");
+                    if (latestBodyRef.current === bodyToSave) clearDraft(documentId);
                 } else {
-                    writeDraft({
-                        documentId,
-                        projectId,
-                        body: latestBodyRef.current,
-                        baseVersion: res.version,
-                        dirty: true,
-                        updatedAt: Date.now(),
-                    });
-                }
-                onSavedRef.current?.(res);
-            })
-            .catch((err: unknown) => {
-                if (err instanceof ConflictError) {
-                    // 자동 덮어쓰기 금지 — 충돌 차단 + 데이터 노출(US3). 미동기화 draft 는 보존(삭제 안 함).
+                    // 자동 덮어쓰기 금지 — 진짜 충돌 차단 + 데이터 노출(US3). 미동기화 draft 는 보존(삭제 안 함).
                     conflictRef.current = true;
                     setConflict({ currentVersion: err.currentVersion, currentBody: err.currentBody });
                     setSyncStatus("conflict");
-                } else {
-                    setSyncStatus("error");
                 }
-            })
-            .finally(() => {
-                isSavingRef.current = false;
-                // in-flight 중 들어온 편집(큐잉분) — dirty 면 즉시 1회 더 저장.
-                if (!conflictRef.current && latestBodyRef.current !== baselineBodyRef.current) {
-                    runSync.current();
-                }
-            });
+            } else {
+                setSyncStatus("error");
+            }
+        }
+    };
+
+    // 드레인 — dirty 가 사라질 때(또는 충돌)까지 직렬 저장. 단일 비행: 중복 호출은 진행 중 promise 에 합류한다
+    // (in-flight 중 들어온 편집은 루프가 재확인해 한 번 더 저장 — 기존 finally 재큐잉과 동치).
+    const drain = useRef<() => Promise<void>>(() => Promise.resolve());
+    // eslint-disable-next-line react-hooks/refs
+    drain.current = () => {
+        if (drainRef.current) return drainRef.current;
+        const p = (async () => {
+            while (!conflictRef.current && latestBodyRef.current !== baselineBodyRef.current) {
+                await performSync.current();
+            }
+        })().finally(() => {
+            drainRef.current = null;
+        });
+        drainRef.current = p;
+        return p;
     };
 
     // 타자 → draft 즉시 기록(localStorage-first) + 하이브리드 동기화 스케줄.
@@ -208,7 +226,7 @@ export function useDocumentSession(
         // 멈춤(debounceMs)과 상한(마지막 동기화 후 maxIntervalMs) 중 먼저 도래하는 시점.
         const capRemaining = lastSyncAtRef.current + maxIntervalMs - Date.now();
         const delay = Math.max(0, Math.min(debounceMs, capRemaining));
-        debounceTimerRef.current = setTimeout(() => runSync.current(), delay);
+        debounceTimerRef.current = setTimeout(() => void drain.current(), delay);
     }, [body, documentId, projectId, debounceMs, maxIntervalMs]);
 
     useEffect(
@@ -228,7 +246,9 @@ export function useDocumentSession(
             try {
                 fetch(`/api/documents/${documentId}`, {
                     method: "PUT",
-                    headers: { "Content-Type": "application/json" },
+                    // CsrfDefenseFilter 가 쿠키 인증 PUT 에 본 헤더를 요구한다(없으면 403). 공용 client 를
+                    // 우회하는 raw fetch 라 수동 동봉 필수 — 누락 시 keepalive flush 가 통째로 403 으로 죽는다.
+                    headers: { "Content-Type": "application/json", "X-WriteNote-Client": "web" },
                     body: JSON.stringify({ body: latestBodyRef.current, version: versionRef.current }),
                     credentials: "include",
                     keepalive: true,
@@ -246,7 +266,7 @@ export function useDocumentSession(
         versionRef.current = currentVersion;
         conflictRef.current = false;
         setConflict(null);
-        runSync.current();
+        void drain.current();
     };
     // 충돌 해제 — 상태만 해제(호출자가 본문을 서버 최신으로 교체 후 호출).
     const dismissConflict = () => {
@@ -284,5 +304,16 @@ export function useDocumentSession(
         });
     };
 
-    return { version, syncStatus, wordCount, restoredBody, conflict, overwrite, dismissConflict, reloadFromServer, flushDraft };
+    // 이탈 동기 저장 — debounce 타이머를 취소하고 드레인을 끝까지 await(미동기화분이 서버에 반영될 때까지).
+    // 호출자(작품 목록/작업 종료)는 이 promise 를 await 한 뒤 네비게이션한다.
+    const flushNow = async (): Promise<void> => {
+        if (!initRef.current || conflictRef.current) return;
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+            debounceTimerRef.current = null;
+        }
+        await drain.current();
+    };
+
+    return { version, syncStatus, wordCount, restoredBody, conflict, overwrite, dismissConflict, reloadFromServer, flushDraft, flushNow };
 }

@@ -1,6 +1,7 @@
 package com.writenote.service
 
 import com.writenote.components.documents.ProseMirrorText
+import com.writenote.entity.Category
 import com.writenote.entity.Document
 import com.writenote.entity.Project
 import com.writenote.error.ResourceNotFoundException
@@ -11,6 +12,7 @@ import com.writenote.model.request.UpdateProjectRequest
 import com.writenote.model.response.PageResponse
 import com.writenote.model.response.ProjectCardResponse
 import com.writenote.model.response.ProjectResponse
+import com.writenote.repository.CategoryRepository
 import com.writenote.repository.DocumentRepository
 import com.writenote.repository.ProjectRepository
 import com.writenote.repository.UserRepository
@@ -27,6 +29,7 @@ class ProjectService(
     private val projectMapper: ProjectMapper,
     private val documentRepository: DocumentRepository,
     private val workSessionRepository: WorkSessionRepository,
+    private val categoryRepository: CategoryRepository,
 ) {
     @Transactional(rollbackFor = [Exception::class])
     fun createProject(
@@ -39,18 +42,15 @@ class ProjectService(
                 Project(
                     userId = userId,
                     title = request.title.trim(),
-                    genre = request.genre,
                     targetLength = request.targetLength,
-                    toneNotes = request.toneNotes,
-                    synopsis = request.synopsis,
-                    worldNotes = request.worldNotes,
+                    // 장르·줄거리·톤류는 시리즈로 이동(033 R3) — 작품 생성 시 미반영(엔티티 기본값 유지, 컬럼 보존)
                     paperSize = validatedPaperSize(request.paperSize),
                     layoutMode = validatedLayoutMode(request.layoutMode),
                     fontScale = validatedFontScale(request.fontScale),
                 ),
             )
         documentRepository.save(Document(projectId = requireNotNull(project.id), sortOrder = 0))
-        return projectMapper.toResponse(project)
+        return toResponse(project)
     }
 
     @Transactional(readOnly = true)
@@ -72,7 +72,10 @@ class ProjectService(
                 projectRepository.findByUserIdAndArchivedAtIsNullOrderByUpdatedAtDesc(userId, pageable)
             }
 
-        return PageResponse.from(projects.map(projectMapper::toResponse))
+        val categoryById = categoriesByProjects(projects.content)
+        return PageResponse.from(
+            projects.map { project -> projectMapper.toResponse(project, categoryById[project.categoryId]) },
+        )
     }
 
     /**
@@ -88,6 +91,8 @@ class ProjectService(
         }
 
         val projectIds = projects.map { requireNotNull(it.id) }
+        // 소속 시리즈 일괄 조회 — projectId 마다 개별 조회 금지 (effective 해석용, N+1 금지)
+        val categoryById = categoriesByProjects(projects)
         // 활성 챕터 전량 일괄 조회 — groupBy 로 projectId 별 그룹 조립 (N+1 금지)
         val chaptersByProjectId =
             documentRepository.findByProjectIdInAndDeletedAtIsNull(projectIds).groupBy { it.projectId }
@@ -114,7 +119,7 @@ class ProjectService(
             val lastSentenceSource =
                 latestChapter?.let { ProseMirrorText.extractPlainText(it.body) } ?: ""
             ProjectCardResponse.from(
-                base = projectMapper.toResponse(project),
+                base = projectMapper.toResponse(project, categoryById[project.categoryId]),
                 wordCount = wordCount,
                 documentUpdatedAt = documentUpdatedAt,
                 totalDurationMs = durationByProjectId[projectId] ?: 0L,
@@ -130,7 +135,7 @@ class ProjectService(
     ): ProjectResponse =
         projectRepository
             .findByIdAndUserId(projectId, userId)
-            .map(projectMapper::toResponse)
+            .map { toResponse(it) }
             .orElseThrow { ResourceNotFoundException("Project not found") }
 
     @Transactional(rollbackFor = [Exception::class])
@@ -142,17 +147,13 @@ class ProjectService(
         val project = requireOwnedProject(userId, projectId)
 
         request.title?.let { project.title = it.trim() }
-        request.genre?.let { project.genre = it }
         request.targetLength?.let { project.targetLength = it }
-        request.toneNotes?.let { project.toneNotes = it }
-        request.synopsis?.let { project.synopsis = it }
-        request.worldNotes?.let { project.worldNotes = it }
-        request.nextScene?.let { project.nextScene = it }
+        // 장르·줄거리·톤류는 시리즈로 이동(033 R3) — 변경 경로 제거(기존 컬럼·값 보존, FR-014)
         request.paperSize?.let { project.paperSize = validatedPaperSize(it) }
         request.layoutMode?.let { project.layoutMode = validatedLayoutMode(it) }
         request.fontScale?.let { project.fontScale = validatedFontScale(it) }
 
-        return projectMapper.toResponse(project)
+        return toResponse(project)
     }
 
     /** 용지 크기 허용값 검증 — null 이면 기본 'A4', 비허용값이면 [ValidationException]. */
@@ -182,6 +183,24 @@ class ProjectService(
         return value
     }
 
+    /**
+     * 작품을 모음으로 이동(032) — [categoryId] null = 미분류로 빼냄.
+     * 본인 작품·모음만(아니면 404). 기존 PATCH 와 별도(null-vs-absent 모호 회피).
+     */
+    @Transactional(rollbackFor = [Exception::class])
+    fun moveCategory(
+        userId: Long,
+        projectId: Long,
+        categoryId: Long?,
+    ): ProjectResponse {
+        val project = requireOwnedProject(userId, projectId)
+        if (categoryId != null && !categoryRepository.existsByIdAndUserId(categoryId, userId)) {
+            throw ResourceNotFoundException("Category not found")
+        }
+        project.categoryId = categoryId
+        return toResponse(project)
+    }
+
     @Transactional(rollbackFor = [Exception::class])
     fun archiveProject(
         userId: Long,
@@ -189,7 +208,7 @@ class ProjectService(
     ): ProjectResponse {
         val project = requireOwnedProject(userId, projectId)
         project.archive(Instant.now())
-        return projectMapper.toResponse(project)
+        return toResponse(project)
     }
 
     @Transactional(rollbackFor = [Exception::class])
@@ -199,7 +218,7 @@ class ProjectService(
     ): ProjectResponse {
         val project = requireOwnedProject(userId, projectId)
         project.unarchive()
-        return projectMapper.toResponse(project)
+        return toResponse(project)
     }
 
     @Transactional(rollbackFor = [Exception::class])
@@ -209,6 +228,21 @@ class ProjectService(
     ) {
         val project = requireOwnedProject(userId, projectId)
         projectRepository.delete(project)
+    }
+
+    /** 단건 작품 → 응답 (effective 해석 포함). 소속 시리즈 1건만 조회. */
+    private fun toResponse(project: Project): ProjectResponse {
+        val category = project.categoryId?.let { categoryRepository.findById(it).orElse(null) }
+        return projectMapper.toResponse(project, category)
+    }
+
+    /** 다수 작품의 소속 시리즈를 일괄 조회해 id→Category map 으로 반환 (effective 해석용, N+1 금지). */
+    private fun categoriesByProjects(projects: List<Project>): Map<Long, Category> {
+        val categoryIds = projects.mapNotNull { it.categoryId }.distinct()
+        if (categoryIds.isEmpty()) {
+            return emptyMap()
+        }
+        return categoryRepository.findAllById(categoryIds).associateBy { requireNotNull(it.id) }
     }
 
     fun requireOwnedProject(

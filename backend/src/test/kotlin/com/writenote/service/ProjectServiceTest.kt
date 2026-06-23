@@ -9,6 +9,7 @@ import com.writenote.mapper.ProjectMapper
 import com.writenote.model.request.CreateProjectRequest
 import com.writenote.model.request.UpdateProjectRequest
 import com.writenote.model.response.ProjectResponse
+import com.writenote.repository.CategoryRepository
 import com.writenote.repository.DocumentRepository
 import com.writenote.repository.ProjectRepository
 import com.writenote.repository.UserRepository
@@ -31,6 +32,7 @@ class ProjectServiceTest {
     private lateinit var projectMapper: ProjectMapper
     private lateinit var documentRepository: DocumentRepository
     private lateinit var workSessionRepository: WorkSessionRepository
+    private lateinit var categoryRepository: CategoryRepository
     private lateinit var service: ProjectService
 
     @BeforeEach
@@ -40,7 +42,16 @@ class ProjectServiceTest {
         projectMapper = mockk()
         documentRepository = mockk()
         workSessionRepository = mockk()
-        service = ProjectService(projectRepository, userRepository, projectMapper, documentRepository, workSessionRepository)
+        categoryRepository = mockk()
+        service =
+            ProjectService(
+                projectRepository,
+                userRepository,
+                projectMapper,
+                documentRepository,
+                workSessionRepository,
+                categoryRepository,
+            )
     }
 
     private fun stubMapper(project: Project): ProjectResponse {
@@ -60,14 +71,15 @@ class ProjectServiceTest {
                 archivedAt = project.archivedAt,
                 createdAt = project.createdAt ?: Instant.now(),
                 updatedAt = project.updatedAt ?: Instant.now(),
+                categoryId = project.categoryId,
             )
-        every { projectMapper.toResponse(eq(project)) } returns response
+        every { projectMapper.toResponse(eq(project), any()) } returns response
         return response
     }
 
     @Test
-    @DisplayName("createProject — 메타 5 필드 모두 영속")
-    fun `createProject persists all metadata fields`() {
+    @DisplayName("createProject — title trim·targetLength 영속, 장르·톤류 메타는 무시(033 R3)")
+    fun `createProject persists title and targetLength and ignores meta`() {
         every { userRepository.existsById(eq(1L)) } returns true
         val captured = slot<Project>()
         every { projectRepository.save(capture(captured)) } answers { firstArg<Project>().apply { id = 100L } }
@@ -76,24 +88,22 @@ class ProjectServiceTest {
         val request =
             CreateProjectRequest(
                 title = "  Padded  ",
-                genre = "치유물",
                 targetLength = 4000,
-                toneNotes = "잔잔",
-                synopsis = "할머니",
-                worldNotes = "1990s",
             )
 
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
         service.createProject(1L, request)
 
         val saved = captured.captured
         assertThat(saved.userId).isEqualTo(1L)
         assertThat(saved.title).isEqualTo("Padded")
-        assertThat(saved.genre).isEqualTo("치유물")
         assertThat(saved.targetLength).isEqualTo(4000)
-        assertThat(saved.toneNotes).isEqualTo("잔잔")
-        assertThat(saved.synopsis).isEqualTo("할머니")
-        assertThat(saved.worldNotes).isEqualTo("1990s")
+        // 장르·톤류 메타는 시리즈로 이동(033) — 작품에는 저장되지 않고 엔티티 기본값(null/빈값) 유지
+        assertThat(saved.genre).isNull()
+        assertThat(saved.toneNotes).isNull()
+        assertThat(saved.synopsis).isNull()
+        assertThat(saved.worldNotes).isNull()
+        assertThat(saved.nextScene).isEqualTo("")
     }
 
     @Test
@@ -101,7 +111,7 @@ class ProjectServiceTest {
     fun `createProject persists paperSize and defaults to A4`() {
         every { userRepository.existsById(eq(1L)) } returns true
         every { documentRepository.save(any<Document>()) } answers { firstArg() }
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         val withPaper = slot<Project>()
         every { projectRepository.save(capture(withPaper)) } answers { firstArg<Project>().apply { id = 100L } }
@@ -129,7 +139,7 @@ class ProjectServiceTest {
         every { projectRepository.save(any()) } answers { firstArg<Project>().apply { id = 100L } }
         val capturedDoc = slot<Document>()
         every { documentRepository.save(capture(capturedDoc)) } answers { firstArg() }
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         service.createProject(1L, CreateProjectRequest(title = "test"))
 
@@ -138,8 +148,8 @@ class ProjectServiceTest {
     }
 
     @Test
-    @DisplayName("updateProject — null 필드는 미변경, 명시값은 갱신")
-    fun `updateProject only mutates specified fields`() {
+    @DisplayName("updateProject — title·targetLength 갱신, 기존 톤류 데이터 보존(033 R3 / FR-014)")
+    fun `updateProject mutates title and preserves existing tone data`() {
         val existing =
             Project(
                 id = 7L,
@@ -147,31 +157,31 @@ class ProjectServiceTest {
                 title = "Old title",
                 genre = "치유물",
                 targetLength = 1000,
-                toneNotes = "Old tone",
-                synopsis = "Old synopsis",
-                worldNotes = "Old world",
+                toneNotes = "기존 톤",
+                synopsis = "기존 줄거리",
+                worldNotes = "기존 세계관",
+                nextScene = "기존 다음장면",
                 createdAt = Instant.now(),
                 updatedAt = Instant.now(),
             )
         every { projectRepository.findByIdAndUserId(eq(7L), eq(2L)) } returns Optional.of(existing)
-        every { projectMapper.toResponse(eq(existing)) } answers { stubMapper(existing) }
+        every { projectMapper.toResponse(eq(existing), any()) } answers { stubMapper(existing) }
 
+        // 제목만 변경 — 장르·톤류 변경 경로는 요청에서 제거됨(033)
         service.updateProject(
             userId = 2L,
             projectId = 7L,
-            request =
-                UpdateProjectRequest(
-                    toneNotes = "New tone",
-                    synopsis = null,
-                ),
+            request = UpdateProjectRequest(title = "New title", targetLength = 2000),
         )
 
-        assertThat(existing.title).isEqualTo("Old title")
+        assertThat(existing.title).isEqualTo("New title")
+        assertThat(existing.targetLength).isEqualTo(2000)
+        // 톤류·장르·줄거리·세계관·다음장면은 요청으로 더 이상 변경 불가 — 기존 값 그대로 보존
         assertThat(existing.genre).isEqualTo("치유물")
-        assertThat(existing.targetLength).isEqualTo(1000)
-        assertThat(existing.toneNotes).isEqualTo("New tone")
-        assertThat(existing.synopsis).isEqualTo("Old synopsis")
-        assertThat(existing.worldNotes).isEqualTo("Old world")
+        assertThat(existing.toneNotes).isEqualTo("기존 톤")
+        assertThat(existing.synopsis).isEqualTo("기존 줄거리")
+        assertThat(existing.worldNotes).isEqualTo("기존 세계관")
+        assertThat(existing.nextScene).isEqualTo("기존 다음장면")
     }
 
     @Test
@@ -188,7 +198,7 @@ class ProjectServiceTest {
                 updatedAt = Instant.now(),
             )
         every { projectRepository.findByIdAndUserId(eq(11L), eq(3L)) } returns Optional.of(project)
-        every { projectMapper.toResponse(eq(project)) } answers { stubMapper(project) }
+        every { projectMapper.toResponse(eq(project), any()) } answers { stubMapper(project) }
 
         service.archiveProject(3L, 11L)
 
@@ -208,7 +218,7 @@ class ProjectServiceTest {
                 updatedAt = Instant.now(),
             )
         every { projectRepository.findByIdAndUserId(eq(12L), eq(3L)) } returns Optional.of(project)
-        every { projectMapper.toResponse(eq(project)) } answers { stubMapper(project) }
+        every { projectMapper.toResponse(eq(project), any()) } answers { stubMapper(project) }
 
         service.unarchiveProject(3L, 12L)
 
@@ -240,6 +250,57 @@ class ProjectServiceTest {
         every { projectRepository.findByIdAndUserId(eq(99L), eq(5L)) } returns Optional.empty()
 
         assertThatThrownBy { service.archiveProject(5L, 99L) }
+            .isInstanceOf(ResourceNotFoundException::class.java)
+    }
+
+    // ── 032 모음 이동 moveCategory ───────────────────────────────────────────
+
+    @Test
+    @DisplayName("moveCategory — 본인 모음 지정 시 categoryId 설정")
+    fun `moveCategory sets categoryId when category owned`() {
+        val project =
+            Project(id = 5L, userId = 1L, title = "x", createdAt = Instant.now(), updatedAt = Instant.now())
+        every { projectRepository.findByIdAndUserId(eq(5L), eq(1L)) } returns Optional.of(project)
+        every { categoryRepository.existsByIdAndUserId(eq(9L), eq(1L)) } returns true
+        every { categoryRepository.findById(eq(9L)) } returns Optional.empty()
+        every { projectMapper.toResponse(eq(project), any()) } answers { stubMapper(project) }
+
+        service.moveCategory(userId = 1L, projectId = 5L, categoryId = 9L)
+
+        assertThat(project.categoryId).isEqualTo(9L)
+    }
+
+    @Test
+    @DisplayName("moveCategory — categoryId null 이면 미분류(null)로 빼냄")
+    fun `moveCategory clears categoryId when null`() {
+        val project =
+            Project(id = 5L, userId = 1L, title = "x", categoryId = 9L, createdAt = Instant.now(), updatedAt = Instant.now())
+        every { projectRepository.findByIdAndUserId(eq(5L), eq(1L)) } returns Optional.of(project)
+        every { projectMapper.toResponse(eq(project), any()) } answers { stubMapper(project) }
+
+        service.moveCategory(userId = 1L, projectId = 5L, categoryId = null)
+
+        assertThat(project.categoryId).isNull()
+    }
+
+    @Test
+    @DisplayName("moveCategory — 본인 작품 아니면 ResourceNotFoundException")
+    fun `moveCategory rejects non-owned project`() {
+        every { projectRepository.findByIdAndUserId(eq(99L), eq(1L)) } returns Optional.empty()
+
+        assertThatThrownBy { service.moveCategory(userId = 1L, projectId = 99L, categoryId = 9L) }
+            .isInstanceOf(ResourceNotFoundException::class.java)
+    }
+
+    @Test
+    @DisplayName("moveCategory — 남의/없는 모음 지정 시 ResourceNotFoundException")
+    fun `moveCategory rejects unknown category`() {
+        val project =
+            Project(id = 5L, userId = 1L, title = "x", createdAt = Instant.now(), updatedAt = Instant.now())
+        every { projectRepository.findByIdAndUserId(eq(5L), eq(1L)) } returns Optional.of(project)
+        every { categoryRepository.existsByIdAndUserId(eq(77L), eq(1L)) } returns false
+
+        assertThatThrownBy { service.moveCategory(userId = 1L, projectId = 5L, categoryId = 77L) }
             .isInstanceOf(ResourceNotFoundException::class.java)
     }
 
@@ -287,7 +348,7 @@ class ProjectServiceTest {
                 endedSession(100L, Instant.parse("2026-06-09T10:00:00Z"), durationMs = 1_200_000L),
                 endedSession(100L, Instant.parse("2026-06-09T12:00:00Z"), durationMs = 600_000L),
             )
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         val cards = service.listCards(userId = 1L)
 
@@ -310,7 +371,7 @@ class ProjectServiceTest {
         every { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(100L))) } returns
             listOf(docOf(100L, wordCount = 0, updatedAt = Instant.parse("2026-06-10T00:00:00Z")))
         every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(100L))) } returns emptyList()
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         val cards = service.listCards(userId = 1L)
 
@@ -354,7 +415,7 @@ class ProjectServiceTest {
                 docOf(100L, wordCount = 500, updatedAt = older, id = 1003L),
             )
         every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(100L))) } returns emptyList()
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         val cards = service.listCards(userId = 1L)
 
@@ -386,7 +447,7 @@ class ProjectServiceTest {
                 docOf(300L, wordCount = 1200, updatedAt = t1, id = 3001L),
             )
         every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(200L, 300L))) } returns emptyList()
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         val cards = service.listCards(userId = 1L)
 
@@ -414,7 +475,7 @@ class ProjectServiceTest {
                 docOf(100L, wordCount = 400, updatedAt = t, id = 1004L),
             )
         every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(100L))) } returns emptyList()
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         service.listCards(userId = 1L)
 
@@ -458,7 +519,7 @@ class ProjectServiceTest {
                 docWithBody(100L, wordCount = 200, updatedAt = newer, body = newerBody, id = 1002L),
             )
         every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(100L))) } returns emptyList()
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         val cards = service.listCards(userId = 1L)
 
@@ -482,7 +543,7 @@ class ProjectServiceTest {
         every { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(200L))) } returns
             listOf(docWithBody(200L, wordCount = 50, updatedAt = t1, body = activeBody, id = 2001L))
         every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(200L))) } returns emptyList()
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         val cards = service.listCards(userId = 1L)
 
@@ -497,7 +558,7 @@ class ProjectServiceTest {
         every { projectRepository.findByUserIdAndArchivedAtIsNull(eq(1L)) } returns listOf(activeProject(300L, "소설C"))
         every { documentRepository.findByProjectIdInAndDeletedAtIsNull(eq(listOf(300L))) } returns emptyList()
         every { workSessionRepository.findByProjectIdInAndEndedAtIsNotNull(eq(listOf(300L))) } returns emptyList()
-        every { projectMapper.toResponse(any()) } answers { stubMapper(firstArg<Project>()) }
+        every { projectMapper.toResponse(any(), any()) } answers { stubMapper(firstArg<Project>()) }
 
         val cards = service.listCards(userId = 1L)
 

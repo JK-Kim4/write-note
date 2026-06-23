@@ -15,6 +15,8 @@ export interface ListProjectsParams {
     page?: number;
     size?: number;
     sort?: string;
+    /** true = 보관함(archived), false/미지정 = 활성. 백엔드 GET /api/projects?archived= */
+    archived?: boolean;
 }
 
 const buildQuery = (params: ListProjectsParams): string => {
@@ -22,6 +24,7 @@ const buildQuery = (params: ListProjectsParams): string => {
     if (params.page !== undefined) search.set("page", String(params.page));
     if (params.size !== undefined) search.set("size", String(params.size));
     if (params.sort) search.set("sort", params.sort);
+    if (params.archived !== undefined) search.set("archived", String(params.archived));
     const qs = search.toString();
     return qs ? `?${qs}` : "";
 };

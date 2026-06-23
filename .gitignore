@@ -34,3 +34,7 @@ coverage/
 
 # 미리보기 서버 로컬 설정 (절대경로 종속 — 환경별로 다름)
 .claude/launch.json
+.vercel
+
+# 회고는 외부 옵시디언 vault 에 보관(형상관리 제외) — ~/obsidian/write-note/retrospectives/
+docs/retrospectives/

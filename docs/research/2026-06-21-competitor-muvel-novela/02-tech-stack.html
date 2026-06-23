@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2. 기술 스택 — 경쟁 조사</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">📚 창작 에디터 경쟁 조사
+      <small>뮤블(Muvel) · 노벨라(Novela) vs 소설비(Soseolbi)<br>조사일 2026-06-21</small>
+    </div>
+    <nav>
+      <div class="nav-group">리포트</div>
+      <a href="index.html"><span class="num">0</span>표지 &amp; 목차</a>
+      <a href="01-overview.html"><span class="num">1</span>개요 &amp; 명칭 정정</a>
+      <a href="02-tech-stack.html" class="active"><span class="num">2</span>기술 스택</a>
+      <a href="03-metrics.html"><span class="num">3</span>사용자 · 매출</a>
+      <a href="04-mobile-ios.html"><span class="num">4</span>iOS 한글 · 모바일 집필</a>
+      <a href="05-features.html"><span class="num">5</span>기능 비교표</a>
+      <a href="06-scorecard.html"><span class="num">6</span>완성도 점수화</a>
+      <a href="07-sources.html"><span class="num">7</span>출처 · 신뢰도 · 한계</a>
+    </nav>
+    <div class="foot">deep-research 워크플로우 기반<br>확인 불가 수치는 ‘공개 자료 없음’ 표기</div>
+  </aside>
+
+  <main class="main">
+  <div class="content">
+    <p class="eyebrow">Section 2</p>
+    <h1>기술 스택</h1>
+    <p class="lead">공개된 GitHub·채용공고·스택 분석 기준입니다. <strong>1차 출처로 확정된 것은 뮤블의 데스크톱 빌드(Tauri)뿐</strong>이며, 노벨라의 상세 스택과 두 서비스의 에디터 엔진은 공개 자료가 없어 추정하지 않습니다.</p>
+
+    <div class="callout warn">
+      <span class="t">⚠️ 추측 금지 원칙</span>
+      <p>‘노션식·블록 기반’이라는 마케팅 문구만으로 ProseMirror/TipTap/자체 엔진 여부를 단정하지 않습니다. 미확인 항목은 <span class="badge gray">공개 자료 없음</span>으로 표기했습니다.</p>
+    </div>
+
+    <h2>스택 비교</h2>
+    <table>
+      <thead><tr><th>레이어</th><th>뮤블 Muvel</th><th>노벨라 Novela</th><th>소설비(참고)</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>데스크톱 셸</strong></td>
+          <td><strong>Tauri</strong>(Rust+웹뷰) <span class="badge high">확정</span></td>
+          <td>실행파일 존재, 엔진 미상 <span class="badge gray">미확인</span></td>
+          <td>Electron</td>
+        </tr>
+        <tr>
+          <td><strong>프론트엔드</strong></td>
+          <td><strong>TypeScript</strong> 기반 <span class="badge high">확정</span></td>
+          <td class="unknown">공개 자료 없음</td>
+          <td>Next.js 16 + React 19 + TS</td>
+        </tr>
+        <tr>
+          <td><strong>네이티브/시스템 언어</strong></td>
+          <td><strong>Rust</strong>(Tauri) <span class="badge high">확정</span></td>
+          <td class="unknown">공개 자료 없음</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><strong>에디터 엔진</strong></td>
+          <td>블록 기반(엔진 미상) <span class="badge gray">미확인</span></td>
+          <td>블록 기반(엔진 미상) <span class="badge gray">미확인</span></td>
+          <td><strong>자체 EditContext 엔진</strong></td>
+        </tr>
+        <tr>
+          <td><strong>백엔드 / 호스팅</strong></td>
+          <td class="unknown">공개 자료 없음</td>
+          <td class="unknown">공개 자료 없음(구글 드라이브 백업 연동만 확인)</td>
+          <td>Kotlin+Spring(OCI) / Vercel</td>
+        </tr>
+        <tr>
+          <td><strong>모바일</strong></td>
+          <td>Android·iOS 앱(Tauri 모바일 여부 미상)</td>
+          <td>네이티브 iOS/Android(2025-12)<br>래퍼 여부 미상</td>
+          <td>반응형 웹 + iOS Shortcut 캡처</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>확정된 사실 — 뮤블 = Tauri</h2>
+    <div class="card">
+      <p>뮤블 개발사 공식 GitHub(<code>KimuSoft/muvel-public</code>) 릴리스 노트에 직접 명시:</p>
+      <blockquote style="border-left:3px solid var(--muvel);margin:10px 0;padding:6px 16px;color:var(--ink-soft);font-style:italic;">“자동 빌드된 <strong>Tauri</strong> 앱입니다. production 브랜치 푸시 시 자동 릴리스.”</blockquote>
+      <p>레포 토픽에 <strong>Rust·TypeScript</strong>가 명시되어 있습니다. 마케팅 문구가 아닌 CI/CD 릴리스 노트라 신뢰도가 높습니다. <span class="badge high">교차검증 3-0 · primary</span></p>
+      <p class="src-link"><a class="inline" href="https://github.com/KimuSoft/muvel-public/releases">github.com/KimuSoft/muvel-public/releases</a></p>
+    </div>
+
+    <h3>Tauri 선택의 함의 (분석)</h3>
+    <ul class="clean">
+      <li>Electron(우리) 대비 <strong>번들이 가볍고 메모리 사용이 적음</strong> — OS 내장 웹뷰(macOS=WebKit) 사용.</li>
+      <li>그런데 <strong>macOS/iOS에서 Tauri 웹뷰 = WebKit</strong> → 우리가 겪은 것과 <em>동일한 iOS WebKit 한글 IME 토양</em> 위에 있을 가능성. (상세 §4)</li>
+      <li>즉 뮤블도 ‘크로스플랫폼 한 코드’지만 iOS만 베타로 둔 것은 의미심장합니다.</li>
+    </ul>
+
+    <h2>미확인 — 노벨라 스택 &amp; 두 서비스의 에디터 엔진</h2>
+    <p>노벨라의 프론트 프레임워크·백엔드·호스팅을 밝힌 공개 채용공고나 기술블로그는 발견되지 않았습니다. ‘구글 드라이브 실시간 백업’ 연동만 1차 확인됩니다. 두 서비스 모두 ‘블록 기반’으로 묘사되나 <strong>내부 에디터 엔진은 추정 불가</strong>입니다.</p>
+
+    <div class="callout">
+      <span class="t">소설비 관점 시사점</span>
+      <p>두 경쟁사 모두 <strong>에디터 엔진을 공개하지 않았고</strong>, 둘 다 ‘블록형’입니다. 소설비의 <strong>자체 EditContext 엔진 + 실시간 페이지 분할(줄 단위 측정·배치)</strong>은 블록형으로는 만들기 어려운 차별화 자산입니다. 다만 자체 엔진은 회귀 위험이 커 dogfooding 게이트가 필수라는 비용도 동시에 있습니다.</p>
+    </div>
+
+    <div class="pagenav">
+      <a href="01-overview.html"><span class="dir">← 이전</span><span class="ttl">1. 개요 &amp; 명칭 정정</span></a>
+      <a class="next" href="03-metrics.html"><span class="dir">다음 →</span><span class="ttl">3. 사용자 · 매출</span></a>
+    </div>
+  </div>
+  </main>
+</div>
+</body>
+</html>

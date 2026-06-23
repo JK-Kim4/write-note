@@ -14,8 +14,11 @@ function card(over: Partial<ProjectCard> = {}): ProjectCard {
         synopsis: null,
         worldNotes: null,
         nextScene: "재회",
+        categoryId: null,
         paperSize: "A4",
         layoutMode: "paper",
+        effectivePaperSize: "A4",
+        effectiveLayoutMode: "paper",
         fontScale: "m",
         archivedAt: null,
         createdAt: "2026-06-01T00:00:00Z",
@@ -29,11 +32,14 @@ function card(over: Partial<ProjectCard> = {}): ProjectCard {
 }
 
 describe("BResumeCard", () => {
-    it("제목·마지막 문장·다음 장면을 표시한다", () => {
+    it("제목·마지막 문장을 표시한다", () => {
         render(<BResumeCard card={card()} onOpen={() => {}} />);
         expect(screen.getByText("달밤의 약속")).toBeInTheDocument();
         expect(screen.getByText(/문을 열지 않았다\./)).toBeInTheDocument();
-        expect(screen.getByText(/재회/)).toBeInTheDocument();
+    });
+    it("다음 장면은 표시하지 않는다(033 R3 — 시리즈로 이동)", () => {
+        render(<BResumeCard card={card({ nextScene: "재회" })} onOpen={() => {}} />);
+        expect(screen.queryByText(/재회/)).toBeNull();
     });
     it("본문이 한 문장뿐이면 … 없이 표시한다", () => {
         render(<BResumeCard card={card({ lastSentenceSource: "한 문장입니다." })} onOpen={() => {}} />);

@@ -1,19 +1,14 @@
 package com.writenote.service
 
-import com.writenote.components.documents.ChapterReorderValidator
 import com.writenote.entity.Document
 import com.writenote.entity.Project
 import com.writenote.error.DocumentConflictException
-import com.writenote.error.LastChapterException
 import com.writenote.error.ResourceNotFoundException
 import com.writenote.error.ValidationException
-import com.writenote.model.request.CreateChapterRequest
 import com.writenote.model.request.SaveDocumentRequest
-import com.writenote.model.request.UpdateDocumentTitleRequest
 import com.writenote.repository.DocumentRepository
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.slot
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
@@ -25,7 +20,6 @@ import java.util.Optional
 class DocumentServiceTest {
     private lateinit var documentRepository: DocumentRepository
     private lateinit var projectService: ProjectService
-    private lateinit var chapterReorderValidator: ChapterReorderValidator
     private lateinit var service: DocumentService
 
     companion object {
@@ -40,8 +34,7 @@ class DocumentServiceTest {
     fun setUp() {
         documentRepository = mockk()
         projectService = mockk()
-        chapterReorderValidator = ChapterReorderValidator()
-        service = DocumentService(documentRepository, projectService, chapterReorderValidator)
+        service = DocumentService(documentRepository, projectService)
     }
 
     private fun newProject(
@@ -228,37 +221,6 @@ class DocumentServiceTest {
     }
 
     @Test
-    @DisplayName("updateDocumentTitle — title 갱신 후 응답 반환 (D4)")
-    fun `updateDocumentTitle persists new title`() {
-        val document = newDocument()
-        every { documentRepository.findByIdAndDeletedAtIsNull(eq(100L)) } returns Optional.of(document)
-        // ownership 검증을 위해 project 조회
-        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns newProject()
-        // 024: 제목은 dirty-check 가 아닌 JPQL bulk update 로 갱신(@Version 미증가) → updateTitleById 사용
-        every { documentRepository.updateTitleById(eq(100L), eq("새 제목")) } returns 1
-
-        val request = UpdateDocumentTitleRequest(title = "새 제목")
-        val response = service.updateDocumentTitle(userId = 1L, documentId = 100L, request = request)
-
-        assertThat(response.title).isEqualTo("새 제목")
-        assertThat(response.id).isEqualTo(100L)
-        // 제목 변경은 본문 version 토큰(updatedAt)을 안 바꾼다는 새 계약 — 조회 시점 토큰 그대로 응답
-        assertThat(response.updatedAt).isEqualTo(document.updatedAt)
-    }
-
-    @Test
-    @DisplayName("updateDocumentTitle — soft-delete 된 챕터 제목 변경 시 ResourceNotFoundException (D4 / T012)")
-    fun `updateDocumentTitle throws ResourceNotFoundException when document is soft-deleted`() {
-        // T012: findByIdAndDeletedAtIsNull — 삭제 챕터 제목 변경 불가
-        every { documentRepository.findByIdAndDeletedAtIsNull(eq(100L)) } returns Optional.empty()
-
-        val request = UpdateDocumentTitleRequest(title = "새 제목")
-        assertThatThrownBy {
-            service.updateDocumentTitle(userId = 1L, documentId = 100L, request = request)
-        }.isInstanceOf(ResourceNotFoundException::class.java)
-    }
-
-    @Test
     @DisplayName("getDocumentByProjectId — ownership 검증 후 document 반환 (D1)")
     fun `getDocumentByProjectId returns document after ownership check`() {
         val project = newProject()
@@ -317,181 +279,5 @@ class DocumentServiceTest {
         assertThatThrownBy {
             service.saveDocument(userId = 1L, projectId = 10L, documentId = null, request = request)
         }.isInstanceOf(ValidationException::class.java)
-    }
-
-    // ── T006: listChapters / createChapter 단위 테스트 ──────────────────────────
-
-    @Test
-    @DisplayName("listChapters — 활성 챕터를 sortOrder ASC 순으로 반환 (C1)")
-    fun `listChapters returns active chapters ordered by sortOrder`() {
-        val project = newProject()
-        val ch1 =
-            newDocument(id = 1L, projectId = 10L).apply {
-                sortOrder = 0
-                title = "1장"
-            }
-        val ch2 =
-            newDocument(id = 2L, projectId = 10L).apply {
-                sortOrder = 1
-                title = "2장"
-            }
-        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every {
-            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
-        } returns listOf(ch1, ch2)
-
-        val result = service.listChapters(userId = 1L, projectId = 10L)
-
-        assertThat(result).hasSize(2)
-        assertThat(result[0].id).isEqualTo(1L)
-        assertThat(result[0].sortOrder).isEqualTo(0)
-        assertThat(result[1].id).isEqualTo(2L)
-        assertThat(result[1].sortOrder).isEqualTo(1)
-        // 본문(body) 은 목록 응답에 포함되지 않음 — ChapterMetaResponse 에 body 필드 없음
-    }
-
-    @Test
-    @DisplayName("listChapters — 활성 챕터 없을 때 빈 목록 반환 (C1 엣지)")
-    fun `listChapters returns empty list when no active chapters`() {
-        val project = newProject()
-        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every {
-            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
-        } returns emptyList()
-
-        val result = service.listChapters(userId = 1L, projectId = 10L)
-
-        assertThat(result).isEmpty()
-    }
-
-    @Test
-    @DisplayName("createChapter — title 지정 시 지정 title + sortOrder = 활성 최대+1 (C2)")
-    fun `createChapter uses given title and appends at end`() {
-        val project = newProject()
-        val existing =
-            newDocument(id = 5L, projectId = 10L).apply {
-                sortOrder = 2
-                title = "2장"
-            }
-        val savedSlot = slot<Document>()
-        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every {
-            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
-        } returns listOf(existing)
-        every { documentRepository.saveAndFlush(capture(savedSlot)) } answers {
-            val doc = savedSlot.captured
-            doc.id = 99L
-            doc.updatedAt = BASE_VERSION
-            doc
-        }
-
-        val result = service.createChapter(userId = 1L, projectId = 10L, request = CreateChapterRequest(title = "3장"))
-
-        assertThat(result.title).isEqualTo("3장")
-        assertThat(result.sortOrder).isEqualTo(3) // 기존 최대(2) + 1
-        assertThat(savedSlot.captured.projectId).isEqualTo(10L)
-    }
-
-    @Test
-    @DisplayName("createChapter — title 미지정/빈 값이면 '새 챕터' 기본값 사용 (C2)")
-    fun `createChapter uses default title when title is blank`() {
-        val project = newProject()
-        val savedSlot = slot<Document>()
-        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every {
-            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
-        } returns emptyList()
-        every { documentRepository.saveAndFlush(capture(savedSlot)) } answers {
-            val doc = savedSlot.captured
-            doc.id = 10L
-            doc.updatedAt = BASE_VERSION
-            doc
-        }
-
-        val result = service.createChapter(userId = 1L, projectId = 10L, request = CreateChapterRequest(title = ""))
-
-        assertThat(result.title).isEqualTo("새 챕터")
-        assertThat(result.sortOrder).isEqualTo(0) // 활성 챕터 없으므로 0
-    }
-
-    @Test
-    @DisplayName("createChapter — title null 이면 '새 챕터' 기본값 사용 (C2)")
-    fun `createChapter uses default title when title is null`() {
-        val project = newProject()
-        val savedSlot = slot<Document>()
-        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every {
-            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
-        } returns emptyList()
-        every { documentRepository.saveAndFlush(capture(savedSlot)) } answers {
-            val doc = savedSlot.captured
-            doc.id = 10L
-            doc.updatedAt = BASE_VERSION
-            doc
-        }
-
-        val result = service.createChapter(userId = 1L, projectId = 10L, request = CreateChapterRequest(title = null))
-
-        assertThat(result.title).isEqualTo("새 챕터")
-    }
-
-    // ── T023: deleteChapter / restoreChapter 단위 테스트 ─────────────────────────
-
-    @Test
-    @DisplayName("챕터 삭제 — 활성 챕터 여럿이면 deletedAt 설정됨 (C4)")
-    fun `deleteChapter sets deletedAt when multiple active chapters exist`() {
-        val project = newProject()
-        val ch1 = newDocument(id = 1L, projectId = 10L).apply { sortOrder = 0 }
-        val ch2 = newDocument(id = 2L, projectId = 10L).apply { sortOrder = 1 }
-        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every { documentRepository.findByIdAndDeletedAtIsNull(eq(1L)) } returns Optional.of(ch1)
-        every {
-            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
-        } returns listOf(ch1, ch2)
-        every { documentRepository.save(any<Document>()) } answers { firstArg() }
-
-        service.deleteChapter(userId = 1L, documentId = 1L)
-
-        assertThat(ch1.deletedAt).isNotNull
-    }
-
-    @Test
-    @DisplayName("챕터 삭제 — 활성 챕터 1개이면 LAST_CHAPTER_UNDELETABLE 예외 (C4)")
-    fun `deleteChapter throws LastChapterException when only one active chapter remains`() {
-        val project = newProject()
-        val ch1 = newDocument(id = 1L, projectId = 10L).apply { sortOrder = 0 }
-        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every { documentRepository.findByIdAndDeletedAtIsNull(eq(1L)) } returns Optional.of(ch1)
-        every {
-            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
-        } returns listOf(ch1)
-
-        assertThatThrownBy {
-            service.deleteChapter(userId = 1L, documentId = 1L)
-        }.isInstanceOf(LastChapterException::class.java)
-    }
-
-    @Test
-    @DisplayName("챕터 복구 — deletedAt 이 null 로 복원되고 sortOrder 는 활성 맨 뒤 (C5)")
-    fun `restoreChapter clears deletedAt and places chapter at end of active list`() {
-        val project = newProject()
-        val deletedChapter =
-            newDocument(id = 3L, projectId = 10L).apply {
-                sortOrder = 0
-                deletedAt = Instant.parse("2026-06-01T00:00:00Z")
-            }
-        val activeChapter = newDocument(id = 1L, projectId = 10L).apply { sortOrder = 0 }
-        every { projectService.requireOwnedProject(eq(1L), eq(10L)) } returns project
-        every { documentRepository.findById(eq(3L)) } returns Optional.of(deletedChapter)
-        every {
-            documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(eq(10L))
-        } returns listOf(activeChapter)
-        every { documentRepository.save(any<Document>()) } answers { firstArg() }
-
-        service.restoreChapter(userId = 1L, documentId = 3L)
-
-        assertThat(deletedChapter.deletedAt).isNull()
-        // 활성 최대 sortOrder(0) + 1 = 1
-        assertThat(deletedChapter.sortOrder).isEqualTo(1)
     }
 }

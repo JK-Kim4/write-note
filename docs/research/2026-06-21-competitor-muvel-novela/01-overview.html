@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1. 개요 &amp; 명칭 정정 — 경쟁 조사</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">📚 창작 에디터 경쟁 조사
+      <small>뮤블(Muvel) · 노벨라(Novela) vs 소설비(Soseolbi)<br>조사일 2026-06-21</small>
+    </div>
+    <nav>
+      <div class="nav-group">리포트</div>
+      <a href="index.html"><span class="num">0</span>표지 &amp; 목차</a>
+      <a href="01-overview.html" class="active"><span class="num">1</span>개요 &amp; 명칭 정정</a>
+      <a href="02-tech-stack.html"><span class="num">2</span>기술 스택</a>
+      <a href="03-metrics.html"><span class="num">3</span>사용자 · 매출</a>
+      <a href="04-mobile-ios.html"><span class="num">4</span>iOS 한글 · 모바일 집필</a>
+      <a href="05-features.html"><span class="num">5</span>기능 비교표</a>
+      <a href="06-scorecard.html"><span class="num">6</span>완성도 점수화</a>
+      <a href="07-sources.html"><span class="num">7</span>출처 · 신뢰도 · 한계</a>
+    </nav>
+    <div class="foot">deep-research 워크플로우 기반<br>확인 불가 수치는 ‘공개 자료 없음’ 표기</div>
+  </aside>
+
+  <main class="main">
+  <div class="content">
+    <p class="eyebrow">Section 1</p>
+    <h1>개요 &amp; 명칭 정정</h1>
+    <p class="lead">두 서비스가 무엇이고 누가 언제 만들었는지부터 확정합니다. 모든 핵심 사실은 1차 출처(공식 사이트·GitHub·텀블벅) 기준이며 적대적 교차검증을 통과했습니다.</p>
+
+    <div class="callout warn">
+      <span class="t">⚠️ 명칭 오기 정정 <span class="badge high">검증 3-0</span></span>
+      <p>요청의 ‘<strong>Mooble</strong>’ → 실제 <strong>뮤블(Muvel)</strong>, ‘<strong>노블라(Novelah/Novla)</strong>’ → 실제 <strong>노벨라(Novela)</strong>. 일부 채용 사이트(Wanted)조차 ‘Novelah’로 잘못 표기하지만 동일 실체입니다. 이하 정식 명칭으로 통일합니다.</p>
+    </div>
+
+    <h2>서비스 한눈에</h2>
+    <div class="grid grid-3">
+      <div class="card svc muvel">
+        <h3><span class="dot muvel"></span>뮤블 Muvel</h3>
+        <dl>
+          <dt>운영사</dt><dd>키뮤스토리(KimuStory)</dd>
+          <dt>출시</dt><dd>2025-04-22</dd>
+          <dt>성격</dt><dd>웹소설 전용 에디터</dd>
+          <dt>가격</dt><dd>무료(프리웨어)</dd>
+          <dt>도메인</dt><dd>muvel.app</dd>
+          <dt>플랫폼</dt><dd>Win·Mac·Linux·Android·iOS(베타)·웹</dd>
+        </dl>
+      </div>
+      <div class="card svc novela">
+        <h3><span class="dot novela"></span>노벨라 Novela</h3>
+        <dl>
+          <dt>운영사</dt><dd>㈜노벨라스튜디오</dd>
+          <dt>설립</dt><dd>2022-07-06</dd>
+          <dt>성격</dt><dd>브라우저 올인원 창작툴</dd>
+          <dt>가격</dt><dd>베타 무료→2025 유료 전환 정황</dd>
+          <dt>도메인</dt><dd>novela.so</dd>
+          <dt>플랫폼</dt><dd>웹 + 네이티브 iOS/Android(2025-12)</dd>
+        </dl>
+      </div>
+      <div class="card svc soseolbi">
+        <h3><span class="dot soseolbi"></span>소설비 (우리)</h3>
+        <dl>
+          <dt>성격</dt><dd>컨텍스트 영속 작가 작업공간</dd>
+          <dt>단계</dt><dd>Desktop MVP 완료 · Web 베타 진행</dd>
+          <dt>차별점</dt><dd>실시간 A4 페이지 분할</dd>
+          <dt>도메인</dt><dd>soseolbi.com</dd>
+          <dt>플랫폼</dt><dd>Web(Vercel) + Desktop(Electron)</dd>
+        </dl>
+      </div>
+    </div>
+
+    <h2>출시·연혁 타임라인</h2>
+    <table>
+      <thead><tr><th>시점</th><th>뮤블</th><th>노벨라</th></tr></thead>
+      <tbody>
+        <tr><td><strong>2022-07</strong></td><td class="unknown">—</td><td>㈜노벨라스튜디오 설립</td></tr>
+        <tr><td><strong>2022-10~11</strong></td><td class="unknown">—</td><td>텀블벅 펀딩(1,262명 · 2,009만원 · 달성률 2009%), 당시 웹 전용</td></tr>
+        <tr><td><strong>2025-04</strong></td><td>v1 정식 출시(무료)</td><td class="unknown">—</td></tr>
+        <tr><td><strong>2025-06-30</strong></td><td class="unknown">—</td><td>리뉴얼 — 블록형 캐릭터 에디팅·플롯 문서참조·구글드라이브 백업</td></tr>
+        <tr><td><strong>2025-12-11</strong></td><td class="unknown">—</td><td>네이티브 iOS 앱 v1.0 출시(App Store)</td></tr>
+        <tr><td><strong>2026 (현재)</strong></td><td>v2.10.x 활발히 개발, iOS 베타</td><td>네이티브 앱·유료화 진행</td></tr>
+      </tbody>
+    </table>
+
+    <h2>포지셔닝 차이</h2>
+    <p>세 서비스는 같은 ‘창작 에디터’이지만 무게중심이 다릅니다.</p>
+    <ul class="clean">
+      <li><strong>뮤블</strong> — <span class="badge muvel">웹소설 회차 생산성</span> 에피소드(회차)·위키(설정집)·플롯캔버스로 <em>연재 작가의 작업 흐름</em>을 통째로 담음. AI 퇴고까지 내장.</li>
+      <li><strong>노벨라</strong> — <span class="badge novela">스토리 설계 + 멀티기기</span> 캐릭터·플롯 설정 관리와 포커스/타이프라이터 같은 <em>몰입 집필 UX</em>, 그리고 네이티브 앱으로 기기 이동성.</li>
+      <li><strong>소설비</strong> — <span class="badge soseolbi">‘원고지 같은 종이’ + 컨텍스트 영속</span> 실시간 페이지 분할로 <em>완성된 책 형태</em>를 보며 쓰고, 메모↔작품 연결·세션 리듬으로 <em>끊긴 맥락을 복원</em>.</li>
+    </ul>
+
+    <div class="callout">
+      <span class="t">시사점</span>
+      <p>뮤블·노벨라는 모두 ‘웹소설/장르소설 연재’ 쪽에 기울어 있고, <strong>페이지 분할(책 형태) 집필은 두 서비스 모두 핵심으로 다루지 않습니다.</strong> 이것이 소설비가 비집고 들어갈 차별 지점입니다(상세 §5·§6).</p>
+    </div>
+
+    <div class="pagenav">
+      <a href="index.html"><span class="dir">← 이전</span><span class="ttl">0. 표지 &amp; 목차</span></a>
+      <a class="next" href="02-tech-stack.html"><span class="dir">다음 →</span><span class="ttl">2. 기술 스택</span></a>
+    </div>
+  </div>
+  </main>
+</div>
+</body>
+</html>
