@@ -26,7 +26,8 @@ V1 wireframe 완료 + 구현 진행 중 — 001 Phase 1A Backend Foundation / 00
 | 본질 / 스택 / Phase 분해 / 백엔드 요구사항 | 본 repo `DESIGN.md` / `docs/plan/00~03` |
 | 브랜치 내 상세 진척 | 본 repo `docs/plan/02-progress.md` |
 | Phase 별 spec/plan/tasks | 본 repo `specs/NNN-.../` |
-| 회고 / PoC 결과 | 본 repo `docs/retrospectives/` / `docs/poc/` |
+| PoC 결과 | 본 repo `docs/poc/` |
+| **회고 (retrospective)** | **외부 vault `~/obsidian/write-note/retrospectives/`** (형상관리 제외 — public repo 노출 방지) |
 | **Phase 단위 요약 진척 (브랜치 무관)** | **vault `02-PROGRESS.md`** |
 | **이슈 트래킹** | **vault `03-ISSUES.md`** |
 | **외부 진입점 (개요)** | **vault `01-OVERVIEW.md`** |
@@ -192,6 +193,7 @@ timeout / cap 룰은 글로벌 [`~/.claude/rules/shared/long-running-bash.md`](f
 
 - 작업 마무리 시점 5축 회고: [.claude/skills/retrospective/SKILL.md](.claude/skills/retrospective/SKILL.md)
   - 회고 §5-2 "룰 갱신 후보" 가 `agent-workflow-discipline.md` 의 누적 입력
+  - **회고 산출물은 외부 vault `~/obsidian/write-note/retrospectives/` 에 저장**(본 repo `docs/retrospectives/` 미사용 — gitignore, public repo 노출 방지). 룰의 회귀 사례 인용도 vault 경로.
 
 <!-- SPECKIT START -->
 Current implementation plan:
