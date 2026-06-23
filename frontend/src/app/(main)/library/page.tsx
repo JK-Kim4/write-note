@@ -12,6 +12,7 @@ import {
 } from "@/lib/query/useProjects";
 import { useCategories, useMoveProjectCategory } from "@/lib/query/useCategories";
 import { LibraryBoard } from "@/components/library/LibraryBoard";
+import { LibraryOnboardingTour } from "@/components/onboarding/LibraryOnboardingTour";
 import { useModalDismiss } from "@/lib/useModalDismiss";
 import type { CategoryResponse } from "@/types/api";
 import type { Project, ProjectCard } from "@/lib/types/domain";
@@ -349,6 +350,8 @@ export default function BWorksPage() {
 
     return (
         <div>
+            {/* 온보딩 "더 보기" 분기 시 2차 투어(시리즈·작품 버튼 안내). 핸드오프 키 없으면 미시작. */}
+            <LibraryOnboardingTour />
             <div className="mb-6">
                 {/* 작품 생성 진입점은 보드의 "+ 새 작품 시작하기" 하나로 통일 — 위치에 따라 미분류/시리즈 자동 배정 */}
                 <h1 className="text-xl font-bold">내 작품</h1>
