@@ -1,6 +1,7 @@
 package com.writenote.service
 
 import com.writenote.components.documents.ProseMirrorText
+import com.writenote.crypto.BodyCipherService
 import com.writenote.entity.Category
 import com.writenote.entity.Document
 import com.writenote.entity.Project
@@ -30,6 +31,7 @@ class ProjectService(
     private val documentRepository: DocumentRepository,
     private val workSessionRepository: WorkSessionRepository,
     private val categoryRepository: CategoryRepository,
+    private val bodyCipherService: BodyCipherService,
 ) {
     @Transactional(rollbackFor = [Exception::class])
     fun createProject(
@@ -115,9 +117,12 @@ class ProjectService(
             val documentUpdatedAt =
                 latestChapter?.updatedAt
                     ?: requireNotNull(project.updatedAt) // 챕터 없는 경우 작품 수정 시각 fallback
-            // 최근 수정 챕터 body 의 plainText — 추가 쿼리 없이 이미 조회된 그룹에서 파생
+            // 최근 수정 챕터 body 의 plainText — 암호문이면 복호 후 추출(레거시 평문은 통과) (T022)
             val lastSentenceSource =
-                latestChapter?.let { ProseMirrorText.extractPlainText(it.body) } ?: ""
+                latestChapter?.let {
+                    val plainBody = bodyCipherService.decryptToPlain(userId, it.body)
+                    ProseMirrorText.extractPlainText(plainBody)
+                } ?: ""
             ProjectCardResponse.from(
                 base = projectMapper.toResponse(project, categoryById[project.categoryId]),
                 wordCount = wordCount,

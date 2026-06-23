@@ -1,5 +1,6 @@
 package com.writenote.service
 
+import com.writenote.crypto.BodyCipherService
 import com.writenote.entity.Document
 import com.writenote.entity.Project
 import com.writenote.entity.WorkSession
@@ -33,6 +34,7 @@ class ProjectServiceTest {
     private lateinit var documentRepository: DocumentRepository
     private lateinit var workSessionRepository: WorkSessionRepository
     private lateinit var categoryRepository: CategoryRepository
+    private lateinit var bodyCipherService: BodyCipherService
     private lateinit var service: ProjectService
 
     @BeforeEach
@@ -43,6 +45,9 @@ class ProjectServiceTest {
         documentRepository = mockk()
         workSessionRepository = mockk()
         categoryRepository = mockk()
+        bodyCipherService = mockk()
+        // 기본 stub: decryptToPlain은 저장된 body 그대로 반환(복호 우회)
+        every { bodyCipherService.decryptToPlain(any(), any()) } answers { secondArg() }
         service =
             ProjectService(
                 projectRepository,
@@ -51,6 +56,7 @@ class ProjectServiceTest {
                 documentRepository,
                 workSessionRepository,
                 categoryRepository,
+                bodyCipherService,
             )
     }
 

@@ -1,5 +1,6 @@
 package com.writenote.auth
 
+import com.writenote.auth.KakaoUserRegistrar
 import com.writenote.components.KakaoConflictChecker
 import com.writenote.components.KakaoLoginDecision
 import com.writenote.entity.User
@@ -7,7 +8,6 @@ import com.writenote.repository.UserRepository
 import com.writenote.service.AccountLinkService
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.slot
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -27,33 +27,31 @@ class KakaoOAuth2UserServiceTest {
     private val userRepository = mockk<UserRepository>()
     private val conflictChecker = mockk<KakaoConflictChecker>()
     private val accountLinkService = mockk<AccountLinkService>()
+    private val kakaoUserRegistrar = mockk<KakaoUserRegistrar>()
     private val delegate = mockk<DefaultOAuth2UserService>()
-    private val service = KakaoOAuth2UserService(userRepository, conflictChecker, accountLinkService, delegate)
+    private val service = KakaoOAuth2UserService(userRepository, conflictChecker, accountLinkService, kakaoUserRegistrar, delegate)
 
     @Test
-    fun `신규 가입 — NewKakaoUser 분기 시 User INSERT 후 userId attribute 박힌 OAuth2User 반환`() {
+    fun `신규 가입 — NewKakaoUser 분기 시 KakaoUserRegistrar 에 위임하고 userId attribute 박힌 OAuth2User 반환`() {
         every { delegate.loadUser(any()) } returns kakaoOAuth2User(kakaoId = 123L, email = "new@example.com")
         every {
             conflictChecker.evaluateForLogin(eq("123"), eq("new@example.com"))
         } returns KakaoLoginDecision.NewKakaoUser(kakaoId = "123", email = "new@example.com")
-        val savedSlot = slot<User>()
-        every { userRepository.save(capture(savedSlot)) } answers {
-            savedSlot.captured.apply { id = 7L }
-        }
+        val savedUser =
+            User(
+                email = "new@example.com",
+                kakaoId = "123",
+                passwordHash = null,
+                emailVerifiedAt = Instant.now(),
+                lastLoginAt = Instant.now(),
+            ).apply { id = 7L }
+        every {
+            kakaoUserRegistrar.registerAndCreateKey(eq("new@example.com"), eq("123"))
+        } returns savedUser
 
         val result = service.loadUser(fakeOAuth2UserRequest())
 
-        verify {
-            userRepository.save(
-                match<User> {
-                    it.kakaoId == "123" &&
-                        it.email == "new@example.com" &&
-                        it.emailVerifiedAt != null &&
-                        it.lastLoginAt != null &&
-                        it.passwordHash == null
-                },
-            )
-        }
+        verify { kakaoUserRegistrar.registerAndCreateKey(eq("new@example.com"), eq("123")) }
         assertThat(result.attributes["userId"]).isEqualTo(7L)
         assertThat(result.name).isEqualTo("123")
     }

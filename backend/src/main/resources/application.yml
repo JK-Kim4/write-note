@@ -89,3 +89,10 @@ app:
     max-open-hours: ${WORK_SESSION_MAX_OPEN_HOURS:12}
     # dangling 정리 스케줄 (기본 매시간 정각)
     cleanup-cron: ${WORK_SESSION_CLEANUP_CRON:0 0 * * * *}
+  crypto:
+    # 사용자별 DEK를 wrap하는 마스터 KEK (Base64 인코딩 32바이트 AES-256 키).
+    # 미설정 시 애플리케이션 기동 실패(fail-fast). 운영: BODY_ENCRYPTION_KEY 환경변수 필수.
+    master-key: ${BODY_ENCRYPTION_KEY:}
+  alerts:
+    # 복호 실패 시 운영자 알림용 Discord Incoming Webhook URL. 미설정 시 로그만 기록.
+    discord-webhook-url: ${DISCORD_ALERT_WEBHOOK_URL:}

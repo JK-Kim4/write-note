@@ -91,6 +91,15 @@ class GlobalExceptionHandler {
             )
     }
 
+    // 본문 복호 실패는 fail-closed — 500 으로 차단하고 평문을 노출하지 않는다(메시지는 고정 generic).
+    @ExceptionHandler(BodyDecryptionException::class)
+    fun handleBodyDecryption(exception: BodyDecryptionException): ResponseEntity<Result<Nothing>> =
+        errorResponse(
+            status = HttpStatus.INTERNAL_SERVER_ERROR,
+            code = ErrorCode.DOCUMENT_DECRYPTION_FAILED,
+            message = "Document body decryption failed",
+        )
+
     @ExceptionHandler(AuthException::class)
     fun handleAuth(exception: AuthException): ResponseEntity<Result<Nothing>> =
         ResponseEntity
