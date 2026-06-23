@@ -14,3 +14,6 @@ app:
       secret: ${JWT_SECRET:d24tbG9jYWwtZGV2LWp3dC0zMmJ5dGUtc2VjcmV0LXg=}
   mail:
     mode: log
+  crypto:
+    # 로컬 dev 전용 고정 KEK (비밀 아님 — 운영에서는 BODY_ENCRYPTION_KEY 환경변수로 교체)
+    master-key: bG9jYWwtZGV2LWtlay0zMmJ5dGVzLWZpeGVkLXRlc3Q=

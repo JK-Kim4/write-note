@@ -7,4 +7,5 @@ enum class ErrorCode {
     CONFLICT,
     FORBIDDEN,
     INTERNAL_ERROR,
+    DOCUMENT_DECRYPTION_FAILED,
 }

@@ -349,6 +349,7 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                             ) : (
                                 <button
                                     type="button"
+                                    data-tour="new-series"
                                     onClick={() => setAddingCat(true)}
                                     className="flex min-h-[150px] flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-terracotta-400 hover:bg-terracotta-50 hover:text-terracotta-600"
                                 >
@@ -369,6 +370,7 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                             {uncategorized.map(renderCard)}
                             <button
                                 type="button"
+                                data-tour="new-work-root"
                                 onClick={() => onNewWork(null)}
                                 className="flex min-h-32 items-center justify-center rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-terracotta-400 hover:text-terracotta-600"
                             >

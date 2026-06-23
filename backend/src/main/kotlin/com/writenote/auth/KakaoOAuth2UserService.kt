@@ -27,13 +27,14 @@ import java.time.Instant
  * [KakaoConflictChecker] 의 3 분기 결과에 따라 User INSERT / 조회만 / 충돌 예외 throw.
  *
  * 외부 카카오 API 호출 ([DefaultOAuth2UserService.loadUser]) 은 트랜잭션 밖에서 수행
- * (FR-035, research.md R-3). 본 클래스는 무트랜잭션 — DB 갱신은 [UserRepository.save] 단발성.
+ * (FR-035, research.md R-3). 본 클래스는 무트랜잭션 — DB 쓰기는 [KakaoUserRegistrar] 에 위임.
  */
 @Component
 class KakaoOAuth2UserService(
     private val userRepository: UserRepository,
     private val conflictChecker: KakaoConflictChecker,
     private val accountLinkService: AccountLinkService,
+    private val kakaoUserRegistrar: KakaoUserRegistrar,
     private val delegate: DefaultOAuth2UserService = DefaultOAuth2UserService(),
 ) : OAuth2UserService<OAuth2UserRequest, OAuth2User> {
     override fun loadUser(request: OAuth2UserRequest): OAuth2User {
@@ -96,18 +97,9 @@ class KakaoOAuth2UserService(
         return session.getAttribute(LinkKakaoStateRequest.SESSION_ATTRIBUTE_KEY) as? LinkKakaoStateRequest
     }
 
-    private fun insertNewKakaoUser(decision: KakaoLoginDecision.NewKakaoUser): User {
-        val now = Instant.now()
-        val user =
-            User(
-                email = decision.email,
-                kakaoId = decision.kakaoId,
-                passwordHash = null,
-                emailVerifiedAt = now,
-                lastLoginAt = now,
-            )
-        return userRepository.save(user)
-    }
+    private fun insertNewKakaoUser(decision: KakaoLoginDecision.NewKakaoUser): User =
+        // User INSERT + DEK 생성을 동일 트랜잭션으로 — KakaoUserRegistrar 에 위임.
+        kakaoUserRegistrar.registerAndCreateKey(decision.email, decision.kakaoId)
 
     private fun touchLastLogin(user: User): User {
         user.lastLoginAt = Instant.now()

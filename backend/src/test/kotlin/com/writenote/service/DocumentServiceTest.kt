@@ -1,5 +1,6 @@
 package com.writenote.service
 
+import com.writenote.crypto.BodyCipherService
 import com.writenote.entity.Document
 import com.writenote.entity.Project
 import com.writenote.error.DocumentConflictException
@@ -20,6 +21,7 @@ import java.util.Optional
 class DocumentServiceTest {
     private lateinit var documentRepository: DocumentRepository
     private lateinit var projectService: ProjectService
+    private lateinit var bodyCipherService: BodyCipherService
     private lateinit var service: DocumentService
 
     companion object {
@@ -34,7 +36,11 @@ class DocumentServiceTest {
     fun setUp() {
         documentRepository = mockk()
         projectService = mockk()
-        service = DocumentService(documentRepository, projectService)
+        bodyCipherService = mockk()
+        // 기본 stub: encrypt는 평문 그대로 반환(암호화 우회), decryptToPlain은 평문 그대로 반환
+        every { bodyCipherService.encrypt(any(), any()) } answers { secondArg() }
+        every { bodyCipherService.decryptToPlain(any(), any()) } answers { secondArg() }
+        service = DocumentService(documentRepository, projectService, bodyCipherService)
     }
 
     private fun newProject(

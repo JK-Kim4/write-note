@@ -37,3 +37,6 @@ app:
   mail:
     mode: log
     base-url: http://localhost:8080
+  crypto:
+    # 테스트 전용 고정 KEK (비밀 아님 — 테스트 결정론성을 위해 고정값 사용, 정확히 32B)
+    master-key: ct8w0Qt1ZC7m8r+PcjYwMKGTX9XY8nJm4ZFKhGyaIh0=

@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>온보딩 인트로 카드 애니메이션 — 목업</title>
+<style>
+  /* ── 앱 토큰 정합 (frontend/src/styles/tokens.css) ───────────────────── */
+  :root {
+    --canvas: #fffdf8;
+    --parchment: #f3ede1;
+    --cream: #fbf7ee;
+    --ink: #2a2620;
+    --ink-soft: #6b6256;
+    --accent: #a8542e;        /* terracotta-600 */
+    --accent-soft: #f6e3d6;   /* terracotta-100 */
+    --accent-mid: #d48d62;    /* terracotta-400 */
+    --hairline: #e7ddcc;
+    --font-ui: "SF Pro Text", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+    --font-display: "SF Pro Display", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1); /* ease-out-quart */
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--parchment);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+    padding: 48px 24px 80px;
+  }
+  .page { max-width: 1040px; margin: 0 auto; }
+  .page-head { text-align: center; margin-bottom: 8px; }
+  .page-head h1 {
+    font-family: var(--font-display);
+    font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;
+    margin: 0 0 6px;
+  }
+  .page-head p { margin: 0; color: var(--ink-soft); font-size: 0.9rem; }
+  .controls { display: flex; gap: 10px; justify-content: center; margin: 22px 0 36px; }
+  .controls button {
+    font: inherit; font-size: 0.85rem; cursor: pointer;
+    border: 1px solid var(--hairline); background: var(--canvas); color: var(--ink);
+    padding: 7px 14px; border-radius: 999px; transition: background .18s var(--ease), border-color .18s var(--ease);
+  }
+  .controls button:hover { border-color: var(--accent-mid); background: var(--cream); }
+
+  /* ── 카드 그리드 ─────────────────────────────────────────────────── */
+  .cards { display: flex; flex-wrap: wrap; gap: 28px; justify-content: center; }
+
+  /* driver.js popover 외관 모사 */
+  .popover {
+    width: 300px; background: var(--canvas);
+    border: 1px solid var(--hairline); border-radius: 14px;
+    box-shadow: 0 12px 32px -12px rgba(42, 38, 32, 0.22), 0 2px 6px -2px rgba(42, 38, 32, 0.12);
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .illus {
+    height: 132px; background: var(--cream);
+    border-bottom: 1px solid var(--hairline);
+    display: grid; place-items: center;
+  }
+  .illus svg { width: 280px; height: 124px; display: block; }
+  .body { padding: 18px 20px 16px; }
+  .body h2 {
+    font-family: var(--font-display);
+    font-size: 1.06rem; font-weight: 700; letter-spacing: -0.01em;
+    margin: 0 0 7px; color: var(--ink); text-wrap: balance;
+  }
+  .body p { margin: 0; font-size: 0.875rem; line-height: 1.55; color: var(--ink-soft); }
+  .footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px 16px;
+  }
+  .dots { display: flex; gap: 5px; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--hairline); }
+  .dots i.on { background: var(--accent); width: 18px; border-radius: 3px; }
+  .btns { display: flex; gap: 8px; }
+  .btns .ghost { color: var(--ink-soft); font-size: 0.82rem; align-self: center; }
+  .btns .next {
+    background: var(--accent); color: #fff; border: 0; border-radius: 8px;
+    padding: 6px 14px; font: inherit; font-size: 0.82rem; font-weight: 600;
+  }
+  .caption { text-align: center; margin-top: 14px; font-size: 0.78rem; color: var(--ink-soft); }
+
+  /* ════ 애니메이션 ════════════════════════════════════════════════════
+     공통: transform/opacity만 사용. ease-out. 약 4초 주기 부드러운 루프.
+     접근성: prefers-reduced-motion 에서 전부 정지(최종 프레임 = 개념 그대로 읽힘). */
+
+  /* Card 1 — 시리즈 생성: 책등이 차례로 올라와 스택을 이룸 + terracotta + 배지 pop */
+  .spine-rise { animation: spineRise 4.2s var(--ease) infinite; transform-box: fill-box; transform-origin: bottom; }
+  @keyframes spineRise {
+    0%   { transform: translateY(26px); opacity: 0; }
+    14%  { transform: translateY(0);    opacity: 1; }
+    76%  { transform: translateY(0);    opacity: 1; }
+    90%, 100% { transform: translateY(8px); opacity: 0; }
+  }
+  .plus-pop { animation: plusPop 4.2s var(--ease) infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes plusPop {
+    0%, 40%  { transform: scale(0); opacity: 0; }
+    52%      { transform: scale(1.18); opacity: 1; }
+    60%, 76% { transform: scale(1); opacity: 1; }
+    88%, 100% { transform: scale(1); opacity: 0; }
+  }
+
+  /* Card 2 — 작품 담기: 작품 카드가 왼쪽에서 날아와 시리즈로 흡수 + 새 책등 pop */
+  .work-fly { animation: workFly 3.8s var(--ease) infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes workFly {
+    0%   { transform: translate(-86px, 6px) scale(1);   opacity: 0; }
+    12%  { transform: translate(-86px, 6px) scale(1);   opacity: 1; }
+    62%  { transform: translate(0, 0) scale(0.42);      opacity: 1; }
+    72%, 100% { transform: translate(6px, -2px) scale(0.2); opacity: 0; }
+  }
+  .new-spine { animation: newSpine 3.8s var(--ease) infinite; transform-box: fill-box; transform-origin: bottom; }
+  @keyframes newSpine {
+    0%, 62%   { transform: scaleY(0); opacity: 0; }
+    74%       { transform: scaleY(1.06); opacity: 1; }
+    82%, 100% { transform: scaleY(1); opacity: 1; }
+  }
+
+  /* Card 3 — 내보내기: 책등들이 한 장의 문서로 모이고 아래로 내보내짐 + PDF 태그 */
+  .merge-spine { animation: mergeSpine 4.4s var(--ease) infinite; transform-box: fill-box; }
+  @keyframes mergeSpine {
+    0%, 18%  { transform: translateX(0); opacity: 1; }
+    40%      { transform: translateX(var(--mx, 0)); opacity: 0; }
+    100%     { transform: translateX(var(--mx, 0)); opacity: 0; }
+  }
+  .sheet-in { animation: sheetIn 4.4s var(--ease) infinite; transform-box: fill-box; transform-origin: center top; }
+  @keyframes sheetIn {
+    0%, 34%  { transform: translateY(-4px) scale(0.7); opacity: 0; }
+    48%      { transform: translateY(0) scale(1); opacity: 1; }
+    64%      { transform: translateY(0) scale(1); opacity: 1; }
+    82%      { transform: translateY(34px) scale(0.94); opacity: 0.9; }
+    92%, 100% { transform: translateY(48px) scale(0.9); opacity: 0; }
+  }
+  .export-arrow { animation: exportArrow 4.4s var(--ease) infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes exportArrow {
+    0%, 60%  { transform: translateY(-6px); opacity: 0; }
+    72%      { transform: translateY(0); opacity: 1; }
+    84%      { transform: translateY(8px); opacity: 1; }
+    94%, 100% { transform: translateY(14px); opacity: 0; }
+  }
+  .tag-pop { animation: tagPop 4.4s var(--ease) infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes tagPop {
+    0%, 66%  { opacity: 0; transform: scale(0.7); }
+    78%      { opacity: 1; transform: scale(1); }
+    90%, 100% { opacity: 0; transform: scale(1); }
+  }
+
+  /* 정지(다시 재생용) */
+  body.paused .spine-rise, body.paused .plus-pop, body.paused .work-fly,
+  body.paused .new-spine, body.paused .merge-spine, body.paused .sheet-in,
+  body.paused .export-arrow, body.paused .tag-pop { animation: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spine-rise, .plus-pop, .work-fly, .new-spine,
+    .merge-spine, .sheet-in, .export-arrow, .tag-pop { animation: none !important; }
+    /* 최종 프레임 = 개념을 정적으로도 읽히게: 흡수/내보냄 중간상태는 기본 표시로 둠 */
+    .work-fly { opacity: 1; transform: translate(-86px, 6px); }
+    .merge-spine { opacity: 1; }
+    .sheet-in { opacity: 1; transform: translateY(0) scale(1); }
+    .new-spine { opacity: 1; transform: scaleY(1); }
+    .plus-pop, .export-arrow, .tag-pop { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <h1>온보딩 인트로 카드 — 애니메이션 목업</h1>
+    <p>처음 진입 시 보이는 서비스 설명 카드 3장. 실제 앱의 시각언어(책등 시리즈·작품 카드·내보내기)를 그대로 모션화.</p>
+  </div>
+  <div class="controls">
+    <button id="replay">다시 재생</button>
+    <button id="toggle">모션 줄이기 미리보기</button>
+  </div>
+
+  <div class="cards">
+
+    <!-- ════ Card 1 — 시리즈 생성 ════ -->
+    <div class="popover">
+      <div class="illus">
+        <svg viewBox="0 0 280 124" role="img" aria-label="책등들이 모여 시리즈가 만들어지는 애니메이션">
+          <line x1="78" y1="98.5" x2="202" y2="98.5" stroke="#e7ddcc" stroke-width="1.5" />
+          <!-- 책등 5개 (가운데 하나 terracotta) -->
+          <g>
+            <rect class="spine-rise" style="animation-delay:0s"    x="88"  y="46" width="16" height="52" rx="2" fill="#fbf7ee" stroke="#e7ddcc" />
+            <rect class="spine-rise" style="animation-delay:.12s"  x="110" y="34" width="16" height="64" rx="2" fill="#fbf7ee" stroke="#e7ddcc" />
+            <rect class="spine-rise" style="animation-delay:.24s"  x="132" y="44" width="16" height="54" rx="2" fill="#f6e3d6" stroke="#d48d62" />
+            <rect class="spine-rise" style="animation-delay:.24s"  x="132" y="44" width="16" height="7"  rx="2" fill="#a8542e" />
+            <rect class="spine-rise" style="animation-delay:.36s"  x="154" y="30" width="16" height="68" rx="2" fill="#fbf7ee" stroke="#e7ddcc" />
+            <rect class="spine-rise" style="animation-delay:.48s"  x="176" y="50" width="16" height="48" rx="2" fill="#fbf7ee" stroke="#e7ddcc" />
+          </g>
+          <!-- 생성 배지 + -->
+          <g class="plus-pop">
+            <circle cx="196" cy="34" r="11" fill="#a8542e" />
+            <path d="M196 29.5 v9 M191.5 34 h9" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+          </g>
+        </svg>
+      </div>
+      <div class="body">
+        <h2>시리즈를 만들 수 있어요</h2>
+        <p>소설비에서는 작품들을 하나의 시리즈로 묶어 관리할 수 있어요.</p>
+      </div>
+      <div class="footer">
+        <div class="dots"><i class="on"></i><i></i><i></i></div>
+        <div class="btns"><span class="ghost">건너뛰기</span><button class="next">다음</button></div>
+      </div>
+    </div>
+
+    <!-- ════ Card 2 — 작품 담기 ════ -->
+    <div class="popover">
+      <div class="illus">
+        <svg viewBox="0 0 280 124" role="img" aria-label="작품 카드가 시리즈로 담기는 애니메이션">
+          <!-- 시리즈(책등 스택) 우측 고정 -->
+          <line x1="150" y1="98.5" x2="232" y2="98.5" stroke="#e7ddcc" stroke-width="1.5" />
+          <rect x="160" y="52" width="14" height="46" rx="2" fill="#fbf7ee" stroke="#e7ddcc" />
+          <rect x="178" y="42" width="14" height="56" rx="2" fill="#f6e3d6" stroke="#d48d62" />
+          <rect x="196" y="50" width="14" height="48" rx="2" fill="#fbf7ee" stroke="#e7ddcc" />
+          <!-- 흡수로 새로 생기는 책등 -->
+          <rect class="new-spine" x="214" y="46" width="14" height="52" rx="2" fill="#fbf7ee" stroke="#e7ddcc" />
+          <!-- 날아드는 작품 카드 2장 -->
+          <g class="work-fly" style="animation-delay:0s">
+            <rect x="120" y="40" width="48" height="34" rx="6" fill="#fffdf8" stroke="#e7ddcc" />
+            <rect x="127" y="47" width="22" height="4" rx="2" fill="#a8542e" />
+            <rect x="127" y="55" width="34" height="3" rx="1.5" fill="#e7ddcc" />
+            <rect x="127" y="61" width="28" height="3" rx="1.5" fill="#e7ddcc" />
+          </g>
+          <g class="work-fly" style="animation-delay:1.9s">
+            <rect x="120" y="40" width="48" height="34" rx="6" fill="#fffdf8" stroke="#e7ddcc" />
+            <rect x="127" y="47" width="18" height="4" rx="2" fill="#a8542e" />
+            <rect x="127" y="55" width="34" height="3" rx="1.5" fill="#e7ddcc" />
+            <rect x="127" y="61" width="24" height="3" rx="1.5" fill="#e7ddcc" />
+          </g>
+        </svg>
+      </div>
+      <div class="body">
+        <h2>시리즈에 작품을 담을 수 있어요</h2>
+        <p>시리즈 안에 여러 작품(단편·중편·회차)을 넣거나, 독립 작품으로 따로 관리할 수 있어요.</p>
+      </div>
+      <div class="footer">
+        <div class="dots"><i></i><i class="on"></i><i></i></div>
+        <div class="btns"><span class="ghost">건너뛰기</span><button class="next">다음</button></div>
+      </div>
+    </div>
+
+    <!-- ════ Card 3 — 내보내기 ════ -->
+    <div class="popover">
+      <div class="illus">
+        <svg viewBox="0 0 280 124" role="img" aria-label="시리즈가 한 문서로 합쳐져 내보내지는 애니메이션">
+          <!-- 합쳐지는 책등들 (중앙으로 모이며 사라짐) -->
+          <rect class="merge-spine" style="--mx:34px"  x="86"  y="40" width="14" height="58" rx="2" fill="#fbf7ee" stroke="#e7ddcc" />
+          <rect class="merge-spine" style="--mx:16px"  x="104" y="34" width="14" height="64" rx="2" fill="#fbf7ee" stroke="#e7ddcc" />
+          <rect class="merge-spine" style="--mx:-2px"  x="122" y="44" width="14" height="54" rx="2" fill="#f6e3d6" stroke="#d48d62" />
+          <rect class="merge-spine" style="--mx:-20px" x="140" y="38" width="14" height="60" rx="2" fill="#fbf7ee" stroke="#e7ddcc" />
+          <!-- 한 장의 문서로 -->
+          <g class="sheet-in">
+            <rect x="106" y="26" width="58" height="74" rx="4" fill="#fffdf8" stroke="#e7ddcc" />
+            <path d="M150 26 h14 l-14 14 z" fill="#f6e3d6" stroke="#e7ddcc" />
+            <rect x="116" y="46" width="38" height="3.5" rx="1.75" fill="#e7ddcc" />
+            <rect x="116" y="55" width="38" height="3.5" rx="1.75" fill="#e7ddcc" />
+            <rect x="116" y="64" width="28" height="3.5" rx="1.75" fill="#e7ddcc" />
+            <rect x="116" y="78" width="22" height="3.5" rx="1.75" fill="#d48d62" />
+          </g>
+          <!-- 내보내기 화살표 -->
+          <g class="export-arrow">
+            <path d="M191 44 v22 M183 58 l8 8 l8 -8" stroke="#a8542e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+          </g>
+          <!-- 포맷 태그 -->
+          <g class="tag-pop">
+            <rect x="176" y="74" width="36" height="18" rx="9" fill="#a8542e" />
+            <text x="194" y="86.5" text-anchor="middle" font-family="SF Pro Text, system-ui, sans-serif" font-size="9" font-weight="700" fill="#fff">PDF</text>
+          </g>
+        </svg>
+      </div>
+      <div class="body">
+        <h2>시리즈를 하나의 작품으로 내보낼 수 있어요</h2>
+        <p>완성된 시리즈는 PDF·DOCX·텍스트 파일로 한 번에 내보낼 수 있어요.</p>
+      </div>
+      <div class="footer">
+        <div class="dots"><i></i><i></i><i class="on"></i></div>
+        <div class="btns"><span class="ghost">건너뛰기</span><button class="next">더 보기 / 바로 시작</button></div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="caption">
+    구현 시 driver.js popover의 description 위에 인라인 SVG로 주입. 모든 모션은 transform/opacity만 사용하고
+    <code>prefers-reduced-motion: reduce</code>에서 정지(최종 프레임으로 개념 유지). "모션 줄이기 미리보기"로 정지 상태 확인 가능.
+  </p>
+</div>
+
+<script>
+  // 다시 재생: 애니메이션 재시작(클래스 토글로 reflow)
+  document.getElementById("replay").addEventListener("click", () => {
+    const b = document.body;
+    b.classList.add("paused");
+    // 강제 reflow 후 해제 → 애니메이션 처음부터
+    void b.offsetWidth;
+    requestAnimationFrame(() => requestAnimationFrame(() => b.classList.remove("paused")));
+  });
+  // 모션 줄이기 미리보기 토글(정지 상태로 개념이 읽히는지 확인)
+  const t = document.getElementById("toggle");
+  t.addEventListener("click", () => {
+    const on = document.body.classList.toggle("paused");
+    t.textContent = on ? "모션 다시 켜기" : "모션 줄이기 미리보기";
+  });
+</script>
+</body>
+</html>
+</content>

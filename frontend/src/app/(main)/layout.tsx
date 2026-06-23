@@ -19,7 +19,7 @@ import { useIsPreferencesHydrated } from "@/stores/preferences";
 
 const NAV_ITEMS = [
     { href: "/", label: "홈", exact: true, Icon: Home },
-    { href: "/library", label: "작품", exact: false, Icon: BookOpen },
+    { href: "/library", label: "작품", exact: false, dataTour: "nav-works", Icon: BookOpen },
     { href: "/memos", label: "메모", exact: false, dataTour: "nav-memos", Icon: StickyNote },
     { href: "/characters", label: "인물", exact: false, dataTour: "nav-characters", Icon: Users },
     { href: "/logs", label: "기록", exact: false, Icon: Clock },

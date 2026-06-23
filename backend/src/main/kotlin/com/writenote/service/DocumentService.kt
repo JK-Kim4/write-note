@@ -1,5 +1,6 @@
 package com.writenote.service
 
+import com.writenote.crypto.BodyCipherService
 import com.writenote.entity.Document
 import com.writenote.error.DocumentConflictException
 import com.writenote.error.ResourceNotFoundException
@@ -18,6 +19,7 @@ import tools.jackson.module.kotlin.kotlinModule
 class DocumentService(
     private val documentRepository: DocumentRepository,
     private val projectService: ProjectService,
+    private val bodyCipherService: BodyCipherService,
 ) {
     private val jsonMapper: JsonMapper = JsonMapper.builder().addModule(kotlinModule()).build()
 
@@ -33,7 +35,7 @@ class DocumentService(
                 .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectId)
                 .firstOrNull()
                 ?: throw ResourceNotFoundException("Document not found for project $projectId")
-        return document.toResponse()
+        return document.toResponse(userId)
     }
 
     /** D2: document id 로 조회 (소유권 검증 + soft-delete 404 가드). */
@@ -47,7 +49,7 @@ class DocumentService(
                 .findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow { ResourceNotFoundException("Document not found: $documentId") }
         projectService.requireOwnedProject(userId, document.projectId)
-        return document.toResponse()
+        return document.toResponse(userId)
     }
 
     /**
@@ -69,7 +71,7 @@ class DocumentService(
                 .findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectId)
                 .firstOrNull()
                 ?: throw ResourceNotFoundException("Document not found for project $projectId")
-        return performSave(document, request)
+        return performSave(userId, document, request)
     }
 
     /**
@@ -89,29 +91,37 @@ class DocumentService(
                 .findByIdAndDeletedAtIsNull(documentId)
                 .orElseThrow { ResourceNotFoundException("Document not found: $documentId") }
         projectService.requireOwnedProject(userId, document.projectId)
-        return performSave(document, request)
+        return performSave(userId, document, request)
     }
 
+    /**
+     * T020: userId 추가. 저장 전 암호화, 충돌 시 currentBody 복호, 응답 body는 평문 반환.
+     */
     private fun performSave(
+        userId: Long,
         document: Document,
         request: SaveDocumentRequest,
     ): DocumentSaveResponse {
         // 입력 검증(400) → 상태 검증(409) 순서: 잘못된 body 는 version 과 무관하게 400
         val parsedBody = parseValidProseMirrorDoc(request.body)
         if (document.updatedAt != request.version) {
+            // 충돌 시 currentBody는 복호된 평문 반환 (T018)
+            val currentBodyPlain = bodyCipherService.decryptToPlain(userId, document.body)
             throw DocumentConflictException(
                 currentVersion = requireNotNull(document.updatedAt),
-                currentBody = document.body,
+                currentBody = currentBodyPlain,
             )
         }
-        document.body = request.body
+        // 저장 전 암호화 (T020)
+        document.body = bodyCipherService.encrypt(userId, request.body)
         document.wordCount = countTextChars(parsedBody)
 
         // datetime 버전 토큰은 +1 예측 불가 → flush 로 Hibernate(@Version)가 set 한 새 updatedAt 을 읽어 응답
         val saved = documentRepository.saveAndFlush(document)
         return DocumentSaveResponse(
             id = requireNotNull(saved.id),
-            body = saved.body,
+            // 응답 body 는 암호문 재복호 없이 평문 request.body 반환 (T020)
+            body = request.body,
             wordCount = saved.wordCount,
             version = requireNotNull(saved.updatedAt),
             updatedAt = requireNotNull(saved.updatedAt),
@@ -157,12 +167,13 @@ class DocumentService(
         return ""
     }
 
-    private fun Document.toResponse() =
+    /** T021: body를 복호한 평문으로 toResponse 반환. */
+    private fun Document.toResponse(userId: Long) =
         DocumentResponse(
             id = requireNotNull(id),
             projectId = projectId,
             title = title,
-            body = body,
+            body = bodyCipherService.decryptToPlain(userId, body),
             wordCount = wordCount,
             version = requireNotNull(updatedAt),
             updatedAt = requireNotNull(updatedAt),
