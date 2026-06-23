@@ -16,7 +16,7 @@ import java.time.Instant
  * 작업 세션 — 시작/자동종료/종료+기록/총합. 작품 소유권 경유 격리.
  *
  * - start: 작품의 기존 열린 세션을 먼저 정리(30s 규칙)한 뒤 새 세션 시작(작품당 1개, FR-016).
- * - end: 자동 종료. 지속 [minSessionSeconds] 미만이면 폐기(삭제), 이상이면 ended_at 기록(FR-017/018).
+ * - end: 사용자 종료/일시정지/이탈. 열린 세션이 있으면 지속시간과 무관하게 ended_at 기록(타임워치 측정분 전량 보존).
  * - endWithLog: 세션 종료(30s 우회 — 짧아도 보존) + 집필 기록 생성을 단일 트랜잭션(FR-019/020).
  */
 @Service
@@ -47,7 +47,8 @@ class WorkSessionService(
     ): WorkSessionResponse? {
         requireOwnedProject(userId, projectId)
         val open = workSessionRepository.findFirstByProjectIdAndEndedAtIsNull(projectId) ?: return null
-        return closeOpen(open, Instant.now())?.toResponse()
+        open.endedAt = Instant.now()
+        return workSessionRepository.save(open).toResponse()
     }
 
     @Transactional(rollbackFor = [Exception::class])

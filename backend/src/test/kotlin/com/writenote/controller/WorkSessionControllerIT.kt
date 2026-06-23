@@ -58,7 +58,7 @@ class WorkSessionControllerIT {
     }
 
     @Test
-    fun `auto-end discards session shorter than threshold`() {
+    fun `auto-end preserves session shorter than threshold`() {
         val owner = createUser()
         val projectId = createProject(owner.id!!).id!!
         val sessionId =
@@ -66,13 +66,13 @@ class WorkSessionControllerIT {
                 .saveAndFlush(WorkSession(userId = owner.id!!, projectId = projectId, startedAt = Instant.now().minusSeconds(5)))
                 .id!!
 
-        // AS3 — 30초 미만 자동 종료 → 폐기
+        // 타임워치 — 30초 미만 자동 종료도 보존
         mockMvc
             .perform(post("/api/projects/{projectId}/work-sessions/end", projectId).header("Authorization", bearerFor(owner)))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.data").doesNotExist())
+            .andExpect(jsonPath("$.data.endedAt").exists())
 
-        assertThat(workSessionRepository.findById(sessionId)).isEmpty()
+        assertThat(workSessionRepository.findById(sessionId)).isPresent()
     }
 
     @Test
