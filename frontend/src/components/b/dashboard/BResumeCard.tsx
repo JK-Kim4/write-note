@@ -25,12 +25,7 @@ export function BResumeCard({ card, onOpen }: Props) {
             ) : (
                 <p className="mt-1 italic text-gray-400">아직 첫 문장을 기다리는 중</p>
             )}
-            {card.nextScene !== "" && (
-                <p className="mt-2 text-xs text-gray-500">
-                    다음 장면 · <b>{card.nextScene}</b>
-                </p>
-            )}
-            <p className="mt-1 text-xs text-gray-400">{meta}</p>
+            <p className="mt-2 text-xs text-gray-400">{meta}</p>
             <GoalGauge wordCount={card.wordCount} targetLength={card.targetLength} />
             <button
                 type="button"

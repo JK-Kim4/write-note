@@ -7,6 +7,7 @@
  *   (contracts/web-electron-api.md 매핑)
  */
 import { projects } from "./projects";
+import { categories } from "./categories";
 import { documents } from "./documents";
 import { memos } from "./memos";
 import { sessions } from "./sessions";
@@ -17,6 +18,7 @@ import { settings } from "./settings";
 
 export const webElectronApi = {
     projects,
+    categories,
     documents,
     memos,
     sessions,

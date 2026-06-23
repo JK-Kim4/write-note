@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCreateChapter, useDeleteChapter, useProjectChapters, useReorderChapters, useRestoreChapter, useUpdateChapterTitle } from "@/lib/query/useDocument";
+import { useProjectDocument } from "@/lib/query/useDocument";
 import { useProject, useUpdateProject } from "@/lib/query/useProjects";
-import { PAPER_PRESETS, PAPER_SIZE_ORDER, type PaperSize } from "@/components/editor/pageLayout";
+import { PAPER_PRESETS, type PaperSize } from "@/components/editor/pageLayout";
 import { PAPER_LABEL, FONT_SCALE_ORDER, FONT_SCALE_LABEL } from "@/components/custom-editor/geometry";
 import type { FontScale, LayoutMode } from "@/types/api";
 import { StudioSkeleton } from "./StudioSkeleton";
@@ -14,9 +14,7 @@ import { logKeys } from "@/lib/query/useLogs";
 import { useWorkSession } from "@/hooks/useWorkSession";
 import { rememberLastProject } from "@/lib/lastProject";
 import type { OutlineItem } from "@/lib/editor/outline";
-import { Toast } from "@/components/ui/Toast";
 import { BWorkSidePanel } from "@/components/b/BWorkSidePanel";
-import { ChapterList } from "@/components/editor/ChapterList";
 import { ExportDialog } from "@/components/export/ExportDialog";
 import { PrintOverlay } from "@/components/export/PrintOverlay";
 import { usePdfExport } from "@/lib/export/usePdfExport";
@@ -25,22 +23,22 @@ import { useTextExport } from "@/lib/export/useTextExport";
 import type { BChapterEditorConflictHandlers, BChapterEditorSyncStatus } from "@/components/custom-editor/types";
 
 /**
- * B형 집필실 셸 (024 US1) — 챕터 관리 / 세션 / drawer / 충돌·종료 모달 / 3패널 레이아웃을
+ * B형 집필실 셸 (024 US1) — 세션 / drawer / 충돌·종료 모달 / 3패널 레이아웃을
  * 에디터 코어·아웃라인 소스에 독립적으로 캡슐화한다.
  *
- * 주입 슬롯 2개:
- * - `renderEditor` — 에디터 코어(TipTap `BChapterEditor` 또는 자체엔진)를 셸에 끼운다.
- *   셸이 제공하는 `onSyncStatus`(flushDraft 수집) / `onConflict`(충돌 다이얼로그 결선)를
- *   받아 결선해야 한다.
- * - `outline` — 목차 소스. 기존 라우트는 `useEditorOutline(editor)` 결과를 주입.
- *   자체엔진 라우트는 엔진 파생 아웃라인을 같은 형태로 주입한다.
+ * 033: 챕터 제거 — 작품 1개 = 본문 1개. 좌패널은 작품 설정 + 목차(모델 파생)만.
  *
- * 022 방안 A: 챕터 전환 시 에디터를 `key={currentChapterId}` 로 리마운트해 세션을 재초기화
- * (거짓 409 제거). 리마운트 책임은 `renderEditor` 구현 쪽이 진다.
+ * 주입 슬롯 2개:
+ * - `renderEditor` — 에디터 코어(자체엔진 BCustomChapterEditor)를 셸에 끼운다.
+ *   셸이 제공하는 `onSyncStatus`(flushDraft 수집) / `onConflict`(충돌 다이얼로그 결선)를 결선한다.
+ * - `outline` — 목차 소스. 자체엔진 라우트가 엔진 파생 아웃라인을 주입한다.
+ *
+ * 에디터는 `key={documentId}` 리마운트로 세션을 documentId 단위로 격리(016 거짓 409 제거).
  */
 
-/** 에디터 슬롯에 셸이 넘기는 인자 — 현재 챕터 / 작품 / 용지 + 상태·충돌·제목 결선 콜백. */
+/** 에디터 슬롯에 셸이 넘기는 인자 — 본문 id / 작품 / 용지 + 상태·충돌 결선 콜백. */
 export interface BStudioEditorSlotArgs {
+    /** 작품의 단일 본문 id (BCustomChapterEditor 의 currentChapterId 결선 호환). */
     currentChapterId: number;
     projectId: number;
     paperSize: PaperSize;
@@ -50,11 +48,7 @@ export interface BStudioEditorSlotArgs {
     layoutMode: LayoutMode;
     /** 실시간 글자수 보고(031 분량 지표) — 에디터가 본문 변경 시 셸로 올림. */
     onWordCountChange: (count: number) => void;
-    /** 현재 챕터 제목 — 본문 상단 부제 표시·인라인 편집용. */
-    chapterTitle?: string;
-    /** 본문 상단 챕터 제목 인라인 편집 완료 콜백. */
-    onChapterRename?: (title: string) => void;
-    /** 저장 상태 / flushDraft 를 셸로 전달 (챕터 전환 직전 flush). */
+    /** 저장 상태 / flushDraft 를 셸로 전달. */
     onSyncStatus: (status: BChapterEditorSyncStatus) => void;
     /** 충돌 상태 / 해결 핸들러를 셸로 전달 — 셸이 충돌 다이얼로그를 렌더. */
     onConflict: (handlers: BChapterEditorConflictHandlers) => void;
@@ -68,50 +62,33 @@ export interface BStudioOutlineSource {
 }
 
 interface BStudioShellProps {
-    /** 에디터 슬롯 — 셸이 현재 챕터·결선 콜백을 넘기면 에디터 코어를 반환한다. */
+    /** 에디터 슬롯 — 셸이 본문 id·결선 콜백을 넘기면 에디터 코어를 반환한다. */
     renderEditor: (args: BStudioEditorSlotArgs) => ReactNode;
     /** 아웃라인 소스 — 에디터 코어에서 파생한 목차를 주입. */
     outline: BStudioOutlineSource;
-    /**
-     * 챕터 전환 URL 의 베이스 경로.
-     * 기본값: `/works/${projectId}` (기본 B형 라우트 동작 보존).
-     * 신규 라우트(`/works/[id]/custom`)는 `/works/${projectId}/custom` 을 전달한다.
-     */
-    chapterUrlBase?: string;
 }
 
-export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioShellProps) {
+export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
     const params = useParams<{ id: string }>();
     const router = useRouter();
-    const searchParams = useSearchParams();
     const projectId = Number(params.id);
     const queryClient = useQueryClient();
 
     const projectQuery = useProject(projectId);
 
-    // 챕터 목록 로드
-    const chaptersQuery = useProjectChapters(projectId);
-    const chapters = useMemo(() => chaptersQuery.data ?? [], [chaptersQuery.data]);
-
-    // URL ?chapter 쿼리에서 현재 챕터 ID 결정. 없으면 가장 최근 수정 챕터.
-    const chapterIdFromUrl = Number(searchParams.get("chapter") ?? "") || null;
-    const currentChapterId = useMemo<number | null>(() => {
-        if (chapterIdFromUrl != null && chapters.some((c) => c.id === chapterIdFromUrl)) {
-            return chapterIdFromUrl;
-        }
-        if (chapters.length === 0) return null;
-        return chapters.reduce((latest, c) => (c.updatedAt > latest.updatedAt ? c : latest)).id;
-    }, [chapterIdFromUrl, chapters]);
+    // 작품의 단일 본문 로드 (033 — 챕터 제거).
+    const documentQuery = useProjectDocument(projectId);
+    const documentId = documentQuery.data?.id ?? null;
 
     // 집필실 진입 시 스켈레톤 → 에디터 크로스페이드. 에디터가 준비되면 스켈레톤 오버레이를
     // 에디터 위에 겹쳐 fade-out 시킨다(겹침 전환). projectId 변경(작품 전환) 시 다시 재생.
     const editorReady =
         !Number.isNaN(projectId) &&
         !projectQuery.isLoading &&
-        !chaptersQuery.isLoading &&
+        !documentQuery.isLoading &&
         !projectQuery.isError &&
         projectQuery.data != null &&
-        currentChapterId != null;
+        documentId != null;
     const [showCrossfade, setShowCrossfade] = useState(false);
     const crossfadeDoneRef = useRef(false);
     useEffect(() => {
@@ -143,16 +120,16 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
     const [exportOpen, setExportOpen] = useState(false);
     const { printModels, exportPdf, clearPrint } = usePdfExport();
 
-    // 에디터 코어로부터 받은 저장 상태 / flushDraft / 충돌 핸들러
-    const flushDraftRef = useRef<((body: string) => void) | null>(null);
-    const latestBodyForFlushRef = useRef<string>(JSON.stringify({ type: "doc", content: [] }));
+    // 에디터 코어로부터 받은 저장 상태 / 충돌 핸들러
     const [conflictHandlers, setConflictHandlers] = useState<BChapterEditorConflictHandlers>({ conflict: null, reload: () => {}, overwrite: () => {} });
     // 자동저장 상태 — 헤더 배지 표시용.
     const [syncStatus, setSyncStatus] = useState<BChapterEditorSyncStatus["syncStatus"]>("idle");
 
-    const handleSyncStatus = useCallback(({ flushDraft, syncStatus: status }: BChapterEditorSyncStatus) => {
-        flushDraftRef.current = flushDraft;
+    // 이탈 동기 저장 통로 — 에디터가 보고하는 flushNow 를 ref 로 보관(네비 직전 await 용).
+    const flushNowRef = useRef<() => Promise<void>>(() => Promise.resolve());
+    const handleSyncStatus = useCallback(({ syncStatus: status, flushNow }: BChapterEditorSyncStatus) => {
         setSyncStatus(status);
+        flushNowRef.current = flushNow;
     }, []);
 
     const handleConflict = useCallback((handlers: BChapterEditorConflictHandlers) => {
@@ -161,125 +138,40 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
 
     const { endWithLog } = useWorkSession(projectId);
     const updateProject = useUpdateProject();
-    const createChapter = useCreateChapter(projectId);
 
-    // 챕터 순서 이동 mutation (022 US2)
-    const reorderChapters = useReorderChapters(projectId);
-
-    // 챕터 삭제·복구 mutation (022 US3 T030)
-    const deleteChapter = useDeleteChapter(projectId);
-    const restoreChapter = useRestoreChapter(projectId);
-    const [pendingDelete, setPendingDelete] = useState<{ ids: number[]; seq: number } | null>(null);
-
-    // 챕터 제목 변경 mutation (022 dogfooding T-RENAME)
-    const updateChapterTitle = useUpdateChapterTitle(projectId);
-
-    // 용지 크기는 작품 속성 — 변경 시 PATCH → 비율 즉시 반영.
-    const paperSize: PaperSize = projectQuery.data?.paperSize ?? "A4";
+    // 판형·출판방식은 시리즈 종속(033 R2) — 작품 단위 개별 설정 불가(FR-007). BE 가 시리즈값 or 기본값으로
+    // 해석한 effective 값을 그대로 쓴다. 변경은 시리즈(라이브러리)에서만 한다.
+    const paperSize: PaperSize = projectQuery.data?.effectivePaperSize ?? "A4";
+    const layoutMode: LayoutMode = projectQuery.data?.effectiveLayoutMode ?? "paper";
     const fontScale: FontScale = projectQuery.data?.fontScale ?? "m";
     // 분량 지표(031) — 에디터가 보고하는 실시간 글자수(미보고 시 저장값 fallback). 종이=원고지 매수, 웹=글자수.
-    const savedWordCount = chapters.find((c) => c.id === currentChapterId)?.wordCount ?? 0;
+    const savedWordCount = documentQuery.data?.wordCount ?? 0;
     const [liveWordCount, setLiveWordCount] = useState<number | null>(null);
-    // 챕터 전환 시 이전 챕터 글자수 잔상 제거(새 에디터가 마운트하며 즉시 재보고).
-    useEffect(() => {
-        setLiveWordCount(null);
-    }, [currentChapterId]);
     const displayWordCount = liveWordCount ?? savedWordCount;
-    // 작품 전체 글자수 — 현재 챕터는 실시간(displayWordCount), 나머지는 저장값. 우패널 분량 카드용.
-    const totalWordCount = chapters.reduce(
-        (sum, c) => sum + (c.id === currentChapterId ? displayWordCount : c.wordCount),
-        0,
-    );
+    const totalWordCount = displayWordCount;
     const targetLength = projectQuery.data?.targetLength ?? null;
-    const layoutMode: LayoutMode = projectQuery.data?.layoutMode ?? "paper";
+    // 작품 목록 복귀: 작품이 시리즈 소속이면 그 시리즈 드릴인(?folder=)으로, 미분류면 루트로(있던 곳 복원).
+    const backHref =
+        projectQuery.data?.categoryId != null ? `/library?folder=${projectQuery.data.categoryId}` : "/library";
+    // 작품 목록 복귀 — 미동기화분을 서버에 먼저 반영(시리즈 글자수 즉시 동기)한 뒤 네비게이션.
+    // flush 실패는 best-effort(draft 보존)로 흡수하고 네비는 막지 않는다.
+    const handleNavigateBack = useCallback(async () => {
+        try {
+            await flushNowRef.current();
+        } catch {
+            // best-effort — 실패해도 draft 가 남아 재진입 시 복원된다.
+        }
+        router.push(backHref);
+    }, [router, backHref]);
     const exportWord = useWordExport(projectId, paperSize);
-    const handlePaperSizeChange = (next: PaperSize) => {
-        if (next === paperSize) return;
-        updateProject.mutate({ id: projectId, patch: { paperSize: next } });
-    };
     const handleFontScaleChange = (next: FontScale) => {
         if (next === fontScale) return;
         updateProject.mutate({ id: projectId, patch: { fontScale: next } });
-    };
-    // 출판 방식 전환(031 US4) — 종이↔웹. 본문(DocModel)은 렌더와 독립이라 텍스트 무손실, 표시 형태만 바뀜.
-    const handleLayoutModeChange = (next: LayoutMode) => {
-        if (next === layoutMode) return;
-        updateProject.mutate({ id: projectId, patch: { layoutMode: next } });
     };
 
     useEffect(() => {
         if (Number.isFinite(projectId)) rememberLastProject(projectId);
     }, [projectId]);
-
-    // 챕터 전환 핸들러 — 전환 직전 현재 초안 flush + URL 변경.
-    // 에디터 key={currentChapterId} 리마운트가 새 세션 생성 → 거짓 409 제거.
-    const handleChapterSelect = useCallback(
-        (nextId: number) => {
-            if (nextId === currentChapterId) return;
-            // 전환 직전 현재 챕터 초안 즉시 기록 (IME 조합 중 작성분 보존 — 016).
-            flushDraftRef.current?.(latestBodyForFlushRef.current);
-            const url = `${chapterUrlBase ?? `/works/${projectId}`}?chapter=${nextId}`;
-            router.replace(url, { scroll: false });
-        },
-        [currentChapterId, projectId, router, chapterUrlBase],
-    );
-
-    // 챕터 삭제 핸들러 (022 US3 T030)
-    const handleDeleteChapter = useCallback(
-        (deletedId: number) => {
-            if (deletedId === currentChapterId && chapters.length > 1) {
-                const idx = chapters.findIndex((c) => c.id === deletedId);
-                const nextChapter = idx > 0 ? chapters[idx - 1] : chapters[idx + 1];
-                if (nextChapter != null) {
-                    handleChapterSelect(nextChapter.id);
-                }
-            }
-            setPendingDelete((prev) => ({ ids: [...(prev?.ids ?? []), deletedId], seq: (prev?.seq ?? 0) + 1 }));
-            deleteChapter.mutate(deletedId);
-        },
-        [chapters, currentChapterId, deleteChapter, handleChapterSelect],
-    );
-
-    const handleRestoreChapter = useCallback(() => {
-        if (!pendingDelete) return;
-        for (const id of pendingDelete.ids) restoreChapter.mutate(id);
-        setPendingDelete(null);
-    }, [pendingDelete, restoreChapter]);
-
-    const dismissDeleteToast = useCallback(() => setPendingDelete(null), []);
-
-    // 챕터 생성 핸들러
-    const handleCreateChapter = useCallback(async () => {
-        try {
-            const newDoc = await createChapter.mutateAsync(undefined);
-            handleChapterSelect(newDoc.id);
-        } catch {
-            // 생성 실패 — 조용히 처리
-        }
-    }, [createChapter, handleChapterSelect]);
-
-    // 챕터 순서 이동 핸들러 (022 US2)
-    const handleMoveChapter = useCallback(
-        (id: number, direction: "up" | "down") => {
-            const idx = chapters.findIndex((c) => c.id === id);
-            if (idx < 0) return;
-            if (direction === "up" && idx === 0) return;
-            if (direction === "down" && idx === chapters.length - 1) return;
-            const swapIdx = direction === "up" ? idx - 1 : idx + 1;
-            const newIds = chapters.map((c) => c.id);
-            [newIds[idx], newIds[swapIdx]] = [newIds[swapIdx], newIds[idx]];
-            reorderChapters.mutate(newIds);
-        },
-        [chapters, reorderChapters],
-    );
-
-    // 챕터 제목 변경 핸들러 (022 dogfooding T-RENAME)
-    const handleRenameChapter = useCallback(
-        (documentId: number, title: string) => {
-            updateChapterTitle.mutate({ documentId, title });
-        },
-        [updateChapterTitle],
-    );
 
     const handleEndWork = async () => {
         const trimmed = endWorkBody.trim();
@@ -287,11 +179,13 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
         setIsEndingWork(true);
         setEndWorkError(null);
         try {
+            // 미동기화 본문을 서버에 먼저 반영(시리즈 글자수 즉시 동기). best-effort — 실패해도 종료는 진행.
+            await flushNowRef.current().catch(() => {});
             await endWithLog(trimmed);
             await queryClient.invalidateQueries({ queryKey: logKeys.all });
             setEndWorkOpen(false);
             setEndWorkBody("");
-            router.push("/library");
+            router.push(backHref);
         } catch {
             setEndWorkError("기록 저장에 실패했습니다. 다시 시도해 주세요.");
         } finally {
@@ -352,7 +246,16 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
     const outlinePanel = (
         <>
             <div className="border-b border-gray-200 p-3">
-                <Link href="/library" className="text-xs text-gray-400 hover:text-terracotta-600">
+                <Link
+                    href={backHref}
+                    onClick={(e) => {
+                        // 좌클릭은 가로채 미동기화분 flush 후 네비(시리즈 글자수 즉시 동기). 중클릭/수정키는 기본 동작 유지.
+                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                        e.preventDefault();
+                        void handleNavigateBack();
+                    }}
+                    className="text-xs text-gray-400 hover:text-terracotta-600"
+                >
                     ← 작품 목록
                 </Link>
                 <h1 className="mt-1 truncate text-base font-bold text-gray-900" title={projectTitle}>
@@ -363,41 +266,13 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                         다음 장면 — {projectQuery.data.nextScene}
                     </p>
                 )}
-                <div className="mt-2 flex items-center gap-2">
-                    <label htmlFor="b-layout-mode" className="shrink-0 text-xs text-gray-400">
-                        출판
-                    </label>
-                    <select
-                        id="b-layout-mode"
-                        value={layoutMode}
-                        onChange={(e) => handleLayoutModeChange(e.target.value as LayoutMode)}
-                        disabled={updateProject.isPending || projectQuery.data == null}
-                        className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 disabled:opacity-50"
-                    >
-                        <option value="paper">종이 출판 (페이지·판형)</option>
-                        <option value="web">웹 출판 (연속·글자수)</option>
-                    </select>
-                </div>
-                {layoutMode === "paper" && (
-                    <div className="mt-2 flex items-center gap-2">
-                        <label htmlFor="b-paper-size" className="shrink-0 text-xs text-gray-400">
-                            용지
-                        </label>
-                        <select
-                            id="b-paper-size"
-                            value={paperSize}
-                            onChange={(e) => handlePaperSizeChange(e.target.value as PaperSize)}
-                            disabled={updateProject.isPending || projectQuery.data == null}
-                            className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 disabled:opacity-50"
-                        >
-                            {PAPER_SIZE_ORDER.map((size) => (
-                                <option key={size} value={size}>
-                                    {PAPER_LABEL[size]} ({PAPER_PRESETS[size].widthMm}×{PAPER_PRESETS[size].heightMm}mm)
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                )}
+                {/* 판형·출판방식은 시리즈에서 설정(033 R2 / FR-007). 집필실은 effective 값 표시만. */}
+                <p className="mt-2 text-xs text-gray-400">
+                    {layoutMode === "web"
+                        ? "웹 출판 (연속·글자수)"
+                        : `종이 출판 · ${PAPER_LABEL[paperSize]} (${PAPER_PRESETS[paperSize].widthMm}×${PAPER_PRESETS[paperSize].heightMm}mm)`}
+                    <span className="ml-1 text-gray-300">· 시리즈 설정</span>
+                </p>
                 <div className="mt-2 flex items-center gap-2">
                     <label htmlFor="b-font-scale" className="shrink-0 text-xs text-gray-400">
                         글자 크기
@@ -417,21 +292,18 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                     </select>
                 </div>
             </div>
-            {/* 챕터 목록 */}
-            <div className="border-b border-gray-200 px-2 py-2">
-                <ChapterList
-                    chapters={chapters}
-                    currentChapterId={currentChapterId}
-                    onSelect={(id) => {
-                        handleChapterSelect(id);
+            {/* 내보내기 */}
+            <div className="border-b border-gray-200 px-3 py-2">
+                <button
+                    type="button"
+                    onClick={() => {
+                        setExportOpen(true);
                         setLeftDrawerOpen(false);
                     }}
-                    onCreate={handleCreateChapter}
-                    onMove={handleMoveChapter}
-                    onDelete={handleDeleteChapter}
-                    onRename={handleRenameChapter}
-                    onExport={() => setExportOpen(true)}
-                />
+                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+                >
+                    내보내기
+                </button>
             </div>
             <div className="flex-1 overflow-y-auto p-2">
                 <p className="px-2 py-1 text-xs font-medium text-gray-400">목차</p>
@@ -600,39 +472,37 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                 </div>
             </div>
 
-            {/* 에디터 영역 — renderEditor 슬롯. 챕터 전환 시 리마운트 책임은 슬롯 구현이 진다. */}
+            {/* 에디터 영역 — renderEditor 슬롯. 본문 단위 리마운트 책임은 슬롯 구현이 진다. */}
             {Number.isNaN(projectId) ? (
                 <div className="flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white">
                     <p className="text-sm text-gray-500">잘못된 작품입니다.</p>
                 </div>
-            ) : projectQuery.isLoading || chaptersQuery.isLoading ? (
+            ) : projectQuery.isLoading || documentQuery.isLoading ? (
                 <StudioSkeleton />
             ) : projectQuery.isError || projectQuery.data == null ? (
-                // 작품 자체가 없음(잘못된 URL/삭제됨) — 챕터 빈 상태와 구분해 명확히 안내.
+                // 작품 자체가 없음(잘못된 URL/삭제됨) — 명확히 안내.
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white">
                     <p className="text-sm text-gray-500">작품을 찾을 수 없습니다.</p>
-                    <Link href="/library" className="text-sm font-medium text-terracotta-600 hover:underline">
+                    <Link href={backHref} className="text-sm font-medium text-terracotta-600 hover:underline">
                         작품 목록으로
                     </Link>
                 </div>
-            ) : currentChapterId == null ? (
+            ) : documentId == null ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white">
-                    <p className="text-sm text-gray-400">챕터를 선택하거나 생성해 주세요.</p>
-                    <Link href="/library" className="text-xs text-terracotta-600 hover:underline">
+                    <p className="text-sm text-gray-400">본문을 불러올 수 없습니다.</p>
+                    <Link href={backHref} className="text-xs text-terracotta-600 hover:underline">
                         작품 목록으로
                     </Link>
                 </div>
             ) : (
                 <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
                     {renderEditor({
-                        currentChapterId,
+                        currentChapterId: documentId,
                         projectId,
                         paperSize,
                         fontScale,
                         layoutMode,
                         onWordCountChange: setLiveWordCount,
-                        chapterTitle: chapters.find((c) => c.id === currentChapterId)?.title,
-                        onChapterRename: (title) => handleRenameChapter(currentChapterId, title),
                         onSyncStatus: handleSyncStatus,
                         onConflict: handleConflict,
                     })}
@@ -661,20 +531,10 @@ export function BStudioShell({ renderEditor, outline, chapterUrlBase }: BStudioS
                 />
             </div>
 
-            {pendingDelete && (
-                <Toast
-                    key={pendingDelete.seq}
-                    message="챕터를 삭제했어요."
-                    actionLabel="되돌리기"
-                    onAction={handleRestoreChapter}
-                    onDismiss={dismissDeleteToast}
-                />
-            )}
-
-            {exportOpen && (
+            {exportOpen && documentQuery.data != null && (
                 <ExportDialog
                     open
-                    chapters={chapters}
+                    document={{ id: documentQuery.data.id, title: documentQuery.data.title, wordCount: savedWordCount }}
                     paperSize={paperSize}
                     onExportPdf={(req) => { setExportOpen(false); exportPdf(req); }}
                     onExportWord={(format, req) => { setExportOpen(false); exportWord(format, req); }}

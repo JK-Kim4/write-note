@@ -62,11 +62,12 @@ class ProjectControllerIT {
                 ).andExpect(status().isCreated)
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.title").value("First draft"))
-                .andExpect(jsonPath("$.data.genre").value("치유물"))
+                // 장르·톤류는 시리즈로 이동(033 R3) — 요청에 보내도 무시(400 아님), 작품엔 미저장(기본값 유지)
+                .andExpect(jsonPath("$.data.genre").doesNotExist())
                 .andExpect(jsonPath("$.data.targetLength").value(4000))
-                .andExpect(jsonPath("$.data.toneNotes").value("잔잔"))
-                .andExpect(jsonPath("$.data.synopsis").value("손녀와 할머니"))
-                .andExpect(jsonPath("$.data.worldNotes").value("1990s"))
+                .andExpect(jsonPath("$.data.toneNotes").doesNotExist())
+                .andExpect(jsonPath("$.data.synopsis").doesNotExist())
+                .andExpect(jsonPath("$.data.worldNotes").doesNotExist())
                 .andExpect(jsonPath("$.data.archivedAt").doesNotExist())
                 .andReturn()
                 .response
@@ -93,9 +94,8 @@ class ProjectControllerIT {
                     .content("""{"title":"Second draft","genre":"스릴러"}"""),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.data.title").value("Second draft"))
-            .andExpect(jsonPath("$.data.genre").value("스릴러"))
-            .andExpect(jsonPath("$.data.toneNotes").value("잔잔"))
-            .andExpect(jsonPath("$.data.synopsis").value("손녀와 할머니"))
+            // genre 변경 경로 제거(033 R3) — PATCH 로 보내도 무시, 작품 genre 는 기본값(null) 유지
+            .andExpect(jsonPath("$.data.genre").doesNotExist())
 
         mockMvc
             .perform(post("/api/projects/{projectId}/archive", projectId).header("Authorization", bearer))
@@ -133,7 +133,7 @@ class ProjectControllerIT {
     }
 
     @Test
-    fun `nextScene defaults empty, is saved on patch, returned on get, and cleared by empty value`() {
+    fun `nextScene defaults empty and patch sending nextScene is ignored (033 R3 — 시리즈 이동)`() {
         val owner = createUser()
         val bearer = bearerFor(owner)
         val projectId =
@@ -150,7 +150,7 @@ class ProjectControllerIT {
                 .contentAsString
                 .let(::extractProjectId)
 
-        // AS1 — 저장 후 조회 반환
+        // nextScene 변경 경로 제거(033 R3) — PATCH 로 보내도 무시(400 아님), 기본값 "" 유지·보존
         mockMvc
             .perform(
                 patch("/api/projects/{projectId}", projectId)
@@ -158,26 +158,16 @@ class ProjectControllerIT {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"nextScene":"3장 도입부, 갈등 고조"}"""),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.data.nextScene").value("3장 도입부, 갈등 고조"))
+            .andExpect(jsonPath("$.data.nextScene").value(""))
 
         mockMvc
             .perform(get("/api/projects/{projectId}", projectId).header("Authorization", bearer))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.data.nextScene").value("3장 도입부, 갈등 고조"))
-
-        // AS2 — 빈 값으로 비우기
-        mockMvc
-            .perform(
-                patch("/api/projects/{projectId}", projectId)
-                    .header("Authorization", bearer)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"nextScene":""}"""),
-            ).andExpect(status().isOk)
             .andExpect(jsonPath("$.data.nextScene").value(""))
     }
 
     @Test
-    fun `nextScene-only patch preserves other metadata`() {
+    fun `patch sending tone meta is ignored while title targetLength preserved (033 R3)`() {
         val owner = createUser()
         val bearer = bearerFor(owner)
         val projectId =
@@ -193,17 +183,17 @@ class ProjectControllerIT {
                 .contentAsString
                 .let(::extractProjectId)
 
-        // AS4 — nextScene 만 갱신 시 타 메타 불변
+        // 톤류·다음장면 변경 경로 제거(033 R3) — 보내도 무시, title·targetLength 는 유지·갱신
         mockMvc
             .perform(
                 patch("/api/projects/{projectId}", projectId)
                     .header("Authorization", bearer)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"nextScene":"다음 회차"}"""),
+                    .content("""{"nextScene":"다음 회차","title":"제목 갱신"}"""),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.data.nextScene").value("다음 회차"))
-            .andExpect(jsonPath("$.data.title").value("보존 확인"))
-            .andExpect(jsonPath("$.data.genre").value("치유물"))
+            .andExpect(jsonPath("$.data.nextScene").value(""))
+            .andExpect(jsonPath("$.data.title").value("제목 갱신"))
+            .andExpect(jsonPath("$.data.genre").doesNotExist())
             .andExpect(jsonPath("$.data.targetLength").value(2000))
     }
 
@@ -256,17 +246,18 @@ class ProjectControllerIT {
                 .contentAsString
                 .let(::extractProjectId)
 
+        // toneNotes 는 변경 경로 제거(033 R3) — 보내도 무시. title 미지정이므로 보존, targetLength 갱신
         mockMvc
             .perform(
                 patch("/api/projects/{projectId}", projectId)
                     .header("Authorization", bearer)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"toneNotes":"새 톤"}"""),
+                    .content("""{"toneNotes":"새 톤","targetLength":1500}"""),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.data.title").value("Original"))
-            .andExpect(jsonPath("$.data.genre").value("치유물"))
-            .andExpect(jsonPath("$.data.targetLength").value(1000))
-            .andExpect(jsonPath("$.data.toneNotes").value("새 톤"))
+            .andExpect(jsonPath("$.data.genre").doesNotExist())
+            .andExpect(jsonPath("$.data.targetLength").value(1500))
+            .andExpect(jsonPath("$.data.toneNotes").doesNotExist())
     }
 
     @Test
@@ -499,7 +490,8 @@ class ProjectControllerIT {
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.data.layoutMode").value("paper"))
             .andExpect(jsonPath("$.data.title").value("전환 작품"))
-            .andExpect(jsonPath("$.data.genre").value("판타지"))
+            // genre 는 시리즈로 이동(033 R3) — 생성 시 보내도 무시되어 기본값(null) 유지
+            .andExpect(jsonPath("$.data.genre").doesNotExist())
     }
 
     @Test

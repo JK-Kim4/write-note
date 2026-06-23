@@ -2,6 +2,7 @@ package com.writenote.controller
 
 import com.writenote.auth.AuthenticatedPrincipal
 import com.writenote.model.request.CreateProjectRequest
+import com.writenote.model.request.MoveProjectCategoryRequest
 import com.writenote.model.request.UpdateProjectRequest
 import com.writenote.model.response.PageResponse
 import com.writenote.model.response.ProjectCardResponse
@@ -112,6 +113,24 @@ class ProjectController(
         @PathVariable projectId: Long,
         @Valid @RequestBody request: UpdateProjectRequest,
     ): Result<ProjectResponse> = Result.success(projectService.updateProject(principal.userId, projectId, request))
+
+    @PatchMapping("/{projectId}/category")
+    @Operation(
+        summary = "작품을 모음으로 이동 (032)",
+        description = "본인 작품만. categoryId null/생략 = 미분류로 빼냄. 남의/없는 모음 지정 시 404",
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "성공 (categoryId 반영)"),
+            ApiResponse(responseCode = "401", description = "AUTH_TOKEN_*"),
+            ApiResponse(responseCode = "404", description = "RESOURCE_NOT_FOUND — 본인 작품/모음 아님"),
+        ],
+    )
+    fun moveProjectCategory(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @PathVariable projectId: Long,
+        @RequestBody request: MoveProjectCategoryRequest,
+    ): Result<ProjectResponse> = Result.success(projectService.moveCategory(principal.userId, projectId, request.categoryId))
 
     @PostMapping("/{projectId}/archive")
     @Operation(summary = "프로젝트 보관", description = "본인 프로젝트 archivedAt = now 박음. 멱등 — 이미 보관 상태면 시각 유지")

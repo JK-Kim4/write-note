@@ -19,7 +19,7 @@ import { fetchSettings, putSettings, type SettingsMap } from "@/lib/api/settings
 const TOUR_STEPS = [
     {
         element: '[data-tour="new-work"]',
-        popover: { title: "새 작품", description: "여기서 첫 작품을 시작해요", side: "bottom", align: "start" },
+        popover: { title: "새 작품", description: "여기서 첫 작품을 시작해요. 작품은 시리즈로 묶어 정리할 수 있어요", side: "bottom", align: "start" },
     },
     {
         element: '[data-tour="nav-memos"]',
@@ -28,10 +28,6 @@ const TOUR_STEPS = [
     {
         element: '[data-tour="nav-characters"]',
         popover: { title: "인물", description: "등장인물을 한곳에 정리해요", side: "bottom" },
-    },
-    {
-        element: '[data-tour="nav-write"]',
-        popover: { title: "집필", description: "작품으로 들어가 이어 써요", side: "bottom" },
     },
 ] as const;
 

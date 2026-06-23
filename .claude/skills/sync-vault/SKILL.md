@@ -73,7 +73,7 @@ vault `02-PROGRESS.md` 는 Phase 단위 진척 SoT. 다음 영역 갱신:
 작업 중 발견된 이슈가 있으면 신규 entry. 다음 신호 시 추가:
 
 - 작업 중 보류한 결정 (commit 메시지에 "후속", "TODO", "별도 트랙" 등 포함)
-- 본 repo `docs/retrospectives/` 의 최신 회고 §어긋난 점 / §룰 갱신 후보
+- vault `~/obsidian/write-note/retrospectives/` 의 최신 회고 §어긋난 점 / §룰 갱신 후보
 - 본 작업이 분기 시킨 다른 작업 트랙 (트랜잭션 분기 보고된 영역)
 
 이슈 entry 양식:

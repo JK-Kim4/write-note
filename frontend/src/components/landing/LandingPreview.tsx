@@ -9,7 +9,7 @@ export function LandingPreview() {
                 </div>
                 <div className="landing-studio">
                     <div className="landing-st-rail">
-                        <div className="landing-st-label">챕터</div>
+                        <div className="landing-st-label">목차</div>
                         <div className="landing-chap landing-chap--on">1. 첫 만남</div>
                         <div className="landing-chap">2. 균열</div>
                         <div className="landing-chap">3. 떠나는 날</div>

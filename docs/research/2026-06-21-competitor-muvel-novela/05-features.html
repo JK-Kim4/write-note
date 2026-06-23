@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5. 기능 비교표 — 경쟁 조사</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">📚 창작 에디터 경쟁 조사
+      <small>뮤블(Muvel) · 노벨라(Novela) vs 소설비(Soseolbi)<br>조사일 2026-06-21</small>
+    </div>
+    <nav>
+      <div class="nav-group">리포트</div>
+      <a href="index.html"><span class="num">0</span>표지 &amp; 목차</a>
+      <a href="01-overview.html"><span class="num">1</span>개요 &amp; 명칭 정정</a>
+      <a href="02-tech-stack.html"><span class="num">2</span>기술 스택</a>
+      <a href="03-metrics.html"><span class="num">3</span>사용자 · 매출</a>
+      <a href="04-mobile-ios.html"><span class="num">4</span>iOS 한글 · 모바일 집필</a>
+      <a href="05-features.html" class="active"><span class="num">5</span>기능 비교표</a>
+      <a href="06-scorecard.html"><span class="num">6</span>완성도 점수화</a>
+      <a href="07-sources.html"><span class="num">7</span>출처 · 신뢰도 · 한계</a>
+    </nav>
+    <div class="foot">deep-research 워크플로우 기반<br>확인 불가 수치는 ‘공개 자료 없음’ 표기</div>
+  </aside>
+
+  <main class="main">
+  <div class="content">
+    <p class="eyebrow">Section 5</p>
+    <h1>기능 비교표</h1>
+    <p class="lead">7개 영역 35개 기능 항목을 세 서비스로 교차한 매트릭스입니다. 경쟁사 항목은 공개 출처에서 확인된 것만 ●, 마케팅으로만 언급되거나 불명확하면 ◐/?, 미확인은 보수적으로 표기했습니다.</p>
+
+    <div class="card" style="padding:14px 20px;">
+      <strong>범례</strong> &nbsp;
+      <span class="check">●</span> 있음(확인) &nbsp;·&nbsp;
+      <span class="partial">◐</span> 부분/진행 중 &nbsp;·&nbsp;
+      <span class="cross">○</span> 없음 &nbsp;·&nbsp;
+      <span class="unknown">?</span> 공개 자료 없음(미확인)
+    </div>
+
+    <h2>A. 핵심 에디터</h2>
+    <table>
+      <thead><tr><th>기능</th><th class="c">소설비</th><th class="c">뮤블</th><th class="c">노벨라</th></tr></thead>
+      <tbody>
+        <tr><td>텍스트 서식(굵게·기울임·밑줄·취소선)</td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td></tr>
+        <tr><td>블록(제목·인용·목록·구분선)</td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td></tr>
+        <tr><td>각주/주석</td><td class="c"><span class="cross">○</span></td><td class="c"><span class="check">●</span></td><td class="c"><span class="unknown">?</span></td></tr>
+        <tr><td>이미지 삽입</td><td class="c"><span class="cross">○</span></td><td class="c"><span class="check">●</span></td><td class="c"><span class="unknown">?</span></td></tr>
+        <tr><td>자동 따옴표(Smart Quote)</td><td class="c"><span class="cross">○</span></td><td class="c"><span class="check">●</span></td><td class="c"><span class="unknown">?</span></td></tr>
+        <tr><td>맞춤법 검사</td><td class="c"><span class="cross">○</span></td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td></tr>
+        <tr><td><strong>한글 IME 안정성(데스크톱)</strong></td><td class="c"><span class="check">●</span><br><small>4케이스 검증</small></td><td class="c"><span class="unknown">?</span></td><td class="c"><span class="unknown">?</span></td></tr>
+        <tr><td>Undo / Redo</td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td></tr>
+        <tr><td>자동 저장</td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td></tr>
+        <tr><td>버전 히스토리(복원)</td><td class="c"><span class="partial">◐</span><br><small>버전토큰</small></td><td class="c"><span class="check">●</span><br><small>10분 자동</small></td><td class="c"><span class="check">●</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>B. 페이지 · 원고 형식 <span class="badge soseolbi">소설비 강점 영역</span></h2>
+    <table>
+      <thead><tr><th>기능</th><th class="c">소설비</th><th class="c">뮤블</th><th class="c">노벨라</th></tr></thead>
+      <tbody>
+        <tr><td><strong>실시간 A4 페이지 분할</strong></td><td class="c"><span class="check">●</span><br><small>자체 엔진</small></td><td class="c"><span class="cross">○</span></td><td class="c"><span class="cross">○</span></td></tr>
+        <tr><td>원고지 모드(격자)</td><td class="c"><span class="check">●</span></td><td class="c"><span class="cross">○</span></td><td class="c"><span class="cross">○</span></td></tr>
+        <tr><td>줄노트(괘선)</td><td class="c"><span class="check">●</span></td><td class="c"><span class="cross">○</span></td><td class="c"><span class="cross">○</span></td></tr>
+        <tr><td>타자기 스크롤 / 모드</td><td class="c"><span class="cross">○</span></td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td></tr>
+        <tr><td>포커스 모드 / 분할 뷰</td><td class="c"><span class="partial">◐</span></td><td class="c"><span class="partial">◐</span></td><td class="c"><span class="check">●</span></td></tr>
+        <tr><td>글자 수 실시간 통계</td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td><td class="c"><span class="unknown">?</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>C. 작품 · 설정 관리 <span class="badge muvel">뮤블/노벨라 강점</span></h2>
+    <table>
+      <thead><tr><th>기능</th><th class="c">소설비</th><th class="c">뮤블</th><th class="c">노벨라</th></tr></thead>
+      <tbody>
+        <tr><td>작품(프로젝트) 관리</td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td></tr>
+        <tr><td>챕터 / 회차(에피소드) 관리</td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td><td class="c"><span class="partial">◐</span></td></tr>
+        <tr><td>등장인물 관리</td><td class="c"><span class="check">●</span><br><small>web</small></td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span><br><small>프로필 도구</small></td></tr>
+        <tr><td>위키 / 세계관 설정집</td><td class="c"><span class="cross">○</span></td><td class="c"><span class="check">●</span><br><small>중요도·타임라인</small></td><td class="c"><span class="partial">◐</span></td></tr>
+        <tr><td><strong>플롯 관리 / 노드 캔버스</strong></td><td class="c"><span class="cross">○</span></td><td class="c"><span class="check">●</span><br><small>노드 캔버스</small></td><td class="c"><span class="check">●</span><br><small>문서·캐릭터 참조</small></td></tr>
+        <tr><td>리서치 / 노트</td><td class="c"><span class="partial">◐</span><br><small>메모로 대체</small></td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>D. 메모 · 컨텍스트 영속 <span class="badge soseolbi">소설비 강점 영역</span></h2>
+    <table>
+      <thead><tr><th>기능</th><th class="c">소설비</th><th class="c">뮤블</th><th class="c">노벨라</th></tr></thead>
+      <tbody>
+        <tr><td>메모 / 곁쪽지 빠른 캡처</td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td><td class="c"><span class="check">●</span></td></tr>
+        <tr><td><strong>메모 ↔ 작품 다대다 연결</strong></td><td class="c"><span class="check">●</span></td><td class="c"><span class="partial">◐</span></td><td class="c"><span class="partial">◐</span></td></tr>
+        <tr><td><strong>재진입 컨텍스트(고정 한 장)</strong></td><td class="c"><span class="check">●</span></td><td class="c"><span class="cross">○</span></td><td class="c"><span class="cross">○</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>E. 집필 통계 · 리듬 <span class="badge soseolbi">소설비 강점 영역</span></h2>
+    <table>
+      <thead><tr><th>기능</th><th class="c">소설비</th><th class="c">뮤블</th><th class="c">노벨라</th></tr></thead>
+      <tbody>
+        <tr><td><strong>세션 기반 집필 추적</strong></td><td class="c"><span class="check">●</span></td><td class="c"><span class="cross">○</span></td><td class="c"><span class="cross">○</span></td></tr>
+        <tr><td>작업 시간 누적 / 타이머</td><td class="c"><span class="check">●</span></td><td class="c"><span class="cross">○</span></td><td class="c"><span class="check">●</span><br><small>타이머</small></td></tr>
+        <tr><td>진척 게이지(목표 글자/시간)</td><td class="c"><span class="check">●</span><br><small>일일목표</small></td><td class="c"><span class="partial">◐</span></td><td class="c"><span class="cross">○</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>F. 내보내기(Export)</h2>
+    <table>
+      <thead><tr><th>기능</th><th class="c">소설비</th><th class="c">뮤블</th><th class="c">노벨라</th></tr></thead>
+      <tbody>
+        <tr><td>PDF</td><td class="c"><span class="partial">◐</span><br><small>진행중</small></td><td class="c"><span class="unknown">?</span></td><td class="c"><span class="unknown">?</span></td></tr>
+        <tr><td>HWPX(한글)</td><td class="c"><span class="partial">◐</span><br><small>진행중</small></td><td class="c"><span class="check">●</span></td><td class="c"><span class="unknown">?</span></td></tr>
+        <tr><td>DOCX / HTML / 기타</td><td class="c"><span class="partial">◐</span><br><small>DOCX 진행중</small></td><td class="c"><span class="check">●</span><br><small>HTML·mvle</small></td><td class="c"><span class="unknown">?</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>G. 공유 · AI · 동기화 <span class="badge muvel">뮤블 강점</span></h2>
+    <table>
+      <thead><tr><th>기능</th><th class="c">소설비</th><th class="c">뮤블</th><th class="c">노벨라</th></tr></thead>
+      <tbody>
+        <tr><td>회차/작품 링크 공유</td><td class="c"><span class="cross">○</span></td><td class="c"><span class="check">●</span><br><small>공개·일부공개</small></td><td class="c"><span class="unknown">?</span></td></tr>
+        <tr><td><strong>AI 분석 / 퇴고 / 요약</strong></td><td class="c"><span class="cross">○</span></td><td class="c"><span class="check">●</span></td><td class="c"><span class="cross">○</span></td></tr>
+        <tr><td>클라우드 동기화 / 백업</td><td class="c"><span class="partial">◐</span><br><small>서버 동기</small></td><td class="c"><span class="check">●</span><br><small>실시간</small></td><td class="c"><span class="check">●</span><br><small>구글드라이브</small></td></tr>
+      </tbody>
+    </table>
+
+    <h2>H. 플랫폼 · 계정</h2>
+    <table>
+      <thead><tr><th>기능</th><th class="c">소설비</th><th class="c">뮤블</th><th class="c">노벨라</th></tr></thead>
+      <tbody>
+        <tr><td>멀티플랫폼 네이티브 앱</td><td class="c"><span class="partial">◐</span><br><small>웹+데스크톱</small></td><td class="c"><span class="check">●</span><br><small>6개 플랫폼</small></td><td class="c"><span class="check">●</span><br><small>웹+iOS+And</small></td></tr>
+        <tr><td>소셜/OAuth 로그인</td><td class="c"><span class="check">●</span><br><small>Kakao</small></td><td class="c"><span class="unknown">?</span></td><td class="c"><span class="partial">◐</span><br><small>구글 연동</small></td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <span class="t">한눈 요약</span>
+      <p><strong>소설비 단독 우위(셋 중 유일):</strong> 실시간 A4 페이지 분할 · 원고지/줄노트 · 재진입 컨텍스트 고정 · 세션 집필 추적.<br>
+      <strong>경쟁사 우위(소설비 없음):</strong> AI 퇴고(뮤블) · 플롯 노드 캔버스(뮤블/노벨라) · 위키 설정집(뮤블) · 링크 공유(뮤블) · 네이티브 모바일 앱(둘 다).</p>
+    </div>
+
+    <div class="pagenav">
+      <a href="04-mobile-ios.html"><span class="dir">← 이전</span><span class="ttl">4. iOS 한글 · 모바일 집필</span></a>
+      <a class="next" href="06-scorecard.html"><span class="dir">다음 →</span><span class="ttl">6. 완성도 점수화</span></a>
+    </div>
+  </div>
+  </main>
+</div>
+</body>
+</html>

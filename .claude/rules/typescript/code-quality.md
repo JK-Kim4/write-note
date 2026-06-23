@@ -103,6 +103,21 @@
 - fix: `serverBody` 를 `modelToPmJson(pmJsonToModel(doc.bodyJson))` 로 정규화해 baseline 과 body 를 같은 형태로 → 로드 시 not-dirty.
 - 회피 가능했던 시점: BCustomChapterEditor 결선 시 "왕복이 idempotent 인가 / baseline 을 같은 변환으로 정규화했는가" 점검(결정론적 왕복 테스트 1회).
 
+### 이탈/언로드 flush — 경로별 보장 차등 + 멱등 백스톱 (HARD-GATE)
+
+화면 이탈/페이지 언로드 시 미동기화 비동기 작업(자동저장 등)을 **flush** 해야 할 때, 모든 이탈 경로를 한 방식으로 동기화하려 하면 race·헤더·캐시 갭이 누적된다. 경로를 **await 가능성**으로 갈라 보장을 차등한다:
+
+- **await 가능 경로**(앱 내 버튼/링크/프로그램 네비) — 이탈 직전 flush 완료를 **await 한 뒤 네비**한다. 정상 저장 경로(공용 client)를 타 보안 헤더·응답 기반 캐시 갱신을 함께 얻는다(강한 보장).
+- **await 불가 경로**(브라우저 뒤로가기/탭닫기/`pagehide`) — 동기 보장이 불가하므로 **best-effort flush + 멱등 백스톱**으로 수렴시킨다. 백스톱 = **자기 동작이 만든 상태 변화를 진짜 충돌로 오인하지 않는 화해**(예: 낙관적 동시성에서 저장 충돌 시 서버 현재값이 내가 보낸 값과 같으면 = 내 flush 가 먼저 안착한 것 → 다이얼로그 대신 토큰 조용히 채택). 로컬 보존(draft 등)이 항상 안전망으로 남아야 한다.
+
+원칙: **세션 밖에서 일어나는 저장은 그 세션의 캐시/토큰을 반드시 함께 전진**시킨다. 안 그러면 재진입이 stale 캐시를 읽어 자가 충돌이 난다. raw fetch 로 공용 client 를 우회하면 (a) 보안 헤더 누락, (b) 응답으로 캐시 미갱신 두 함정을 동시에 만든다.
+
+#### 회귀 사례 — 2026-06-23 033 집필실 이탈 유실/충돌
+
+- 1차 시도(전량 롤백): 이탈 시 **세션 밖 raw keepalive PUT** → (a) CSRF 헤더 누락 403, (b) 헤더 추가 후엔 서버 version 만 전진하고 React Query 캐시(staleTime:Infinity)는 미갱신 → 재진입이 stale version 로드 → 다음 저장 **자가 409 충돌**. 같은 증상을 다른 가설로 반복 수정하다 롤백.
+- 해결: `flushNow(): Promise<void>`(공용 client 경유, 응답으로 캐시 version 전진)를 만들어 **버튼 이탈은 await-후-네비**, **뒤로가기는 언마운트 best-effort + 거짓충돌 백스톱**(서버 currentBody === 내 본문이면 조용히 채택)으로 수렴. dogfooding 5/5(세 이탈 경로 글자수 즉시 동기 + 재진입 충돌 없음).
+- 회피 가능했던 시점: 1차 설계 시 "이탈 저장이 캐시/토큰을 함께 전진시키는가 / await 불가 경로의 자가충돌을 멱등 백스톱으로 닫았는가" 점검. 회고: `~/obsidian/write-note/retrospectives/2026-06-23-autosave-exit-flush-resolution.md`.
+
 ## 도구 / 검증
 
 - ESLint (룰) + Prettier (포매팅), `eslint-config-prettier` extends 마지막

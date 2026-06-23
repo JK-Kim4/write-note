@@ -7,7 +7,7 @@
  */
 import { createProject, deleteProject, getProject, listProjectCards, listProjects, updateProject } from "@/lib/api/projects";
 import type { CreateProjectInput, UpdateProjectInput } from "@/lib/api/projects";
-import { getDocument, listChapters } from "@/lib/api/document";
+import { getProjectDocument } from "@/lib/api/document";
 import type { DocumentResponse } from "@/types/api";
 import type { Project, ProjectCard, ProjectDocument } from "@/lib/types/domain";
 
@@ -47,14 +47,11 @@ export const projects = {
 
     /**
      * 작품 생성 — {project, document} 반환.
-     * BE 가 createProject 시 첫 챕터를 자동 생성하므로, 챕터 목록의 첫 항목(GET /documents)으로 본문을 로드.
-     * 단수 endpoint(GET /document) 대신 챕터 API 경유(022 챕터 모델 정합).
+     * BE 가 createProject 시 단일 본문을 자동 생성하므로 GET /document 로 본문을 로드(033 — 챕터 제거).
      */
     create: async (input: CreateProjectInput): Promise<{ project: Project; document: ProjectDocument }> => {
         const project = await createProject(input);
-        const chapters = await listChapters(project.id);
-        const firstChapter = chapters[0];
-        const document = toDocument(await getDocument(firstChapter.id));
+        const document = toDocument(await getProjectDocument(project.id));
         return { project, document };
     },
 

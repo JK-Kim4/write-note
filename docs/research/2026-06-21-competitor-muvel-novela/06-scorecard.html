@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>6. 완성도 점수화 — 경쟁 조사</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">📚 창작 에디터 경쟁 조사
+      <small>뮤블(Muvel) · 노벨라(Novela) vs 소설비(Soseolbi)<br>조사일 2026-06-21</small>
+    </div>
+    <nav>
+      <div class="nav-group">리포트</div>
+      <a href="index.html"><span class="num">0</span>표지 &amp; 목차</a>
+      <a href="01-overview.html"><span class="num">1</span>개요 &amp; 명칭 정정</a>
+      <a href="02-tech-stack.html"><span class="num">2</span>기술 스택</a>
+      <a href="03-metrics.html"><span class="num">3</span>사용자 · 매출</a>
+      <a href="04-mobile-ios.html"><span class="num">4</span>iOS 한글 · 모바일 집필</a>
+      <a href="05-features.html"><span class="num">5</span>기능 비교표</a>
+      <a href="06-scorecard.html" class="active"><span class="num">6</span>완성도 점수화</a>
+      <a href="07-sources.html"><span class="num">7</span>출처 · 신뢰도 · 한계</a>
+    </nav>
+    <div class="foot">deep-research 워크플로우 기반<br>확인 불가 수치는 ‘공개 자료 없음’ 표기</div>
+  </aside>
+
+  <main class="main">
+  <div class="content">
+    <p class="eyebrow">Section 6</p>
+    <h1>기능 완성도 점수화</h1>
+    <p class="lead">§5 매트릭스를 10개 영역으로 묶어 영역별 0~5점으로 환산한 종합 점수입니다. <strong>“기능 개수”가 아니라 “영역 완성도”</strong> 기준이며, 만점은 50점입니다.</p>
+
+    <div class="callout warn">
+      <span class="t">⚠️ 방법론과 주관성 고지</span>
+      <p>경쟁사 점수는 <strong>공개 출처로 확인된 기능만</strong> 반영했습니다(미확인은 보수적으로 감점). 점수 배점은 분석자(소설비 관점)의 정성 판단으로 <strong>주관이 개입</strong>되며, 절대적 우열이 아니라 <strong>방향성 비교</strong>로 읽어야 합니다. 가중치는 영역 동일(균등)입니다.</p>
+    </div>
+
+    <h2>종합 점수 (50점 만점)</h2>
+    <div class="score-cards">
+      <div class="score-card muvel">
+        <div class="name"><span class="dot muvel"></span> 뮤블 Muvel</div>
+        <div class="big">36<span class="pct"> / 50</span></div>
+        <div class="pct">72%</div>
+      </div>
+      <div class="score-card soseolbi">
+        <div class="name"><span class="dot soseolbi"></span> 소설비 (우리)</div>
+        <div class="big">28<span class="pct"> / 50</span></div>
+        <div class="pct">56%</div>
+      </div>
+      <div class="score-card novela">
+        <div class="name"><span class="dot novela"></span> 노벨라 Novela</div>
+        <div class="big">28<span class="pct"> / 50</span></div>
+        <div class="pct">56%</div>
+      </div>
+    </div>
+    <p style="text-align:center;color:var(--ink-faint);font-size:.85rem;">소설비와 노벨라는 동점이지만 <strong>강점 영역이 정반대</strong>입니다(소설비=종이/리듬, 노벨라=설정/모바일).</p>
+
+    <h2>영역별 점수 (0~5)</h2>
+    <table>
+      <thead><tr><th>영역</th><th class="c">소설비</th><th class="c">뮤블</th><th class="c">노벨라</th><th>우위</th></tr></thead>
+      <tbody>
+        <tr><td>1. 핵심 에디터</td><td class="c">4</td><td class="c"><strong>5</strong></td><td class="c">4</td><td><span class="badge muvel">뮤블</span></td></tr>
+        <tr><td>2. 페이지·원고 형식</td><td class="c"><strong>5</strong></td><td class="c">1</td><td class="c">1</td><td><span class="badge soseolbi">소설비 ★</span></td></tr>
+        <tr><td>3. 작품·설정 관리</td><td class="c">3</td><td class="c"><strong>5</strong></td><td class="c"><strong>5</strong></td><td><span class="badge muvel">뮤블</span> <span class="badge novela">노벨라</span></td></tr>
+        <tr><td>4. 메모·컨텍스트 영속</td><td class="c"><strong>5</strong></td><td class="c">3</td><td class="c">3</td><td><span class="badge soseolbi">소설비 ★</span></td></tr>
+        <tr><td>5. 집필 통계·리듬</td><td class="c"><strong>4</strong></td><td class="c">2</td><td class="c">3</td><td><span class="badge soseolbi">소설비 ★</span></td></tr>
+        <tr><td>6. Export</td><td class="c">2</td><td class="c"><strong>4</strong></td><td class="c">2</td><td><span class="badge muvel">뮤블</span></td></tr>
+        <tr><td>7. 공유·협업</td><td class="c">1</td><td class="c"><strong>3</strong></td><td class="c">1</td><td><span class="badge muvel">뮤블</span></td></tr>
+        <tr><td>8. AI 보조</td><td class="c">0</td><td class="c"><strong>5</strong></td><td class="c">1</td><td><span class="badge muvel">뮤블 ★</span></td></tr>
+        <tr><td>9. 멀티플랫폼</td><td class="c">2</td><td class="c"><strong>5</strong></td><td class="c">4</td><td><span class="badge muvel">뮤블</span></td></tr>
+        <tr><td>10. iOS 모바일 집필</td><td class="c">2</td><td class="c">3</td><td class="c"><strong>4</strong></td><td><span class="badge novela">노벨라</span></td></tr>
+        <tr style="background:#2a2f42;color:#fff;"><td style="color:#fff;"><strong>합계 / 50</strong></td><td class="c"><strong style="color:#fff;">28</strong></td><td class="c"><strong style="color:#fff;">36</strong></td><td class="c"><strong style="color:#fff;">28</strong></td><td></td></tr>
+      </tbody>
+    </table>
+
+    <h2>영역별 막대 비교</h2>
+    <h3>소설비가 앞서는 영역</h3>
+    <div class="card">
+      <div class="bar-row"><span class="lab">페이지·원고 형식</span><div class="bar-track"><div class="bar-fill soseolbi" style="width:100%"></div></div><span class="val">5</span></div>
+      <div class="bar-row"><span class="lab"></span><div class="bar-track"><div class="bar-fill muvel" style="width:20%"></div></div><span class="val">1</span></div>
+      <div class="bar-row"><span class="lab"></span><div class="bar-track"><div class="bar-fill novela" style="width:20%"></div></div><span class="val">1</span></div>
+      <hr style="margin:14px 0;">
+      <div class="bar-row"><span class="lab">메모·컨텍스트</span><div class="bar-track"><div class="bar-fill soseolbi" style="width:100%"></div></div><span class="val">5</span></div>
+      <div class="bar-row"><span class="lab"></span><div class="bar-track"><div class="bar-fill muvel" style="width:60%"></div></div><span class="val">3</span></div>
+      <div class="bar-row"><span class="lab"></span><div class="bar-track"><div class="bar-fill novela" style="width:60%"></div></div><span class="val">3</span></div>
+      <hr style="margin:14px 0;">
+      <div class="bar-row"><span class="lab">집필 통계·리듬</span><div class="bar-track"><div class="bar-fill soseolbi" style="width:80%"></div></div><span class="val">4</span></div>
+      <div class="bar-row"><span class="lab"></span><div class="bar-track"><div class="bar-fill muvel" style="width:40%"></div></div><span class="val">2</span></div>
+      <div class="bar-row"><span class="lab"></span><div class="bar-track"><div class="bar-fill novela" style="width:60%"></div></div><span class="val">3</span></div>
+      <p style="margin:12px 0 0;font-size:.8rem;color:var(--ink-faint);">막대 색: <span style="color:var(--soseolbi)">■</span> 소설비 · <span style="color:var(--muvel)">■</span> 뮤블 · <span style="color:var(--novela)">■</span> 노벨라</p>
+    </div>
+
+    <h3>소설비가 뒤처지는 영역 (격차)</h3>
+    <div class="card">
+      <div class="bar-row"><span class="lab">AI 보조</span><div class="bar-track"><div class="bar-fill soseolbi" style="width:0%"></div></div><span class="val">0</span></div>
+      <div class="bar-row"><span class="lab"></span><div class="bar-track"><div class="bar-fill muvel" style="width:100%"></div></div><span class="val">5</span></div>
+      <div class="bar-row"><span class="lab"></span><div class="bar-track"><div class="bar-fill novela" style="width:20%"></div></div><span class="val">1</span></div>
+      <hr style="margin:14px 0;">
+      <div class="bar-row"><span class="lab">멀티플랫폼</span><div class="bar-track"><div class="bar-fill soseolbi" style="width:40%"></div></div><span class="val">2</span></div>
+      <div class="bar-row"><span class="lab"></span><div class="bar-track"><div class="bar-fill muvel" style="width:100%"></div></div><span class="val">5</span></div>
+      <div class="bar-row"><span class="lab"></span><div class="bar-track"><div class="bar-fill novela" style="width:80%"></div></div><span class="val">4</span></div>
+      <hr style="margin:14px 0;">
+      <div class="bar-row"><span class="lab">작품·설정 관리</span><div class="bar-track"><div class="bar-fill soseolbi" style="width:60%"></div></div><span class="val">3</span></div>
+      <div class="bar-row"><span class="lab"></span><div class="bar-track"><div class="bar-fill muvel" style="width:100%"></div></div><span class="val">5</span></div>
+      <div class="bar-row"><span class="lab"></span><div class="bar-track"><div class="bar-fill novela" style="width:100%"></div></div><span class="val">5</span></div>
+      <hr style="margin:14px 0;">
+      <div class="bar-row"><span class="lab">Export</span><div class="bar-track"><div class="bar-fill soseolbi" style="width:40%"></div></div><span class="val">2</span></div>
+      <div class="bar-row"><span class="lab"></span><div class="bar-track"><div class="bar-fill muvel" style="width:80%"></div></div><span class="val">4</span></div>
+      <div class="bar-row"><span class="lab"></span><div class="bar-track"><div class="bar-fill novela" style="width:40%"></div></div><span class="val">2</span></div>
+    </div>
+
+    <h2>해석 — 점수의 의미</h2>
+    <ul class="clean">
+      <li><strong>뮤블 72%가 1위</strong>인 이유: AI·멀티플랫폼·웹소설 워크플로우(설정/플롯/공유)에서 거의 만점. ‘넓고 완성도 높은 종합 패키지’.</li>
+      <li><strong>소설비 56%</strong>: <em>좁고 깊은 차별화</em>. 4개 영역(페이지형식·메모·리듬·핵심에디터)은 동급 이상이나, AI(0)·멀티플랫폼(2)·Export(2·진행중)에서 크게 깎임.</li>
+      <li><strong>노벨라 56%</strong>: 소설비와 동점이나 정반대 — 설정관리·모바일이 강하고 페이지형식·리듬은 0~1.</li>
+      <li><strong>가장 큰 격차 = AI(0 vs 5)·멀티플랫폼(2 vs 5).</strong> 이 둘이 소설비 점수의 주된 손실 지점.</li>
+    </ul>
+
+    <div class="callout">
+      <span class="t">전략 제언 (분석)</span>
+      <p>소설비가 <strong>종합 점수로 뮤블을 따라잡는 것은 비효율적</strong>입니다(AI·6플랫폼·설정툴 전부 따라가야 함). 대신 <strong>이미 단독 우위인 4개 영역(페이지 분할·원고지·컨텍스트 영속·집필 리듬)을 “책처럼 쓰는 진지한 작가” 세그먼트의 결정적 구매 이유로 끌어올리고</strong>, 격차 영역은 <em>Export 완성(진행중을 ●로) → 모바일 우회 전략 확정 → (선택적) 가벼운 AI</em> 순으로 좁히는 것이 합리적입니다. 우선순위 결정은 사용자 컨펌 영역입니다.</p>
+    </div>
+
+    <div class="pagenav">
+      <a href="05-features.html"><span class="dir">← 이전</span><span class="ttl">5. 기능 비교표</span></a>
+      <a class="next" href="07-sources.html"><span class="dir">다음 →</span><span class="ttl">7. 출처 · 신뢰도 · 한계</span></a>
+    </div>
+  </div>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>032 시리즈 — 폴더형 폐기, 대안 레이아웃 목업</title>
+<style>
+  :root{
+    --terracotta-50:#fbf3ee; --terracotta-100:#f6e3d6; --terracotta-200:#ecc7ad; --terracotta-300:#e0a781;
+    --terracotta-500:#c77a4f; --terracotta-600:#a8542e; --terracotta-700:#8a4325;
+    --olive-50:#f2f2e9; --olive-600:#5e5d32;
+    --gray-50:#f9fafb; --gray-100:#f3f4f6; --gray-200:#e5e7eb; --gray-300:#d1d5db;
+    --gray-400:#9ca3af; --gray-500:#6b7280; --gray-600:#4b5563; --gray-700:#374151; --gray-900:#111827;
+    --red-200:#fecaca; --red-600:#dc2626; --bg:#f6f6f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:"Apple SD Gothic Neo","Noto Sans KR",system-ui,-apple-system,sans-serif;color:var(--gray-900);padding:32px;line-height:1.4;}
+  h1.page{font-size:26px;font-weight:800;margin:0 0 4px;}
+  .lead{color:var(--gray-500);font-size:13px;margin:0 0 26px;max-width:880px;}
+  .panel{background:#fff;border:1px solid var(--gray-200);border-radius:18px;padding:24px;margin-bottom:24px;box-shadow:0 1px 2px rgba(42,38,32,.04);}
+  .tag{display:inline-block;font-size:12px;font-weight:700;color:var(--terracotta-700);background:var(--terracotta-50);border-radius:999px;padding:4px 11px;margin-bottom:8px;}
+  .note{color:var(--gray-500);font-size:12.5px;margin:4px 0 20px;line-height:1.55;max-width:880px;}
+  .note b{color:var(--gray-700);}
+  /* 카드 */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
+  .card{border:1px solid var(--gray-200);border-radius:14px;background:#fff;padding:18px;}
+  .card .top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+  .card h2{font-size:16px;font-weight:800;margin:0;}
+  .badge{flex:none;font-size:11px;font-weight:600;color:var(--terracotta-700);background:var(--terracotta-50);border-radius:999px;padding:2px 9px;}
+  .meta{display:flex;align-items:center;gap:10px;color:var(--gray-400);font-size:12px;margin-top:12px;}
+  .actions{display:flex;gap:5px;justify-content:flex-end;margin-top:14px;}
+  .btn{font-size:12px;border-radius:8px;padding:5px 10px;border:1px solid var(--gray-200);color:var(--gray-600);background:#fff;cursor:pointer;}
+  .btn.del{border-color:var(--red-200);color:var(--red-600);}
+  .addcard{display:flex;align-items:center;justify-content:center;border:1px dashed var(--gray-300);border-radius:14px;color:var(--gray-500);font-size:13px;min-height:118px;cursor:pointer;}
+  .addcard:hover{border-color:var(--terracotta-300);color:var(--terracotta-600);}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .pillbtn{font-size:13px;font-weight:600;border-radius:9px;padding:8px 14px;border:none;background:var(--terracotta-600);color:#fff;cursor:pointer;}
+  .ghostbtn{font-size:13px;font-weight:600;border-radius:9px;padding:8px 14px;border:1px solid var(--gray-300);background:#fff;color:var(--gray-700);cursor:pointer;}
+
+  /* ===== 옵션 1: 섹션 그룹형 ===== */
+  .section{margin-bottom:22px;}
+  .sechead{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .sechead .caret{color:var(--gray-400);font-size:12px;}
+  .sechead h3{font-size:15px;font-weight:800;margin:0;}
+  .sechead .count{color:var(--gray-400);font-size:13px;font-weight:600;}
+  .sechead .secact{margin-left:auto;display:flex;gap:6px;opacity:.0;transition:opacity .15s;}
+  .section:hover .secact{opacity:1;}
+  .secact .btn{font-size:11.5px;padding:4px 9px;}
+  .seclabel{display:inline-flex;align-items:center;gap:6px;background:var(--terracotta-50);color:var(--terracotta-700);border-radius:8px;padding:3px 10px;font-weight:800;font-size:14px;}
+  .dropzone{border:1px dashed var(--terracotta-200);background:var(--terracotta-50);border-radius:12px;padding:10px;font-size:12px;color:var(--terracotta-700);}
+
+  /* ===== 옵션 2: 사이드바 필터 ===== */
+  .split{display:flex;gap:20px;align-items:flex-start;}
+  .side{flex:none;width:210px;border-right:1px solid var(--gray-200);padding-right:16px;}
+  .side .navitem{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:none;background:none;border-radius:9px;padding:9px 11px;font-size:13.5px;color:var(--gray-700);cursor:pointer;}
+  .side .navitem .c{margin-left:auto;color:var(--gray-400);font-size:12px;}
+  .side .navitem:hover{background:var(--gray-100);}
+  .side .navitem.active{background:var(--terracotta-50);color:var(--terracotta-700);font-weight:700;}
+  .side .navitem.active .c{color:var(--terracotta-500);}
+  .side .seclabel2{font-size:11px;font-weight:700;color:var(--gray-400);letter-spacing:.04em;margin:16px 0 6px 11px;}
+  .side .addseries{color:var(--terracotta-600);font-weight:600;}
+  .main{flex:1;min-width:0;}
+  .maintitle{font-size:15px;font-weight:800;margin:0 0 14px;}
+
+  /* ===== 옵션 3: 상단 칩 필터 ===== */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+  .chip{font-size:13px;border-radius:999px;padding:7px 14px;border:1px solid var(--gray-300);background:#fff;color:var(--gray-700);cursor:pointer;}
+  .chip .c{color:var(--gray-400);margin-left:5px;font-size:12px;}
+  .chip.active{background:var(--terracotta-600);border-color:var(--terracotta-600);color:#fff;}
+  .chip.active .c{color:var(--terracotta-100);}
+  .chip.add{border-style:dashed;color:var(--terracotta-600);}
+</style>
+</head>
+<body>
+  <h1 class="page">내 작품 — 시리즈 레이아웃 대안</h1>
+  <p class="lead">폴더형 드릴인(열고 들어가 → 뒤로가기) 구조를 버린 3가지 안. 셋 다 <b>한 화면에 머물러 탐색·뒤로가기 개념이 없고</b>, 시리즈/미분류 전환이 즉각적입니다. 드래그 분류(카드를 시리즈로 끌어 넣기)는 모두 유지 — 끌어다 놓는 대상만 달라집니다(섹션 머리 / 사이드바 항목 / 칩).</p>
+
+  <!-- ============ 옵션 1 ============ -->
+  <div class="panel">
+    <span class="tag">옵션 1 · 섹션 그룹형 (한 페이지 · 접기 가능) — 추천</span>
+    <div class="note">시리즈마다 <b>접을 수 있는 구역</b>으로 한 페이지에 쭉 나열. 미분류도 한 구역. 모든 작품이 늘 보이고 이동이 필요 없음. <b>드래그 분류</b>=카드를 다른 구역 머리로 끌어다 놓기. 작품·시리즈가 적은 베타에 가장 자연스럽고 학습 비용 0.</div>
+    <div class="topbar">
+      <strong style="font-size:18px;">내 작품</strong>
+      <div style="display:flex;gap:8px;"><button class="ghostbtn">+ 새 시리즈</button><button class="pillbtn">+ 새 작품</button></div>
+    </div>
+
+    <div class="section">
+      <div class="sechead">
+        <span class="caret">▼</span>
+        <span class="seclabel">📚 가나나나</span>
+        <span class="count">2편</span>
+        <span class="secact"><button class="btn">이름 변경</button><button class="btn del">삭제</button></span>
+      </div>
+      <div class="grid" data-cards="2"></div>
+    </div>
+
+    <div class="section">
+      <div class="sechead">
+        <span class="caret">▼</span>
+        <h3>미분류</h3>
+        <span class="count">1편</span>
+      </div>
+      <div class="grid" data-cards="1" data-add="1"></div>
+    </div>
+  </div>
+
+  <!-- ============ 옵션 2 ============ -->
+  <div class="panel">
+    <span class="tag">옵션 2 · 좌측 사이드바 필터</span>
+    <div class="note">왼쪽에 <b>전체 / 미분류 / 시리즈 목록</b>, 오른쪽은 선택한 항목의 작품 그리드. 클릭하면 즉시 필터(이동·뒤로가기 없음). 현재 위치가 사이드바에 늘 표시돼 길 잃을 일 없음. <b>드래그 분류</b>=카드를 사이드바 시리즈 항목으로 끌어다 놓기. 시리즈가 많아져도 잘 확장됨.</div>
+    <div class="topbar">
+      <strong style="font-size:18px;">내 작품</strong>
+      <button class="pillbtn">+ 새 작품</button>
+    </div>
+    <div class="split">
+      <div class="side">
+        <button class="navitem active">전체 <span class="c">3</span></button>
+        <button class="navitem">미분류 <span class="c">1</span></button>
+        <div class="seclabel2">시리즈</div>
+        <button class="navitem">📚 가나나나 <span class="c">2</span></button>
+        <button class="navitem addseries">＋ 새 시리즈</button>
+      </div>
+      <div class="main">
+        <div class="maintitle">전체 작품</div>
+        <div class="grid" data-cards="2" data-add="1"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 옵션 3 ============ -->
+  <div class="panel">
+    <span class="tag">옵션 3 · 상단 칩(탭) 필터</span>
+    <div class="note">맨 위 <b>가로 칩</b>(전체 · 미분류 · 시리즈들)으로 그리드를 필터. 가장 납작하고 단순. 모바일에서 가로 스크롤로 자연스러움. <b>드래그 분류</b>=카드를 칩 위로 끌어다 놓기(칩이 작아 터치 정확도는 옵션 1·2보다 약간 불리). 시리즈가 아주 많으면 칩 줄이 길어짐.</div>
+    <div class="topbar">
+      <strong style="font-size:18px;">내 작품</strong>
+      <button class="pillbtn">+ 새 작품</button>
+    </div>
+    <div class="chips">
+      <button class="chip active">전체 <span class="c">3</span></button>
+      <button class="chip">미분류 <span class="c">1</span></button>
+      <button class="chip">📚 가나나나 <span class="c">2</span></button>
+      <button class="chip add">＋ 시리즈</button>
+    </div>
+    <div class="grid" data-cards="2" data-add="1"></div>
+  </div>
+
+<script>
+  const works = [
+    {t:"종이출판", b:"ㄷㄱㄷㄱ", c:"548자", d:"2026.06.22"},
+    {t:"웹출판", b:"엡엡", c:"195자", d:"2026.06.21"},
+  ];
+  function cardHtml(w){
+    return `<div class="card">
+      <div class="top"><h2>${w.t}</h2><span class="badge">${w.b}</span></div>
+      <div class="meta"><span>${w.c}</span><span>마지막 저장 ${w.d}</span></div>
+      <div class="actions"><button class="btn">편집</button><button class="btn">보관</button><button class="btn del">삭제</button></div>
+    </div>`;
+  }
+  document.querySelectorAll(".grid").forEach(g=>{
+    const n = +g.dataset.cards;
+    let html = "";
+    for(let i=0;i<n;i++) html += cardHtml(works[i % works.length]);
+    if(g.dataset.add) html += `<div class="addcard">＋ 새 작품 시작하기</div>`;
+    g.innerHTML = html;
+  });
+</script>
+</body>
+</html>

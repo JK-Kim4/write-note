@@ -4,13 +4,12 @@
  * B형 집필 화면 — 자체 EditContext 엔진(기본). 024 R4 에서 TipTap → 자체 엔진 전면 교체.
  *
  * BStudioShell 에 BCustomChapterEditor(자체엔진)를 주입하는 얇은 래퍼.
- * - 챕터 관리·세션·충돌·작업종료·export·쪽지/인물 패널은 BStudioShell 이 처리.
+ * - 033: 챕터 제거 — 작품 1개 = 본문 1개. 셸이 단일 본문 id 를 슬롯으로 넘긴다.
+ * - 세션·충돌·작업종료·export·쪽지/인물 패널은 BStudioShell 이 처리.
  * - 아웃라인은 모델 파생: 에디터가 onOutlineChange 로 전체 문서 목차(items)를 올리고, page 가 패널에 전달.
  *   클릭 점프만 제공(activeIndex 강조 없음 — 페이지 넘김 뷰라 스크롤 기반 현재섹션 추적이 무의미).
- * - chapterUrlBase 생략 → 기본 `/works/[id]` 유지(챕터 전환 시 같은 라우트).
  *
- * 챕터 전환 시 BCustomChapterEditor 를 `key={currentChapterId}` 로 리마운트해 세션 재초기화
- * (022 거짓 409 제거).
+ * 에디터는 `key={documentId}` 로 리마운트해 세션을 본문 단위로 격리(016 거짓 409 제거).
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -75,7 +74,7 @@ export default function BWorkDetailPage() {
     return (
         <BStudioShell
             outline={outline}
-            renderEditor={({ currentChapterId, projectId, paperSize, fontScale, layoutMode, onWordCountChange, chapterTitle, onChapterRename, onSyncStatus, onConflict }) => (
+            renderEditor={({ currentChapterId, projectId, paperSize, fontScale, layoutMode, onWordCountChange, onSyncStatus, onConflict }) => (
                 <BCustomChapterEditor
                     key={currentChapterId}
                     ref={editorRef}
@@ -85,8 +84,6 @@ export default function BWorkDetailPage() {
                     fontScale={fontScale}
                     layoutMode={layoutMode}
                     onWordCountChange={onWordCountChange}
-                    chapterTitle={chapterTitle}
-                    onChapterRename={onChapterRename}
                     onSyncStatus={onSyncStatus}
                     onConflict={onConflict}
                     onOutlineChange={setOutlineItems}

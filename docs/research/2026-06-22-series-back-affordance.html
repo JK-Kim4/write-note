@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>032 시리즈 드릴인 — 뒤로가기 어포던스 목업</title>
+<style>
+  :root{
+    --terracotta-50:#fbf3ee; --terracotta-100:#f6e3d6; --terracotta-300:#e0a781;
+    --terracotta-500:#c77a4f; --terracotta-600:#a8542e; --terracotta-700:#8a4325;
+    --olive-50:#f2f2e9;
+    --gray-50:#f9fafb; --gray-100:#f3f4f6; --gray-200:#e5e7eb; --gray-300:#d1d5db;
+    --gray-400:#9ca3af; --gray-500:#6b7280; --gray-600:#4b5563; --gray-700:#374151; --gray-900:#111827;
+    --red-200:#fecaca; --red-600:#dc2626;
+    --bg:#f6f6f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:"Apple SD Gothic Neo","Noto Sans KR",system-ui,-apple-system,sans-serif;color:var(--gray-900);padding:32px;}
+  h1.page{font-size:28px;font-weight:800;margin:0 0 4px;}
+  .sub{color:var(--gray-500);font-size:13px;margin:0 0 28px;}
+  .panel{background:#fff;border:1px solid var(--gray-200);border-radius:18px;padding:22px 24px 26px;margin-bottom:22px;box-shadow:0 1px 2px rgba(42,38,32,.04);}
+  .tag{display:inline-block;font-size:12px;font-weight:700;color:var(--terracotta-700);background:var(--terracotta-50);border-radius:999px;padding:3px 10px;margin-bottom:14px;}
+  .note{color:var(--gray-500);font-size:12.5px;margin:2px 0 18px;line-height:1.5;}
+  /* ---- 공통: 카드 영역 ---- */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .card{border:1px solid var(--gray-200);border-radius:14px;background:#fff;padding:20px;}
+  .card .top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+  .card h2{font-size:18px;font-weight:800;margin:0;}
+  .badge{flex:none;font-size:12px;font-weight:600;color:var(--terracotta-700);background:var(--terracotta-50);border-radius:999px;padding:3px 11px;}
+  .meta{display:flex;align-items:center;gap:12px;color:var(--gray-400);font-size:12.5px;margin-top:14px;}
+  .actions{display:flex;gap:6px;justify-content:flex-end;margin-top:16px;}
+  .btn{font-size:12.5px;border-radius:8px;padding:6px 12px;border:1px solid var(--gray-200);color:var(--gray-600);background:#fff;cursor:pointer;}
+  .btn.del{border-color:var(--red-200);color:var(--red-600);}
+  /* ---- breadcrumb 공통 ---- */
+  .crumbline{display:flex;align-items:center;gap:8px;margin-bottom:18px;font-size:14px;}
+  .crumb-root{font-weight:700;color:var(--terracotta-700);background:none;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;}
+  .crumb-root:hover{background:var(--terracotta-50);}
+  .slash{color:var(--gray-400);}
+  .crumb-cur{font-weight:700;color:var(--gray-900);}
+  /* ---- 옵션별 백 어포던스 ---- */
+  /* A: chevron 버튼 + breadcrumb */
+  .backchev{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid var(--gray-300);border-radius:9px;background:#fff;color:var(--gray-600);cursor:pointer;font-size:17px;line-height:1;}
+  .backchev:hover{background:var(--terracotta-50);border-color:var(--terracotta-300);color:var(--terracotta-700);}
+  /* B: 큰 '모든 시리즈' 버튼 (별도 줄) */
+  .backwide{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--gray-300);border-radius:10px;background:#fff;color:var(--gray-700);font-size:13.5px;font-weight:600;padding:8px 14px;cursor:pointer;margin-bottom:12px;}
+  .backwide:hover{background:var(--terracotta-50);border-color:var(--terracotta-300);color:var(--terracotta-700);}
+  .title-row{font-size:15px;font-weight:700;color:var(--gray-900);margin-bottom:18px;}
+  /* C: 텍스트 화살표 크럼 '‹ 내 작품' pill */
+  .crumb-pill{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--terracotta-700);background:var(--terracotta-50);border:1px solid var(--terracotta-100);border-radius:999px;padding:5px 13px;cursor:pointer;font-size:13.5px;}
+  .crumb-pill:hover{background:var(--terracotta-100);}
+</style>
+</head>
+<body>
+  <h1 class="page">내 작품</h1>
+  <p class="sub">032 시리즈 드릴인 후 "뒤로가기" 어포던스 비교 — "가나나나" 시리즈를 연 상태. 카드를 "내 작품"에 드래그해 미분류하는 기능은 어떤 안이든 그대로 유지됩니다.</p>
+
+  <!-- 현재(문제) -->
+  <div class="panel">
+    <span class="tag" style="background:var(--gray-100);color:var(--gray-500)">현재 (문제)</span>
+    <div class="note">평범한 텍스트 "내 작품"만 클릭 가능 — 처음 쓰는 사람은 이게 버튼인지 모른다.</div>
+    <div class="crumbline">
+      <button class="crumb-root">내 작품</button>
+      <span class="slash">/</span>
+      <span class="crumb-cur">가나나나 · 2편</span>
+    </div>
+    <div class="grid" id="cards-cur"></div>
+  </div>
+
+  <!-- 옵션 A -->
+  <div class="panel">
+    <span class="tag">옵션 A · 화살표 백버튼 + 경로 (추천)</span>
+    <div class="note">경로 왼쪽에 테두리 있는 ‹ 버튼. 클릭 가능함이 분명하고 공간을 거의 안 쓴다. 경로 "내 작품 / 가나나나"도 그대로 둬서 위치 파악도 됨.</div>
+    <div class="crumbline">
+      <button class="backchev" title="뒤로">‹</button>
+      <button class="crumb-root">내 작품</button>
+      <span class="slash">/</span>
+      <span class="crumb-cur">가나나나 · 2편</span>
+    </div>
+    <div class="grid" id="cards-a"></div>
+  </div>
+
+  <!-- 옵션 B -->
+  <div class="panel">
+    <span class="tag">옵션 B · '‹ 모든 시리즈' 큰 버튼</span>
+    <div class="note">경로 위 별도 줄에 테두리 버튼. 가장 눈에 띄지만 세로 공간을 한 줄 더 쓴다.</div>
+    <button class="backwide">‹ 모든 시리즈</button>
+    <div class="title-row">가나나나 · 2편</div>
+    <div class="grid" id="cards-b"></div>
+  </div>
+
+  <!-- 옵션 C -->
+  <div class="panel">
+    <span class="tag">옵션 C · '‹ 내 작품' 알약 버튼</span>
+    <div class="note">크럼의 "내 작품"을 화살표 달린 알약(배경 채운) 버튼으로 — 버튼임이 가장 직관적. 경로 슬래시 형태는 약해진다.</div>
+    <div class="crumbline">
+      <button class="crumb-pill">‹ 내 작품</button>
+      <span class="slash">/</span>
+      <span class="crumb-cur">가나나나 · 2편</span>
+    </div>
+    <div class="grid" id="cards-c"></div>
+  </div>
+
+<script>
+  function cards(){
+    return `
+      <div class="card">
+        <div class="top"><h2>종이출판</h2><span class="badge">ㄷㄱㄷㄱ</span></div>
+        <div class="meta"><span>548자</span><span>마지막 저장 2026.06.22</span></div>
+        <div class="actions"><button class="btn">편집</button><button class="btn">보관</button><button class="btn del">삭제</button></div>
+      </div>
+      <div class="card">
+        <div class="top"><h2>웹출판</h2><span class="badge">엡엡</span></div>
+        <div class="meta"><span>195자</span><span>마지막 저장 2026.06.21</span></div>
+        <div class="actions"><button class="btn">편집</button><button class="btn">보관</button><button class="btn del">삭제</button></div>
+      </div>`;
+  }
+  ["cur","a","b","c"].forEach(id => document.getElementById("cards-"+id).innerHTML = cards());
+</script>
+</body>
+</html>

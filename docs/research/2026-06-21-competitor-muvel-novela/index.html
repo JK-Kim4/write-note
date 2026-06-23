@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>경쟁 서비스 심층 조사 — 뮤블 · 노벨라 vs 소설비</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">📚 창작 에디터 경쟁 조사
+      <small>뮤블(Muvel) · 노벨라(Novela) vs 소설비(Soseolbi)<br>조사일 2026-06-21</small>
+    </div>
+    <nav>
+      <div class="nav-group">리포트</div>
+      <a href="index.html" class="active"><span class="num">0</span>표지 &amp; 목차</a>
+      <a href="01-overview.html"><span class="num">1</span>개요 &amp; 명칭 정정</a>
+      <a href="02-tech-stack.html"><span class="num">2</span>기술 스택</a>
+      <a href="03-metrics.html"><span class="num">3</span>사용자 · 매출</a>
+      <a href="04-mobile-ios.html"><span class="num">4</span>iOS 한글 · 모바일 집필</a>
+      <a href="05-features.html"><span class="num">5</span>기능 비교표</a>
+      <a href="06-scorecard.html"><span class="num">6</span>완성도 점수화</a>
+      <a href="07-sources.html"><span class="num">7</span>출처 · 신뢰도 · 한계</a>
+    </nav>
+    <div class="foot">deep-research 워크플로우 기반<br>16개 출처 · 62개 주장 추출 · 25개 교차검증(3표 적대적 검증)<br>확인 불가 수치는 ‘공개 자료 없음’ 표기</div>
+  </aside>
+
+  <main class="main">
+  <div class="content">
+    <p class="eyebrow">Competitive Research Report</p>
+    <h1>한국 문학 창작 에디터 경쟁 조사<br>뮤블 · 노벨라 <span style="color:var(--ink-faint);font-weight:400;">vs</span> 소설비</h1>
+    <p class="lead">대한민국 웹/문학 창작 에디터 시장의 두 서비스 <strong>뮤블(Muvel)</strong>·<strong>노벨라(Novela)</strong>를 기술 스택·사용자 규모·iOS 한글 집필·기능 완성도 4개 축으로 조사하고, 우리 서비스 <strong>소설비</strong>와 정량 비교한 결과입니다.</p>
+
+    <div class="callout warn">
+      <span class="t">⚠️ 먼저 — 명칭 정정</span>
+      <p>요청에 쓰인 ‘<strong>Mooble</strong>’·‘<strong>노블라(Novelah/Novla)</strong>’는 로마자 오기였습니다. 실제 공식 명칭은 <strong>뮤블(Muvel, muvel.app)</strong> / <strong>노벨라(Novela, novela.so)</strong>입니다. 이 리포트는 정정된 실제 서비스를 다룹니다. <span class="badge high">교차검증 3-0</span></p>
+    </div>
+
+    <div class="kpi">
+      <div class="k"><div class="v">16</div><div class="l">수집 출처</div></div>
+      <div class="k"><div class="v">25</div><div class="l">적대적 검증 주장</div></div>
+      <div class="k"><div class="v">22</div><div class="l">확정(confirmed)</div></div>
+      <div class="k"><div class="v">3</div><div class="l">반증·폐기(killed)</div></div>
+    </div>
+
+    <h2>목차</h2>
+    <ul class="toc-list">
+      <li><a href="01-overview.html"><span class="n">1</span><span><span class="tt">개요 &amp; 명칭 정정</span><span class="ds">두 서비스의 정체성, 운영사, 출시 시점, 핵심 차이 한눈에</span></span></a></li>
+      <li><a href="02-tech-stack.html"><span class="n">2</span><span><span class="tt">기술 스택</span><span class="ds">뮤블 Tauri+Rust 확정 / 노벨라·에디터 엔진 미확인 — 소설비 자체 엔진과 대비</span></span></a></li>
+      <li><a href="03-metrics.html"><span class="n">3</span><span><span class="tt">사용자 · 매출</span><span class="ds">노벨라 ‘1만+ 작가’(자기보고) / 텀블벅 2,009만원 / MAU·매출 공개 자료 없음</span></span></a></li>
+      <li><a href="04-mobile-ios.html"><span class="n">4</span><span><span class="tt">iOS 한글 · 모바일 집필</span><span class="ds">우리가 겪은 iOS WebKit 한글 IME 문제를 두 서비스는 어떻게 우회하는가</span></span></a></li>
+      <li><a href="05-features.html"><span class="n">5</span><span><span class="tt">기능 비교표</span><span class="ds">에디터·설정관리·메모·통계·export·협업·AI 33개 항목 3사 매트릭스</span></span></a></li>
+      <li><a href="06-scorecard.html"><span class="n">6</span><span><span class="tt">완성도 점수화</span><span class="ds">10개 영역 가중 점수 — 소설비 56 · 뮤블 72 · 노벨라 56(공개 확인 기준)</span></span></a></li>
+      <li><a href="07-sources.html"><span class="n">7</span><span><span class="tt">출처 · 신뢰도 · 한계</span><span class="ds">전체 출처 URL·등급, 반증된 주장, 미해결 질문</span></span></a></li>
+    </ul>
+
+    <div class="callout">
+      <span class="t">한 줄 결론</span>
+      <p><strong>뮤블</strong>은 AI·크로스플랫폼·웹소설 워크플로우(에피소드/위키/플롯캔버스)에서 가장 넓고, <strong>노벨라</strong>는 캐릭터·플롯 설정관리와 네이티브 모바일 앱이 강점입니다. <strong>소설비의 해자(垓子)</strong>는 두 서비스가 갖지 못한 <strong>실시간 A4 페이지 분할(자체 엔진)·세션 기반 집필 리듬·메모↔작품 컨텍스트 영속</strong>입니다. 단, AI 보조·협업·플롯 도구·모바일 네이티브는 명백한 격차입니다.</p>
+    </div>
+
+    <div class="pagenav">
+      <a class="disabled">&nbsp;</a>
+      <a class="next" href="01-overview.html"><span class="dir">다음 →</span><span class="ttl">1. 개요 &amp; 명칭 정정</span></a>
+    </div>
+  </div>
+  </main>
+</div>
+</body>
+</html>
