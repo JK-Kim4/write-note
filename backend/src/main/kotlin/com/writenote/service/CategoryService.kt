@@ -53,8 +53,8 @@ class CategoryService(
                     targetLength = request.targetLength,
                 ),
             )
-        // 신규 시리즈는 소속 작품 0 → totalWordCount 0(집계 쿼리 불필요)
-        return categoryMapper.toResponse(category, projectCount = 0, totalWordCount = 0)
+        // 신규 시리즈는 소속 작품 0 → totalWordCount·totalDurationMs 0(집계 쿼리 불필요)
+        return categoryMapper.toResponse(category, projectCount = 0, totalWordCount = 0, totalDurationMs = 0L)
     }
 
     @Transactional(readOnly = true)
@@ -72,11 +72,16 @@ class CategoryService(
             projectRepository
                 .sumWordCountByCategory(userId)
                 .associate { it.categoryId to it.totalWordCount.toInt() }
+        val durationByCategoryId =
+            projectRepository
+                .sumDurationByCategory(userId)
+                .associate { it.categoryId to it.totalDurationMs }
         return categories.map { category ->
             categoryMapper.toResponse(
                 category,
                 projectCount = countByCategoryId[category.id] ?: 0,
                 totalWordCount = wordCountByCategoryId[category.id] ?: 0,
+                totalDurationMs = durationByCategoryId[category.id] ?: 0L,
             )
         }
     }
@@ -113,7 +118,17 @@ class CategoryService(
                 .firstOrNull { it.categoryId == categoryId }
                 ?.totalWordCount
                 ?.toInt() ?: 0
-        return categoryMapper.toResponse(category, projectCount = count, totalWordCount = totalWordCount)
+        val totalDurationMs =
+            projectRepository
+                .sumDurationByCategory(userId)
+                .firstOrNull { it.categoryId == categoryId }
+                ?.totalDurationMs ?: 0L
+        return categoryMapper.toResponse(
+            category,
+            projectCount = count,
+            totalWordCount = totalWordCount,
+            totalDurationMs = totalDurationMs,
+        )
     }
 
     @Transactional(rollbackFor = [Exception::class])

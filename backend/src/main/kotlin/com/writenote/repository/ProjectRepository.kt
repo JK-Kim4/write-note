@@ -25,6 +25,12 @@ interface CategoryWordCount {
     val totalWordCount: Long
 }
 
+/** 시리즈 집필 시간(timewatch) — categoryId 별 종료 세션 집필 시간 합(ms) projection(N+1 회피). */
+interface CategoryDuration {
+    val categoryId: Long
+    val totalDurationMs: Long
+}
+
 interface ProjectRepository : JpaRepository<Project, Long> {
     @Query(
         "SELECT p.userId AS userId, COUNT(p) AS cnt FROM Project p WHERE p.userId IN :userIds GROUP BY p.userId",
@@ -67,4 +73,16 @@ interface ProjectRepository : JpaRepository<Project, Long> {
             "GROUP BY p.categoryId",
     )
     fun sumWordCountByCategory(userId: Long): List<CategoryWordCount>
+
+    /** 시리즈별 총 집필 시간(ms) — 종료 세션 합, 미분류·보관 제외 */
+    @Query(
+        value =
+            "SELECT p.category_id AS categoryId, " +
+                "CAST(COALESCE(SUM(EXTRACT(EPOCH FROM (ws.ended_at - ws.started_at)) * 1000), 0) AS BIGINT) AS totalDurationMs " +
+                "FROM work_sessions ws JOIN projects p ON ws.project_id = p.id " +
+                "WHERE p.user_id = :userId AND p.category_id IS NOT NULL AND p.archived_at IS NULL AND ws.ended_at IS NOT NULL " +
+                "GROUP BY p.category_id",
+        nativeQuery = true,
+    )
+    fun sumDurationByCategory(userId: Long): List<CategoryDuration>
 }
