@@ -8,6 +8,7 @@ import com.writenote.components.AuthTokenLifecycleManager
 import com.writenote.components.PasswordPolicyValidator
 import com.writenote.components.UserAuthConverter
 import com.writenote.config.JwtProperties
+import com.writenote.crypto.UserKeyService
 import com.writenote.entity.AuthToken
 import com.writenote.entity.User
 import com.writenote.enums.AuthErrorCode
@@ -43,6 +44,7 @@ class AuthService(
     private val jwtProperties: JwtProperties,
     private val applicationEventPublisher: ApplicationEventPublisher,
     private val loginAttemptService: LoginAttemptService,
+    private val userKeyService: UserKeyService,
 ) {
     /**
      * 이메일·비밀번호 회원가입.
@@ -69,6 +71,8 @@ class AuthService(
                     passwordHash = passwordEncoder.encode(request.password),
                 ),
             )
+        // DEK 생성 — 동일 트랜잭션. user.id 확정 후 즉시 생성.
+        userKeyService.create(requireNotNull(user.id))
         val tokenPair = authTokenGenerator.generate()
         authTokenRepository.save(
             AuthToken(

@@ -134,8 +134,11 @@ class DocumentServiceConflictIT
             val saved = documentRepository.findById(documentId).orElseThrow()
             // "안녕 세계" = 공백 제외 4글자
             assertThat(saved.wordCount).isEqualTo(4)
-            // JSONB 는 키 정렬/공백 재직렬화하므로 exact match 대신 포함 여부 검증
-            assertThat(saved.body).contains("안녕 세계")
+            // 암호화 적용 후 stored body는 봉투 JSON (평문 포함 안 됨)
+            // JSONB 재직렬화 시 공백 추가("v": 1)되므로 공백 허용 패턴으로 검증
+            assertThat(saved.body).containsPattern(""""v"\s*:\s*1""")
+            assertThat(saved.body).containsAnyOf(""""alg":"A256GCM"""", """"alg": "A256GCM"""")
+            assertThat(saved.body).doesNotContain("안녕 세계")
             assertThat(response.wordCount).isEqualTo(4)
             // 토큰 전진: 응답 version 은 저장 전 토큰과 다르고, DB 에 저장된 updatedAt 과 일치
             assertThat(response.version).isNotEqualTo(token0)
