@@ -7,10 +7,12 @@
 
 import type { SyncStatus } from "@/hooks/useDocumentSession";
 
-/** 저장 상태 / flushDraft 를 page·셸로 전달 (저장 표시 + 챕터 전환 직전 flush). */
+/** 저장 상태 / flush 통로를 page·셸로 전달 (저장 표시 + 챕터 전환 직전 flush + 이탈 동기 저장). */
 export interface BChapterEditorSyncStatus {
     syncStatus: SyncStatus;
     flushDraft: (body: string) => void;
+    /** 이탈(작품 목록/작업 종료) 직전 미동기화분을 서버에 저장하고 완료를 await — 셸이 네비 전에 호출. */
+    flushNow: () => Promise<void>;
 }
 
 /** 충돌(409) 상태 / 해결 핸들러 — page·셸이 충돌 다이얼로그를 렌더. */

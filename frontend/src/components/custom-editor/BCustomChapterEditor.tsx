@@ -82,10 +82,17 @@ export const BCustomChapterEditor = forwardRef<CustomEditorRef, BCustomChapterEd
         serverBody: normalizedServerBody,
         serverVersion: doc?.version ?? "",
         body: bodyForSession,
-        onSaved: (res) =>
+        onSaved: (res) => {
             queryClient.setQueryData<ProjectDocument | undefined>(documentKeys.chapter(doc?.id ?? 0), (old) =>
                 old ? { ...old, version: res.version, wordCount: res.wordCount, bodyJson: res.body } : old,
-            ),
+            );
+            // 저장이 서버에 안착하면 라이브러리 작품 카드·시리즈 진척(totalWordCount) 캐시를 무효화한다.
+            // 작품 목록/작업 종료는 flushNow-후-네비라 라이브러리 refetchOnMount 로 이미 최신이지만, await 불가한
+            // 뒤로가기는 라이브러리 refetch 가 flush 안착보다 먼저 끝날 수 있어 — 안착 후 무효화로 글자수를 따라잡는다.
+            // (["projects"]/["categories"] 인라인 = useProjects 의 순환 import 회피 패턴과 동일.)
+            queryClient.invalidateQueries({ queryKey: ["projects"] });
+            queryClient.invalidateQueries({ queryKey: ["categories"] });
+        },
     });
 
     // session 은 매 렌더 새 객체 → ref 로 안정화(무한루프 회피).
@@ -103,14 +110,32 @@ export const BCustomChapterEditor = forwardRef<CustomEditorRef, BCustomChapterEd
         if (m != null) sessionRef.current.flushDraft(modelToPmJson(m));
     }, []);
 
-    // page 로 syncStatus / flushDraft 전달 (ref 로 안정화)
+    // 이탈 동기 저장 — 최신 모델을 세션에 밀어넣은 뒤(flushDraft 가 latestBodyRef 갱신) 정상 저장 경로로
+    // 끝까지 await. 셸(작품 목록/작업 종료)이 네비 전에, 본 컴포넌트가 언마운트(뒤로가기) 시에 호출한다.
+    const flushNow = useCallback(async () => {
+        const m = latestModelRef.current;
+        if (m != null) sessionRef.current.flushDraft(modelToPmJson(m));
+        await sessionRef.current.flushNow();
+    }, []);
+
+    // page 로 syncStatus / flush 통로 전달 (ref 로 안정화)
     const onSyncStatusRef = useRef(onSyncStatus);
     useEffect(() => {
         onSyncStatusRef.current = onSyncStatus;
     });
     useEffect(() => {
-        onSyncStatusRef.current({ syncStatus: session.syncStatus, flushDraft: flushLatest });
-    }, [session.syncStatus, flushLatest]);
+        onSyncStatusRef.current({ syncStatus: session.syncStatus, flushDraft: flushLatest, flushNow });
+    }, [session.syncStatus, flushLatest, flushNow]);
+
+    // 언마운트 best-effort flush — await 가 불가능한 이탈(브라우저 뒤로가기/탭 전환 SPA 네비)에서
+    // 미동기화분을 서버에 반영한다. 실패해도 draft 가 보존돼 재진입 시 복원되므로 작성분은 유실되지 않는다.
+    // (작품 목록/작업 종료 등 await 가능한 경로는 셸이 네비 전에 flushNow 를 이미 완료 → 여기선 not-dirty no-op.)
+    useEffect(
+        () => () => {
+            void flushNow();
+        },
+        [flushNow],
+    );
 
     // 전체 문서 목차를 page 로 올린다(모델 파생). model 변경(키 입력 포함)마다 파생하되, 목차 시그니처가
     // 실제로 바뀔 때만 onOutlineChange 호출 → 키 입력마다 부모 setState/리렌더 + 무한루프 회피.

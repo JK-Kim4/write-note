@@ -539,3 +539,95 @@ describe("useDocumentSession — 챕터 전환(방안 A: 리마운트) 거짓 40
         expect(bSaveVersions[0]).toBe("tA1"); // 버그: A 의 토큰이 B 에 나감
     });
 });
+
+describe("useDocumentSession — 이탈 동기 저장(flushNow) + 거짓충돌 백스톱", () => {
+    /**
+     * 이탈(작품 목록/작업 종료/뒤로가기) 시 미동기화분을 서버에 반영하기 위한 flushNow 와,
+     * 그로 인한 재진입 거짓 409 를 닫는 백스톱(서버 currentBody 가 내 본문과 같으면 조용히 채택)을 검증한다.
+     */
+    const SLOW = { debounceMs: 100000, maxIntervalMs: 100000 };
+
+    afterEach(() => {
+        if (typeof localStorage !== "undefined") localStorage.clear();
+    });
+
+    it("flushNow 는 미동기화분을 즉시 서버에 저장하고 완료까지 기다린다(이탈 동기 저장)", async () => {
+        const tracker = trackingPutHandler();
+        const { result, rerender } = renderHook((props) => useDocumentSession(props, SLOW), {
+            initialProps: baseParams,
+        });
+        rerender({ ...baseParams, body: "EXIT-EDIT" });
+        // debounce 가 매우 길어 자동 저장은 아직 일어나지 않음(이탈 저장이 유일한 트리거).
+        expect(tracker.callCount).toBe(0);
+
+        await act(async () => {
+            await result.current.flushNow();
+        });
+
+        expect(tracker.callCount).toBe(1);
+        expect(result.current.version).toBe("t1");
+        expect(result.current.syncStatus).toBe("synced");
+        // 추가 입력 없이 동기화 완료 → 로컬 draft 정리(서버가 최신).
+        expect(readDraft(DOC_ID)).toBeNull();
+    });
+
+    it("flushNow 는 변경이 없으면 서버 저장을 호출하지 않는다", async () => {
+        const tracker = trackingPutHandler();
+        const { result } = renderHook(() => useDocumentSession(baseParams, SLOW));
+        await act(async () => {
+            await result.current.flushNow();
+        });
+        expect(tracker.callCount).toBe(0);
+    });
+
+    it("저장 409 인데 서버 currentBody 가 내 본문과 같으면(내 이탈 flush 가 먼저 도달) conflict 없이 서버 토큰을 채택한다", async () => {
+        // 항상 409 + currentBody = 요청 body — 내 이탈 flush 가 이미 서버에 같은 본문을 쓴 상태 모사.
+        let calls = 0;
+        server.use(
+            http.put(`${ORIGIN}/api/documents/${DOC_ID}`, async ({ request }) => {
+                calls += 1;
+                const { body } = (await request.json()) as { body: string; version: string };
+                return HttpResponse.json(
+                    {
+                        success: false,
+                        data: { code: "DOCUMENT_VERSION_CONFLICT", currentVersion: "srv-from-my-flush", currentBody: body },
+                        error: { code: "DOCUMENT_VERSION_CONFLICT", message: "충돌" },
+                    },
+                    { status: 409 },
+                );
+            }),
+        );
+        const { result, rerender } = renderHook((props) => useDocumentSession(props, FAST), {
+            initialProps: baseParams,
+        });
+        rerender({ ...baseParams, body: "MY-EDIT" });
+
+        // 거짓충돌 백스톱: 다이얼로그가 아니라 synced + 서버 토큰 채택.
+        await waitFor(() => expect(result.current.syncStatus).toBe("synced"));
+        expect(result.current.conflict).toBeNull();
+        expect(result.current.version).toBe("srv-from-my-flush");
+        expect(calls).toBe(1); // 채택 → 재시도 루프 없음
+        expect(readDraft(DOC_ID)).toBeNull();
+    });
+
+    it("저장 409 이고 서버 currentBody 가 내 본문과 다르면 진짜 충돌로 다룬다(백스톱이 진짜 충돌을 가리지 않음)", async () => {
+        server.use(
+            http.put(`${ORIGIN}/api/documents/${DOC_ID}`, () =>
+                HttpResponse.json(
+                    {
+                        success: false,
+                        data: { code: "DOCUMENT_VERSION_CONFLICT", currentVersion: "srv-other", currentBody: "OTHER-DEVICE" },
+                        error: { code: "DOCUMENT_VERSION_CONFLICT", message: "충돌" },
+                    },
+                    { status: 409 },
+                ),
+            ),
+        );
+        const { result, rerender } = renderHook((props) => useDocumentSession(props, FAST), {
+            initialProps: baseParams,
+        });
+        rerender({ ...baseParams, body: "MY-EDIT" });
+        await waitFor(() => expect(result.current.syncStatus).toBe("conflict"));
+        expect(result.current.conflict?.currentBody).toBe("OTHER-DEVICE");
+    });
+});

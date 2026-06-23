@@ -125,8 +125,11 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
     // 자동저장 상태 — 헤더 배지 표시용.
     const [syncStatus, setSyncStatus] = useState<BChapterEditorSyncStatus["syncStatus"]>("idle");
 
-    const handleSyncStatus = useCallback(({ syncStatus: status }: BChapterEditorSyncStatus) => {
+    // 이탈 동기 저장 통로 — 에디터가 보고하는 flushNow 를 ref 로 보관(네비 직전 await 용).
+    const flushNowRef = useRef<() => Promise<void>>(() => Promise.resolve());
+    const handleSyncStatus = useCallback(({ syncStatus: status, flushNow }: BChapterEditorSyncStatus) => {
         setSyncStatus(status);
+        flushNowRef.current = flushNow;
     }, []);
 
     const handleConflict = useCallback((handlers: BChapterEditorConflictHandlers) => {
@@ -150,6 +153,16 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
     // 작품 목록 복귀: 작품이 시리즈 소속이면 그 시리즈 드릴인(?folder=)으로, 미분류면 루트로(있던 곳 복원).
     const backHref =
         projectQuery.data?.categoryId != null ? `/library?folder=${projectQuery.data.categoryId}` : "/library";
+    // 작품 목록 복귀 — 미동기화분을 서버에 먼저 반영(시리즈 글자수 즉시 동기)한 뒤 네비게이션.
+    // flush 실패는 best-effort(draft 보존)로 흡수하고 네비는 막지 않는다.
+    const handleNavigateBack = useCallback(async () => {
+        try {
+            await flushNowRef.current();
+        } catch {
+            // best-effort — 실패해도 draft 가 남아 재진입 시 복원된다.
+        }
+        router.push(backHref);
+    }, [router, backHref]);
     const exportWord = useWordExport(projectId, paperSize);
     const handleFontScaleChange = (next: FontScale) => {
         if (next === fontScale) return;
@@ -166,6 +179,8 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
         setIsEndingWork(true);
         setEndWorkError(null);
         try {
+            // 미동기화 본문을 서버에 먼저 반영(시리즈 글자수 즉시 동기). best-effort — 실패해도 종료는 진행.
+            await flushNowRef.current().catch(() => {});
             await endWithLog(trimmed);
             await queryClient.invalidateQueries({ queryKey: logKeys.all });
             setEndWorkOpen(false);
@@ -231,7 +246,16 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
     const outlinePanel = (
         <>
             <div className="border-b border-gray-200 p-3">
-                <Link href={backHref} className="text-xs text-gray-400 hover:text-terracotta-600">
+                <Link
+                    href={backHref}
+                    onClick={(e) => {
+                        // 좌클릭은 가로채 미동기화분 flush 후 네비(시리즈 글자수 즉시 동기). 중클릭/수정키는 기본 동작 유지.
+                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                        e.preventDefault();
+                        void handleNavigateBack();
+                    }}
+                    className="text-xs text-gray-400 hover:text-terracotta-600"
+                >
                     ← 작품 목록
                 </Link>
                 <h1 className="mt-1 truncate text-base font-bold text-gray-900" title={projectTitle}>
