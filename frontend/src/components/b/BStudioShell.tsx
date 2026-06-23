@@ -254,9 +254,9 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
                         e.preventDefault();
                         void handleNavigateBack();
                     }}
-                    className="text-xs text-gray-400 hover:text-terracotta-600"
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-terracotta-700 transition-colors hover:text-terracotta-600"
                 >
-                    ← 작품 목록
+                    ← 목록으로 돌아가기
                 </Link>
                 <h1 className="mt-1 truncate text-base font-bold text-gray-900" title={projectTitle}>
                     {projectTitle || "집필"}

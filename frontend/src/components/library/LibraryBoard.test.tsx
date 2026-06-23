@@ -10,6 +10,10 @@ import { LibraryBoard } from "./LibraryBoard";
 import type { CategoryResponse } from "@/types/api";
 import type { ProjectCard } from "@/lib/types/domain";
 
+vi.mock("next/navigation", () => ({
+    useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
+}));
+
 /**
  * LibraryBoard 행위 테스트(032 T027/T038/T043) — 드릴인·⋯ 이동 메뉴·시리즈 생성/이름변경/삭제·빈 상태·URL 보존.
  * 실제 @dnd-kit 포인터 드래그는 jsdom 에서 시뮬레이션이 불안정 → 이동 로직은 useMoveProjectCategory 테스트가,

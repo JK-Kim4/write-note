@@ -284,7 +284,7 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                     {/* 시리즈 타일 */}
                     <section>
                         <h2 className="mb-3 text-sm font-semibold text-gray-500">시리즈</h2>
-                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                        <div className="grid grid-cols-2 items-start gap-4 sm:grid-cols-3 lg:grid-cols-4">
                             {cats.map((c) => (
                                 <CategoryTile
                                     key={c.id}

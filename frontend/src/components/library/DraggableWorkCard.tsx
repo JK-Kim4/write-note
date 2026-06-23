@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useDraggable } from "@dnd-kit/core";
 import type { ProjectCard } from "@/lib/types/domain";
 
@@ -26,12 +27,20 @@ type DraggableWorkCardProps = {
  * 터치/키보드용 시리즈 이동은 '편집' 모달의 시리즈 드롭다운으로 처리(카드 오버레이 ⋯ 제거).
  */
 export function DraggableWorkCard({ card, onDelete, onEdit, onArchive, overlay }: DraggableWorkCardProps) {
+    const router = useRouter();
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: workDragId(card.id),
         disabled: overlay,
     });
 
     const stopDrag = { onPointerDown: (e: React.PointerEvent) => e.stopPropagation() };
+
+    // 카드 전체(가장자리·여백 포함)를 진입 클릭 영역으로 — 모든 이벤트가 모이는 카드 div 에서 처리.
+    // 드래그 시 dnd-kit 이 click 을 document 캡처 단계에서 막으므로 오진입 없음. 링크/버튼 클릭은 각자 처리.
+    const handleCardClick = (e: React.MouseEvent) => {
+        if ((e.target as HTMLElement).closest("a, button")) return;
+        router.push(`/works/${card.id}`);
+    };
 
     const body = (
         <>
@@ -48,18 +57,20 @@ export function DraggableWorkCard({ card, onDelete, onEdit, onArchive, overlay }
             ref={overlay ? undefined : setNodeRef}
             {...(overlay ? {} : listeners)}
             {...(overlay ? {} : attributes)}
-            className={`group relative cursor-grab rounded-xl border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md active:cursor-grabbing ${
+            onClick={overlay ? undefined : handleCardClick}
+            className={`group relative cursor-pointer select-none rounded-xl border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md ${
                 overlay ? "rotate-[-2deg] shadow-xl" : ""
             } ${isDragging ? "opacity-40" : ""}`}
         >
             {overlay ? <div className="block">{body}</div> : (
+                // 텍스트 영역은 링크로(키보드 Enter·새 탭 열기 보존), 가장자리·여백은 위 카드 div onClick 이 처리.
                 <Link href={`/works/${card.id}`} className="block" draggable={false}>
                     {body}
                 </Link>
             )}
 
             {!overlay && (
-                <div className="absolute right-3 bottom-3 flex gap-1">
+                <div className="absolute right-3 bottom-3 z-10 flex gap-1">
                     <button
                         type="button"
                         aria-label={`${card.title} 편집`}
