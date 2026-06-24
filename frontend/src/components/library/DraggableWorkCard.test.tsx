@@ -19,6 +19,7 @@ function makeCard(overrides: Partial<ProjectCard> = {}): ProjectCard {
         worldNotes: null,
         nextScene: "",
         categoryId: null,
+        categoryName: null,
         paperSize: "A4",
         layoutMode: "paper",
         effectivePaperSize: "A4",

@@ -233,8 +233,8 @@ export const BCustomChapterEditor = forwardRef<CustomEditorRef, BCustomChapterEd
     }
     if (isError || !doc) {
         return (
-            <div className="flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white">
-                <p className="text-sm text-gray-500">문서를 불러올 수 없습니다.</p>
+            <div className="flex flex-1 items-center justify-center rounded-xl border border-border bg-surface">
+                <p className="text-sm text-muted">문서를 불러올 수 없습니다.</p>
             </div>
         );
     }

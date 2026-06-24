@@ -15,6 +15,7 @@ function card(over: Partial<ProjectCard> = {}): ProjectCard {
         worldNotes: null,
         nextScene: "재회",
         categoryId: null,
+        categoryName: null,
         paperSize: "A4",
         layoutMode: "paper",
         effectivePaperSize: "A4",

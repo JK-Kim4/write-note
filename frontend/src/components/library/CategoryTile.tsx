@@ -117,14 +117,14 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
                 }
             }}
             style={{ transform: absorbing ? "scale(1.04)" : undefined }}
-            className={`relative flex min-h-[150px] cursor-pointer flex-col rounded-2xl border bg-white p-3.5 transition-[transform,box-shadow,border-color] duration-300 ${
-                isOver ? "border-terracotta-600 ring-2 ring-terracotta-300" : "border-gray-200 hover:shadow-md"
+            className={`relative flex min-h-[150px] cursor-pointer flex-col rounded-2xl border bg-surface p-3.5 transition-[transform,box-shadow,border-color] duration-300 ${
+                isOver ? "border-terracotta-600 ring-2 ring-terracotta-300" : "border-border hover:shadow-md"
             }`}
         >
             {/* 책등 스택 */}
             <div className="flex h-16 items-end gap-1 px-0.5">
                 {works.length === 0 ? (
-                    <div className="flex h-full w-full items-center justify-center rounded-lg border border-dashed border-gray-200 text-xs text-gray-400">
+                    <div className="flex h-full w-full items-center justify-center rounded-lg border border-dashed border-border text-xs text-faint">
                         아직 비어 있어요
                     </div>
                 ) : (
@@ -138,7 +138,7 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
                             />
                         ))}
                         {works.length > SPINE_CAP && (
-                            <span className="ml-0.5 self-center text-xs text-gray-400">+{works.length - SPINE_CAP}</span>
+                            <span className="ml-0.5 self-center text-xs text-faint">+{works.length - SPINE_CAP}</span>
                         )}
                     </>
                 )}
@@ -177,14 +177,14 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
                             type="button"
                             onClick={submitEdit}
                             disabled={name.trim() === ""}
-                            className="rounded-md bg-terracotta-600 px-3 py-1 text-xs font-semibold text-white hover:bg-terracotta-700 disabled:opacity-50"
+                            className="rounded-md bg-accent px-3 py-1 text-xs font-semibold text-accent-ink hover:bg-terracotta-700 disabled:opacity-50"
                         >
                             저장
                         </button>
                         <button
                             type="button"
                             onClick={cancelEditing}
-                            className="rounded-md border border-gray-200 px-3 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                            className="rounded-md border border-border px-3 py-1 text-xs text-muted-strong hover:bg-surface-2"
                         >
                             취소
                         </button>
@@ -197,23 +197,23 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
                         e.stopPropagation();
                         startEditing();
                     }}
-                    className="group/name mt-2.5 flex max-w-full self-start items-center gap-1 text-left text-base font-bold text-gray-900 hover:text-terracotta-700"
+                    className="group/name mt-2.5 flex max-w-full self-start items-center gap-1 text-left text-base font-bold text-ink hover:text-accent-text"
                 >
                     <span className="truncate">{category.name}</span>
-                    <span aria-hidden className="text-xs text-gray-300 opacity-0 group-hover/name:opacity-100">
+                    <span aria-hidden className="text-xs text-faint opacity-0 group-hover/name:opacity-100">
                         ✎
                     </span>
                 </button>
             )}
             {!editing && (
                 <div className="mt-0.5">
-                    <div className="text-xs text-gray-500">작품 {works.length}편</div>
+                    <div className="text-xs text-muted">작품 {works.length}편</div>
                     {hasTarget ? (
                         <div className="mt-1">
-                            <div className="text-[11px] text-gray-600">
+                            <div className="text-[11px] text-muted-strong">
                                 {category.totalWordCount.toLocaleString()} / {target.toLocaleString()}자
                             </div>
-                            <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                            <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-surface-3">
                                 <div
                                     className="h-full rounded-full bg-terracotta-500"
                                     style={{ width: `${Math.round(progressRatio * 100)}%` }}
@@ -221,9 +221,9 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
                             </div>
                         </div>
                     ) : (
-                        <div className="mt-1 text-[11px] text-gray-600">{category.totalWordCount.toLocaleString()}자</div>
+                        <div className="mt-1 text-[11px] text-muted-strong">{category.totalWordCount.toLocaleString()}자</div>
                     )}
-                    <div className="mt-1 flex items-center gap-1 text-[11px] text-terracotta-700">
+                    <div className="mt-1 flex items-center gap-1 text-[11px] text-accent-text">
                         <span aria-hidden>⏱</span> 총 집필 시간 <span className="font-semibold">{formatDurationKo(category.totalDurationMs)}</span>
                     </div>
                 </div>
@@ -236,12 +236,12 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
                     e.stopPropagation();
                     setMenuOpen((v) => !v);
                 }}
-                className="absolute top-2 right-2 z-10 rounded-md bg-white/70 px-1.5 py-0.5 text-gray-400 hover:bg-terracotta-50 hover:text-terracotta-700"
+                className="absolute top-2 right-2 z-10 rounded-md bg-surface/70 px-1.5 py-0.5 text-faint hover:bg-accent-soft hover:text-accent-text"
             >
                 ⋯
             </button>
             {menuOpen && (
-                <div ref={menuRef} role="menu" onClick={(e) => e.stopPropagation()} className="absolute top-9 right-2 z-20 w-36 rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
+                <div ref={menuRef} role="menu" onClick={(e) => e.stopPropagation()} className="absolute top-9 right-2 z-20 w-36 rounded-lg border border-border bg-surface p-1 shadow-lg">
                     <button
                         type="button"
                         role="menuitem"
@@ -249,7 +249,7 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
                             startEditing();
                             setMenuOpen(false);
                         }}
-                        className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-gray-700 hover:bg-terracotta-50 hover:text-terracotta-700"
+                        className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-ink-2 hover:bg-accent-soft hover:text-accent-text"
                     >
                         편집
                     </button>
