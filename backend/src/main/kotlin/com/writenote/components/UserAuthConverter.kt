@@ -27,6 +27,7 @@ class UserAuthConverter(
             emailVerifiedAt = user.emailVerifiedAt,
             activeApiTokenCount = apiTokenRepository.countByUserIdAndRevokedAtIsNull(userId).toInt(),
             createdAt = user.createdAt,
+            passwordSet = user.passwordHash != null,
         )
     }
 }

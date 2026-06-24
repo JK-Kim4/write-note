@@ -113,6 +113,7 @@ export interface AuthMeResponse {
     emailVerifiedAt: string | null;
     activeApiTokenCount: number;
     createdAt: string | null;
+    passwordSet: boolean;
 }
 
 export interface CharacterResponse {

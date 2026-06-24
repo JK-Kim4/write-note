@@ -10,4 +10,5 @@ data class AuthMeResponse(
     val emailVerifiedAt: Instant?,
     val activeApiTokenCount: Int,
     val createdAt: Instant?,
+    val passwordSet: Boolean,
 )
