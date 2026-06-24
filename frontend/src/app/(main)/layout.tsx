@@ -3,7 +3,7 @@
 import "./b.css";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Clock, Home, Megaphone, StickyNote, Users } from "lucide-react";
+import { BookOpen, Clock, Home, Megaphone, Network, StickyNote, Users } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
@@ -21,6 +21,7 @@ const NAV_ITEMS = [
     { href: "/", label: "홈", exact: true, Icon: Home },
     { href: "/library", label: "작품", exact: false, dataTour: "nav-works", Icon: BookOpen },
     { href: "/memos", label: "메모", exact: false, dataTour: "nav-memos", Icon: StickyNote },
+    { href: "/boards", label: "보드", exact: false, Icon: Network },
     { href: "/characters", label: "인물", exact: false, dataTour: "nav-characters", Icon: Users },
     { href: "/logs", label: "기록", exact: false, Icon: Clock },
     { href: "/notice", label: "공지", exact: false, Icon: Megaphone },

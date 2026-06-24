@@ -28,9 +28,17 @@ enum class AuthErrorCode(
     NICKNAME_INVALID_FORMAT(HttpStatus.BAD_REQUEST, "닉네임은 2~16자의 한글·영문·숫자·밑줄만 사용할 수 있습니다."),
     NICKNAME_FORBIDDEN_WORD(HttpStatus.BAD_REQUEST, "사용할 수 없는 단어가 포함되어 있습니다."),
 
+    // 400 — 플롯 보드 연결 (038)
+    BOARD_EDGE_INVALID(HttpStatus.BAD_REQUEST, "연결할 수 없는 노드입니다(자기 연결·다른 보드·없는 노드)."),
+
     // 409 — 충돌
     EMAIL_ALREADY_REGISTERED(HttpStatus.CONFLICT, "이미 가입된 이메일입니다."),
     NICKNAME_ALREADY_REGISTERED(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
+
+    // 409 — 플롯 보드 (038)
+    BOARD_PROJECT_ALREADY_MAPPED(HttpStatus.CONFLICT, "이미 보드가 연결된 작품입니다."),
+    BOARD_CATEGORY_ALREADY_MAPPED(HttpStatus.CONFLICT, "이미 보드가 연결된 시리즈입니다."),
+    BOARD_EDGE_DUPLICATE(HttpStatus.CONFLICT, "이미 존재하는 연결입니다."),
     AUTH_TOKEN_ALREADY_USED(HttpStatus.CONFLICT, "이미 사용된 토큰입니다."),
     KAKAO_EMAIL_ALREADY_REGISTERED(
         HttpStatus.CONFLICT,
