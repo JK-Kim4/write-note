@@ -5,6 +5,7 @@ import com.writenote.crypto.BodyCipherService
 import com.writenote.entity.Category
 import com.writenote.entity.Document
 import com.writenote.entity.Project
+import com.writenote.error.BodyDecryptionException
 import com.writenote.error.ResourceNotFoundException
 import com.writenote.error.ValidationException
 import com.writenote.mapper.ProjectMapper
@@ -118,10 +119,15 @@ class ProjectService(
                 latestChapter?.updatedAt
                     ?: requireNotNull(project.updatedAt) // 챕터 없는 경우 작품 수정 시각 fallback
             // 최근 수정 챕터 body 의 plainText — 암호문이면 복호 후 추출(레거시 평문은 통과) (T022)
+            // 미리보기 복호 실패는 목록 전체를 막지 않는다(graceful) — 손상/키부재 본문 1건이 작품 목록
+            // 전체를 500 으로 떨어뜨리지 않도록 빈 미리보기로 흡수한다. 본문 열기(getDocument)는 fail-closed 유지.
             val lastSentenceSource =
                 latestChapter?.let {
-                    val plainBody = bodyCipherService.decryptToPlain(userId, it.body)
-                    ProseMirrorText.extractPlainText(plainBody)
+                    try {
+                        ProseMirrorText.extractPlainText(bodyCipherService.decryptToPlain(userId, it.body))
+                    } catch (e: BodyDecryptionException) {
+                        ""
+                    }
                 } ?: ""
             ProjectCardResponse.from(
                 base = projectMapper.toResponse(project, categoryById[project.categoryId]),

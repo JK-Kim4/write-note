@@ -5,6 +5,8 @@ import com.writenote.repository.UserEncryptionKeyRepository
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.security.SecureRandom
 import java.util.Collections
 import java.util.LinkedHashMap
@@ -34,6 +36,29 @@ class UserKeyService(
     private val secureRandom = SecureRandom()
 
     /**
+     * DEK 캐시 적재를 트랜잭션 **커밋 이후**로 미룬다 — "캐시에 있는 DEK 는 DB 에 반드시 존재한다"는
+     * 불변식 강제. 저장 트랜잭션이 [encrypt] 이후 롤백되면 DB 의 DEK 는 사라지지만, 커밋 전 캐시 적재 시
+     * 거짓 DEK 가 캐시에 잔존해 다음 저장이 DB 에 없는 DEK 로 암호문을 만든다(영구 복호 불가). afterCommit
+     * 적재는 롤백 시 발동하지 않아 이를 차단한다. 트랜잭션 동기화가 없으면(이미 커밋된 경로) 즉시 적재.
+     */
+    private fun cacheAfterCommit(
+        userId: Long,
+        dek: SecretKey,
+    ) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                object : TransactionSynchronization {
+                    override fun afterCommit() {
+                        dekCache[userId] = dek
+                    }
+                },
+            )
+        } else {
+            dekCache[userId] = dek
+        }
+    }
+
+    /**
      * 신규 DEK 생성 → KEK wrap → DB 저장.
      * 가입 트랜잭션(signupEmail / KakaoUserRegistrar) 내에서 호출 — 동일 트랜잭션 참여.
      *
@@ -48,7 +73,7 @@ class UserKeyService(
         val existing = userEncryptionKeyRepository.findById(userId).orElse(null)
         if (existing != null) {
             val existingDek = aesGcmCipher.unwrap(masterKey, existing.wrappedDek)
-            dekCache[userId] = existingDek
+            cacheAfterCommit(userId, existingDek)
             return existingDek
         }
 
@@ -64,10 +89,10 @@ class UserKeyService(
                     DataIntegrityViolationException("DEK row not found after PK conflict for userId=$userId", ex)
                 }
             val raceExistingDek = aesGcmCipher.unwrap(masterKey, raceExisting.wrappedDek)
-            dekCache[userId] = raceExistingDek
+            cacheAfterCommit(userId, raceExistingDek)
             return raceExistingDek
         }
-        dekCache[userId] = dek
+        cacheAfterCommit(userId, dek)
         return dek
     }
 
@@ -82,7 +107,7 @@ class UserKeyService(
         val stored = userEncryptionKeyRepository.findById(userId).orElse(null)
         if (stored != null) {
             val dek = aesGcmCipher.unwrap(masterKey, stored.wrappedDek)
-            dekCache[userId] = dek
+            cacheAfterCommit(userId, dek)
             return dek
         }
         return create(userId)
@@ -98,7 +123,7 @@ class UserKeyService(
         dekCache[userId]?.let { return it }
         val stored = userEncryptionKeyRepository.findById(userId).orElse(null) ?: return null
         val dek = aesGcmCipher.unwrap(masterKey, stored.wrappedDek)
-        dekCache[userId] = dek
+        cacheAfterCommit(userId, dek)
         return dek
     }
 
