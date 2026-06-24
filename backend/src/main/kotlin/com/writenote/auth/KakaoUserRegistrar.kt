@@ -2,6 +2,7 @@ package com.writenote.auth
 
 import com.writenote.crypto.UserKeyService
 import com.writenote.entity.User
+import com.writenote.nickname.NicknameGenerator
 import com.writenote.repository.UserRepository
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -18,6 +19,7 @@ import java.time.Instant
 class KakaoUserRegistrar(
     private val userRepository: UserRepository,
     private val userKeyService: UserKeyService,
+    private val nicknameGenerator: NicknameGenerator,
 ) {
     /**
      * User INSERT + DEK 생성을 동일 트랜잭션에서 실행.
@@ -32,6 +34,7 @@ class KakaoUserRegistrar(
         val user =
             User(
                 email = email,
+                nickname = nicknameGenerator.generate(),
                 kakaoId = kakaoId,
                 passwordHash = null,
                 emailVerifiedAt = now,

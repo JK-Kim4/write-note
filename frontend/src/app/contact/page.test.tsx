@@ -12,6 +12,10 @@ vi.mock("@/lib/electron-api", () => ({
     webElectronApi: { contact: { send: vi.fn().mockResolvedValue({ ok: true }) } },
 }));
 
+vi.mock("next/navigation", () => ({
+    useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
+}));
+
 const sendMock = vi.mocked(webElectronApi.contact.send);
 
 describe("ContactPage 문의 유형", () => {

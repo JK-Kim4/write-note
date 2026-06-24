@@ -3,7 +3,7 @@
 import "./b.css";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Clock, Home, Megaphone, Settings, StickyNote, Users } from "lucide-react";
+import { BookOpen, Clock, Home, Megaphone, StickyNote, Users } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
@@ -24,7 +24,6 @@ const NAV_ITEMS = [
     { href: "/characters", label: "인물", exact: false, dataTour: "nav-characters", Icon: Users },
     { href: "/logs", label: "기록", exact: false, Icon: Clock },
     { href: "/notice", label: "공지", exact: false, Icon: Megaphone },
-    { href: "/settings", label: "설정", exact: false, Icon: Settings },
 ] as const;
 
 // 메뉴 칩 — 단색 라인 아이콘(lucide) + 라벨. 평상시 회색, 선택은 테라코타(주 액센트),
@@ -109,12 +108,12 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                             );
                         })}
                     </nav>
-                    {/* 문의(전역) — 로그아웃 왼쪽. 보조 액션이라 보더 없는 teal 톤 링크(product 절제 원칙). */}
+                    {/* 마이페이지(계정·신원) — 앱 설정(/settings)과 분리된 계정 영역 진입점. */}
                     <Link
-                        href="/contact"
-                        className="hidden rounded-md px-3 py-1.5 text-sm text-teal-700 hover:bg-teal-50 hover:text-teal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 md:block"
+                        href="/mypage"
+                        className="hidden rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 md:block"
                     >
-                        문의
+                        마이페이지
                     </Link>
                     <button
                         type="button"
@@ -162,11 +161,11 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                         })}
                         <div className="my-1 border-t border-gray-100" />
                         <Link
-                            href="/contact"
+                            href="/mypage"
                             onClick={() => setMobileMenuOpen(false)}
-                            className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm text-teal-700 hover:bg-teal-50 hover:text-teal-800"
+                            className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                         >
-                            문의
+                            마이페이지
                         </Link>
                         <button
                             type="button"
