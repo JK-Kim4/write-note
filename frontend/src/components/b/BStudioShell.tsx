@@ -66,9 +66,11 @@ interface BStudioShellProps {
     renderEditor: (args: BStudioEditorSlotArgs) => ReactNode;
     /** 아웃라인 소스 — 에디터 코어에서 파생한 목차를 주입. */
     outline: BStudioOutlineSource;
+    /** 편집 표면 포커스 복귀 — 글자 크기 select 등 셸 컨트롤 조작 후 키 입력 재개용(에디터 ref.focus 결선). */
+    focusEditor: () => void;
 }
 
-export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
+export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShellProps) {
     const params = useParams<{ id: string }>();
     const router = useRouter();
     const projectId = Number(params.id);
@@ -165,6 +167,9 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
     }, [router, backHref]);
     const exportWord = useWordExport(projectId, paperSize);
     const handleFontScaleChange = (next: FontScale) => {
+        // select 는 mousedown preventDefault 로 포커스를 유지할 수 없으므로(드롭다운이 막힘),
+        // 값 변경 후 편집 표면에 포커스를 되돌려 키 입력을 즉시 재개한다.
+        focusEditor();
         if (next === fontScale) return;
         updateProject.mutate({ id: projectId, patch: { fontScale: next } });
     };

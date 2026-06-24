@@ -1,6 +1,7 @@
 "use client";
 
 import { formatStopwatch } from "@/lib/formatStopwatch";
+import { keepEditorFocus } from "@/lib/keepEditorFocus";
 import type { TimewatchStatus } from "@/hooks/useTimewatch";
 
 type TimewatchProps = {
@@ -41,18 +42,18 @@ export function Timewatch({ status, elapsedMs, onStart, onPause, onResume, onReq
             </div>
             <div className="mt-2.5 flex gap-1.5">
                 {status === "idle" && (
-                    <button type="button" onClick={onStart} className={PRIMARY}>▶ 시작</button>
+                    <button type="button" onMouseDown={keepEditorFocus} onClick={onStart} className={PRIMARY}>▶ 시작</button>
                 )}
                 {status === "running" && (
                     <>
-                        <button type="button" onClick={onPause} className={GHOST}>⏸ 일시정지</button>
-                        <button type="button" onClick={onRequestStop} className={STOP}>■ 집필 종료</button>
+                        <button type="button" onMouseDown={keepEditorFocus} onClick={onPause} className={GHOST}>⏸ 일시정지</button>
+                        <button type="button" onMouseDown={keepEditorFocus} onClick={onRequestStop} className={STOP}>■ 집필 종료</button>
                     </>
                 )}
                 {status === "paused" && (
                     <>
-                        <button type="button" onClick={onResume} className={PRIMARY}>▶ 다시 시작</button>
-                        <button type="button" onClick={onRequestStop} className={STOP}>■ 집필 종료</button>
+                        <button type="button" onMouseDown={keepEditorFocus} onClick={onResume} className={PRIMARY}>▶ 다시 시작</button>
+                        <button type="button" onMouseDown={keepEditorFocus} onClick={onRequestStop} className={STOP}>■ 집필 종료</button>
                     </>
                 )}
             </div>

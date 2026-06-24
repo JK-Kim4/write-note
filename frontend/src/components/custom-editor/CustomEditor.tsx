@@ -350,6 +350,8 @@ function PageBox({
 export type CustomEditorRef = {
     /** headingIndex(문서 순서상 N번째 heading)의 텍스트 끝으로 캐럿 점프 + 스크롤·포커스. */
     jumpToHeading: (headingIndex: number) => void;
+    /** 편집 표면(stage)에 포커스 복귀 — 사이드 select(글자 크기) 등 preventDefault 불가 컨트롤 조작 후 키 입력 재개용. */
+    focus: () => void;
 };
 
 export const CustomEditor = forwardRef<
@@ -557,6 +559,7 @@ export const CustomEditor = forwardRef<
                 applySel(target.bufEnd, target.bufEnd, 1);
                 stageRef.current?.focus({ preventScroll: true });
             },
+            focus: () => stageRef.current?.focus({ preventScroll: true }),
         }),
         [view],
     );
