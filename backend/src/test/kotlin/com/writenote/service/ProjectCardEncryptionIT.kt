@@ -85,4 +85,24 @@ class ProjectCardEncryptionIT {
 
         assertThat(cardsResult).contains(previewText)
     }
+
+    @Test
+    fun `암호문이나 DEK 없는 손상 본문이 있어도 카드 목록은 200으로 응답한다`() {
+        // 견고성: 미리보기(lastSentenceSource) 복호 실패가 작품 목록 전체를 막으면 안 된다.
+        // (DEK 없는 사용자의 본문이 어떤 이유로 암호문이면 복호 불가 — 그래도 목록은 떠야 함.)
+        val user = createUser()
+        val bearer = bearerFor(user)
+        val projectId = createProject(bearer)
+        val doc = documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectId).first()
+        // 손상 상태 재현 — 암호문 봉투지만 이 사용자 DEK 없음 → decryptToPlain 이 BodyDecryptionException
+        doc.body = """{"v":1,"ct":"ZmFrZWNpcGhlcnRleHQ"}"""
+        documentRepository.saveAndFlush(doc)
+
+        mockMvc
+            .perform(
+                get("/api/projects/cards")
+                    .header("Authorization", bearer),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.success").value(true))
+    }
 }

@@ -137,6 +137,47 @@ class DocumentEncryptionIT {
     }
 
     @Test
+    fun `DEK 없는 사용자도 저장 전 평문 본문을 읽을 수 있다 - 우선 이용`() {
+        val user = createUser()
+        val bearer = bearerFor(user)
+        val projectId = createProject(bearer)
+        val doc = documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectId).first()
+        // 저장 전 — 기본 본문은 평문이고 이 사용자 DEK 는 아직 없음(레거시 패스스루로 읽혀야 함)
+        assertThat(userEncryptionKeyRepository.existsById(user.id!!)).isFalse()
+
+        mockMvc
+            .perform(
+                get("/api/documents/${doc.id}")
+                    .header("Authorization", bearer),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.success").value(true))
+    }
+
+    @Test
+    fun `DEK 없는 사용자가 본문 저장 시 DEK가 지연 발급된다`() {
+        val user = createUser()
+        val bearer = bearerFor(user)
+        val projectId = createProject(bearer)
+        val doc = documentRepository.findByProjectIdAndDeletedAtIsNullOrderBySortOrderAsc(projectId).first()
+        // 이용 시작 시점 — DEK 미발급
+        assertThat(userEncryptionKeyRepository.existsById(user.id!!)).isFalse()
+
+        val plainBody = """{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"지연발급"}]}]}"""
+        val version = doc.updatedAt!!.toString()
+        val escapedBody = plainBody.replace("\"", "\\\"")
+        mockMvc
+            .perform(
+                put("/api/documents/${doc.id}")
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"body":"$escapedBody","version":"$version"}"""),
+            ).andExpect(status().isOk)
+
+        // 이용 중(첫 저장) DEK 자동 발급 → 이후 복호 가능. DB 에 영속되어 재부팅 후에도 유효.
+        assertThat(userEncryptionKeyRepository.existsById(user.id!!)).isTrue()
+    }
+
+    @Test
     fun `빈 본문 왕복 무손실`() {
         val user = createUser()
         val bearer = bearerFor(user)

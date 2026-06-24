@@ -3,15 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
 import { useProjectDocument } from "@/lib/query/useDocument";
 import { useProject, useUpdateProject } from "@/lib/query/useProjects";
 import { PAPER_PRESETS, type PaperSize } from "@/components/editor/pageLayout";
 import { PAPER_LABEL, FONT_SCALE_ORDER, FONT_SCALE_LABEL } from "@/components/custom-editor/geometry";
 import type { FontScale, LayoutMode } from "@/types/api";
 import { StudioSkeleton } from "./StudioSkeleton";
-import { logKeys } from "@/lib/query/useLogs";
-import { useWorkSession } from "@/hooks/useWorkSession";
+import { useTimewatch } from "@/hooks/useTimewatch";
+import { Timewatch } from "@/components/b/Timewatch";
+import { formatStopwatch } from "@/lib/formatStopwatch";
 import { rememberLastProject } from "@/lib/lastProject";
 import type { OutlineItem } from "@/lib/editor/outline";
 import { BWorkSidePanel } from "@/components/b/BWorkSidePanel";
@@ -66,14 +66,14 @@ interface BStudioShellProps {
     renderEditor: (args: BStudioEditorSlotArgs) => ReactNode;
     /** 아웃라인 소스 — 에디터 코어에서 파생한 목차를 주입. */
     outline: BStudioOutlineSource;
+    /** 편집 표면 포커스 복귀 — 글자 크기 select 등 셸 컨트롤 조작 후 키 입력 재개용(에디터 ref.focus 결선). */
+    focusEditor: () => void;
 }
 
-export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
+export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShellProps) {
     const params = useParams<{ id: string }>();
     const router = useRouter();
     const projectId = Number(params.id);
-    const queryClient = useQueryClient();
-
     const projectQuery = useProject(projectId);
 
     // 작품의 단일 본문 로드 (033 — 챕터 제거).
@@ -103,6 +103,8 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
     }, [editorReady]);
 
     const [endWorkOpen, setEndWorkOpen] = useState(false);
+    // 종료 모달을 열 때 타이머를 일시정지했는지 — 취소 시 이어서 재개할지 판단.
+    const [stopModalWasRunning, setStopModalWasRunning] = useState(false);
     const [endWorkBody, setEndWorkBody] = useState("");
     const [endWorkError, setEndWorkError] = useState<string | null>(null);
     const [isEndingWork, setIsEndingWork] = useState(false);
@@ -136,7 +138,7 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
         setConflictHandlers(handlers);
     }, []);
 
-    const { endWithLog } = useWorkSession(projectId);
+    const timewatch = useTimewatch(projectId);
     const updateProject = useUpdateProject();
 
     // 판형·출판방식은 시리즈 종속(033 R2) — 작품 단위 개별 설정 불가(FR-007). BE 가 시리즈값 or 기본값으로
@@ -165,6 +167,9 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
     }, [router, backHref]);
     const exportWord = useWordExport(projectId, paperSize);
     const handleFontScaleChange = (next: FontScale) => {
+        // select 는 mousedown preventDefault 로 포커스를 유지할 수 없으므로(드롭다운이 막힘),
+        // 값 변경 후 편집 표면에 포커스를 되돌려 키 입력을 즉시 재개한다.
+        focusEditor();
         if (next === fontScale) return;
         updateProject.mutate({ id: projectId, patch: { fontScale: next } });
     };
@@ -173,23 +178,44 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
         if (Number.isFinite(projectId)) rememberLastProject(projectId);
     }, [projectId]);
 
-    const handleEndWork = async () => {
-        const trimmed = endWorkBody.trim();
-        if (!trimmed || isEndingWork) return;
+    const handleStopWork = async (withMemo: boolean) => {
+        if (isEndingWork) return;
         setIsEndingWork(true);
         setEndWorkError(null);
         try {
-            // 미동기화 본문을 서버에 먼저 반영(시리즈 글자수 즉시 동기). best-effort — 실패해도 종료는 진행.
+            // 미동기화 본문을 서버에 먼저 반영(시리즈 글자수 즉시 동기). best-effort.
             await flushNowRef.current().catch(() => {});
-            await endWithLog(trimmed);
-            await queryClient.invalidateQueries({ queryKey: logKeys.all });
+            await timewatch.stop(withMemo ? endWorkBody : undefined);
             setEndWorkOpen(false);
             setEndWorkBody("");
             router.push(backHref);
         } catch {
-            setEndWorkError("기록 저장에 실패했습니다. 다시 시도해 주세요.");
+            setEndWorkError("종료에 실패했습니다. 다시 시도해 주세요.");
         } finally {
             setIsEndingWork(false);
+        }
+    };
+
+    // "집필 종료" 클릭 — 모달 여는 동안 타이머를 일시정지(시간 멈춤). 취소하면 이어서 재개.
+    const handleRequestStop = () => {
+        if (timewatch.status === "running") {
+            setStopModalWasRunning(true);
+            timewatch.pause();
+        } else {
+            setStopModalWasRunning(false);
+        }
+        setEndWorkBody("");
+        setEndWorkError(null);
+        setEndWorkOpen(true);
+    };
+
+    // 종료 모달 취소(✕·바깥·ESC) — 모달 열 때 일시정지했으면 다시 시작해 이어서 측정.
+    const closeStopModal = () => {
+        if (isEndingWork) return;
+        setEndWorkOpen(false);
+        if (stopModalWasRunning) {
+            timewatch.resume();
+            setStopModalWasRunning(false);
         }
     };
 
@@ -199,7 +225,7 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
             if (e.key !== "Escape") return;
             if (leftDrawerOpen) setLeftDrawerOpen(false);
             if (rightDrawerOpen) setRightDrawerOpen(false);
-            if (endWorkOpen && !isEndingWork) setEndWorkOpen(false);
+            if (endWorkOpen && !isEndingWork) closeStopModal();
         };
         document.addEventListener("keydown", handleKeyDown);
         return () => document.removeEventListener("keydown", handleKeyDown);
@@ -254,9 +280,9 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
                         e.preventDefault();
                         void handleNavigateBack();
                     }}
-                    className="text-xs text-gray-400 hover:text-terracotta-600"
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-terracotta-700 transition-colors hover:text-terracotta-600"
                 >
-                    ← 작품 목록
+                    ← 목록으로 돌아가기
                 </Link>
                 <h1 className="mt-1 truncate text-base font-bold text-gray-900" title={projectTitle}>
                     {projectTitle || "집필"}
@@ -353,20 +379,6 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
                     <p className="text-xs text-gray-300">동기화됨</p>
                 )}
             </div>
-            <div className="border-t border-gray-200 p-3">
-                <button
-                    type="button"
-                    onClick={() => {
-                        setEndWorkBody("");
-                        setEndWorkError(null);
-                        setEndWorkOpen(true);
-                        setLeftDrawerOpen(false);
-                    }}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
-                >
-                    작업 종료
-                </button>
-            </div>
         </>
     );
 
@@ -461,6 +473,16 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
                     </button>
                 </div>
                 <div className="flex flex-1 flex-col overflow-hidden">
+                    <div className="border-b border-gray-200 bg-gray-50 p-3">
+                        <Timewatch
+                            status={timewatch.status}
+                            elapsedMs={timewatch.elapsedMs}
+                            onStart={timewatch.start}
+                            onPause={timewatch.pause}
+                            onResume={timewatch.resume}
+                            onRequestStop={handleRequestStop}
+                        />
+                    </div>
                     <BWorkSidePanel
                         projectId={projectId}
                         collapsible={false}
@@ -518,8 +540,16 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
                 </div>
             )}
 
-            {/* 넓은 폭 inline 우측 패널 */}
-            <div className="hidden min-[880px]:contents">
+            {/* 넓은 폭 inline 우측 영역 — 타임워치 카드 + 보조 패널(분리) */}
+            <div className="hidden w-60 shrink-0 flex-col gap-3 min-[880px]:flex">
+                <Timewatch
+                    status={timewatch.status}
+                    elapsedMs={timewatch.elapsedMs}
+                    onStart={timewatch.start}
+                    onPause={timewatch.pause}
+                    onResume={timewatch.resume}
+                    onRequestStop={handleRequestStop}
+                />
                 <BWorkSidePanel
                     projectId={projectId}
                     isOpen={panelOpen}
@@ -581,51 +611,57 @@ export function BStudioShell({ renderEditor, outline }: BStudioShellProps) {
             {endWorkOpen && (
                 <div
                     className="fixed inset-0 z-30 flex items-center justify-center bg-gray-900/40 p-4"
-                    onClick={() => !isEndingWork && setEndWorkOpen(false)}
+                    onClick={closeStopModal}
                 >
                     <div
                         ref={endWorkModalRef}
                         role="dialog"
                         aria-modal="true"
-                        aria-label="작업 종료"
+                        aria-label="집필 종료"
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
+                        className="relative w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
                     >
-                        <h2 className="text-lg font-bold text-gray-900">작업 종료</h2>
-                        <p className="mt-1 text-sm text-gray-500">오늘의 기록을 남겨보세요</p>
+                        <button
+                            type="button"
+                            aria-label="닫기"
+                            onClick={closeStopModal}
+                            className="absolute right-3 top-3 rounded-md px-2 py-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        >
+                            ✕
+                        </button>
+                        <h2 className="text-lg font-bold text-gray-900">집필을 마칠까요?</h2>
+                        <p className="mt-1 text-sm text-gray-500">
+                            측정한 시간 {formatStopwatch(timewatch.elapsedMs)} 가 기록됩니다. 오늘 작업 메모를 남겨도 좋아요(선택).
+                        </p>
                         <textarea
                             autoFocus
                             value={endWorkBody}
                             onChange={(e) => setEndWorkBody(e.target.value)}
-                            placeholder="오늘의 기록을 남겨보세요…"
+                            placeholder="예: 3장 도입부 다시 씀 (선택)"
                             rows={4}
                             maxLength={2000}
                             className="mt-3 w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                         />
                         <div className="mt-1 flex items-center justify-between">
-                            {endWorkError ? (
-                                <span className="text-xs text-red-600">{endWorkError}</span>
-                            ) : (
-                                <span />
-                            )}
+                            {endWorkError ? <span className="text-xs text-red-600">{endWorkError}</span> : <span />}
                             <span className="text-xs text-gray-400">{endWorkBody.length}/2000</span>
                         </div>
-                        <div className="mt-4 flex justify-end gap-2">
+                        <div className="mt-4 flex gap-2.5">
                             <button
                                 type="button"
-                                onClick={() => setEndWorkOpen(false)}
+                                onClick={() => handleStopWork(false)}
                                 disabled={isEndingWork}
-                                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                                className="flex-1 rounded-md border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
                             >
-                                취소
+                                메모 없이 종료
                             </button>
                             <button
                                 type="button"
-                                onClick={handleEndWork}
-                                disabled={endWorkBody.trim().length === 0 || isEndingWork}
-                                className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700 disabled:opacity-50"
+                                onClick={() => handleStopWork(true)}
+                                disabled={isEndingWork}
+                                className="flex-1 rounded-md bg-terracotta-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-terracotta-700 disabled:opacity-50"
                             >
-                                저장
+                                기록하고 종료
                             </button>
                         </div>
                     </div>

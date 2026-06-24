@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { keepEditorFocus } from "@/lib/keepEditorFocus";
 import { genderLabel } from "@/lib/api/characters";
 import { useCreateCharacter, useProjectCharacters } from "@/lib/query/useCharacters";
 import { useCaptureMemo, useProjectMemos, useRemoveLinkMemo, useSetPinMemo } from "@/lib/query/useMemos";
@@ -44,6 +45,7 @@ function MemosTab({ projectId }: { projectId: number }) {
                 />
                 <button
                     type="submit"
+                    onMouseDown={keepEditorFocus}
                     disabled={body.trim().length === 0 || captureMemo.isPending}
                     className="mt-1.5 w-full rounded-md bg-terracotta-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-terracotta-700 disabled:opacity-50"
                 >
@@ -63,6 +65,7 @@ function MemosTab({ projectId }: { projectId: number }) {
                         <p className="text-xs text-gray-500">메모를 불러오지 못했습니다.</p>
                         <button
                             type="button"
+                            onMouseDown={keepEditorFocus}
                             onClick={() => memosQuery.refetch()}
                             className="mt-1.5 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
                         >
@@ -78,6 +81,7 @@ function MemosTab({ projectId }: { projectId: number }) {
                             <div className="mt-1.5 flex items-center gap-1.5">
                                 <button
                                     type="button"
+                                    onMouseDown={keepEditorFocus}
                                     disabled={setPinMemo.isPending}
                                     onClick={() =>
                                         setPinMemo.mutate({ memoId: memo.id, projectId, pinned: !memo.pinned })
@@ -92,6 +96,7 @@ function MemosTab({ projectId }: { projectId: number }) {
                                 </button>
                                 <button
                                     type="button"
+                                    onMouseDown={keepEditorFocus}
                                     disabled={removeLinkMemo.isPending}
                                     onClick={() => removeLinkMemo.mutate({ memoId: memo.id, projectId })}
                                     className="rounded-full px-2 py-0.5 text-xs text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
@@ -148,6 +153,7 @@ function CharactersTab({ projectId }: { projectId: number }) {
                 />
                 <button
                     type="submit"
+                    onMouseDown={keepEditorFocus}
                     disabled={name.trim().length === 0 || createCharacter.isPending}
                     className="w-full rounded-md border border-dashed border-gray-300 px-3 py-1.5 text-sm text-gray-500 hover:border-terracotta-400 hover:text-terracotta-600 disabled:opacity-50"
                 >
@@ -165,6 +171,7 @@ function CharactersTab({ projectId }: { projectId: number }) {
                         <p className="text-xs text-gray-500">인물을 불러오지 못했습니다.</p>
                         <button
                             type="button"
+                            onMouseDown={keepEditorFocus}
                             onClick={() => charactersQuery.refetch()}
                             className="mt-1.5 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
                         >
@@ -235,6 +242,7 @@ export function BWorkSidePanel({
             <div className="flex w-8 shrink-0 flex-col items-center rounded-xl border border-gray-200 bg-gray-50 py-2">
                 <button
                     type="button"
+                    onMouseDown={keepEditorFocus}
                     aria-label="보조 패널 펼치기"
                     onClick={() => setIsOpen(true)}
                     className="rounded-md px-1 py-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600"
@@ -250,6 +258,7 @@ export function BWorkSidePanel({
             <div className="flex items-center border-b border-gray-200">
                 <button
                     type="button"
+                    onMouseDown={keepEditorFocus}
                     onClick={() => setTab("memos")}
                     className={
                         tab === "memos"
@@ -261,6 +270,7 @@ export function BWorkSidePanel({
                 </button>
                 <button
                     type="button"
+                    onMouseDown={keepEditorFocus}
                     onClick={() => setTab("characters")}
                     className={
                         tab === "characters"
@@ -273,6 +283,7 @@ export function BWorkSidePanel({
                 {collapsible && (
                     <button
                         type="button"
+                        onMouseDown={keepEditorFocus}
                         aria-label="보조 패널 접기"
                         onClick={() => setIsOpen(false)}
                         className="px-2 py-2 text-sm text-gray-400 hover:text-gray-600"

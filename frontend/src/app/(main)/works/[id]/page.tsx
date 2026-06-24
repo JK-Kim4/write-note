@@ -74,6 +74,7 @@ export default function BWorkDetailPage() {
     return (
         <BStudioShell
             outline={outline}
+            focusEditor={() => editorRef.current?.focus()}
             renderEditor={({ currentChapterId, projectId, paperSize, fontScale, layoutMode, onWordCountChange, onSyncStatus, onConflict }) => (
                 <BCustomChapterEditor
                     key={currentChapterId}

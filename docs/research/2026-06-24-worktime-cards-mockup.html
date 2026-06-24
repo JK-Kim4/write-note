@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>집필 시간 카드 표시 목업</title>
+<style>
+  :root{
+    --t50:#fbf3ee; --t100:#f6e3d6; --t200:#ecc7ad; --t300:#e0a781; --t500:#c77a4f; --t600:#a8542e; --t700:#8a4325;
+    --olive:#76753f; --teal:#3d8aa3;
+    --g200:#e5e7eb; --g300:#d1d5db; --g400:#9ca3af; --g500:#6b7280; --g600:#4b5563; --g700:#374151; --g900:#111827;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;padding:40px;font-family:"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;background:#f7f8fa;color:var(--g900);}
+  h1{font-size:18px;margin:0 0 4px;} .sub{color:var(--g500);font-size:13px;margin:0 0 24px;}
+  h2{font-size:14px;color:var(--g500);margin:28px 0 12px;font-weight:600;}
+  .row{display:flex;gap:16px;flex-wrap:wrap;align-items:start;}
+
+  /* 시리즈 타일 */
+  .tile{width:300px;background:#fff;border:1px solid var(--g200);border-radius:16px;padding:14px;}
+  .spines{display:flex;align-items:end;gap:4px;height:64px;padding:0 2px;}
+  .spine{width:13px;border-radius:3px 3px 1px 1px;box-shadow:inset -2px 0 0 rgba(0,0,0,.08),0 1px 1px rgba(42,38,32,.12);}
+  .tname{font-size:16px;font-weight:700;margin:10px 0 2px;}
+  .tcount{font-size:12px;color:var(--g500);}
+  .tword{font-size:11px;color:var(--g600);margin-top:4px;}
+  .ttime{font-size:11px;color:var(--t700);margin-top:3px;display:flex;align-items:center;gap:4px;}
+  .ttime b{font-weight:700;}
+
+  /* 작품 카드 */
+  .card{position:relative;width:440px;background:#fff;border:1px solid var(--g200);border-radius:12px;padding:20px;cursor:pointer;}
+  .card:hover{box-shadow:0 4px 14px -4px rgba(42,38,32,.18);}
+  .ctitle{font-size:18px;font-weight:700;}
+  .cmeta{margin-top:12px;display:flex;gap:12px;font-size:12px;color:var(--g400);}
+  /* 말풍선 */
+  .tip{position:absolute;left:20px;bottom:calc(100% - 2px);background:#2a2620;color:#fff;font-size:12px;
+       padding:7px 11px;border-radius:8px;white-space:nowrap;opacity:0;transform:translateY(4px);
+       transition:.15s;pointer-events:none;box-shadow:0 6px 20px -6px rgba(0,0,0,.4);}
+  .tip::after{content:"";position:absolute;left:18px;top:100%;border:5px solid transparent;border-top-color:#2a2620;}
+  .card:hover .tip{opacity:1;transform:translateY(0);}
+  .tip .dim{color:#c9c2b8;}
+</style>
+</head>
+<body>
+  <h1>집필 시간 카드 표시 — 시리즈 합 + 작품 호버 말풍선</h1>
+  <p class="sub">시간 표기 = 기존 /기록 페이지와 동일 형식("N시간 M분" · "M분" · 1분 미만 · 0분).</p>
+
+  <h2>① 시리즈 카드 — 총 집필 시간 합 추가</h2>
+  <div class="row">
+    <div class="tile">
+      <div class="spines">
+        <div class="spine" style="height:42px;background:var(--olive)"></div>
+        <div class="spine" style="height:48px;background:var(--olive)"></div>
+        <div class="spine" style="height:40px;background:var(--olive)"></div>
+        <div class="spine" style="height:56px;background:var(--olive)"></div>
+        <div class="spine" style="height:38px;background:var(--teal)"></div>
+        <div class="spine" style="height:60px;background:var(--teal)"></div>
+      </div>
+      <div class="tname">가나나나</div>
+      <div class="tcount">작품 6편</div>
+      <div class="tword">10,760자</div>
+      <div class="ttime"><span aria-hidden>⏱</span> 총 집필 시간 <b>4시간 12분</b></div>
+    </div>
+
+    <div class="tile">
+      <div class="spines">
+        <div class="spine" style="height:40px;background:var(--t600)"></div>
+        <div class="spine" style="height:56px;background:var(--teal)"></div>
+        <div class="spine" style="height:36px;background:var(--t500)"></div>
+      </div>
+      <div class="tname">새시리즈</div>
+      <div class="tcount">작품 3편</div>
+      <div class="tword">98자</div>
+      <div class="ttime"><span aria-hidden>⏱</span> 총 집필 시간 <b>1분 미만</b></div>
+    </div>
+  </div>
+  <p class="sub" style="margin-top:8px;">목표분량이 설정된 시리즈는 기존처럼 진척 막대가 글자수 자리에 오고, 그 아래 집필 시간 줄이 붙습니다.</p>
+
+  <h2>② 작품 카드 — 마우스 호버 시 말풍선 (생성일 + 총 집필 시간)</h2>
+  <p class="sub" style="margin-top:-6px;">↓ 카드에 마우스를 올려보세요.</p>
+  <div class="row">
+    <div class="card">
+      <div class="tip">2026.06.20 생성 <span class="dim">·</span> 집필 시간 <b>1시간 5분</b></div>
+      <div class="ctitle">123123</div>
+      <div class="cmeta"><span>71자</span><span>마지막 저장 2026.06.24</span></div>
+    </div>
+    <div class="card">
+      <div class="tip">2026.06.23 생성 <span class="dim">·</span> 집필 시간 <b>0분</b></div>
+      <div class="ctitle">새작품 테스트트</div>
+      <div class="cmeta"><span>0자</span><span>마지막 저장 2026.06.23</span></div>
+    </div>
+  </div>
+  <p class="sub" style="margin-top:12px;">말풍선 = 카드 위쪽에 뜨는 다크 툴팁(꼬리 포함). 호버 0.15s fade. 편집/보관/삭제 버튼은 생략(실제 카드엔 있음).</p>
+</body>
+</html>

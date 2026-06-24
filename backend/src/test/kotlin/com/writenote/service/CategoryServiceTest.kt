@@ -6,6 +6,7 @@ import com.writenote.error.ValidationException
 import com.writenote.mapper.CategoryMapper
 import com.writenote.model.request.CreateCategoryRequest
 import com.writenote.model.request.UpdateCategoryRequest
+import com.writenote.repository.CategoryDuration
 import com.writenote.repository.CategoryProjectCount
 import com.writenote.repository.CategoryRepository
 import com.writenote.repository.CategoryWordCount
@@ -55,6 +56,15 @@ class CategoryServiceTest {
         object : CategoryWordCount {
             override val categoryId = categoryId
             override val totalWordCount = totalWordCount
+        }
+
+    private fun duration(
+        categoryId: Long,
+        totalDurationMs: Long,
+    ): CategoryDuration =
+        object : CategoryDuration {
+            override val categoryId = categoryId
+            override val totalDurationMs = totalDurationMs
         }
 
     private fun savedCategory(c: Category): Category =
@@ -241,6 +251,7 @@ class CategoryServiceTest {
             )
         every { projectRepository.countActiveByCategory(eq(1L)) } returns listOf(count(10L, 3L))
         every { projectRepository.sumWordCountByCategory(eq(1L)) } returns emptyList()
+        every { projectRepository.sumDurationByCategory(eq(1L)) } returns emptyList()
 
         val result = service.list(1L)
 
@@ -261,12 +272,16 @@ class CategoryServiceTest {
             )
         every { projectRepository.countActiveByCategory(eq(1L)) } returns emptyList()
         every { projectRepository.sumWordCountByCategory(eq(1L)) } returns listOf(words(10L, 1200L))
+        every { projectRepository.sumDurationByCategory(eq(1L)) } returns listOf(duration(10L, 7200000L))
 
         val result = service.list(1L)
 
         assertThat(result.first { it.id == 10L }.totalWordCount).isEqualTo(1200)
         assertThat(result.first { it.id == 20L }.totalWordCount).isEqualTo(0)
+        assertThat(result.first { it.id == 10L }.totalDurationMs).isEqualTo(7200000L)
+        assertThat(result.first { it.id == 20L }.totalDurationMs).isEqualTo(0L)
         verify(exactly = 1) { projectRepository.sumWordCountByCategory(eq(1L)) }
+        verify(exactly = 1) { projectRepository.sumDurationByCategory(eq(1L)) }
     }
 
     @Test
@@ -289,6 +304,7 @@ class CategoryServiceTest {
         every { categoryRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns Optional.of(category)
         every { projectRepository.countActiveByCategory(eq(1L)) } returns listOf(count(7L, 2L))
         every { projectRepository.sumWordCountByCategory(eq(1L)) } returns emptyList()
+        every { projectRepository.sumDurationByCategory(eq(1L)) } returns emptyList()
 
         val response = service.rename(1L, 7L, UpdateCategoryRequest(name = "  장편 판타지  ", sortOrder = 3))
 
@@ -305,6 +321,7 @@ class CategoryServiceTest {
         every { categoryRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns Optional.of(category)
         every { projectRepository.countActiveByCategory(eq(1L)) } returns listOf(count(7L, 1L))
         every { projectRepository.sumWordCountByCategory(eq(1L)) } returns emptyList()
+        every { projectRepository.sumDurationByCategory(eq(1L)) } returns emptyList()
 
         val response =
             service.rename(1L, 7L, UpdateCategoryRequest(paperSize = "sinkukpan", layoutMode = "paper"))
@@ -323,6 +340,7 @@ class CategoryServiceTest {
         every { categoryRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns Optional.of(category)
         every { projectRepository.countActiveByCategory(eq(1L)) } returns listOf(count(7L, 1L))
         every { projectRepository.sumWordCountByCategory(eq(1L)) } returns emptyList()
+        every { projectRepository.sumDurationByCategory(eq(1L)) } returns emptyList()
 
         val response =
             service.rename(1L, 7L, UpdateCategoryRequest(genre = "SF", synopsis = "근미래 도시"))
@@ -341,6 +359,7 @@ class CategoryServiceTest {
         every { categoryRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns Optional.of(category)
         every { projectRepository.countActiveByCategory(eq(1L)) } returns listOf(count(7L, 1L))
         every { projectRepository.sumWordCountByCategory(eq(1L)) } returns listOf(words(7L, 42000L))
+        every { projectRepository.sumDurationByCategory(eq(1L)) } returns listOf(duration(7L, 3600000L))
 
         val response = service.rename(1L, 7L, UpdateCategoryRequest(targetLength = 300000))
 

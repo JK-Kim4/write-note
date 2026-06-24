@@ -10,6 +10,10 @@ import { LibraryBoard } from "./LibraryBoard";
 import type { CategoryResponse } from "@/types/api";
 import type { ProjectCard } from "@/lib/types/domain";
 
+vi.mock("next/navigation", () => ({
+    useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
+}));
+
 /**
  * LibraryBoard 행위 테스트(032 T027/T038/T043) — 드릴인·⋯ 이동 메뉴·시리즈 생성/이름변경/삭제·빈 상태·URL 보존.
  * 실제 @dnd-kit 포인터 드래그는 jsdom 에서 시뮬레이션이 불안정 → 이동 로직은 useMoveProjectCategory 테스트가,
@@ -31,6 +35,7 @@ function cat(id: number, name: string, projectCount = 0): CategoryResponse {
         synopsis: null,
         targetLength: null,
         totalWordCount: 0,
+        totalDurationMs: 0,
         createdAt: "2026-06-22T00:00:00Z",
         updatedAt: "2026-06-22T00:00:00Z",
     };
@@ -202,6 +207,21 @@ describe("LibraryBoard — 시리즈 내보내기", () => {
         expect(screen.getByRole("dialog", { name: "시리즈 내보내기" })).toBeInTheDocument();
         // 작품 목록(체크박스)이 현재 folderCards 로 렌더되어야 — 다이얼로그 항상-마운트 시 빈 works 로 고정되는 버그 회귀 방지
         expect(screen.getAllByRole("checkbox").length).toBeGreaterThan(0);
+    });
+});
+
+describe("LibraryBoard — 시리즈 타일 집필 시간", () => {
+    it("시리즈 타일에 '총 집필 시간'이 표시된다", () => {
+        const category = { ...cat(7, "가나다"), totalDurationMs: (2 * 3600 + 10 * 60) * 1000 };
+        setup([category], []);
+        expect(screen.getByText(/총 집필 시간/)).toBeInTheDocument();
+        expect(screen.getByText("2시간 10분")).toBeInTheDocument();
+    });
+
+    it("totalDurationMs=0 이면 '0분'을 표시한다", () => {
+        const category = { ...cat(7, "가나다"), totalDurationMs: 0 };
+        setup([category], []);
+        expect(screen.getByText("0분")).toBeInTheDocument();
     });
 });
 

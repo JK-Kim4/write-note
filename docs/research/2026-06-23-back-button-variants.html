@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>집필실 뒤로가기 버튼 시안</title>
+<style>
+  :root{
+    --t50:#fbf3ee; --t100:#f6e3d6; --t200:#ecc7ad; --t300:#e0a781;
+    --t500:#c77a4f; --t600:#a8542e; --t700:#8a4325;
+    --g200:#e5e7eb; --g300:#d1d5db; --g400:#9ca3af; --g500:#6b7280; --g600:#4b5563; --g700:#374151; --g900:#111827;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:40px 24px;
+    font-family:"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+    background:#eef0f4; color:var(--g900);
+  }
+  h1{font-size:18px; margin:0 0 4px;}
+  .sub{color:var(--g500); font-size:13px; margin:0 0 28px;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:24px; align-items:start;}
+  .panel{
+    width:300px; background:#fff; border:1px solid var(--g200);
+    border-radius:14px; padding:14px; box-shadow:0 1px 2px rgba(0,0,0,.04);
+  }
+  .label{font-size:12px; font-weight:700; color:var(--t700); margin-bottom:8px; letter-spacing:.02em;}
+  .hdr{border-bottom:1px solid var(--g200); padding-bottom:12px; margin-bottom:12px;}
+  .title{font-size:16px; font-weight:700; margin:8px 0 0;}
+  .meta{font-size:12px; color:var(--g500); margin-top:6px;}
+  .row{display:flex; align-items:center; gap:10px; margin-top:12px;}
+  .row .lbl{font-size:13px; color:var(--g600);}
+  .sel{flex:1; border:1px solid var(--g300); border-radius:8px; padding:6px 10px; font-size:13px; color:var(--g700); background:#fff;}
+  .export{margin-top:12px; width:100%; border:1px solid var(--g200); border-radius:10px; padding:10px; text-align:center; font-size:14px; color:var(--g700);}
+
+  /* ===== 뒤로가기 시안들 ===== */
+
+  /* 0. 현재(연한 회색 작은 글씨) — 비교용 */
+  .v0{font-size:12px; color:var(--g400); text-decoration:none;}
+
+  /* 1. 테두리 칩 버튼 */
+  .v1{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid var(--g200); border-radius:9px;
+    padding:6px 10px; font-size:13px; font-weight:600; color:var(--g700);
+    text-decoration:none; cursor:pointer; transition:.15s;
+  }
+  .v1:hover{border-color:var(--t300); background:var(--t50); color:var(--t700);}
+
+  /* 2. 강조 색 텍스트 (테두리 없음) */
+  .v2{
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:14px; font-weight:700; color:var(--t700);
+    text-decoration:none; cursor:pointer;
+  }
+  .v2:hover{color:var(--t600);}
+
+  /* 3. 연한 배경 알약 (항상 배경) */
+  .v3{
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--t50); border:1px solid var(--t100); border-radius:999px;
+    padding:6px 12px; font-size:13px; font-weight:600; color:var(--t700);
+    text-decoration:none; cursor:pointer; transition:.15s;
+  }
+  .v3:hover{background:var(--t100);}
+
+  /* 4. 꽉 찬 강조 버튼 (terracotta solid) */
+  .v4{
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--t600); border-radius:9px;
+    padding:7px 12px; font-size:13px; font-weight:600; color:#fff;
+    text-decoration:none; cursor:pointer; transition:.15s;
+  }
+  .v4:hover{background:var(--t700);}
+
+  /* 5. 화살표 동그라미 + 텍스트 */
+  .v5{display:inline-flex; align-items:center; gap:8px; text-decoration:none; cursor:pointer; color:var(--g700);}
+  .v5 .circ{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:26px; height:26px; border-radius:999px;
+    background:var(--t50); border:1px solid var(--t200); color:var(--t700); font-size:14px;
+    transition:.15s;
+  }
+  .v5 .txt{font-size:13px; font-weight:600;}
+  .v5:hover .circ{background:var(--t600); color:#fff; border-color:var(--t600);}
+  .v5:hover .txt{color:var(--t700);}
+
+  /* 6. 전폭 옅은 버튼 (패널 상단 바 느낌) */
+  .v6{
+    display:flex; align-items:center; gap:6px; width:100%;
+    background:var(--t50); border:1px solid var(--t100); border-radius:9px;
+    padding:8px 10px; font-size:13px; font-weight:600; color:var(--t700);
+    text-decoration:none; cursor:pointer; transition:.15s;
+  }
+  .v6:hover{background:var(--t100); border-color:var(--t200);}
+</style>
+</head>
+<body>
+  <h1>집필실 좌상단 "작품 목록으로 돌아가기" 시안</h1>
+  <p class="sub">각 패널 헤더는 실제 집필실 좌패널과 동일 맥락(제목·메타·글자크기·내보내기). 마우스 올려보면 호버 효과도 보입니다.</p>
+
+  <h2 style="font-size:15px;margin:0 0 12px;color:var(--g700);">A. 문구 안 — 칩 버튼(1번)에 얹어서</h2>
+  <div class="grid">
+    <div class="panel">
+      <div class="label">A1. ← 목록으로 돌아가기</div>
+      <div class="hdr">
+        <a class="v1" href="#">← 목록으로 돌아가기</a>
+        <div class="title">123123</div>
+        <div class="meta">종이 출판 · A4 (210×297mm) · 시리즈 설정</div>
+        <div class="row"><span class="lbl">글자 크기</span><span class="sel">보통 ⌄</span></div>
+      </div>
+      <div class="export">내보내기</div>
+    </div>
+    <div class="panel">
+      <div class="label">A2. ← 작품 목록으로 돌아가기</div>
+      <div class="hdr">
+        <a class="v1" href="#">← 작품 목록으로 돌아가기</a>
+        <div class="title">123123</div>
+        <div class="meta">종이 출판 · A4 (210×297mm) · 시리즈 설정</div>
+        <div class="row"><span class="lbl">글자 크기</span><span class="sel">보통 ⌄</span></div>
+      </div>
+      <div class="export">내보내기</div>
+    </div>
+    <div class="panel">
+      <div class="label">A3. ← 돌아가기</div>
+      <div class="hdr">
+        <a class="v1" href="#">← 돌아가기</a>
+        <div class="title">123123</div>
+        <div class="meta">종이 출판 · A4 (210×297mm) · 시리즈 설정</div>
+        <div class="row"><span class="lbl">글자 크기</span><span class="sel">보통 ⌄</span></div>
+      </div>
+      <div class="export">내보내기</div>
+    </div>
+    <div class="panel">
+      <div class="label">A4. "목록으로 돌아가기" — 강조색(2번)</div>
+      <div class="hdr">
+        <a class="v2" href="#">← 목록으로 돌아가기</a>
+        <div class="title">123123</div>
+        <div class="meta">종이 출판 · A4 (210×297mm) · 시리즈 설정</div>
+        <div class="row"><span class="lbl">글자 크기</span><span class="sel">보통 ⌄</span></div>
+      </div>
+      <div class="export">내보내기</div>
+    </div>
+    <div class="panel">
+      <div class="label">A5. "목록으로 돌아가기" — 전폭(6번)</div>
+      <div class="hdr">
+        <a class="v6" href="#">← 목록으로 돌아가기</a>
+        <div class="title">123123</div>
+        <div class="meta">종이 출판 · A4 (210×297mm) · 시리즈 설정</div>
+        <div class="row"><span class="lbl">글자 크기</span><span class="sel">보통 ⌄</span></div>
+      </div>
+      <div class="export">내보내기</div>
+    </div>
+  </div>
+
+  <h2 style="font-size:15px;margin:32px 0 12px;color:var(--g700);">B. 스타일 비교 (문구 = "← 작품 목록")</h2>
+  <div class="grid">
+
+    <div class="panel">
+      <div class="label">0. 현재 (비교용 — 안 보임)</div>
+      <div class="hdr">
+        <a class="v0" href="#">← 작품 목록</a>
+        <div class="title">123123</div>
+        <div class="meta">종이 출판 · A4 (210×297mm) · 시리즈 설정</div>
+        <div class="row"><span class="lbl">글자 크기</span><span class="sel">보통 ⌄</span></div>
+      </div>
+      <div class="export">내보내기</div>
+    </div>
+
+    <div class="panel">
+      <div class="label">1. 테두리 칩 버튼</div>
+      <div class="hdr">
+        <a class="v1" href="#">← 작품 목록</a>
+        <div class="title">123123</div>
+        <div class="meta">종이 출판 · A4 (210×297mm) · 시리즈 설정</div>
+        <div class="row"><span class="lbl">글자 크기</span><span class="sel">보통 ⌄</span></div>
+      </div>
+      <div class="export">내보내기</div>
+    </div>
+
+    <div class="panel">
+      <div class="label">2. 강조 색 텍스트 (테두리 없음)</div>
+      <div class="hdr">
+        <a class="v2" href="#">← 작품 목록</a>
+        <div class="title">123123</div>
+        <div class="meta">종이 출판 · A4 (210×297mm) · 시리즈 설정</div>
+        <div class="row"><span class="lbl">글자 크기</span><span class="sel">보통 ⌄</span></div>
+      </div>
+      <div class="export">내보내기</div>
+    </div>
+
+    <div class="panel">
+      <div class="label">3. 연한 배경 알약</div>
+      <div class="hdr">
+        <a class="v3" href="#">← 작품 목록</a>
+        <div class="title">123123</div>
+        <div class="meta">종이 출판 · A4 (210×297mm) · 시리즈 설정</div>
+        <div class="row"><span class="lbl">글자 크기</span><span class="sel">보통 ⌄</span></div>
+      </div>
+      <div class="export">내보내기</div>
+    </div>
+
+    <div class="panel">
+      <div class="label">4. 꽉 찬 강조 버튼 (solid)</div>
+      <div class="hdr">
+        <a class="v4" href="#">← 작품 목록</a>
+        <div class="title">123123</div>
+        <div class="meta">종이 출판 · A4 (210×297mm) · 시리즈 설정</div>
+        <div class="row"><span class="lbl">글자 크기</span><span class="sel">보통 ⌄</span></div>
+      </div>
+      <div class="export">내보내기</div>
+    </div>
+
+    <div class="panel">
+      <div class="label">5. 화살표 동그라미 + 텍스트</div>
+      <div class="hdr">
+        <a class="v5" href="#"><span class="circ">←</span><span class="txt">작품 목록</span></a>
+        <div class="title">123123</div>
+        <div class="meta">종이 출판 · A4 (210×297mm) · 시리즈 설정</div>
+        <div class="row"><span class="lbl">글자 크기</span><span class="sel">보통 ⌄</span></div>
+      </div>
+      <div class="export">내보내기</div>
+    </div>
+
+    <div class="panel">
+      <div class="label">6. 전폭 옅은 버튼</div>
+      <div class="hdr">
+        <a class="v6" href="#">← 작품 목록</a>
+        <div class="title">123123</div>
+        <div class="meta">종이 출판 · A4 (210×297mm) · 시리즈 설정</div>
+        <div class="row"><span class="lbl">글자 크기</span><span class="sel">보통 ⌄</span></div>
+      </div>
+      <div class="export">내보내기</div>
+    </div>
+
+  </div>
+</body>
+</html>
