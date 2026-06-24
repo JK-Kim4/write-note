@@ -22,9 +22,11 @@ class UserAuthConverter(
         return AuthMeResponse(
             userId = userId,
             email = user.email,
+            nickname = user.nickname,
             kakaoLinked = user.kakaoId != null,
             emailVerifiedAt = user.emailVerifiedAt,
             activeApiTokenCount = apiTokenRepository.countByUserIdAndRevokedAtIsNull(userId).toInt(),
+            createdAt = user.createdAt,
         )
     }
 }
