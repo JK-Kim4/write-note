@@ -78,7 +78,7 @@ function CharacterFormModal({
     };
 
     const inputClass =
-        "mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1";
+        "mt-1 w-full rounded-md border border-border-strong px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1";
 
     return (
         <div
@@ -92,12 +92,12 @@ function CharacterFormModal({
                 aria-labelledby="character-form-title"
                 onSubmit={handleSubmit}
                 onClick={(e) => e.stopPropagation()}
-                className="max-h-full w-full max-w-md overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
+                className="max-h-full w-full max-w-md overflow-y-auto rounded-xl border border-border bg-surface p-6 shadow-lg"
             >
-                <h2 id="character-form-title" className="text-lg font-bold text-gray-900">
+                <h2 id="character-form-title" className="text-lg font-bold text-ink">
                     {title}
                 </h2>
-                <label htmlFor="char-name" className="mt-4 block text-sm text-gray-600">
+                <label htmlFor="char-name" className="mt-4 block text-sm text-muted-strong">
                     이름<span aria-hidden="true" className="ml-0.5 text-red-500">*</span>
                     <input
                         id="char-name"
@@ -109,7 +109,7 @@ function CharacterFormModal({
                     />
                 </label>
                 <div className="mt-3 grid grid-cols-2 gap-3">
-                    <label htmlFor="char-age" className="block text-sm text-gray-600">
+                    <label htmlFor="char-age" className="block text-sm text-muted-strong">
                         나이
                         <input
                             id="char-age"
@@ -119,7 +119,7 @@ function CharacterFormModal({
                             className={inputClass}
                         />
                     </label>
-                    <label htmlFor="char-gender" className="block text-sm text-gray-600">
+                    <label htmlFor="char-gender" className="block text-sm text-muted-strong">
                         성별
                         <select
                             id="char-gender"
@@ -135,7 +135,7 @@ function CharacterFormModal({
                         </select>
                     </label>
                 </div>
-                <label htmlFor="char-short-desc" className="mt-3 block text-sm text-gray-600">
+                <label htmlFor="char-short-desc" className="mt-3 block text-sm text-muted-strong">
                     한 줄 소개
                     <input
                         id="char-short-desc"
@@ -144,7 +144,7 @@ function CharacterFormModal({
                         className={inputClass}
                     />
                 </label>
-                <label htmlFor="char-traits" className="mt-3 block text-sm text-gray-600">
+                <label htmlFor="char-traits" className="mt-3 block text-sm text-muted-strong">
                     특징
                     <input
                         id="char-traits"
@@ -154,7 +154,7 @@ function CharacterFormModal({
                         className={inputClass}
                     />
                 </label>
-                <label htmlFor="char-notes" className="mt-3 block text-sm text-gray-600">
+                <label htmlFor="char-notes" className="mt-3 block text-sm text-muted-strong">
                     노트
                     <textarea
                         id="char-notes"
@@ -175,14 +175,14 @@ function CharacterFormModal({
                         type="button"
                         onClick={onClose}
                         disabled={isSaving}
-                        className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                        className="rounded-md border border-border-strong px-4 py-2 text-sm text-muted-strong hover:bg-surface-2 disabled:opacity-50"
                     >
                         취소
                     </button>
                     <button
                         type="submit"
                         disabled={values.name.trim().length === 0 || isSaving}
-                        className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700 disabled:opacity-50"
+                        className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink hover:bg-terracotta-700 disabled:opacity-50"
                     >
                         저장
                     </button>
@@ -265,7 +265,7 @@ export default function BCharactersPage() {
                     aria-label="작품 선택"
                     value={projectId == null ? "" : String(projectId)}
                     onChange={(e) => setProjectId(Number(e.target.value))}
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
+                    className="rounded-md border border-border-strong px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 >
                     {projects.length === 0 && <option value="">작품 없음</option>}
                     {projects.map((p) => (
@@ -277,49 +277,49 @@ export default function BCharactersPage() {
             </div>
 
             {projectsQuery.isLoading || charactersQuery.isLoading ? (
-                <p className="py-12 text-center text-sm text-gray-400">불러오는 중…</p>
+                <p className="py-12 text-center text-sm text-faint">불러오는 중…</p>
             ) : projectsQuery.isError || charactersQuery.isError ? (
                 <div className="py-12 text-center">
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted">
                         {projectsQuery.isError ? "작품 목록을 불러올 수 없습니다." : "인물을 불러올 수 없습니다."}
                     </p>
                     <button
                         type="button"
                         onClick={() => (projectsQuery.isError ? projectsQuery.refetch() : charactersQuery.refetch())}
-                        className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                        className="mt-3 rounded-md border border-border-strong px-4 py-2 text-sm text-muted-strong hover:bg-surface-2"
                     >
                         다시 시도
                     </button>
                 </div>
             ) : projects.length === 0 ? (
-                <p className="py-12 text-center text-sm text-gray-500">먼저 작품을 만들어주세요.</p>
+                <p className="py-12 text-center text-sm text-muted">먼저 작품을 만들어주세요.</p>
             ) : (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <button
                         type="button"
                         onClick={() => setIsCreating(true)}
-                        className="flex min-h-28 items-center justify-center rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-terracotta-400 hover:text-terracotta-600"
+                        className="flex min-h-28 items-center justify-center rounded-xl border border-dashed border-border-strong text-sm text-muted hover:border-terracotta-400 hover:text-accent-text"
                     >
                         + 인물 추가
                     </button>
                     {characters.map((character) => {
                         const meta = [character.age, genderLabel(character.gender)].filter(Boolean).join(" · ");
                         return (
-                            <div key={character.id} className="group min-w-0 rounded-xl border border-gray-200 bg-white p-4">
+                            <div key={character.id} className="group min-w-0 rounded-xl border border-border bg-surface p-4">
                                 <div className="flex items-baseline justify-between gap-2">
-                                    <h2 className="text-base font-bold text-gray-900">{character.name}</h2>
-                                    {meta && <span className="shrink-0 text-xs text-gray-400">{meta}</span>}
+                                    <h2 className="text-base font-bold text-ink">{character.name}</h2>
+                                    {meta && <span className="shrink-0 text-xs text-faint">{meta}</span>}
                                 </div>
                                 {character.shortDescription && (
-                                    <p className="mt-1 text-sm break-words text-gray-600">{character.shortDescription}</p>
+                                    <p className="mt-1 text-sm break-words text-muted-strong">{character.shortDescription}</p>
                                 )}
                                 {character.traits && (
-                                    <p className="mt-1.5 rounded-md bg-gray-50 px-2 py-1 text-xs break-words text-gray-500">
+                                    <p className="mt-1.5 rounded-md bg-surface-2 px-2 py-1 text-xs break-words text-muted">
                                         {character.traits}
                                     </p>
                                 )}
                                 {character.notes && (
-                                    <p className="mt-1.5 line-clamp-3 text-xs break-words whitespace-pre-wrap text-gray-400">
+                                    <p className="mt-1.5 line-clamp-3 text-xs break-words whitespace-pre-wrap text-faint">
                                         {character.notes}
                                     </p>
                                 )}
@@ -327,7 +327,7 @@ export default function BCharactersPage() {
                                     <button
                                         type="button"
                                         onClick={() => setEditTarget(character)}
-                                        className="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                                        className="rounded-md border border-border-strong px-2 py-1 text-xs text-muted-strong hover:bg-surface-2"
                                     >
                                         수정
                                     </button>
@@ -343,7 +343,7 @@ export default function BCharactersPage() {
                         );
                     })}
                     {characters.length === 0 && (
-                        <p className="col-span-full py-8 text-center text-sm text-gray-400">
+                        <p className="col-span-full py-8 text-center text-sm text-faint">
                             이 작품엔 아직 인물이 없어요. &lsquo;+ 인물 추가&rsquo;로 시작하세요.
                         </p>
                     )}
@@ -397,10 +397,10 @@ export default function BCharactersPage() {
                         aria-modal="true"
                         aria-label="인물 삭제"
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
+                        className="w-full max-w-sm rounded-xl border border-border bg-surface p-6 shadow-lg"
                     >
-                        <h2 className="text-lg font-bold text-gray-900">인물 삭제</h2>
-                        <p className="mt-2 text-sm text-gray-600">
+                        <h2 className="text-lg font-bold text-ink">인물 삭제</h2>
+                        <p className="mt-2 text-sm text-muted-strong">
                             「{deleteTarget.name}」 을(를) 삭제할까요? 되돌릴 수 없습니다.
                         </p>
                         {deleteMutation.isError && (
@@ -414,7 +414,7 @@ export default function BCharactersPage() {
                                 type="button"
                                 onClick={closeDelete}
                                 disabled={deleteMutation.isPending}
-                                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                                className="rounded-md border border-border-strong px-4 py-2 text-sm text-muted-strong hover:bg-surface-2 disabled:opacity-50"
                             >
                                 취소
                             </button>

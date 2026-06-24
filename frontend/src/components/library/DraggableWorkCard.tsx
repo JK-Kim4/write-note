@@ -45,8 +45,8 @@ export function DraggableWorkCard({ card, onDelete, onEdit, onArchive, overlay }
 
     const body = (
         <>
-            <h2 className="text-lg font-bold text-gray-900">{card.title}</h2>
-            <div className="mt-3 flex items-center gap-3 text-xs text-gray-400">
+            <h2 className="text-lg font-bold text-ink">{card.title}</h2>
+            <div className="mt-3 flex items-center gap-3 text-xs text-faint">
                 <span>{card.wordCount.toLocaleString()}자</span>
                 <span>마지막 저장 {formatDate(card.docUpdatedAt)}</span>
             </div>
@@ -59,7 +59,7 @@ export function DraggableWorkCard({ card, onDelete, onEdit, onArchive, overlay }
             {...(overlay ? {} : listeners)}
             {...(overlay ? {} : attributes)}
             onClick={overlay ? undefined : handleCardClick}
-            className={`group relative cursor-pointer select-none rounded-xl border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md ${
+            className={`group relative cursor-pointer select-none rounded-xl border border-border bg-surface p-5 transition-shadow hover:shadow-md ${
                 overlay ? "rotate-[-2deg] shadow-xl" : ""
             } ${isDragging ? "opacity-40" : ""}`}
         >
@@ -89,7 +89,7 @@ export function DraggableWorkCard({ card, onDelete, onEdit, onArchive, overlay }
                             e.stopPropagation();
                             onEdit(card);
                         }}
-                        className="rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                        className="rounded-md border border-border px-2 py-1 text-xs text-muted-strong hover:bg-surface-2"
                     >
                         편집
                     </button>
@@ -102,7 +102,7 @@ export function DraggableWorkCard({ card, onDelete, onEdit, onArchive, overlay }
                             e.stopPropagation();
                             onArchive(card.id);
                         }}
-                        className="rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                        className="rounded-md border border-border px-2 py-1 text-xs text-muted-strong hover:bg-surface-2"
                     >
                         보관
                     </button>

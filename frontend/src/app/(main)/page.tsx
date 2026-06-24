@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { useProjectCards } from "@/lib/query/useProjects";
-import { selectDashboard, weekDayRanges } from "@/lib/dashboardView";
+import { limitHomeOthers, selectDashboard, weekDayRanges } from "@/lib/dashboardView";
 import { useWeeklyByDay } from "@/lib/query/useSessions";
 import { useInboxMemos } from "@/lib/query/useMemos";
 import { toInboxMemoView } from "@/lib/memoView";
@@ -27,6 +27,7 @@ export default function BDashboardPage() {
         () => false,
     );
     const { resume, others } = selectDashboard(cardsQuery.data ?? []);
+    const { visible: visibleOthers, hasMore: hasMoreOthers } = limitHomeOthers(others);
     const weeklyQuery = useWeeklyByDay();
     const now = new Date();
     const todayIndex = weekDayRanges(now).findIndex((r) => r.isToday);
@@ -71,11 +72,11 @@ export default function BDashboardPage() {
         <div>
             <OnboardingTour />
             <AnnouncementBanner />
-            <h1 className="text-xl font-bold text-gray-900">
+            <h1 className="text-xl font-bold text-ink">
                 {mounted && quote ? (
                     <>
                         <span className="italic font-semibold">“{quote.text}”</span>
-                        <span className="ml-2 align-baseline text-sm font-normal not-italic text-gray-400">
+                        <span className="ml-2 align-baseline text-sm font-normal not-italic text-faint">
                             — {quote.author}
                         </span>
                     </>
@@ -83,12 +84,12 @@ export default function BDashboardPage() {
                     "안녕하세요."
                 )}
             </h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-muted">
                 {mounted ? (quote ? dateLabel : `${dateLabel} — 오늘도 곁에 있을게요.`) : " "}
             </p>
 
             {cardsQuery.data === undefined && !cardsQuery.isError ? (
-                <p className="mt-6 text-sm text-gray-400">불러오는 중…</p>
+                <p className="mt-6 text-sm text-faint">불러오는 중…</p>
             ) : cardsQuery.isError ? (
                 <div role="alert" className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm">
                     작업실을 불러오지 못했습니다.
@@ -102,15 +103,15 @@ export default function BDashboardPage() {
                     </button>
                 </div>
             ) : resume === null ? (
-                <section className="mt-8 rounded-xl border border-gray-200 bg-white p-8 text-center">
-                    <h2 className="text-lg font-bold text-gray-900">작업실이 준비됐습니다</h2>
-                    <p className="mt-2 text-sm text-gray-600">
+                <section className="mt-8 rounded-xl border border-border bg-surface p-8 text-center">
+                    <h2 className="text-lg font-bold text-ink">작업실이 준비됐습니다</h2>
+                    <p className="mt-2 text-sm text-muted-strong">
                         메모와 등장인물, 지난 세션의 마지막 한 줄까지 한자리에.
                     </p>
                     <button
                         type="button"
                         data-tour="new-work"
-                        className="mt-4 rounded-md bg-terracotta-600 px-4 py-2 text-sm text-white hover:bg-terracotta-700"
+                        className="mt-4 rounded-md bg-accent px-4 py-2 text-sm text-accent-ink hover:bg-terracotta-700"
                         onClick={() => router.push("/library?new=1")}
                     >
                         첫 작품 시작하기
@@ -134,9 +135,9 @@ export default function BDashboardPage() {
                     <div className="mt-4 grid gap-4 min-[880px]:grid-cols-[1fr_320px]">
                         {/* 좌 컬럼 */}
                         <div className="flex flex-col gap-4">
-                            {others.length > 0 && (
+                            {visibleOthers.length > 0 && (
                                 <div className="grid grid-cols-2 gap-3">
-                                    {others.map((c) => (
+                                    {visibleOthers.map((c) => (
                                         <BWorkMiniCard
                                             key={c.id}
                                             card={c}
@@ -144,6 +145,15 @@ export default function BDashboardPage() {
                                         />
                                     ))}
                                 </div>
+                            )}
+                            {hasMoreOthers && (
+                                <button
+                                    type="button"
+                                    onClick={() => router.push("/library")}
+                                    className="self-start text-xs font-medium text-accent-text hover:text-terracotta-800 hover:underline"
+                                >
+                                    작품 전체 보기 →
+                                </button>
                             )}
                             {/* 오늘 작업(게이지) : 집필 리듬 ≈ 2:8 한 행(좁은 화면은 세로 적층) */}
                             <div className="grid grid-cols-1 gap-4 min-[640px]:grid-cols-[minmax(200px,2fr)_8fr] min-[640px]:items-stretch">
@@ -184,17 +194,17 @@ export default function BDashboardPage() {
                 aria-modal="true"
                 aria-label="메모"
                 inert={!memoDrawerOpen || undefined}
-                className={`fixed inset-y-0 right-0 z-30 flex w-80 flex-col overflow-hidden bg-white shadow-xl transition-transform duration-200 min-[880px]:hidden ${
+                className={`fixed inset-y-0 right-0 z-30 flex w-80 flex-col overflow-hidden bg-surface shadow-xl transition-transform duration-200 min-[880px]:hidden ${
                     memoDrawerOpen ? "translate-x-0" : "translate-x-full"
                 }`}
             >
-                <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2">
-                    <span className="text-sm font-medium text-gray-700">메모</span>
+                <div className="flex items-center justify-between border-b border-border px-3 py-2">
+                    <span className="text-sm font-medium text-ink-2">메모</span>
                     <button
                         type="button"
                         aria-label="메모 패널 닫기"
                         onClick={() => setMemoDrawerOpen(false)}
-                        className="rounded-md px-2 py-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        className="rounded-md px-2 py-1 text-sm text-faint hover:bg-surface-3 hover:text-muted-strong"
                     >
                         ✕
                     </button>

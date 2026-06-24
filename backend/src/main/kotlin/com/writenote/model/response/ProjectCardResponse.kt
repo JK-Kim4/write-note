@@ -22,6 +22,8 @@ data class ProjectCardResponse(
     val updatedAt: Instant,
     /** 소속 모음 id. null = 미분류(032). FE 가 루트/모음으로 그룹핑. */
     val categoryId: Long?,
+    /** 소속 시리즈명(038) — categoryId→Category.name 매핑. null = 미분류. FE 카드 표시용. */
+    val categoryName: String?,
     /** 적용 판형(033 R2) — 시리즈값 or "A4" fallback. */
     val effectivePaperSize: String,
     /** 적용 출판방식(033 R2) — 시리즈값 or "paper" fallback. */
@@ -42,6 +44,7 @@ data class ProjectCardResponse(
     companion object {
         fun from(
             base: ProjectResponse,
+            categoryName: String?,
             wordCount: Int,
             documentUpdatedAt: Instant,
             totalDurationMs: Long,
@@ -60,6 +63,7 @@ data class ProjectCardResponse(
                 createdAt = base.createdAt,
                 updatedAt = base.updatedAt,
                 categoryId = base.categoryId,
+                categoryName = categoryName,
                 effectivePaperSize = base.effectivePaperSize,
                 effectiveLayoutMode = base.effectiveLayoutMode,
                 wordCount = wordCount,

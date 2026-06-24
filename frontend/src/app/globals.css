@@ -62,6 +62,20 @@ html {
   --color-teal-600: #087194;
   --color-teal-700: #0a5c79;
   --color-teal-800: #0c4a61;
+
+  /* === Gray 계조·accent 의미색 매핑 (038 다크모드) — .dark 에서 자동 전환. 새 디자인 고정 gray/white 치환 대상 === */
+  --color-surface: var(--w-surface);
+  --color-surface-2: var(--w-surface-2);
+  --color-surface-3: var(--w-surface-3);
+  --color-ink-2: var(--w-ink-2);
+  --color-muted-strong: var(--w-muted-strong);
+  --color-muted: var(--w-muted);
+  --color-faint: var(--w-faint);
+  --color-border: var(--w-border);
+  --color-border-strong: var(--w-border-strong);
+  --color-accent-soft: var(--w-accent-soft);
+  --color-accent-text: var(--w-accent-text);
+  --color-accent-ink: var(--w-accent-ink);
 }
 
 @layer base {

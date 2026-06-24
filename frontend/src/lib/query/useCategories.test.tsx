@@ -22,6 +22,7 @@ function card(id: number, categoryId: number | null): ProjectCard {
         worldNotes: null,
         nextScene: "",
         categoryId,
+        categoryName: null,
         paperSize: "A4",
         layoutMode: "paper",
         effectivePaperSize: "A4",

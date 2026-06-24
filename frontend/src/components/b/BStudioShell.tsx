@@ -271,7 +271,7 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
     /** 목차 패널 내용 — 좁은 폭 drawer 와 넓은 폭 inline 모두 동일 마크업 공유. */
     const outlinePanel = (
         <>
-            <div className="border-b border-gray-200 p-3">
+            <div className="border-b border-border p-3">
                 <Link
                     href={backHref}
                     onClick={(e) => {
@@ -280,11 +280,11 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                         e.preventDefault();
                         void handleNavigateBack();
                     }}
-                    className="inline-flex items-center gap-1 text-sm font-semibold text-terracotta-700 transition-colors hover:text-terracotta-600"
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-accent-text transition-colors hover:text-accent-text"
                 >
                     ← 목록으로 돌아가기
                 </Link>
-                <h1 className="mt-1 truncate text-base font-bold text-gray-900" title={projectTitle}>
+                <h1 className="mt-1 truncate text-base font-bold text-ink" title={projectTitle}>
                     {projectTitle || "집필"}
                 </h1>
                 {projectQuery.data?.nextScene && (
@@ -293,14 +293,14 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                     </p>
                 )}
                 {/* 판형·출판방식은 시리즈에서 설정(033 R2 / FR-007). 집필실은 effective 값 표시만. */}
-                <p className="mt-2 text-xs text-gray-400">
+                <p className="mt-2 text-xs text-faint">
                     {layoutMode === "web"
                         ? "웹 출판 (연속·글자수)"
                         : `종이 출판 · ${PAPER_LABEL[paperSize]} (${PAPER_PRESETS[paperSize].widthMm}×${PAPER_PRESETS[paperSize].heightMm}mm)`}
-                    <span className="ml-1 text-gray-300">· 시리즈 설정</span>
+                    <span className="ml-1 text-faint">· 시리즈 설정</span>
                 </p>
                 <div className="mt-2 flex items-center gap-2">
-                    <label htmlFor="b-font-scale" className="shrink-0 text-xs text-gray-400">
+                    <label htmlFor="b-font-scale" className="shrink-0 text-xs text-faint">
                         글자 크기
                     </label>
                     <select
@@ -308,7 +308,7 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                         value={fontScale}
                         onChange={(e) => handleFontScaleChange(e.target.value as FontScale)}
                         disabled={updateProject.isPending || projectQuery.data == null}
-                        className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 disabled:opacity-50"
+                        className="min-w-0 flex-1 rounded-md border border-border-strong px-2 py-1 text-xs focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 disabled:opacity-50"
                     >
                         {FONT_SCALE_ORDER.map((scale) => (
                             <option key={scale} value={scale}>
@@ -319,22 +319,22 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                 </div>
             </div>
             {/* 내보내기 */}
-            <div className="border-b border-gray-200 px-3 py-2">
+            <div className="border-b border-border px-3 py-2">
                 <button
                     type="button"
                     onClick={() => {
                         setExportOpen(true);
                         setLeftDrawerOpen(false);
                     }}
-                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+                    className="w-full rounded-md border border-border-strong px-3 py-1.5 text-sm text-muted-strong hover:bg-surface-2"
                 >
                     내보내기
                 </button>
             </div>
             <div className="flex-1 overflow-y-auto p-2">
-                <p className="px-2 py-1 text-xs font-medium text-gray-400">목차</p>
+                <p className="px-2 py-1 text-xs font-medium text-faint">목차</p>
                 {outline.items.length === 0 ? (
-                    <p className="px-2 py-1 text-xs text-gray-400">
+                    <p className="px-2 py-1 text-xs text-faint">
                         본문에 제목(H1~H3)을 넣으면 목차가 생깁니다.
                     </p>
                 ) : (
@@ -348,8 +348,8 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                             }}
                             className={`block w-full truncate rounded-md px-2 py-1.5 text-left text-sm ${
                                 outline.activeIndex === i
-                                    ? "bg-terracotta-50 font-medium text-terracotta-700"
-                                    : "text-gray-600 hover:bg-gray-50"
+                                    ? "bg-accent-soft font-medium text-accent-text"
+                                    : "text-muted-strong hover:bg-surface-2"
                             } ${item.level === 2 ? "pl-5" : item.level === 3 ? "pl-9" : ""}`}
                         >
                             {item.text || "(제목 없음)"}
@@ -361,10 +361,10 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
             <div
                 aria-live="polite"
                 aria-atomic="true"
-                className="border-t border-gray-200 px-3 py-1.5"
+                className="border-t border-border px-3 py-1.5"
             >
                 {syncStatus === "syncing" && (
-                    <p className="text-xs text-gray-400">저장 중…</p>
+                    <p className="text-xs text-faint">저장 중…</p>
                 )}
                 {syncStatus === "synced" && (
                     <p className="text-xs text-green-600">저장됨</p>
@@ -376,7 +376,7 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                     <p className="text-xs text-amber-600">저장 충돌</p>
                 )}
                 {(syncStatus === "idle" || !syncStatus) && (
-                    <p className="text-xs text-gray-300">동기화됨</p>
+                    <p className="text-xs text-faint">동기화됨</p>
                 )}
             </div>
         </>
@@ -385,7 +385,7 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
     return (
         <div className="relative flex h-[calc(100vh-6.5rem)] gap-4">
             {/* ── 넓은 폭(≥880px): inline 목차 패널 ── */}
-            <div className="hidden min-[880px]:flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white">
+            <div className="hidden min-[880px]:flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-surface">
                 {outlinePanel}
             </div>
 
@@ -395,7 +395,7 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                     type="button"
                     aria-label="목차 패널 열기"
                     onClick={() => setLeftDrawerOpen(true)}
-                    className="pointer-events-auto rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 shadow-sm hover:bg-gray-50"
+                    className="pointer-events-auto rounded-md border border-border bg-surface px-3 py-1.5 text-xs text-muted-strong shadow-sm hover:bg-surface-2"
                 >
                     목차
                 </button>
@@ -403,7 +403,7 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                     type="button"
                     aria-label="쪽지·인물 패널 열기"
                     onClick={() => setRightDrawerOpen(true)}
-                    className="pointer-events-auto rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 shadow-sm hover:bg-gray-50"
+                    className="pointer-events-auto rounded-md border border-border bg-surface px-3 py-1.5 text-xs text-muted-strong shadow-sm hover:bg-surface-2"
                 >
                     쪽지·인물
                 </button>
@@ -424,17 +424,17 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                 aria-modal="true"
                 aria-label="목차"
                 inert={!leftDrawerOpen || undefined}
-                className={`fixed inset-y-0 left-0 z-30 flex w-72 flex-col overflow-hidden bg-white shadow-xl transition-transform duration-200 min-[880px]:hidden ${
+                className={`fixed inset-y-0 left-0 z-30 flex w-72 flex-col overflow-hidden bg-surface shadow-xl transition-transform duration-200 min-[880px]:hidden ${
                     leftDrawerOpen ? "translate-x-0" : "-translate-x-full"
                 }`}
             >
-                <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2">
-                    <span className="text-sm font-medium text-gray-700">목차</span>
+                <div className="flex items-center justify-between border-b border-border px-3 py-2">
+                    <span className="text-sm font-medium text-ink-2">목차</span>
                     <button
                         type="button"
                         aria-label="목차 패널 닫기"
                         onClick={() => setLeftDrawerOpen(false)}
-                        className="rounded-md px-2 py-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        className="rounded-md px-2 py-1 text-sm text-faint hover:bg-surface-3 hover:text-muted-strong"
                     >
                         ✕
                     </button>
@@ -457,23 +457,23 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                 aria-modal="true"
                 aria-label="쪽지·인물"
                 inert={!rightDrawerOpen || undefined}
-                className={`fixed inset-y-0 right-0 z-30 flex w-80 flex-col overflow-hidden bg-gray-50 shadow-xl transition-transform duration-200 min-[880px]:hidden ${
+                className={`fixed inset-y-0 right-0 z-30 flex w-80 flex-col overflow-hidden bg-surface-2 shadow-xl transition-transform duration-200 min-[880px]:hidden ${
                     rightDrawerOpen ? "translate-x-0" : "translate-x-full"
                 }`}
             >
-                <div className="flex items-center justify-between border-b border-gray-200 bg-white px-3 py-2">
-                    <span className="text-sm font-medium text-gray-700">쪽지·인물</span>
+                <div className="flex items-center justify-between border-b border-border bg-surface px-3 py-2">
+                    <span className="text-sm font-medium text-ink-2">쪽지·인물</span>
                     <button
                         type="button"
                         aria-label="쪽지·인물 패널 닫기"
                         onClick={() => setRightDrawerOpen(false)}
-                        className="rounded-md px-2 py-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        className="rounded-md px-2 py-1 text-sm text-faint hover:bg-surface-3 hover:text-muted-strong"
                     >
                         ✕
                     </button>
                 </div>
                 <div className="flex flex-1 flex-col overflow-hidden">
-                    <div className="border-b border-gray-200 bg-gray-50 p-3">
+                    <div className="border-b border-border bg-surface-2 p-3">
                         <Timewatch
                             status={timewatch.status}
                             elapsedMs={timewatch.elapsedMs}
@@ -496,23 +496,23 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
 
             {/* 에디터 영역 — renderEditor 슬롯. 본문 단위 리마운트 책임은 슬롯 구현이 진다. */}
             {Number.isNaN(projectId) ? (
-                <div className="flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white">
-                    <p className="text-sm text-gray-500">잘못된 작품입니다.</p>
+                <div className="flex flex-1 items-center justify-center rounded-xl border border-border bg-surface">
+                    <p className="text-sm text-muted">잘못된 작품입니다.</p>
                 </div>
             ) : projectQuery.isLoading || documentQuery.isLoading ? (
                 <StudioSkeleton />
             ) : projectQuery.isError || projectQuery.data == null ? (
                 // 작품 자체가 없음(잘못된 URL/삭제됨) — 명확히 안내.
-                <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white">
-                    <p className="text-sm text-gray-500">작품을 찾을 수 없습니다.</p>
-                    <Link href={backHref} className="text-sm font-medium text-terracotta-600 hover:underline">
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-surface">
+                    <p className="text-sm text-muted">작품을 찾을 수 없습니다.</p>
+                    <Link href={backHref} className="text-sm font-medium text-accent-text hover:underline">
                         작품 목록으로
                     </Link>
                 </div>
             ) : documentId == null ? (
-                <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white">
-                    <p className="text-sm text-gray-400">본문을 불러올 수 없습니다.</p>
-                    <Link href={backHref} className="text-xs text-terracotta-600 hover:underline">
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-surface">
+                    <p className="text-sm text-faint">본문을 불러올 수 없습니다.</p>
+                    <Link href={backHref} className="text-xs text-accent-text hover:underline">
                         작품 목록으로
                     </Link>
                 </div>
@@ -582,24 +582,24 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                         ref={conflictModalRef}
                         role="dialog"
                         aria-modal="true"
-                        className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
+                        className="w-full max-w-sm rounded-xl border border-border bg-surface p-6 shadow-lg"
                     >
-                        <h2 className="text-lg font-bold text-gray-900">저장 충돌</h2>
-                        <p className="mt-2 text-sm text-gray-600">
+                        <h2 className="text-lg font-bold text-ink">저장 충돌</h2>
+                        <p className="mt-2 text-sm text-muted-strong">
                             다른 기기(또는 탭)에서 이 문서를 수정했습니다. 어느 쪽을 남길까요?
                         </p>
                         <div className="mt-5 flex justify-end gap-2">
                             <button
                                 type="button"
                                 onClick={conflictHandlers.reload}
-                                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                                className="rounded-md border border-border-strong px-4 py-2 text-sm text-muted-strong hover:bg-surface-2"
                             >
                                 서버 최신본 불러오기
                             </button>
                             <button
                                 type="button"
                                 onClick={conflictHandlers.overwrite}
-                                className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700"
+                                className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink hover:bg-terracotta-700"
                             >
                                 내 본문으로 덮어쓰기
                             </button>
@@ -619,18 +619,18 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                         aria-modal="true"
                         aria-label="집필 종료"
                         onClick={(e) => e.stopPropagation()}
-                        className="relative w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
+                        className="relative w-full max-w-sm rounded-xl border border-border bg-surface p-6 shadow-lg"
                     >
                         <button
                             type="button"
                             aria-label="닫기"
                             onClick={closeStopModal}
-                            className="absolute right-3 top-3 rounded-md px-2 py-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            className="absolute right-3 top-3 rounded-md px-2 py-1 text-faint hover:bg-surface-3 hover:text-muted-strong"
                         >
                             ✕
                         </button>
-                        <h2 className="text-lg font-bold text-gray-900">집필을 마칠까요?</h2>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <h2 className="text-lg font-bold text-ink">집필을 마칠까요?</h2>
+                        <p className="mt-1 text-sm text-muted">
                             측정한 시간 {formatStopwatch(timewatch.elapsedMs)} 가 기록됩니다. 오늘 작업 메모를 남겨도 좋아요(선택).
                         </p>
                         <textarea
@@ -640,18 +640,18 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                             placeholder="예: 3장 도입부 다시 씀 (선택)"
                             rows={4}
                             maxLength={2000}
-                            className="mt-3 w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
+                            className="mt-3 w-full resize-none rounded-md border border-border-strong px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                         />
                         <div className="mt-1 flex items-center justify-between">
                             {endWorkError ? <span className="text-xs text-red-600">{endWorkError}</span> : <span />}
-                            <span className="text-xs text-gray-400">{endWorkBody.length}/2000</span>
+                            <span className="text-xs text-faint">{endWorkBody.length}/2000</span>
                         </div>
                         <div className="mt-4 flex gap-2.5">
                             <button
                                 type="button"
                                 onClick={() => handleStopWork(false)}
                                 disabled={isEndingWork}
-                                className="flex-1 rounded-md border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                                className="flex-1 rounded-md border border-border-strong px-4 py-2.5 text-sm font-semibold text-muted-strong hover:bg-surface-2 disabled:opacity-50"
                             >
                                 메모 없이 종료
                             </button>
@@ -659,7 +659,7 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                                 type="button"
                                 onClick={() => handleStopWork(true)}
                                 disabled={isEndingWork}
-                                className="flex-1 rounded-md bg-terracotta-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-terracotta-700 disabled:opacity-50"
+                                className="flex-1 rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-accent-ink hover:bg-terracotta-700 disabled:opacity-50"
                             >
                                 기록하고 종료
                             </button>

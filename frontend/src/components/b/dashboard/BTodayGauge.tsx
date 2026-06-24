@@ -12,7 +12,7 @@ export function BTodayGauge({ todayMs, goalMinutes }: { todayMs: number; goalMin
     const goalLabel = formatDurationMinutes(goalMinutes);
 
     return (
-        <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4">
+        <div className="flex items-center gap-4 rounded-xl border border-border bg-surface p-4">
             {/* 세로 원통 — 아래에서 위로 채움 */}
             <div
                 role="progressbar"
@@ -24,17 +24,17 @@ export function BTodayGauge({ todayMs, goalMinutes }: { todayMs: number; goalMin
             >
                 <span
                     className={`absolute inset-x-0 bottom-0 block rounded-full transition-[height] duration-500 ${
-                        reached ? "bg-terracotta-600" : "bg-terracotta-400"
+                        reached ? "bg-accent" : "bg-terracotta-400"
                     }`}
                     style={{ height: `${fill * 100}%` }}
                 />
             </div>
 
             <div className="flex flex-col">
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">오늘 작업</p>
-                <p className="mt-1 text-lg font-bold text-gray-900">{todayLabel}</p>
-                <p className="text-xs text-gray-400">목표 {goalLabel}</p>
-                {reached ? <p className="mt-1 text-xs font-semibold text-terracotta-600">목표 달성 🎉</p> : null}
+                <p className="text-xs font-medium uppercase tracking-wide text-muted">오늘 작업</p>
+                <p className="mt-1 text-lg font-bold text-ink">{todayLabel}</p>
+                <p className="text-xs text-faint">목표 {goalLabel}</p>
+                {reached ? <p className="mt-1 text-xs font-semibold text-accent-text">목표 달성 🎉</p> : null}
             </div>
         </div>
     );

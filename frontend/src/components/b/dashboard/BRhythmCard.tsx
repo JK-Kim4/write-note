@@ -18,11 +18,11 @@ export function BRhythmCard({ dayMs, todayIndex, todayDateLabel }: Props) {
     const scaled = barScale(dayMs);
     const isEmpty = dayMs.every((ms) => ms <= 0);
     return (
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">집필 리듬 (이번 주)</p>
+        <div className="rounded-xl border border-border bg-surface p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">집필 리듬 (이번 주)</p>
             {isEmpty ? (
                 <div className="mt-3 flex h-24 items-center justify-center">
-                    <p className="text-sm text-gray-400">아직 이번 주 기록이 없어요</p>
+                    <p className="text-sm text-faint">아직 이번 주 기록이 없어요</p>
                 </div>
             ) : (
                 <div className="mt-3 flex items-end gap-2">
@@ -44,21 +44,21 @@ export function BRhythmCard({ dayMs, todayIndex, todayDateLabel }: Props) {
                                         data-testid="rhythm-bar"
                                         data-today={isToday}
                                         title={durationLabel}
-                                        className={`absolute inset-x-0 bottom-0 rounded-sm ${isToday ? "bg-terracotta-600" : "bg-terracotta-200"}`}
+                                        className={`absolute inset-x-0 bottom-0 rounded-sm ${isToday ? "bg-accent" : "bg-terracotta-200"}`}
                                         style={{ height: `${Math.max(4, h * 100)}%` }}
                                     />
                                 </div>
                                 {isToday ? (
                                     <span className="flex flex-col items-center leading-tight">
-                                        <span className="rounded-sm bg-terracotta-600 px-1 text-[9px] font-bold text-white">
+                                        <span className="rounded-sm bg-accent px-1 text-[9px] font-bold text-accent-ink">
                                             오늘
                                         </span>
-                                        <span className="text-[10px] font-semibold text-terracotta-700">
+                                        <span className="text-[10px] font-semibold text-accent-text">
                                             {todayDateLabel ?? DAYS[i]}
                                         </span>
                                     </span>
                                 ) : (
-                                    <span className="text-[10px] text-gray-400">{DAYS[i]}</span>
+                                    <span className="text-[10px] text-faint">{DAYS[i]}</span>
                                 )}
                             </div>
                         );
