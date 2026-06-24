@@ -35,19 +35,19 @@ function MemosTab({ projectId }: { projectId: number }) {
 
     return (
         <div className="flex h-full flex-col">
-            <form onSubmit={handleCapture} className="border-b border-gray-200 p-3">
+            <form onSubmit={handleCapture} className="border-b border-border p-3">
                 <textarea
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
                     placeholder="이 작품에 메모 남기기…"
                     rows={2}
-                    className="w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
+                    className="w-full resize-none rounded-md border border-border-strong px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
                 <button
                     type="submit"
                     onMouseDown={keepEditorFocus}
                     disabled={body.trim().length === 0 || captureMemo.isPending}
-                    className="mt-1.5 w-full rounded-md bg-terracotta-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-terracotta-700 disabled:opacity-50"
+                    className="mt-1.5 w-full rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink hover:bg-terracotta-700 disabled:opacity-50"
                 >
                     붙이기
                 </button>
@@ -59,25 +59,25 @@ function MemosTab({ projectId }: { projectId: number }) {
                     </p>
                 )}
                 {memosQuery.isLoading ? (
-                    <p className="text-xs text-gray-400">불러오는 중…</p>
+                    <p className="text-xs text-faint">불러오는 중…</p>
                 ) : memosQuery.isError ? (
                     <div>
-                        <p className="text-xs text-gray-500">메모를 불러오지 못했습니다.</p>
+                        <p className="text-xs text-muted">메모를 불러오지 못했습니다.</p>
                         <button
                             type="button"
                             onMouseDown={keepEditorFocus}
                             onClick={() => memosQuery.refetch()}
-                            className="mt-1.5 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                            className="mt-1.5 rounded-md border border-border-strong px-2 py-1 text-xs text-muted-strong hover:bg-surface-2"
                         >
                             다시 시도
                         </button>
                     </div>
                 ) : memos.length === 0 ? (
-                    <p className="text-xs text-gray-400">아직 연결된 메모가 없습니다.</p>
+                    <p className="text-xs text-faint">아직 연결된 메모가 없습니다.</p>
                 ) : (
                     memos.map((memo) => (
-                        <div key={memo.id} className="rounded-md border border-gray-200 bg-white p-2.5">
-                            <p className="text-sm whitespace-pre-wrap text-gray-700">{memo.body}</p>
+                        <div key={memo.id} className="rounded-md border border-border bg-surface p-2.5">
+                            <p className="text-sm whitespace-pre-wrap text-ink-2">{memo.body}</p>
                             <div className="mt-1.5 flex items-center gap-1.5">
                                 <button
                                     type="button"
@@ -88,8 +88,8 @@ function MemosTab({ projectId }: { projectId: number }) {
                                     }
                                     className={
                                         memo.pinned
-                                            ? "rounded-full bg-terracotta-50 px-2 py-0.5 text-xs font-medium text-terracotta-700 disabled:opacity-50"
-                                            : "rounded-full px-2 py-0.5 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
+                                            ? "rounded-full bg-accent-soft px-2 py-0.5 text-xs font-medium text-accent-text disabled:opacity-50"
+                                            : "rounded-full px-2 py-0.5 text-xs text-faint hover:bg-surface-3 hover:text-muted-strong disabled:opacity-50"
                                     }
                                 >
                                     {memo.pinned ? "고정됨" : "고정"}
@@ -99,7 +99,7 @@ function MemosTab({ projectId }: { projectId: number }) {
                                     onMouseDown={keepEditorFocus}
                                     disabled={removeLinkMemo.isPending}
                                     onClick={() => removeLinkMemo.mutate({ memoId: memo.id, projectId })}
-                                    className="rounded-full px-2 py-0.5 text-xs text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                                    className="rounded-full px-2 py-0.5 text-xs text-faint hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                                 >
                                     연결 해제
                                 </button>
@@ -138,24 +138,24 @@ function CharactersTab({ projectId }: { projectId: number }) {
 
     return (
         <div className="flex h-full flex-col">
-            <form onSubmit={handleAdd} className="space-y-1.5 border-b border-gray-200 p-3">
+            <form onSubmit={handleAdd} className="space-y-1.5 border-b border-border p-3">
                 <input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="인물 이름"
-                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
+                    className="w-full rounded-md border border-border-strong px-3 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
                 <input
                     value={shortDescription}
                     onChange={(e) => setShortDescription(e.target.value)}
                     placeholder="한 줄 소개 (선택)"
-                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
+                    className="w-full rounded-md border border-border-strong px-3 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
                 <button
                     type="submit"
                     onMouseDown={keepEditorFocus}
                     disabled={name.trim().length === 0 || createCharacter.isPending}
-                    className="w-full rounded-md border border-dashed border-gray-300 px-3 py-1.5 text-sm text-gray-500 hover:border-terracotta-400 hover:text-terracotta-600 disabled:opacity-50"
+                    className="w-full rounded-md border border-dashed border-border-strong px-3 py-1.5 text-sm text-muted hover:border-terracotta-400 hover:text-accent-text disabled:opacity-50"
                 >
                     + 인물 추가
                 </button>
@@ -165,35 +165,35 @@ function CharactersTab({ projectId }: { projectId: number }) {
             </form>
             <div className="flex-1 space-y-2 overflow-y-auto p-3">
                 {charactersQuery.isLoading ? (
-                    <p className="text-xs text-gray-400">불러오는 중…</p>
+                    <p className="text-xs text-faint">불러오는 중…</p>
                 ) : charactersQuery.isError ? (
                     <div>
-                        <p className="text-xs text-gray-500">인물을 불러오지 못했습니다.</p>
+                        <p className="text-xs text-muted">인물을 불러오지 못했습니다.</p>
                         <button
                             type="button"
                             onMouseDown={keepEditorFocus}
                             onClick={() => charactersQuery.refetch()}
-                            className="mt-1.5 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                            className="mt-1.5 rounded-md border border-border-strong px-2 py-1 text-xs text-muted-strong hover:bg-surface-2"
                         >
                             다시 시도
                         </button>
                     </div>
                 ) : characters.length === 0 ? (
-                    <p className="text-xs text-gray-400">아직 등록된 인물이 없습니다.</p>
+                    <p className="text-xs text-faint">아직 등록된 인물이 없습니다.</p>
                 ) : (
                     characters.map((character) => {
                         const meta = [character.age, genderLabel(character.gender)].filter(Boolean).join(" · ");
                         return (
-                            <div key={character.id} className="rounded-md border border-gray-200 bg-white p-2.5">
+                            <div key={character.id} className="rounded-md border border-border bg-surface p-2.5">
                                 <div className="flex items-baseline justify-between gap-2">
-                                    <p className="text-sm font-semibold text-gray-900">{character.name}</p>
-                                    {meta && <span className="text-xs text-gray-400">{meta}</span>}
+                                    <p className="text-sm font-semibold text-ink">{character.name}</p>
+                                    {meta && <span className="text-xs text-faint">{meta}</span>}
                                 </div>
                                 {character.shortDescription && (
-                                    <p className="mt-0.5 text-xs text-gray-600">{character.shortDescription}</p>
+                                    <p className="mt-0.5 text-xs text-muted-strong">{character.shortDescription}</p>
                                 )}
                                 {character.traits && (
-                                    <p className="mt-1 text-xs text-gray-400">{character.traits}</p>
+                                    <p className="mt-1 text-xs text-faint">{character.traits}</p>
                                 )}
                             </div>
                         );
@@ -239,13 +239,13 @@ export function BWorkSidePanel({
 
     if (!isOpen) {
         return (
-            <div className="flex w-8 shrink-0 flex-col items-center rounded-xl border border-gray-200 bg-gray-50 py-2">
+            <div className="flex w-8 shrink-0 flex-col items-center rounded-xl border border-border bg-surface-2 py-2">
                 <button
                     type="button"
                     onMouseDown={keepEditorFocus}
                     aria-label="보조 패널 펼치기"
                     onClick={() => setIsOpen(true)}
-                    className="rounded-md px-1 py-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                    className="rounded-md px-1 py-1 text-sm text-faint hover:bg-surface-3 hover:text-muted-strong"
                 >
                     ◀
                 </button>
@@ -254,16 +254,16 @@ export function BWorkSidePanel({
     }
 
     return (
-        <div className="flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
-            <div className="flex items-center border-b border-gray-200">
+        <div className="flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-surface-2">
+            <div className="flex items-center border-b border-border">
                 <button
                     type="button"
                     onMouseDown={keepEditorFocus}
                     onClick={() => setTab("memos")}
                     className={
                         tab === "memos"
-                            ? "flex-1 bg-terracotta-50 px-3 py-2 text-sm font-medium text-terracotta-700"
-                            : "flex-1 px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
+                            ? "flex-1 bg-accent-soft px-3 py-2 text-sm font-medium text-accent-text"
+                            : "flex-1 px-3 py-2 text-sm text-muted hover:bg-surface-3"
                     }
                 >
                     메모
@@ -274,8 +274,8 @@ export function BWorkSidePanel({
                     onClick={() => setTab("characters")}
                     className={
                         tab === "characters"
-                            ? "flex-1 bg-terracotta-50 px-3 py-2 text-sm font-medium text-terracotta-700"
-                            : "flex-1 px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
+                            ? "flex-1 bg-accent-soft px-3 py-2 text-sm font-medium text-accent-text"
+                            : "flex-1 px-3 py-2 text-sm text-muted hover:bg-surface-3"
                     }
                 >
                     인물
@@ -286,7 +286,7 @@ export function BWorkSidePanel({
                         onMouseDown={keepEditorFocus}
                         aria-label="보조 패널 접기"
                         onClick={() => setIsOpen(false)}
-                        className="px-2 py-2 text-sm text-gray-400 hover:text-gray-600"
+                        className="px-2 py-2 text-sm text-faint hover:text-muted-strong"
                     >
                         ▶
                     </button>
@@ -296,12 +296,12 @@ export function BWorkSidePanel({
                 {tab === "memos" ? <MemosTab projectId={projectId} /> : <CharactersTab projectId={projectId} />}
             </div>
             {wordCount != null && (
-                <div className="border-t border-gray-200 bg-white px-3 py-2.5">
+                <div className="border-t border-border bg-surface px-3 py-2.5">
                     <div className="flex items-baseline justify-between">
-                        <span className="text-xs text-gray-500">분량</span>
-                        {goal != null && <span className="text-sm font-bold text-gray-700">{goal.percent}%</span>}
+                        <span className="text-xs text-muted">분량</span>
+                        {goal != null && <span className="text-sm font-bold text-ink-2">{goal.percent}%</span>}
                     </div>
-                    <p className="mt-0.5 text-sm text-gray-700">
+                    <p className="mt-0.5 text-sm text-ink-2">
                         {wordCount.toLocaleString()}자{targetLength ? ` / ${targetLength.toLocaleString()}자` : ""}
                     </p>
                     {goal != null && (

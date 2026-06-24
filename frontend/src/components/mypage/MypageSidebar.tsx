@@ -19,8 +19,8 @@ const SECTIONS: Section[] = [
 ];
 
 const ITEM = "block rounded-md px-3 py-2 text-sm transition-colors";
-const ACTIVE = `${ITEM} bg-terracotta-50 font-medium text-terracotta-700`;
-const IDLE = `${ITEM} text-gray-600 hover:bg-gray-50`;
+const ACTIVE = `${ITEM} bg-accent-soft font-medium text-accent-text`;
+const IDLE = `${ITEM} text-muted-strong hover:bg-surface-2`;
 
 export function MypageSidebar() {
     const pathname = usePathname();
@@ -36,7 +36,7 @@ export function MypageSidebar() {
                 );
             })}
 
-            <div className="my-2 border-t border-gray-100" />
+            <div className="my-2 border-t border-border" />
 
             <Link
                 href="/mypage/withdraw"

@@ -21,20 +21,20 @@ export function AccountInfoSection({
     createdAt: string | null;
 }) {
     return (
-        <section className="mt-4 rounded-xl border border-gray-200 bg-white p-5">
-            <h2 className="text-base font-semibold text-gray-900">계정 정보</h2>
+        <section className="mt-4 rounded-xl border border-border bg-surface p-5">
+            <h2 className="text-base font-semibold text-ink">계정 정보</h2>
             <dl className="mt-3 space-y-2 text-sm">
                 <div className="flex justify-between">
-                    <dt className="text-gray-500">이메일</dt>
-                    <dd className="text-gray-900">{email}</dd>
+                    <dt className="text-muted">이메일</dt>
+                    <dd className="text-ink">{email}</dd>
                 </div>
                 <div className="flex justify-between">
-                    <dt className="text-gray-500">가입 방식</dt>
-                    <dd className="text-gray-900">{kakaoLinked ? "카카오" : "이메일"}</dd>
+                    <dt className="text-muted">가입 방식</dt>
+                    <dd className="text-ink">{kakaoLinked ? "카카오" : "이메일"}</dd>
                 </div>
                 <div className="flex justify-between">
-                    <dt className="text-gray-500">가입일</dt>
-                    <dd className="text-gray-900">{formatJoinedDate(createdAt)}</dd>
+                    <dt className="text-muted">가입일</dt>
+                    <dd className="text-ink">{formatJoinedDate(createdAt)}</dd>
                 </div>
             </dl>
         </section>

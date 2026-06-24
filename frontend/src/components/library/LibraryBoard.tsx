@@ -41,7 +41,7 @@ function RootCrumb({ onClick }: { onClick: () => void }) {
             ref={setNodeRef}
             type="button"
             onClick={onClick}
-            className={`rounded-md px-2 py-1 text-sm font-semibold text-terracotta-700 hover:bg-terracotta-50 ${
+            className={`rounded-md px-2 py-1 text-sm font-semibold text-accent-text hover:bg-accent-soft ${
                 isOver ? "bg-terracotta-100 ring-2 ring-terracotta-300" : ""
             }`}
         >
@@ -59,10 +59,10 @@ function DropToParent({ active }: { active: boolean }) {
             aria-label="시리즈에서 빼내기(내 작품으로)"
             className={`mb-4 flex items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-3 text-sm transition-colors ${
                 isOver
-                    ? "border-terracotta-500 bg-terracotta-100 text-terracotta-700"
+                    ? "border-terracotta-500 bg-terracotta-100 text-accent-text"
                     : active
-                      ? "border-terracotta-300 bg-terracotta-50 text-terracotta-600"
-                      : "border-gray-200 text-gray-400"
+                      ? "border-terracotta-300 bg-accent-soft text-accent-text"
+                      : "border-border text-faint"
             }`}
         >
             <span aria-hidden>↑</span>
@@ -283,7 +283,7 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                 <div className="space-y-8">
                     {/* 시리즈 타일 */}
                     <section>
-                        <h2 className="mb-3 text-sm font-semibold text-gray-500">시리즈</h2>
+                        <h2 className="mb-3 text-sm font-semibold text-muted">시리즈</h2>
                         <div className="grid grid-cols-2 items-start gap-4 sm:grid-cols-3 lg:grid-cols-4">
                             {cats.map((c) => (
                                 <CategoryTile
@@ -297,8 +297,8 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                                 />
                             ))}
                             {addingCat ? (
-                                <div className="flex min-h-[150px] flex-col rounded-2xl border border-terracotta-400 bg-white p-3.5">
-                                    <div className="flex h-16 items-center justify-center rounded-lg border border-dashed border-gray-200 text-xs text-gray-400">
+                                <div className="flex min-h-[150px] flex-col rounded-2xl border border-terracotta-400 bg-surface p-3.5">
+                                    <div className="flex h-16 items-center justify-center rounded-lg border border-dashed border-border text-xs text-faint">
                                         새 시리즈
                                     </div>
                                     <input
@@ -314,7 +314,7 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                                         aria-label="새 시리즈 이름"
                                         className="mt-2.5 w-full rounded-md border border-terracotta-300 px-2 py-1 text-sm font-bold focus:border-terracotta-500 focus:outline-none"
                                     />
-                                    <p className="mt-1 text-[11px] text-gray-400">예: 잿빛 탑 연대기 · 여름 단편선</p>
+                                    <p className="mt-1 text-[11px] text-faint">예: 잿빛 탑 연대기 · 여름 단편선</p>
                                     <SeriesPublishFields
                                         idPrefix="new-series"
                                         genre={newCatGenre}
@@ -333,14 +333,14 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                                             type="button"
                                             onClick={submitNewCat}
                                             disabled={newCatName.trim() === ""}
-                                            className="rounded-md bg-terracotta-600 px-3 py-1 text-xs font-semibold text-white hover:bg-terracotta-700 disabled:opacity-50"
+                                            className="rounded-md bg-accent px-3 py-1 text-xs font-semibold text-accent-ink hover:bg-terracotta-700 disabled:opacity-50"
                                         >
                                             만들기
                                         </button>
                                         <button
                                             type="button"
                                             onClick={resetNewCat}
-                                            className="rounded-md border border-gray-200 px-3 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                                            className="rounded-md border border-border px-3 py-1 text-xs text-muted-strong hover:bg-surface-2"
                                         >
                                             취소
                                         </button>
@@ -351,7 +351,7 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                                     type="button"
                                     data-tour="new-series"
                                     onClick={() => setAddingCat(true)}
-                                    className="flex min-h-[150px] flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-terracotta-400 hover:bg-terracotta-50 hover:text-terracotta-600"
+                                    className="flex min-h-[150px] flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-border-strong text-sm text-muted hover:border-terracotta-400 hover:bg-accent-soft hover:text-accent-text"
                                 >
                                     <span className="text-2xl leading-none">+</span>
                                     <span>새 시리즈</span>
@@ -359,26 +359,26 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                             )}
                         </div>
                         {cats.length === 0 && !addingCat && (
-                            <p className="mt-2 text-xs text-gray-400">아직 만든 시리즈가 없어요. 작품을 묶을 시리즈를 만들어 보세요.</p>
+                            <p className="mt-2 text-xs text-faint">아직 만든 시리즈가 없어요. 작품을 묶을 시리즈를 만들어 보세요.</p>
                         )}
                     </section>
 
                     {/* 미분류 작품 */}
                     <section>
-                        <h2 className="mb-3 text-sm font-semibold text-gray-500">미분류 작품</h2>
+                        <h2 className="mb-3 text-sm font-semibold text-muted">미분류 작품</h2>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {uncategorized.map(renderCard)}
                             <button
                                 type="button"
                                 data-tour="new-work-root"
                                 onClick={() => onNewWork(null)}
-                                className="flex min-h-32 items-center justify-center rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-terracotta-400 hover:text-terracotta-600"
+                                className="flex min-h-32 items-center justify-center rounded-xl border border-dashed border-border-strong text-sm text-muted hover:border-terracotta-400 hover:text-accent-text"
                             >
                                 + 새 작품 시작하기
                             </button>
                         </div>
                         {uncategorized.length === 0 && (
-                            <p className="mt-2 text-sm text-gray-400">
+                            <p className="mt-2 text-sm text-faint">
                                 {cards.length === 0 ? "아직 작품이 없어요. 첫 작품을 시작해 보세요." : "모든 작품이 시리즈에 담겨 있어요."}
                             </p>
                         )}
@@ -388,15 +388,15 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                 <div>
                     <div className="mb-4 flex items-center gap-2">
                         <RootCrumb onClick={() => navigateFolder(null)} />
-                        <span className="text-gray-400">/</span>
-                        <span className="text-sm font-semibold text-gray-900">
+                        <span className="text-faint">/</span>
+                        <span className="text-sm font-semibold text-ink">
                             {currentCategory?.name ?? "시리즈"} · {folderCards.length}편
                         </span>
                         {folderCards.length > 0 && (
                             <button
                                 type="button"
                                 onClick={() => setExportOpen(true)}
-                                className="ml-auto rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-terracotta-50 hover:text-terracotta-700"
+                                className="ml-auto rounded-md border border-border px-3 py-1.5 text-sm text-ink-2 hover:bg-accent-soft hover:text-accent-text"
                             >
                                 내보내기
                             </button>
@@ -409,13 +409,13 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                         <button
                             type="button"
                             onClick={() => onNewWork(activeFolder)}
-                            className="flex min-h-32 items-center justify-center rounded-xl border border-dashed border-gray-300 text-sm text-gray-500 hover:border-terracotta-400 hover:text-terracotta-600"
+                            className="flex min-h-32 items-center justify-center rounded-xl border border-dashed border-border-strong text-sm text-muted hover:border-terracotta-400 hover:text-accent-text"
                         >
                             + 새 작품 시작하기
                         </button>
                     </div>
                     {folderCards.length === 0 && (
-                        <p className="mt-3 text-sm text-gray-400">
+                        <p className="mt-3 text-sm text-faint">
                             아직 이 시리즈에 작품이 없어요. 새로 시작하거나, 다른 작품을 끌어다 놓으세요.
                         </p>
                     )}
@@ -459,10 +459,10 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                         aria-modal="true"
                         aria-label="시리즈 삭제"
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
+                        className="w-full max-w-sm rounded-xl border border-border bg-surface p-6 shadow-lg"
                     >
-                        <h2 className="text-lg font-bold text-gray-900">시리즈 삭제</h2>
-                        <p className="mt-2 text-sm text-gray-600">
+                        <h2 className="text-lg font-bold text-ink">시리즈 삭제</h2>
+                        <p className="mt-2 text-sm text-muted-strong">
                             「{deleteCatTarget.name}」 시리즈를 삭제할까요? 시리즈 안의 작품은 사라지지 않고 미분류로 이동합니다.
                         </p>
                         {deleteCategory.isError && (
@@ -473,7 +473,7 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                                 type="button"
                                 onClick={() => setDeleteCatTarget(null)}
                                 disabled={deleteCategory.isPending}
-                                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                                className="rounded-md border border-border-strong px-4 py-2 text-sm text-muted-strong hover:bg-surface-2 disabled:opacity-50"
                             >
                                 취소
                             </button>

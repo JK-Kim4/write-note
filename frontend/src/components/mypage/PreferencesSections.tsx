@@ -52,9 +52,9 @@ export function PreferencesSections() {
 
     return (
         <div className="flex flex-col gap-4">
-            <section className="rounded-xl border border-gray-200 bg-white p-5">
-                <h2 className="text-base font-semibold text-gray-900">일일 작업 목표</h2>
-                <p className="mt-0.5 text-xs text-gray-400">홈 화면의 &ldquo;오늘 작업&rdquo; 게이지가 이 목표 대비 채워집니다.</p>
+            <section className="rounded-xl border border-border bg-surface p-5">
+                <h2 className="text-base font-semibold text-ink">일일 작업 목표</h2>
+                <p className="mt-0.5 text-xs text-faint">홈 화면의 &ldquo;오늘 작업&rdquo; 게이지가 이 목표 대비 채워집니다.</p>
                 <label htmlFor="daily-goal" className="sr-only">
                     일일 작업 목표 시간
                 </label>
@@ -63,7 +63,7 @@ export function PreferencesSections() {
                     value={dailyGoalMinutes}
                     disabled={!isHydrated}
                     onChange={(e) => setDailyGoalMinutes(Number(e.target.value) as DailyGoalMinutes)}
-                    className="mt-3 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 disabled:opacity-60"
+                    className="mt-3 w-full rounded-md border border-border-strong px-3 py-2 text-sm text-ink-2 disabled:opacity-60"
                 >
                     {DAILY_GOAL_MINUTES.map((minutes) => (
                         <option key={minutes} value={minutes}>
@@ -73,9 +73,9 @@ export function PreferencesSections() {
                 </select>
             </section>
 
-            <section className="rounded-xl border border-gray-200 bg-white p-5">
-                <h2 className="text-base font-semibold text-gray-900">테마</h2>
-                <p className="mt-0.5 text-xs text-gray-400">기존 디자인 화면에 적용됩니다. B 디자인은 라이트 고정.</p>
+            <section className="rounded-xl border border-border bg-surface p-5">
+                <h2 className="text-base font-semibold text-ink">테마</h2>
+                <p className="mt-0.5 text-xs text-faint">기존 디자인 화면에 적용됩니다. B 디자인은 라이트 고정.</p>
                 <div role="radiogroup" aria-label="테마" aria-busy={!isHydrated} className="mt-3 grid grid-cols-3 gap-2">
                     {THEME_OPTIONS.map((option) => {
                         const selected = isHydrated && theme === option.value;
@@ -91,20 +91,20 @@ export function PreferencesSections() {
                                 onKeyDown={(e) => handleRadioKeyDown(e, THEME_OPTIONS, theme, setTheme)}
                                 className={
                                     selected
-                                        ? "rounded-md border border-terracotta-500 bg-terracotta-50 px-3 py-2.5 text-left"
-                                        : "rounded-md border border-gray-300 px-3 py-2.5 text-left hover:bg-gray-50 disabled:opacity-60 disabled:hover:bg-transparent"
+                                        ? "rounded-md border border-terracotta-500 bg-accent-soft px-3 py-2.5 text-left"
+                                        : "rounded-md border border-border-strong px-3 py-2.5 text-left hover:bg-surface-2 disabled:opacity-60 disabled:hover:bg-transparent"
                                 }
                             >
                                 <span
                                     className={
                                         selected
-                                            ? "block text-sm font-medium text-terracotta-700"
-                                            : "block text-sm font-medium text-gray-700"
+                                            ? "block text-sm font-medium text-accent-text"
+                                            : "block text-sm font-medium text-ink-2"
                                     }
                                 >
                                     {option.label}
                                 </span>
-                                <span className="mt-0.5 block text-xs text-gray-400">{option.description}</span>
+                                <span className="mt-0.5 block text-xs text-faint">{option.description}</span>
                             </button>
                         );
                     })}

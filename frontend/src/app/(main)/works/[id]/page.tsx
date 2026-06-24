@@ -48,21 +48,21 @@ export default function BWorkDetailPage() {
     if (editingUnsupported) {
         return (
             <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 text-center">
-                <h1 className="text-lg font-bold text-gray-900">이 기기에서는 집필실을 열 수 없어요</h1>
-                <p className="max-w-sm text-sm text-gray-600">
+                <h1 className="text-lg font-bold text-ink">이 기기에서는 집필실을 열 수 없어요</h1>
+                <p className="max-w-sm text-sm text-muted-strong">
                     자체 글쓰기 엔진은 아직 iOS(아이폰·아이패드) 브라우저를 지원하지 않아요. 데스크톱 Chrome·Edge
                     또는 안드로이드 Chrome에서 집필해 주세요.
                 </p>
                 <div className="flex gap-2">
                     <Link
                         href="/library"
-                        className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700"
+                        className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink hover:bg-terracotta-700"
                     >
                         작품 목록
                     </Link>
                     <Link
                         href="/"
-                        className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                        className="rounded-md border border-border-strong px-4 py-2 text-sm text-muted-strong hover:bg-surface-2"
                     >
                         홈
                     </Link>

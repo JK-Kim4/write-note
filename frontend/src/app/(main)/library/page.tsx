@@ -88,15 +88,15 @@ function ProjectFormModal({
             aria-label={title}
             onSubmit={onSubmit}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm max-h-[85vh] overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
+            className="w-full max-w-sm max-h-[85vh] overflow-y-auto rounded-xl border border-border bg-surface p-6 shadow-lg"
         >
-            <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+            <h2 className="text-lg font-bold text-ink">{title}</h2>
             {isError && (
                 <p role="alert" className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
                     {errorMessage}
                 </p>
             )}
-            <label className="mt-4 block text-sm text-gray-600">
+            <label className="mt-4 block text-sm text-muted-strong">
                 제목
                 <input
                     autoFocus
@@ -105,18 +105,18 @@ function ProjectFormModal({
                     onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                     placeholder="작품 제목"
                     maxLength={120}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
+                    className="mt-1 w-full rounded-md border border-border-strong px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
             </label>
             {mode === "edit" && (
-                <label className="mt-3 block text-sm text-gray-600">
+                <label className="mt-3 block text-sm text-muted-strong">
                     시리즈
                     <select
                         value={form.categoryId ?? ""}
                         onChange={(e) =>
                             setForm((f) => ({ ...f, categoryId: e.target.value === "" ? null : Number(e.target.value) }))
                         }
-                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
+                        className="mt-1 w-full rounded-md border border-border-strong px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                     >
                         <option value="">분류 없음(미분류)</option>
                         {categories.map((c) => (
@@ -127,7 +127,7 @@ function ProjectFormModal({
                     </select>
                 </label>
             )}
-            <label className="mt-3 block text-sm text-gray-600">
+            <label className="mt-3 block text-sm text-muted-strong">
                 목표 분량 (선택)
                 <input
                     type="number"
@@ -140,7 +140,7 @@ function ProjectFormModal({
                     min={1}
                     max={100000000}
                     step={1}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
+                    className="mt-1 w-full rounded-md border border-border-strong px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
                 />
                 {lengthError && <span className="mt-1 block text-xs text-red-600">{lengthError}</span>}
             </label>
@@ -149,14 +149,14 @@ function ProjectFormModal({
                     type="button"
                     onClick={onCancel}
                     disabled={isPending}
-                    className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                    className="rounded-md border border-border-strong px-4 py-2 text-sm text-muted-strong hover:bg-surface-2 disabled:opacity-50"
                 >
                     취소
                 </button>
                 <button
                     type="submit"
                     disabled={form.title.trim().length === 0 || isPending}
-                    className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700 disabled:opacity-50"
+                    className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink hover:bg-terracotta-700 disabled:opacity-50"
                 >
                     {isPending ? pendingLabel : submitLabel}
                 </button>
@@ -358,14 +358,14 @@ export default function BWorksPage() {
             </div>
 
             {isLoading ? (
-                <p className="py-12 text-center text-sm text-gray-400">불러오는 중…</p>
+                <p className="py-12 text-center text-sm text-faint">불러오는 중…</p>
             ) : isError ? (
                 <div className="py-12 text-center">
-                    <p className="text-sm text-gray-500">작품을 불러올 수 없습니다.</p>
+                    <p className="text-sm text-muted">작품을 불러올 수 없습니다.</p>
                     <button
                         type="button"
                         onClick={() => refetch()}
-                        className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                        className="mt-3 rounded-md border border-border-strong px-4 py-2 text-sm text-muted-strong hover:bg-surface-2"
                     >
                         다시 시도
                     </button>
@@ -385,26 +385,26 @@ export default function BWorksPage() {
                 <button
                     type="button"
                     onClick={() => setShowArchived((v) => !v)}
-                    className="text-sm text-gray-500 hover:text-gray-700"
+                    className="text-sm text-muted hover:text-ink-2"
                 >
                     {showArchived ? "▲ 보관한 작품 접기" : "▼ 보관한 작품 보기"}
                 </button>
                 {showArchived && (
                     <div className="mt-3">
                         {isArchivedLoading ? (
-                            <p className="text-sm text-gray-400">불러오는 중…</p>
+                            <p className="text-sm text-faint">불러오는 중…</p>
                         ) : (archivedProjects ?? []).length === 0 ? (
-                            <p className="text-sm text-gray-400">보관한 작품이 없습니다.</p>
+                            <p className="text-sm text-faint">보관한 작품이 없습니다.</p>
                         ) : (
-                            <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
+                            <ul className="divide-y divide-gray-100 rounded-xl border border-border bg-surface">
                                 {(archivedProjects ?? []).map((p) => (
                                     <li key={p.id} className="flex items-center justify-between px-4 py-3">
-                                        <span className="text-sm text-gray-700">{p.title}</span>
+                                        <span className="text-sm text-ink-2">{p.title}</span>
                                         <button
                                             type="button"
                                             disabled={unarchiveProject.isPending}
                                             onClick={() => unarchiveProject.mutate(p.id)}
-                                            className="rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                                            className="rounded-md border border-border px-2 py-1 text-xs text-muted-strong hover:bg-surface-2 disabled:opacity-50"
                                         >
                                             {unarchiveProject.isPending ? "처리 중…" : "보관 해제"}
                                         </button>
@@ -488,10 +488,10 @@ export default function BWorksPage() {
                         aria-modal="true"
                         aria-label="작품 삭제"
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
+                        className="w-full max-w-sm rounded-xl border border-border bg-surface p-6 shadow-lg"
                     >
-                        <h2 className="text-lg font-bold text-gray-900">작품 삭제</h2>
-                        <p className="mt-2 text-sm text-gray-600">
+                        <h2 className="text-lg font-bold text-ink">작품 삭제</h2>
+                        <p className="mt-2 text-sm text-muted-strong">
                             「{deleteTarget.title}」 을(를) 삭제할까요? 본문과 기록이 함께 사라집니다.
                         </p>
                         {deleteProject.isError && (
@@ -502,7 +502,7 @@ export default function BWorksPage() {
                                 type="button"
                                 onClick={closeDelete}
                                 disabled={deleteProject.isPending}
-                                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                                className="rounded-md border border-border-strong px-4 py-2 text-sm text-muted-strong hover:bg-surface-2 disabled:opacity-50"
                             >
                                 취소
                             </button>

@@ -9,12 +9,12 @@ import remarkBreaks from "remark-breaks";
  */
 export function AnnouncementBody({ body }: { body: string }) {
     return (
-        <div className="text-sm leading-relaxed text-gray-800">
+        <div className="text-sm leading-relaxed text-ink">
             <ReactMarkdown
                 remarkPlugins={[remarkBreaks]}
                 components={{
-                    h2: (props) => <h2 className="mb-2 mt-4 text-lg font-bold text-gray-900" {...props} />,
-                    h3: (props) => <h3 className="mb-1.5 mt-3 text-base font-bold text-gray-900" {...props} />,
+                    h2: (props) => <h2 className="mb-2 mt-4 text-lg font-bold text-ink" {...props} />,
+                    h3: (props) => <h3 className="mb-1.5 mt-3 text-base font-bold text-ink" {...props} />,
                     p: (props) => <p className="my-2" {...props} />,
                     ul: (props) => <ul className="my-2 list-disc space-y-1 pl-5" {...props} />,
                     ol: (props) => <ol className="my-2 list-decimal space-y-1 pl-5" {...props} />,

@@ -6,7 +6,7 @@ import type { ProjectCard } from "@/lib/types/domain";
 function card(id: number, title: string): ProjectCard {
     return {
         id, title, genre: null, targetLength: null, toneNotes: null, synopsis: null, worldNotes: null,
-        nextScene: "", categoryId: 9, paperSize: "A4", layoutMode: "paper", effectivePaperSize: "A4",
+        nextScene: "", categoryId: 9, categoryName: null, paperSize: "A4", layoutMode: "paper", effectivePaperSize: "A4",
         effectiveLayoutMode: "paper", fontScale: "m", archivedAt: null, createdAt: "2026-06-23T00:00:00Z",
         updatedAt: "2026-06-23T00:00:00Z", lastSentenceSource: "", wordCount: 0, docUpdatedAt: "2026-06-23T00:00:00Z", totalDurationMs: 0,
     };

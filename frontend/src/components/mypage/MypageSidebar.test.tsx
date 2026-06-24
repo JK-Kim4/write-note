@@ -31,6 +31,6 @@ describe("MypageSidebar", () => {
     it("현재 섹션(프로필)을 활성으로 강조한다", () => {
         renderSidebar();
         const profile = screen.getByRole("link", { name: "프로필" });
-        expect(profile.className).toContain("text-terracotta-700");
+        expect(profile.className).toContain("text-accent-text");
     });
 });

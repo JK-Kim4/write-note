@@ -42,7 +42,7 @@ function SortableWork({ id, title, checked, onToggle }: { id: number; title: str
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
     const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
     return (
-        <li ref={setNodeRef} style={style} className="flex items-center gap-2 rounded-md border border-gray-100 bg-white px-2 py-1.5">
+        <li ref={setNodeRef} style={style} className="flex items-center gap-2 rounded-md border border-border bg-surface px-2 py-1.5">
             <input type="checkbox" checked={checked} onChange={onToggle} aria-label={`${title} 포함`} />
             <span className="flex-1 truncate text-sm">{title}</span>
             <button
@@ -50,7 +50,7 @@ function SortableWork({ id, title, checked, onToggle }: { id: number; title: str
                 {...attributes}
                 {...listeners}
                 aria-label={`${title} 순서 이동`}
-                className="cursor-grab px-1 text-gray-300 hover:text-gray-500 active:cursor-grabbing"
+                className="cursor-grab px-1 text-faint hover:text-muted active:cursor-grabbing"
             >
                 ⠿
             </button>
@@ -95,9 +95,9 @@ export function SeriesExportDialog({ open, works, seriesName, onSubmit, onClose 
 
     return (
         <div role="dialog" aria-label="시리즈 내보내기" className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-            <div className="w-[28rem] max-w-[92vw] rounded-2xl bg-white p-5 shadow-xl">
-                <h2 className="text-base font-bold text-gray-900">{seriesName} 내보내기</h2>
-                <p className="mt-1 text-xs text-gray-500">포함할 작품과 순서를 정하세요(손잡이 ⠿ 를 끌어 순서 변경). 선택한 작품이 한 파일로 합쳐집니다.</p>
+            <div className="w-[28rem] max-w-[92vw] rounded-2xl bg-surface p-5 shadow-xl">
+                <h2 className="text-base font-bold text-ink">{seriesName} 내보내기</h2>
+                <p className="mt-1 text-xs text-muted">포함할 작품과 순서를 정하세요(손잡이 ⠿ 를 끌어 순서 변경). 선택한 작품이 한 파일로 합쳐집니다.</p>
 
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
                     <SortableContext items={order} strategy={verticalListSortingStrategy}>
@@ -109,9 +109,9 @@ export function SeriesExportDialog({ open, works, seriesName, onSubmit, onClose 
                     </SortableContext>
                 </DndContext>
 
-                <label className="mt-3 block text-xs text-gray-500">
+                <label className="mt-3 block text-xs text-muted">
                     소제목(작품 제목)
-                    <select value={joinMode} onChange={(e) => setJoinMode(e.target.value as JoinMode)} className="mt-1 w-full rounded-md border border-gray-300 px-2 py-1 text-sm">
+                    <select value={joinMode} onChange={(e) => setJoinMode(e.target.value as JoinMode)} className="mt-1 w-full rounded-md border border-border-strong px-2 py-1 text-sm">
                         <option value="page-title">작품마다 제목 페이지 포함</option>
                         <option value="body-only">제목 없이 본문만</option>
                     </select>
@@ -120,16 +120,16 @@ export function SeriesExportDialog({ open, works, seriesName, onSubmit, onClose 
                 <div className="mt-3 flex flex-wrap gap-1.5">
                     {FORMATS.map((f) => (
                         <button key={f.label} type="button" aria-pressed={formatLabel === f.label} onClick={() => setFormatLabel(f.label)}
-                            className={`rounded-md border px-2.5 py-1 text-xs ${formatLabel === f.label ? "border-terracotta-500 bg-terracotta-50 text-terracotta-700" : "border-gray-200 text-gray-600"}`}>
+                            className={`rounded-md border px-2.5 py-1 text-xs ${formatLabel === f.label ? "border-terracotta-500 bg-accent-soft text-accent-text" : "border-border text-muted-strong"}`}>
                             {f.label}
                         </button>
                     ))}
                 </div>
 
                 <div className="mt-4 flex justify-end gap-2">
-                    <button type="button" onClick={onClose} className="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-600">취소</button>
+                    <button type="button" onClick={onClose} className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-strong">취소</button>
                     <button type="button" onClick={submit} disabled={order.filter((id) => selected.has(id)).length === 0}
-                        className="rounded-md bg-terracotta-600 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50">내보내기</button>
+                        className="rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink disabled:opacity-50">내보내기</button>
                 </div>
             </div>
         </div>

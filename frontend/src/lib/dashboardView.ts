@@ -21,6 +21,23 @@ export function selectDashboard(cards: ReadonlyArray<ProjectCard>): {
     return { resume, others };
 }
 
+/** 홈에 표시할 "이어서 쓰기" 외 작품 카드 최대 개수(038 US1). */
+export const HOME_OTHER_CARDS_LIMIT = 2;
+
+/**
+ * 홈 others 표시 분할(038 US1) — 상위 [HOME_OTHER_CARDS_LIMIT]개만 표시하고,
+ * 초과분 존재 여부([hasMore])로 "더 보기"(전체 보기) 노출을 판단한다.
+ */
+export function limitHomeOthers(others: ReadonlyArray<ProjectCard>): {
+    visible: ProjectCard[];
+    hasMore: boolean;
+} {
+    return {
+        visible: others.slice(0, HOME_OTHER_CARDS_LIMIT),
+        hasMore: others.length > HOME_OTHER_CARDS_LIMIT,
+    };
+}
+
 /**
  * "이번 주" 경계(018 US3) — 사용자 로컬 시간대 기준 이번 주 월요일 00:00.
  * 일요일은 주의 마지막 날(한국 관례). 기간 합계 from 으로 ISO 변환해 쓴다.

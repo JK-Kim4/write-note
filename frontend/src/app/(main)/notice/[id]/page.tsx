@@ -23,23 +23,23 @@ export default function NoticeDetailPage() {
         <div className="mx-auto max-w-2xl">
             <Link
                 href="/notice"
-                className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 transition-colors hover:text-gray-800"
+                className="mb-4 inline-flex items-center gap-1 text-sm text-muted transition-colors hover:text-ink"
             >
                 <ChevronLeft size={16} strokeWidth={1.75} aria-hidden />
                 공지 목록
             </Link>
 
-            {isLoading && <p className="text-sm text-gray-500">불러오는 중…</p>}
+            {isLoading && <p className="text-sm text-muted">불러오는 중…</p>}
             {isError && (
-                <p className="rounded-lg border border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500">
+                <p className="rounded-lg border border-border bg-surface px-4 py-8 text-center text-sm text-muted">
                     공지를 찾을 수 없습니다.
                 </p>
             )}
 
             {data && (
                 <article>
-                    <h1 className="text-xl font-bold text-gray-900">{data.title}</h1>
-                    <time className="mt-1 block text-xs text-gray-400">{formatDate(data.publishedAt)}</time>
+                    <h1 className="text-xl font-bold text-ink">{data.title}</h1>
+                    <time className="mt-1 block text-xs text-faint">{formatDate(data.publishedAt)}</time>
                     <div className="mt-5">
                         <AnnouncementBody body={data.body} />
                     </div>
