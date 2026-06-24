@@ -75,6 +75,15 @@
 - form 컴포넌트 4 종 (`LoginForm`, `SignupEmailForm`, `ResetRequestForm`, `ResetNewForm`) 에 `'use client'` 누락 → Phase 3 build 시 `Event handlers cannot be passed to Client Component props` 발견 → 4 파일에 `'use client'` 추가 후 GREEN
 - 회피 가능했던 시점: 컴포넌트 작성 시점에 본 룰 active recall — `<form onSubmit>` 또는 `onClick` prop 가 있으면 즉시 `'use client'` 박음
 
+### 라우트 구조 변경 후 typecheck — 빌드 캐시 재생성 (HARD-GATE)
+
+정적 타입 검증이 빌드 산출물 캐시에 의존하는 빌드 시스템(Next.js `.next/types`)에서는, **라우트 파일(`page.tsx`·`layout.tsx` 등)을 제거·이동한 뒤 typecheck 전에 빌드 캐시를 재생성**한다(`rm -rf .next` 또는 `pnpm build`). 캐시의 `validator.ts` 가 사라진 라우트의 생성 타입을 참조해 **거짓 typecheck 실패**가 난다. dev 서버가 떠 있으면 먼저 중지(캐시 동시 접근 혼선).
+
+#### 회귀 사례 — 2026-06-24 037 settings 라우트 제거
+
+- `settings/page.tsx` 제거(마이페이지로 흡수) 후 `.next/types/validator.ts` 가 `'.../(main)/settings/page.js'` 를 참조 → typecheck 거짓 실패 2회. `rm -rf .next`+build 로 해소.
+- 회피 가능했던 시점: 라우트 파일 제거 직후 typecheck 전 `.next` 재생성.
+
 ## 에러 / 옵션 / 주석
 
 - `Result<T, E>` 또는 discriminated union 으로 에러 표현 — throw 남용 X
