@@ -108,9 +108,12 @@ export interface ProjectCardResponse extends ProjectResponse {
 export interface AuthMeResponse {
     userId: number;
     email: string;
+    nickname: string;
     kakaoLinked: boolean;
     emailVerifiedAt: string | null;
     activeApiTokenCount: number;
+    createdAt: string | null;
+    passwordSet: boolean;
 }
 
 export interface CharacterResponse {

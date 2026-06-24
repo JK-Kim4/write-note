@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import BLayout from "./layout";
@@ -57,19 +56,10 @@ describe("BLayout 네비게이션", () => {
     });
 });
 
-// 031 — 서비스 내 문의 진입점(헤더 전역). 데스크탑 헤더 + 모바일 햄버거 메뉴 양쪽.
-describe("BLayout 문의 진입점", () => {
-    it("헤더에 문의 링크(/contact)가 있다", () => {
+// 037 — 문의 진입점은 헤더에서 제거되고 마이페이지(사이드 메뉴)로 이동(MypageSidebar.test 가 검증).
+describe("BLayout 문의 진입점 제거", () => {
+    it("헤더에 문의 링크가 없다", () => {
         renderLayout();
-        expect(screen.getByRole("link", { name: "문의" })).toHaveAttribute("href", "/contact");
-    });
-
-    it("모바일 햄버거 메뉴를 열면 문의 링크(/contact)가 보인다", async () => {
-        renderLayout();
-        await userEvent.click(screen.getByRole("button", { name: "메뉴" }));
-        // 데스크탑 헤더 + 모바일 메뉴 양쪽에 노출 → 2개, 모두 /contact.
-        const links = screen.getAllByRole("link", { name: "문의" });
-        expect(links).toHaveLength(2);
-        links.forEach((link) => expect(link).toHaveAttribute("href", "/contact"));
+        expect(screen.queryByRole("link", { name: "문의" })).not.toBeInTheDocument();
     });
 });

@@ -32,6 +32,12 @@ const nextConfig: NextConfig = {
   // 구 도메인 harubuild.xyz → soseolbi.com 영구 redirect (경로 보존). soseolbi 는 host 미매칭이라 통과.
   async redirects() {
     return [
+      // 037: 기존 설정 화면 → 마이페이지 환경설정 흡수(끊긴 링크 방지). permanent:false(추후 IA 재변경 여지).
+      {
+        source: "/settings",
+        destination: "/mypage/settings",
+        permanent: false,
+      },
       {
         source: "/:path*",
         has: [{ type: "host", value: "harubuild.xyz" }],

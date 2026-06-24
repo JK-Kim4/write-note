@@ -22,6 +22,7 @@ import com.writenote.model.request.VerifyEmailRequest
 import com.writenote.model.response.AuthMeResponse
 import com.writenote.model.response.SignupEmailResponse
 import com.writenote.model.response.TokenPairResponse
+import com.writenote.nickname.NicknameGenerator
 import com.writenote.repository.AuthTokenRepository
 import com.writenote.repository.UserRepository
 import org.springframework.context.ApplicationEventPublisher
@@ -45,6 +46,7 @@ class AuthService(
     private val applicationEventPublisher: ApplicationEventPublisher,
     private val loginAttemptService: LoginAttemptService,
     private val userKeyService: UserKeyService,
+    private val nicknameGenerator: NicknameGenerator,
 ) {
     /**
      * 이메일·비밀번호 회원가입.
@@ -68,6 +70,7 @@ class AuthService(
             userRepository.save(
                 User(
                     email = request.email,
+                    nickname = nicknameGenerator.generate(),
                     passwordHash = passwordEncoder.encode(request.password),
                 ),
             )

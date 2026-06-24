@@ -14,11 +14,11 @@ export default function LinkSuccessPage() {
                 description="이제 카카오로도 로그인할 수 있습니다."
             />
             <Link
-                href="/settings"
+                href="/mypage/connections"
                 className="px-6 py-3 rounded-button-pill font-semibold"
                 style={{ backgroundColor: "var(--w-ink)", color: "var(--w-canvas)" }}
             >
-                설정으로
+                계정 연결로
             </Link>
         </div>
     );
