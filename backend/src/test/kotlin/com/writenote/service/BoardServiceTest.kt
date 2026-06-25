@@ -276,6 +276,80 @@ class BoardServiceTest {
             override val cnt = count
         }
 
+    // ── listReferenceBoards (043 집필 참조) ─────────────────────────────────────
+
+    @Test
+    @DisplayName("listReferenceBoards — 그 작품 보드 + 상위 시리즈 보드 합쳐 최근순(라벨 파생)")
+    fun `listReferenceBoards combines work and parent series boards`() {
+        val older = Instant.now().minusSeconds(100)
+        val newer = Instant.now()
+        val project = Project(id = 7L, userId = 1L, title = "달밤").apply { categoryId = 3L }
+        every { projectRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns Optional.of(project)
+        val workBoard =
+            ownedBoard(id = 10L).apply {
+                ownerType = "project"
+                ownerId = 7L
+                updatedAt = newer
+            }
+        val seriesBoard =
+            ownedBoard(id = 20L).apply {
+                ownerType = "category"
+                ownerId = 3L
+                updatedAt = older
+            }
+        every {
+            boardRepository.findByUserIdAndOwnerTypeAndOwnerIdOrderByUpdatedAtDesc(eq(1L), eq("project"), eq(7L))
+        } returns listOf(workBoard)
+        every {
+            boardRepository.findByUserIdAndOwnerTypeAndOwnerIdOrderByUpdatedAtDesc(eq(1L), eq("category"), eq(3L))
+        } returns listOf(seriesBoard)
+        every { projectRepository.findAllById(eq(listOf(7L))) } returns listOf(project)
+        every { categoryRepository.findAllById(eq(listOf(3L))) } returns
+            listOf(Category(id = 3L, userId = 1L, name = "늑대 연대기", createdAt = Instant.now(), updatedAt = Instant.now()))
+        every { cardRepository.countGroupedByBoardId(eq(listOf(10L, 20L))) } returns emptyList()
+
+        val result = service.listReferenceBoards(1L, 7L)
+
+        // 최근순(작품 보드가 newer) — 작품 보드 먼저, 그 다음 상위 시리즈 보드.
+        assertThat(result.map { it.id }).containsExactly(10L, 20L)
+        assertThat(result.first { it.id == 10L }.ownerLabel).isEqualTo("달밤")
+        assertThat(result.first { it.id == 20L }.ownerLabel).isEqualTo("늑대 연대기")
+    }
+
+    @Test
+    @DisplayName("listReferenceBoards — 미분류 작품(상위 시리즈 없음)이면 그 작품 보드만")
+    fun `listReferenceBoards without parent series returns only work boards`() {
+        val project = Project(id = 7L, userId = 1L, title = "달밤") // categoryId = null
+        every { projectRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns Optional.of(project)
+        val workBoard =
+            ownedBoard(id = 10L).apply {
+                ownerType = "project"
+                ownerId = 7L
+            }
+        every {
+            boardRepository.findByUserIdAndOwnerTypeAndOwnerIdOrderByUpdatedAtDesc(eq(1L), eq("project"), eq(7L))
+        } returns listOf(workBoard)
+        every { projectRepository.findAllById(eq(listOf(7L))) } returns listOf(project)
+        every { cardRepository.countGroupedByBoardId(eq(listOf(10L))) } returns emptyList()
+
+        val result = service.listReferenceBoards(1L, 7L)
+
+        assertThat(result.map { it.id }).containsExactly(10L)
+        // 상위 시리즈 조회를 하지 않는다(categoryId null).
+        verify(exactly = 0) {
+            boardRepository.findByUserIdAndOwnerTypeAndOwnerIdOrderByUpdatedAtDesc(any(), eq("category"), any())
+        }
+    }
+
+    @Test
+    @DisplayName("listReferenceBoards — 본인 작품 아니면 ResourceNotFoundException")
+    fun `listReferenceBoards rejects non-owned project`() {
+        every { projectRepository.findByIdAndUserId(eq(99L), eq(1L)) } returns Optional.empty()
+
+        assertThatThrownBy { service.listReferenceBoards(1L, 99L) }
+            .isInstanceOf(ResourceNotFoundException::class.java)
+    }
+
     // ── viewport ──────────────────────────────────────────────────────────────
 
     @Test

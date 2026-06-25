@@ -71,6 +71,16 @@ class BoardController(
         @RequestParam(required = false, defaultValue = "false") unmapped: Boolean,
     ): Result<List<BoardSummary>> = Result.success(boardService.listBoards(principal.userId, ownerType, ownerId, unmapped))
 
+    @GetMapping("/reference")
+    @Operation(
+        summary = "집필 참조 보드",
+        description = "그 작품 보드 + 상위 시리즈 보드(최근순). 집필 화면 곁눈질용(043). 본인 작품 아니면 404",
+    )
+    fun listReferenceBoards(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @RequestParam projectId: Long,
+    ): Result<List<BoardSummary>> = Result.success(boardService.listReferenceBoards(principal.userId, projectId))
+
     @GetMapping("/{boardId}")
     @Operation(summary = "보드 열기(하이드레이션)", description = "메타 + 카드 + 연결 + 뷰포트")
     fun getBoard(

@@ -211,6 +211,39 @@ class BoardControllerIT {
     }
 
     @Test
+    fun `reference boards return work board plus parent series board`() {
+        // 043 집필 참조 — 그 작품 보드 + 상위 시리즈 보드. 아이디어 보드는 제외.
+        val bearer = bearerFor(createUser())
+        val categoryId = createCategory(bearer, "늑대 연대기")
+        val projectId = createProject(bearer, "달밤의 늑대")
+        moveToCategory(bearer, projectId, categoryId).andExpect(status().isOk)
+
+        val workBoard = createBoard(bearer, "작품 보드")
+        val seriesBoard = createBoard(bearer, "시리즈 보드")
+        createBoard(bearer, "막연한 구상") // 아이디어 — 참조에 포함 안 됨
+        setOwner(workBoard, bearer, "project", projectId).andExpect(status().isOk)
+        setOwner(seriesBoard, bearer, "category", categoryId).andExpect(status().isOk)
+
+        mockMvc
+            .perform(get("/api/boards/reference?projectId={p}", projectId).header("Authorization", bearer))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.length()").value(2))
+            .andExpect(jsonPath("$.data[?(@.id == $workBoard)].ownerLabel").value("달밤의 늑대"))
+            .andExpect(jsonPath("$.data[?(@.id == $seriesBoard)].ownerLabel").value("늑대 연대기"))
+    }
+
+    @Test
+    fun `reference boards reject non-owned project with 404`() {
+        val owner = bearerFor(createUser())
+        val projectId = createProject(owner, "작품")
+        val other = bearerFor(createUser())
+
+        mockMvc
+            .perform(get("/api/boards/reference?projectId={p}", projectId).header("Authorization", other))
+            .andExpect(status().isNotFound)
+    }
+
+    @Test
     fun `project hard delete preserves board as idea`() {
         // 041 FR-009: 작품 hard delete 시 그 보드는 owner null(아이디어)로 보존
         val bearer = bearerFor(createUser())
@@ -434,6 +467,19 @@ class BoardControllerIT {
                 .content("""{"ownerType":$typeJson,"ownerId":$idJson}"""),
         )
     }
+
+    /** PATCH /projects/{id}/category — 작품을 시리즈(모음)로 이동(043 reference 픽스처). */
+    private fun moveToCategory(
+        bearer: String,
+        projectId: Long,
+        categoryId: Long,
+    ): ResultActions =
+        mockMvc.perform(
+            patch("/api/projects/{id}/category", projectId)
+                .header("Authorization", bearer)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"categoryId":$categoryId}"""),
+        )
 
     private fun createProject(
         bearer: String,

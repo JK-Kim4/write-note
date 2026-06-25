@@ -96,6 +96,28 @@ class BoardService(
         return toSummaries(boards)
     }
 
+    /**
+     * 집필 참조(043, PRD §9) — 그 작품 보드 + 상위 시리즈 보드를 합쳐 최근순. 본인 작품만(아니면 404).
+     * 상위 시리즈 = [project.categoryId](미분류면 시리즈 보드 없음). 라벨로 작품/시리즈 그룹을 FE 가 구분.
+     */
+    @Transactional(readOnly = true)
+    fun listReferenceBoards(
+        userId: Long,
+        projectId: Long,
+    ): List<BoardSummary> {
+        val project =
+            projectRepository
+                .findByIdAndUserId(projectId, userId)
+                .orElseThrow { ResourceNotFoundException("Project not found") }
+        val workBoards =
+            boardRepository.findByUserIdAndOwnerTypeAndOwnerIdOrderByUpdatedAtDesc(userId, OWNER_PROJECT, projectId)
+        val seriesBoards =
+            project.categoryId?.let { categoryId ->
+                boardRepository.findByUserIdAndOwnerTypeAndOwnerIdOrderByUpdatedAtDesc(userId, OWNER_CATEGORY, categoryId)
+            } ?: emptyList()
+        return toSummaries((workBoards + seriesBoards).sortedByDescending { it.updatedAt })
+    }
+
     @Transactional(readOnly = true)
     fun getBoardDetail(
         userId: Long,
