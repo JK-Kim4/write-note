@@ -2,6 +2,7 @@ package com.writenote.service
 
 import com.writenote.entity.Board
 import com.writenote.entity.Card
+import com.writenote.entity.Category
 import com.writenote.entity.Link
 import com.writenote.entity.Project
 import com.writenote.error.AuthException
@@ -13,6 +14,7 @@ import com.writenote.model.request.CreateCardRequest
 import com.writenote.model.request.CreateLinkRequest
 import com.writenote.model.request.UpdateCardRequest
 import com.writenote.model.request.UpdateViewportRequest
+import com.writenote.repository.BoardCardCount
 import com.writenote.repository.BoardRepository
 import com.writenote.repository.CardRepository
 import com.writenote.repository.CategoryRepository
@@ -82,7 +84,7 @@ class BoardServiceTest {
     // ── createBoard ───────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("createBoard — name trim 영속, userId 설정, 매핑 미지정 시 독립")
+    @DisplayName("createBoard — name trim 영속, userId 설정, owner 미지정 시 아이디어 보드")
     fun `createBoard persists trimmed name unmapped`() {
         every { userRepository.existsById(eq(1L)) } returns true
         val captured = slot<Board>()
@@ -92,9 +94,9 @@ class BoardServiceTest {
 
         assertThat(captured.captured.name).isEqualTo("1부 플롯")
         assertThat(captured.captured.userId).isEqualTo(1L)
-        assertThat(captured.captured.projectId).isNull()
-        assertThat(captured.captured.categoryId).isNull()
-        assertThat(response.projectId).isNull()
+        assertThat(captured.captured.ownerType).isNull()
+        assertThat(captured.captured.ownerId).isNull()
+        assertThat(response.ownerType).isNull()
         assertThat(response.viewport.zoom).isEqualTo(1.0)
     }
 
@@ -117,15 +119,57 @@ class BoardServiceTest {
     }
 
     @Test
-    @DisplayName("createBoard — 작품 매핑 시 그 작품에 다른 보드 있으면 409")
-    fun `createBoard rejects project already mapped`() {
+    @DisplayName("createBoard — owner=작품(본인) 영속")
+    fun `createBoard persists owner project`() {
         every { userRepository.existsById(eq(1L)) } returns true
         every { projectRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns
             Optional.of(Project(id = 7L, userId = 1L, title = "작품"))
-        every { boardRepository.findByProjectId(eq(7L)) } returns Optional.of(ownedBoard(id = 200L))
+        val captured = slot<Board>()
+        every { boardRepository.save(capture(captured)) } answers { savedBoard(firstArg()) }
 
-        assertThatThrownBy { service.createBoard(1L, CreateBoardRequest(name = "보드", projectId = 7L)) }
-            .isInstanceOf(AuthException::class.java)
+        val response = service.createBoard(1L, CreateBoardRequest(name = "보드", ownerType = "project", ownerId = 7L))
+
+        assertThat(captured.captured.ownerType).isEqualTo("project")
+        assertThat(captured.captured.ownerId).isEqualTo(7L)
+        assertThat(response.ownerType).isEqualTo("project")
+        assertThat(response.ownerId).isEqualTo(7L)
+    }
+
+    @Test
+    @DisplayName("createBoard — 본인 아닌/없는 작품 owner 는 BOARD_OWNER_INVALID(400)")
+    fun `createBoard rejects foreign project owner`() {
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { projectRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns Optional.empty()
+
+        assertThatThrownBy {
+            service.createBoard(1L, CreateBoardRequest(name = "보드", ownerType = "project", ownerId = 7L))
+        }.isInstanceOf(AuthException::class.java)
+    }
+
+    @Test
+    @DisplayName("createBoard — owner 종류·id 짝 불완전(종류만)은 BOARD_OWNER_INVALID")
+    fun `createBoard rejects incomplete owner pair`() {
+        every { userRepository.existsById(eq(1L)) } returns true
+
+        assertThatThrownBy {
+            service.createBoard(1L, CreateBoardRequest(name = "보드", ownerType = "project", ownerId = null))
+        }.isInstanceOf(AuthException::class.java)
+    }
+
+    @Test
+    @DisplayName("createBoard — 1:N: 같은 작품에 보드 둘 다 생성(매핑충돌 없음)")
+    fun `createBoard allows multiple boards per project`() {
+        every { userRepository.existsById(eq(1L)) } returns true
+        every { projectRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns
+            Optional.of(Project(id = 7L, userId = 1L, title = "작품"))
+        val captured = slot<Board>()
+        every { boardRepository.save(capture(captured)) } answers { savedBoard(firstArg()) }
+
+        service.createBoard(1L, CreateBoardRequest(name = "보드1", ownerType = "project", ownerId = 7L))
+        val second = service.createBoard(1L, CreateBoardRequest(name = "보드2", ownerType = "project", ownerId = 7L))
+
+        assertThat(second.ownerType).isEqualTo("project")
+        assertThat(second.ownerId).isEqualTo(7L)
     }
 
     // ── ownership ─────────────────────────────────────────────────────────────
@@ -139,56 +183,98 @@ class BoardServiceTest {
             .isInstanceOf(ResourceNotFoundException::class.java)
     }
 
-    // ── mapping ───────────────────────────────────────────────────────────────
+    // ── setBoardOwner ───────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("setProjectMapping — null 이면 해제(다른 검증 없이)")
-    fun `setProjectMapping clears when null`() {
-        val board = ownedBoard().apply { projectId = 7L }
-        every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(board)
-
-        val response = service.setProjectMapping(1L, 100L, null)
-
-        assertThat(board.projectId).isNull()
-        assertThat(response.projectId).isNull()
-    }
-
-    @Test
-    @DisplayName("setProjectMapping — 같은 보드 재매핑은 충돌 아님")
-    fun `setProjectMapping allows remapping to same board`() {
+    @DisplayName("setBoardOwner — 본인 작품에 연결")
+    fun `setBoardOwner attaches to project`() {
         val board = ownedBoard(id = 100L)
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(board)
         every { projectRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns
             Optional.of(Project(id = 7L, userId = 1L, title = "P"))
-        every { boardRepository.findByProjectId(eq(7L)) } returns Optional.of(board)
 
-        val response = service.setProjectMapping(1L, 100L, 7L)
+        val response = service.setBoardOwner(1L, 100L, "project", 7L)
 
-        assertThat(board.projectId).isEqualTo(7L)
-        assertThat(response.projectId).isEqualTo(7L)
+        assertThat(board.ownerType).isEqualTo("project")
+        assertThat(board.ownerId).isEqualTo(7L)
+        assertThat(response.ownerId).isEqualTo(7L)
     }
 
     @Test
-    @DisplayName("setProjectMapping — 다른 보드가 그 작품에 매핑돼 있으면 409")
-    fun `setProjectMapping rejects when other board mapped`() {
-        every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
-        every { projectRepository.findByIdAndUserId(eq(7L), eq(1L)) } returns
-            Optional.of(Project(id = 7L, userId = 1L, title = "P"))
-        every { boardRepository.findByProjectId(eq(7L)) } returns Optional.of(ownedBoard(id = 999L))
+    @DisplayName("setBoardOwner — null 짝이면 아이디어로 해제")
+    fun `setBoardOwner clears to idea`() {
+        val board =
+            ownedBoard(id = 100L).apply {
+                ownerType = "project"
+                ownerId = 7L
+            }
+        every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(board)
 
-        assertThatThrownBy { service.setProjectMapping(1L, 100L, 7L) }
+        val response = service.setBoardOwner(1L, 100L, null, null)
+
+        assertThat(board.ownerType).isNull()
+        assertThat(board.ownerId).isNull()
+        assertThat(response.ownerType).isNull()
+    }
+
+    @Test
+    @DisplayName("setBoardOwner — 본인 아닌 시리즈는 BOARD_OWNER_INVALID")
+    fun `setBoardOwner rejects foreign category`() {
+        every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
+        every { categoryRepository.existsByIdAndUserId(eq(5L), eq(1L)) } returns false
+
+        assertThatThrownBy { service.setBoardOwner(1L, 100L, "category", 5L) }
             .isInstanceOf(AuthException::class.java)
     }
 
     @Test
-    @DisplayName("setCategoryMapping — 본인 시리즈 아니면 ResourceNotFoundException")
-    fun `setCategoryMapping rejects non-owned category`() {
+    @DisplayName("setBoardOwner — 미지원 owner 종류는 BOARD_OWNER_INVALID")
+    fun `setBoardOwner rejects unknown owner type`() {
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
-        every { categoryRepository.existsByIdAndUserId(eq(5L), eq(1L)) } returns false
 
-        assertThatThrownBy { service.setCategoryMapping(1L, 100L, 5L) }
-            .isInstanceOf(ResourceNotFoundException::class.java)
+        assertThatThrownBy { service.setBoardOwner(1L, 100L, "memo", 5L) }
+            .isInstanceOf(AuthException::class.java)
     }
+
+    // ── listMyBoards (라벨 파생) ──────────────────────────────────────────────
+
+    @Test
+    @DisplayName("listMyBoards — 소속 라벨 파생(작품명/시리즈명/아이디어) + 카드수 일괄(N+1 회피)")
+    fun `listMyBoards derives owner labels and counts`() {
+        every { userRepository.existsById(eq(1L)) } returns true
+        val b1 =
+            ownedBoard(id = 10L).apply {
+                ownerType = "project"
+                ownerId = 7L
+            }
+        val b2 =
+            ownedBoard(id = 20L).apply {
+                ownerType = "category"
+                ownerId = 3L
+            }
+        val b3 = ownedBoard(id = 30L) // 아이디어(미소속)
+        every { boardRepository.findByUserIdOrderByUpdatedAtDesc(eq(1L)) } returns listOf(b1, b2, b3)
+        every { projectRepository.findAllById(eq(listOf(7L))) } returns
+            listOf(Project(id = 7L, userId = 1L, title = "달밤"))
+        every { categoryRepository.findAllById(eq(listOf(3L))) } returns
+            listOf(Category(id = 3L, userId = 1L, name = "늑대 연대기", createdAt = Instant.now(), updatedAt = Instant.now()))
+        every { cardRepository.countGroupedByBoardId(eq(listOf(10L, 20L, 30L))) } returns listOf(cardCount(10L, 5L))
+
+        val result = service.listMyBoards(1L)
+
+        assertThat(result.map { it.ownerLabel }).containsExactly("달밤", "늑대 연대기", "아이디어")
+        assertThat(result.first { it.id == 10L }.cardCount).isEqualTo(5)
+        assertThat(result.first { it.id == 30L }.cardCount).isEqualTo(0)
+    }
+
+    private fun cardCount(
+        forBoardId: Long,
+        count: Long,
+    ): BoardCardCount =
+        object : BoardCardCount {
+            override val boardId = forBoardId
+            override val cnt = count
+        }
 
     // ── viewport ──────────────────────────────────────────────────────────────
 

@@ -11,15 +11,16 @@ import {
     deleteLink,
     getBoard,
     listBoards,
+    listMyBoards,
     renameBoard,
-    setBoardCategory,
-    setBoardProject,
+    setBoardOwner,
     updateCard,
     updateViewport,
 } from "@/lib/api/boards";
 import type {
     BoardDetail,
     BoardListFilter,
+    BoardOwnerType,
     BoardResponse,
     BoardSummary,
     BoardViewport,
@@ -32,15 +33,14 @@ import type {
 } from "@/lib/api/boards";
 
 export const boards = {
+    mine: (): Promise<BoardSummary[]> => listMyBoards(),
     list: (filter?: BoardListFilter): Promise<BoardSummary[]> => listBoards(filter),
     get: (boardId: number): Promise<BoardDetail> => getBoard(boardId),
     create: (input: CreateBoardInput): Promise<BoardResponse> => createBoard(input),
     rename: (boardId: number, name: string): Promise<BoardResponse> => renameBoard(boardId, name),
     delete: (boardId: number): Promise<void> => deleteBoard(boardId),
-    setProject: (boardId: number, projectId: number | null): Promise<BoardResponse> =>
-        setBoardProject(boardId, projectId),
-    setCategory: (boardId: number, categoryId: number | null): Promise<BoardResponse> =>
-        setBoardCategory(boardId, categoryId),
+    setOwner: (boardId: number, ownerType: BoardOwnerType | null, ownerId: number | null): Promise<BoardResponse> =>
+        setBoardOwner(boardId, ownerType, ownerId),
     updateViewport: (boardId: number, viewport: BoardViewport): Promise<BoardResponse> =>
         updateViewport(boardId, viewport),
     createCard: (boardId: number, input: CreateCardInput): Promise<CardResponse> =>

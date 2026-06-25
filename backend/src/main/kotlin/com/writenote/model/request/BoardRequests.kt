@@ -3,16 +3,16 @@ package com.writenote.model.request
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 
-// 플롯 보드(038) 요청 DTO 모음. 매핑 필드(projectId·categoryId)는 0~1 — null=미매핑/해제.
+// 플롯 보드(038, 041 트랙 C) 요청 DTO 모음. 소속(ownerType/ownerId)은 다형 단일 — null 짝=아이디어 보드.
 // 카드 위치(posX/posY)는 캔버스 절대 좌표(음수·소수 허용).
 
-/** 보드 생성 — 매핑은 선택(미지정 시 독립 보드). 대상에 이미 보드가 있으면 409. */
+/** 보드 생성 — 소속은 선택(미지정 시 아이디어 보드). ownerType="project"|"category", null 짝=아이디어. */
 data class CreateBoardRequest(
     @field:NotBlank
     @field:Size(max = 120)
     val name: String,
-    val projectId: Long? = null,
-    val categoryId: Long? = null,
+    val ownerType: String? = null,
+    val ownerId: Long? = null,
 )
 
 /** 보드 이름 변경. */
@@ -22,14 +22,10 @@ data class RenameBoardRequest(
     val name: String,
 )
 
-/** 작품 매핑 set/clear — null=해제(미분류). 대상에 다른 보드가 있으면 409. */
-data class SetBoardProjectRequest(
-    val projectId: Long? = null,
-)
-
-/** 시리즈 매핑 set/clear — null=해제. */
-data class SetBoardCategoryRequest(
-    val categoryId: Long? = null,
+/** 소속 지정/해제(041) — ownerType/ownerId 짝(작품/시리즈에 연결), null 짝=아이디어로 해제. PUT /project·/category 통합. */
+data class SetBoardOwnerRequest(
+    val ownerType: String? = null,
+    val ownerId: Long? = null,
 )
 
 /** 화면 상태(줌·이동) 저장 — 조작 종료 후 디바운스 1회. */

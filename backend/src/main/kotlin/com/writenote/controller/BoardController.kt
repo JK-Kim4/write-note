@@ -6,8 +6,7 @@ import com.writenote.model.request.CreateBoardRequest
 import com.writenote.model.request.CreateCardRequest
 import com.writenote.model.request.CreateLinkRequest
 import com.writenote.model.request.RenameBoardRequest
-import com.writenote.model.request.SetBoardCategoryRequest
-import com.writenote.model.request.SetBoardProjectRequest
+import com.writenote.model.request.SetBoardOwnerRequest
 import com.writenote.model.request.UpdateCardRequest
 import com.writenote.model.request.UpdateViewportRequest
 import com.writenote.model.response.BoardDetailResponse
@@ -29,7 +28,6 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -57,14 +55,20 @@ class BoardController(
             .status(HttpStatus.CREATED)
             .body(Result.success(boardService.createBoard(principal.userId, request)))
 
+    @GetMapping("/mine")
+    @Operation(summary = "전역 보드 허브", description = "본인 모든 보드 + 소속 라벨(작품명/시리즈명/\"아이디어\"), 최근순. 검색은 클라 필터")
+    fun listMyBoards(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+    ): Result<List<BoardSummary>> = Result.success(boardService.listMyBoards(principal.userId))
+
     @GetMapping
-    @Operation(summary = "보드 목록", description = "본인 보드. 필터: projectId / categoryId / unmapped")
+    @Operation(summary = "보드 목록(소속 필터)", description = "본인 보드. 필터: ownerType+ownerId / unmapped(아이디어)")
     fun listBoards(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
-        @RequestParam(required = false) projectId: Long?,
-        @RequestParam(required = false) categoryId: Long?,
+        @RequestParam(required = false) ownerType: String?,
+        @RequestParam(required = false) ownerId: Long?,
         @RequestParam(required = false, defaultValue = "false") unmapped: Boolean,
-    ): Result<List<BoardSummary>> = Result.success(boardService.listBoards(principal.userId, projectId, categoryId, unmapped))
+    ): Result<List<BoardSummary>> = Result.success(boardService.listBoards(principal.userId, ownerType, ownerId, unmapped))
 
     @GetMapping("/{boardId}")
     @Operation(summary = "보드 열기(하이드레이션)", description = "메타 + 카드 + 연결 + 뷰포트")
@@ -81,21 +85,16 @@ class BoardController(
         @Valid @RequestBody request: RenameBoardRequest,
     ): Result<BoardResponse> = Result.success(boardService.renameBoard(principal.userId, boardId, request))
 
-    @PutMapping("/{boardId}/project")
-    @Operation(summary = "작품 매핑 set/clear", description = "projectId null=해제. 그 작품에 다른 보드 있으면 409")
-    fun setProject(
+    @PatchMapping("/{boardId}/owner")
+    @Operation(
+        summary = "소속 지정/해제",
+        description = "ownerType(project/category)+ownerId=작품/시리즈에 연결, null 짝=아이디어로 해제. 1:N(매핑충돌 없음). 없는·본인 아닌 대상 400",
+    )
+    fun setOwner(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable boardId: Long,
-        @RequestBody request: SetBoardProjectRequest,
-    ): Result<BoardResponse> = Result.success(boardService.setProjectMapping(principal.userId, boardId, request.projectId))
-
-    @PutMapping("/{boardId}/category")
-    @Operation(summary = "시리즈 매핑 set/clear", description = "categoryId null=해제. 그 시리즈에 다른 보드 있으면 409")
-    fun setCategory(
-        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
-        @PathVariable boardId: Long,
-        @RequestBody request: SetBoardCategoryRequest,
-    ): Result<BoardResponse> = Result.success(boardService.setCategoryMapping(principal.userId, boardId, request.categoryId))
+        @RequestBody request: SetBoardOwnerRequest,
+    ): Result<BoardResponse> = Result.success(boardService.setBoardOwner(principal.userId, boardId, request.ownerType, request.ownerId))
 
     @PatchMapping("/{boardId}/viewport")
     @Operation(summary = "화면 상태 저장", description = "줌·이동(디바운스 1회)")

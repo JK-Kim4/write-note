@@ -30,9 +30,10 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 /**
- * 플롯 보드(038) 유스케이스 — 작가별 격리(모든 조회·수정·삭제는 본인 보드만, 아니면 404).
+ * 플롯 보드(038, 041 트랙 C) 유스케이스 — 작가별 격리(모든 조회·수정·삭제는 본인 보드만, 아니면 404).
  *
- * 보드↔작품·보드↔시리즈 매핑은 0~1:0~1 — 대상당 보드 1개(이미 매핑된 대상에 다른 보드 매핑 시 409).
+ * 소속(041)은 다형 단일(ownerType="project"/"category"/null) + 1:N(한 대상에 보드 여러 개, 매핑충돌 없음).
+ * 소속 무결성은 [validateOwner](본인 작품/시리즈) 검증, 대상 hard delete 시 보드 보존은 Project/Category 서비스 훅.
  * 카드/연결은 보드 전용이며 캡처 메모(memos)와 무관하다. 보드/카드 삭제 시 연결은 DB cascade 로 정리.
  */
 @Service
@@ -56,37 +57,43 @@ class BoardService(
         if (name.isEmpty()) {
             throw ValidationException("보드 이름은 비어 있을 수 없습니다")
         }
-        request.projectId?.let { requireMappableProject(userId, it, currentBoardId = null) }
-        request.categoryId?.let { requireMappableCategory(userId, it, currentBoardId = null) }
+        validateOwner(userId, request.ownerType, request.ownerId)
         val board =
             boardRepository.save(
                 Board(
                     userId = userId,
                     name = name,
-                    projectId = request.projectId,
-                    categoryId = request.categoryId,
+                    ownerType = request.ownerType,
+                    ownerId = request.ownerId,
                 ),
             )
         return toResponse(board)
     }
 
+    /** 전역 허브(041) — 본인 모든 보드 + 소속 라벨, 최근순. 검색은 FE 클라 필터. */
+    @Transactional(readOnly = true)
+    fun listMyBoards(userId: Long): List<BoardSummary> {
+        requireExistingUser(userId)
+        return toSummaries(boardRepository.findByUserIdOrderByUpdatedAtDesc(userId))
+    }
+
+    /** 소속 필터 목록(041) — ownerType/ownerId 지정 시 그 대상, unmapped=아이디어, 무필터=전체. 내부 탭(②)용. */
     @Transactional(readOnly = true)
     fun listBoards(
         userId: Long,
-        projectId: Long?,
-        categoryId: Long?,
+        ownerType: String?,
+        ownerId: Long?,
         unmapped: Boolean,
     ): List<BoardSummary> {
         requireExistingUser(userId)
         val boards =
             when {
-                projectId != null -> boardRepository.findByUserIdAndProjectIdOrderByUpdatedAtDesc(userId, projectId)
-                categoryId != null -> boardRepository.findByUserIdAndCategoryIdOrderByUpdatedAtDesc(userId, categoryId)
-                unmapped ->
-                    boardRepository.findByUserIdAndProjectIdIsNullAndCategoryIdIsNullOrderByUpdatedAtDesc(userId)
+                ownerType != null && ownerId != null ->
+                    boardRepository.findByUserIdAndOwnerTypeAndOwnerIdOrderByUpdatedAtDesc(userId, ownerType, ownerId)
+                unmapped -> boardRepository.findByUserIdAndOwnerTypeIsNullOrderByUpdatedAtDesc(userId)
                 else -> boardRepository.findByUserIdOrderByUpdatedAtDesc(userId)
             }
-        return boards.map { toSummary(it, cardRepository.countByBoardId(requireNotNull(it.id)).toInt()) }
+        return toSummaries(boards)
     }
 
     @Transactional(readOnly = true)
@@ -115,31 +122,18 @@ class BoardService(
         return toResponse(board)
     }
 
+    /** 소속 지정/해제(041) — null 짝=아이디어로 해제(나중에 붙이기 반대). 1:N이라 매핑충돌 없음. */
     @Transactional(rollbackFor = [Exception::class])
-    fun setProjectMapping(
+    fun setBoardOwner(
         userId: Long,
         boardId: Long,
-        projectId: Long?,
+        ownerType: String?,
+        ownerId: Long?,
     ): BoardResponse {
         val board = requireOwnedBoard(userId, boardId)
-        if (projectId != null) {
-            requireMappableProject(userId, projectId, currentBoardId = boardId)
-        }
-        board.projectId = projectId
-        return toResponse(board)
-    }
-
-    @Transactional(rollbackFor = [Exception::class])
-    fun setCategoryMapping(
-        userId: Long,
-        boardId: Long,
-        categoryId: Long?,
-    ): BoardResponse {
-        val board = requireOwnedBoard(userId, boardId)
-        if (categoryId != null) {
-            requireMappableCategory(userId, categoryId, currentBoardId = boardId)
-        }
-        board.categoryId = categoryId
+        validateOwner(userId, ownerType, ownerId)
+        board.ownerType = ownerType
+        board.ownerId = ownerId
         return toResponse(board)
     }
 
@@ -317,33 +311,26 @@ class BoardService(
             .orElseThrow { ResourceNotFoundException("Card not found") }
     }
 
-    /** 작품 매핑 가능 검증 — 본인 작품이어야 하고, 다른 보드가 이미 매핑돼 있으면 409. */
-    private fun requireMappableProject(
+    /**
+     * 소속(041) 검증 — null 짝=아이디어(OK), "project"/"category"+id=본인 대상 존재, 그 외(짝 불완전·미지원 종류)=거부.
+     * 1:N이라 "이미 매핑됨" 충돌 없음. 본인 소유가 아니거나 없는 대상이면 [AuthErrorCode.BOARD_OWNER_INVALID].
+     */
+    private fun validateOwner(
         userId: Long,
-        projectId: Long,
-        currentBoardId: Long?,
+        ownerType: String?,
+        ownerId: Long?,
     ) {
-        if (projectRepository.findByIdAndUserId(projectId, userId).isEmpty) {
-            throw ResourceNotFoundException("Project not found")
-        }
-        val existing = boardRepository.findByProjectId(projectId)
-        if (existing.isPresent && existing.get().id != currentBoardId) {
-            throw AuthException(AuthErrorCode.BOARD_PROJECT_ALREADY_MAPPED)
-        }
-    }
-
-    /** 시리즈 매핑 가능 검증 — 본인 시리즈여야 하고, 다른 보드가 이미 매핑돼 있으면 409. */
-    private fun requireMappableCategory(
-        userId: Long,
-        categoryId: Long,
-        currentBoardId: Long?,
-    ) {
-        if (!categoryRepository.existsByIdAndUserId(categoryId, userId)) {
-            throw ResourceNotFoundException("Category not found")
-        }
-        val existing = boardRepository.findByCategoryId(categoryId)
-        if (existing.isPresent && existing.get().id != currentBoardId) {
-            throw AuthException(AuthErrorCode.BOARD_CATEGORY_ALREADY_MAPPED)
+        when {
+            ownerType == null && ownerId == null -> return
+            ownerType == OWNER_PROJECT && ownerId != null ->
+                if (projectRepository.findByIdAndUserId(ownerId, userId).isEmpty) {
+                    throw AuthException(AuthErrorCode.BOARD_OWNER_INVALID)
+                }
+            ownerType == OWNER_CATEGORY && ownerId != null ->
+                if (!categoryRepository.existsByIdAndUserId(ownerId, userId)) {
+                    throw AuthException(AuthErrorCode.BOARD_OWNER_INVALID)
+                }
+            else -> throw AuthException(AuthErrorCode.BOARD_OWNER_INVALID)
         }
     }
 
@@ -366,25 +353,74 @@ class BoardService(
         BoardResponse(
             id = requireNotNull(board.id),
             name = board.name,
-            projectId = board.projectId,
-            categoryId = board.categoryId,
+            ownerType = board.ownerType,
+            ownerId = board.ownerId,
             viewport = ViewportDto(zoom = board.viewportZoom, x = board.viewportX, y = board.viewportY),
             createdAt = requireNotNull(board.createdAt),
             updatedAt = requireNotNull(board.updatedAt),
         )
 
-    private fun toSummary(
+    /** 목록 → 요약(라벨·카드수). 소속 라벨용 작품명/시리즈명과 카드수를 일괄 조회(N+1 회피). */
+    private fun toSummaries(boards: List<Board>): List<BoardSummary> {
+        if (boards.isEmpty()) {
+            return emptyList()
+        }
+        val titleById =
+            boards
+                .filter { it.ownerType == OWNER_PROJECT }
+                .mapNotNull { it.ownerId }
+                .distinct()
+                .let { ids ->
+                    if (ids.isEmpty()) {
+                        emptyMap()
+                    } else {
+                        projectRepository.findAllById(ids).associate {
+                            requireNotNull(it.id) to
+                                it.title
+                        }
+                    }
+                }
+        val nameById =
+            boards
+                .filter { it.ownerType == OWNER_CATEGORY }
+                .mapNotNull { it.ownerId }
+                .distinct()
+                .let { ids ->
+                    if (ids.isEmpty()) {
+                        emptyMap()
+                    } else {
+                        categoryRepository.findAllById(ids).associate {
+                            requireNotNull(it.id) to
+                                it.name
+                        }
+                    }
+                }
+        val countById =
+            cardRepository.countGroupedByBoardId(boards.mapNotNull { it.id }).associate { it.boardId to it.cnt.toInt() }
+        return boards.map { board ->
+            BoardSummary(
+                id = requireNotNull(board.id),
+                name = board.name,
+                ownerType = board.ownerType,
+                ownerId = board.ownerId,
+                ownerLabel = ownerLabel(board, titleById, nameById),
+                cardCount = countById[board.id] ?: 0,
+                updatedAt = requireNotNull(board.updatedAt),
+            )
+        }
+    }
+
+    /** 소속 라벨 — 작품명/시리즈명, 미소속(또는 삭제된 대상 잔여)이면 "아이디어". */
+    private fun ownerLabel(
         board: Board,
-        cardCount: Int,
-    ): BoardSummary =
-        BoardSummary(
-            id = requireNotNull(board.id),
-            name = board.name,
-            projectId = board.projectId,
-            categoryId = board.categoryId,
-            cardCount = cardCount,
-            updatedAt = requireNotNull(board.updatedAt),
-        )
+        titleById: Map<Long, String>,
+        nameById: Map<Long, String>,
+    ): String =
+        when (board.ownerType) {
+            OWNER_PROJECT -> titleById[board.ownerId] ?: IDEA_LABEL
+            OWNER_CATEGORY -> nameById[board.ownerId] ?: IDEA_LABEL
+            else -> IDEA_LABEL
+        }
 
     private fun toCard(card: Card): CardResponse =
         CardResponse(
@@ -400,6 +436,9 @@ class BoardService(
     private companion object {
         const val DEFAULT_CARD_TYPE = "plot"
         val ALLOWED_CARD_TYPES = setOf("plot", "character", "place", "theme", "note")
+        const val OWNER_PROJECT = "project"
+        const val OWNER_CATEGORY = "category"
+        const val IDEA_LABEL = "아이디어"
     }
 
     private fun toLink(link: Link): LinkResponse =

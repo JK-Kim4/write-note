@@ -1,12 +1,15 @@
 import { apiFetch } from "./client";
 
 /**
- * 플롯 보드(038) HTTP 클라이언트 — `/api/boards`.
+ * 플롯 보드(038, 041 트랙 C) HTTP 클라이언트 — `/api/boards`.
  *
- * 카드/연결은 보드 전용 객체(캡처 메모와 별개). 매핑(projectId·categoryId)은 0~1.
- * 보드 에러(409 BOARD_*_ALREADY_MAPPED / BOARD_LINK_DUPLICATE, 400 BOARD_LINK_INVALID)는
+ * 카드/연결은 보드 전용 객체(캡처 메모와 별개). 소속(ownerType/ownerId)은 다형 단일 — null 짝=아이디어 보드.
+ * 보드 에러(409 BOARD_LINK_DUPLICATE, 400 BOARD_LINK_INVALID·BOARD_OWNER_INVALID)는
  * client.ts 의 generic 경로가 `error.code` 를 `ApiError.code` 로 전달 — 호출부는 `err.code` 로 분기.
  */
+
+/** 보드 소속 종류 — "project"=작품, "category"=시리즈. null 짝이면 아이디어 보드. */
+export type BoardOwnerType = "project" | "category";
 
 export interface BoardViewport {
     zoom: number;
@@ -17,8 +20,10 @@ export interface BoardViewport {
 export interface BoardSummary {
     id: number;
     name: string;
-    projectId: number | null;
-    categoryId: number | null;
+    ownerType: BoardOwnerType | null;
+    ownerId: number | null;
+    /** 소속 라벨 — 작품명/시리즈명/"아이디어"(서버 파생). */
+    ownerLabel: string;
     cardCount: number;
     updatedAt: string;
 }
@@ -26,8 +31,8 @@ export interface BoardSummary {
 export interface BoardResponse {
     id: number;
     name: string;
-    projectId: number | null;
-    categoryId: number | null;
+    ownerType: BoardOwnerType | null;
+    ownerId: number | null;
     viewport: BoardViewport;
     createdAt: string;
     updatedAt: string;
@@ -60,15 +65,15 @@ export interface BoardDetail {
 }
 
 export interface BoardListFilter {
-    projectId?: number;
-    categoryId?: number;
+    ownerType?: BoardOwnerType;
+    ownerId?: number;
     unmapped?: boolean;
 }
 
 export interface CreateBoardInput {
     name: string;
-    projectId?: number | null;
-    categoryId?: number | null;
+    ownerType?: BoardOwnerType | null;
+    ownerId?: number | null;
 }
 
 export interface CreateCardInput {
@@ -94,10 +99,16 @@ export interface CardPositionItem {
     zIndex?: number;
 }
 
+/** 전역 허브 — 내 모든 보드 + 소속 라벨, 최근순. 검색은 호출부 클라 필터. */
+export function listMyBoards(): Promise<BoardSummary[]> {
+    return apiFetch<BoardSummary[]>("/api/boards/mine", { method: "GET" });
+}
+
+/** 소속 필터 목록(내부 탭 ②용). ownerType+ownerId 또는 unmapped. */
 export function listBoards(filter?: BoardListFilter): Promise<BoardSummary[]> {
     const qs = new URLSearchParams();
-    if (filter?.projectId != null) qs.set("projectId", String(filter.projectId));
-    if (filter?.categoryId != null) qs.set("categoryId", String(filter.categoryId));
+    if (filter?.ownerType != null) qs.set("ownerType", filter.ownerType);
+    if (filter?.ownerId != null) qs.set("ownerId", String(filter.ownerId));
     if (filter?.unmapped) qs.set("unmapped", "true");
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     return apiFetch<BoardSummary[]>(`/api/boards${suffix}`, { method: "GET" });
@@ -108,7 +119,14 @@ export function getBoard(boardId: number): Promise<BoardDetail> {
 }
 
 export function createBoard(input: CreateBoardInput): Promise<BoardResponse> {
-    return apiFetch<BoardResponse>("/api/boards", { method: "POST", body: JSON.stringify(input) });
+    return apiFetch<BoardResponse>("/api/boards", {
+        method: "POST",
+        body: JSON.stringify({
+            name: input.name,
+            ownerType: input.ownerType ?? null,
+            ownerId: input.ownerId ?? null,
+        }),
+    });
 }
 
 export function renameBoard(boardId: number, name: string): Promise<BoardResponse> {
@@ -122,17 +140,15 @@ export function deleteBoard(boardId: number): Promise<void> {
     return apiFetch<void>(`/api/boards/${boardId}`, { method: "DELETE" });
 }
 
-export function setBoardProject(boardId: number, projectId: number | null): Promise<BoardResponse> {
-    return apiFetch<BoardResponse>(`/api/boards/${boardId}/project`, {
-        method: "PUT",
-        body: JSON.stringify({ projectId }),
-    });
-}
-
-export function setBoardCategory(boardId: number, categoryId: number | null): Promise<BoardResponse> {
-    return apiFetch<BoardResponse>(`/api/boards/${boardId}/category`, {
-        method: "PUT",
-        body: JSON.stringify({ categoryId }),
+/** 소속 지정/해제 — ownerType/ownerId(작품·시리즈에 연결) 또는 null 짝(아이디어로 해제). PATCH /{id}/owner. */
+export function setBoardOwner(
+    boardId: number,
+    ownerType: BoardOwnerType | null,
+    ownerId: number | null,
+): Promise<BoardResponse> {
+    return apiFetch<BoardResponse>(`/api/boards/${boardId}/owner`, {
+        method: "PATCH",
+        body: JSON.stringify({ ownerType, ownerId }),
     });
 }
 

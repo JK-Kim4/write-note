@@ -31,13 +31,14 @@ enum class AuthErrorCode(
     // 400 — 플롯 보드 연결 (038)
     BOARD_LINK_INVALID(HttpStatus.BAD_REQUEST, "연결할 수 없는 카드입니다(자기 연결·다른 보드·없는 카드)."),
 
+    // 400 — 플롯 보드 소속 (041) — 없는·본인 아닌 작품/시리즈, owner 종류·id 짝 불완전, 미지원 종류
+    BOARD_OWNER_INVALID(HttpStatus.BAD_REQUEST, "보드를 연결할 수 없습니다(없는·본인 아닌 작품/시리즈 또는 잘못된 소속)."),
+
     // 409 — 충돌
     EMAIL_ALREADY_REGISTERED(HttpStatus.CONFLICT, "이미 가입된 이메일입니다."),
     NICKNAME_ALREADY_REGISTERED(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
 
-    // 409 — 플롯 보드 (038)
-    BOARD_PROJECT_ALREADY_MAPPED(HttpStatus.CONFLICT, "이미 보드가 연결된 작품입니다."),
-    BOARD_CATEGORY_ALREADY_MAPPED(HttpStatus.CONFLICT, "이미 보드가 연결된 시리즈입니다."),
+    // 409 — 플롯 보드 (038). 041 트랙 C: 대상당 보드 1:N 전환으로 BOARD_PROJECT/CATEGORY_ALREADY_MAPPED 폐기.
     BOARD_LINK_DUPLICATE(HttpStatus.CONFLICT, "이미 존재하는 연결입니다."),
     AUTH_TOKEN_ALREADY_USED(HttpStatus.CONFLICT, "이미 사용된 토큰입니다."),
     KAKAO_EMAIL_ALREADY_REGISTERED(

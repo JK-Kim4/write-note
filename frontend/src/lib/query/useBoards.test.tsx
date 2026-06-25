@@ -11,12 +11,20 @@ import type { BoardSummary } from "@/lib/api/boards";
 const ORIGIN = "http://localhost:3000";
 
 function summary(id: number, name: string): BoardSummary {
-    return { id, name, projectId: null, categoryId: null, cardCount: 0, updatedAt: "2026-06-24T00:00:00Z" };
+    return {
+        id,
+        name,
+        ownerType: null,
+        ownerId: null,
+        ownerLabel: "아이디어",
+        cardCount: 0,
+        updatedAt: "2026-06-24T00:00:00Z",
+    };
 }
 
 function setup() {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-    client.setQueryData(boardKeys.list(), [summary(1, "보드1"), summary(2, "보드2")]);
+    client.setQueryData(boardKeys.mine(), [summary(1, "보드1"), summary(2, "보드2")]);
     const wrapper = ({ children }: { children: ReactNode }) => (
         <QueryClientProvider client={client}>{children}</QueryClientProvider>
     );
@@ -32,8 +40,8 @@ describe("useRenameBoard — 낙관적 업데이트", () => {
                     data: {
                         id: 1,
                         name: "새 이름",
-                        projectId: null,
-                        categoryId: null,
+                        ownerType: null,
+                        ownerId: null,
                         viewport: { zoom: 1, x: 0, y: 0 },
                         createdAt: "2026-06-24T00:00:00Z",
                         updatedAt: "2026-06-24T00:00:00Z",
@@ -48,7 +56,7 @@ describe("useRenameBoard — 낙관적 업데이트", () => {
         result.current.mutate({ id: 1, name: "새 이름" });
 
         await waitFor(() => expect(result.current.isSuccess).toBe(true));
-        const list = client.getQueryData<BoardSummary[]>(boardKeys.list());
+        const list = client.getQueryData<BoardSummary[]>(boardKeys.mine());
         expect(list?.find((b) => b.id === 1)?.name).toBe("새 이름");
         expect(list?.find((b) => b.id === 2)?.name).toBe("보드2");
     });
@@ -61,7 +69,7 @@ describe("useRenameBoard — 낙관적 업데이트", () => {
         result.current.mutate({ id: 1, name: "새 이름" });
 
         await waitFor(() => expect(result.current.isError).toBe(true));
-        const list = client.getQueryData<BoardSummary[]>(boardKeys.list());
+        const list = client.getQueryData<BoardSummary[]>(boardKeys.mine());
         expect(list?.find((b) => b.id === 1)?.name).toBe("보드1");
     });
 });

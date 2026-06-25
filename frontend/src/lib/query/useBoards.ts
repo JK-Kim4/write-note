@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { webElectronApi } from "@/lib/electron-api";
 import type {
     BoardListFilter,
+    BoardOwnerType,
     BoardSummary,
     CardPositionItem,
     CreateBoardInput,
@@ -20,10 +21,20 @@ import type {
 
 export const boardKeys = {
     all: ["boards"] as const,
+    mine: () => [...boardKeys.all, "mine"] as const,
     list: (filter?: BoardListFilter) =>
         filter ? ([...boardKeys.all, "list", filter] as const) : ([...boardKeys.all, "list"] as const),
     detail: (id: number) => [...boardKeys.all, "detail", id] as const,
 };
+
+/** 전역 허브(041) — 내 모든 보드 + 소속 라벨. 검색은 페이지 클라 필터. */
+export function useBoardsMine() {
+    return useQuery({
+        queryKey: boardKeys.mine(),
+        queryFn: () => webElectronApi.boards.mine(),
+        refetchOnMount: "always",
+    });
+}
 
 export function useBoardList(filter?: BoardListFilter) {
     return useQuery({
@@ -55,22 +66,22 @@ export function useCreateBoard() {
     });
 }
 
-/** 이름 변경 — 목록 캐시 낙관적 업데이트 + 실패 롤백(FR-014). */
+/** 이름 변경 — 허브 캐시 낙관적 업데이트 + 실패 롤백(FR-014). */
 export function useRenameBoard() {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: ({ id, name }: { id: number; name: string }) => webElectronApi.boards.rename(id, name),
         onMutate: async ({ id, name }: { id: number; name: string }) => {
-            await qc.cancelQueries({ queryKey: boardKeys.list() });
-            const previous = qc.getQueryData<BoardSummary[]>(boardKeys.list());
-            qc.setQueryData<BoardSummary[]>(boardKeys.list(), (old) =>
+            await qc.cancelQueries({ queryKey: boardKeys.mine() });
+            const previous = qc.getQueryData<BoardSummary[]>(boardKeys.mine());
+            qc.setQueryData<BoardSummary[]>(boardKeys.mine(), (old) =>
                 old?.map((b) => (b.id === id ? { ...b, name } : b)),
             );
             return { previous };
         },
         onError: (_err, _vars, context) => {
             if (context?.previous) {
-                qc.setQueryData(boardKeys.list(), context.previous);
+                qc.setQueryData(boardKeys.mine(), context.previous);
             }
         },
         onSettled: () => qc.invalidateQueries({ queryKey: boardKeys.all }),
@@ -85,20 +96,12 @@ export function useDeleteBoard() {
     });
 }
 
-export function useSetBoardProject() {
+/** 소속 지정/해제(041) — 작품/시리즈에 연결 또는 아이디어로 해제. 성공 시 허브·목록 무효화. */
+export function usePatchBoardOwner() {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: ({ id, projectId }: { id: number; projectId: number | null }) =>
-            webElectronApi.boards.setProject(id, projectId),
-        onSuccess: () => qc.invalidateQueries({ queryKey: boardKeys.all }),
-    });
-}
-
-export function useSetBoardCategory() {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: ({ id, categoryId }: { id: number; categoryId: number | null }) =>
-            webElectronApi.boards.setCategory(id, categoryId),
+        mutationFn: ({ id, ownerType, ownerId }: { id: number; ownerType: BoardOwnerType | null; ownerId: number | null }) =>
+            webElectronApi.boards.setOwner(id, ownerType, ownerId),
         onSuccess: () => qc.invalidateQueries({ queryKey: boardKeys.all }),
     });
 }

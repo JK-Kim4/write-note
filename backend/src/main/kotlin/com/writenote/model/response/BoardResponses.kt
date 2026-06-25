@@ -2,7 +2,7 @@ package com.writenote.model.response
 
 import java.time.Instant
 
-// 플롯 보드(038) 응답 DTO 모음. 매핑(projectId·categoryId)은 null=미매핑. viewport 는 마지막 화면 상태.
+// 플롯 보드(038, 041 트랙 C) 응답 DTO 모음. 소속(ownerType/ownerId)은 다형 단일 — null 짝=아이디어. viewport 는 마지막 화면 상태.
 
 /** 보드의 마지막 화면 상태(줌 배율·이동 위치). */
 data class ViewportDto(
@@ -11,23 +11,24 @@ data class ViewportDto(
     val y: Double,
 )
 
-/** 보드 단건 응답. */
+/** 보드 단건 응답. [ownerType]="project"|"category"|null(아이디어), [ownerId]=대상 id(짝). */
 data class BoardResponse(
     val id: Long,
     val name: String,
-    val projectId: Long?,
-    val categoryId: Long?,
+    val ownerType: String?,
+    val ownerId: Long?,
     val viewport: ViewportDto,
     val createdAt: Instant,
     val updatedAt: Instant,
 )
 
-/** 보드 목록 항목 — 카드 수 동봉. */
+/** 보드 목록 항목(전역 허브) — 소속 라벨([ownerLabel]=작품명/시리즈명/"아이디어") + 카드 수 동봉. */
 data class BoardSummary(
     val id: Long,
     val name: String,
-    val projectId: Long?,
-    val categoryId: Long?,
+    val ownerType: String?,
+    val ownerId: Long?,
+    val ownerLabel: String,
     val cardCount: Int,
     val updatedAt: Instant,
 )

@@ -10,11 +10,11 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.UUID
@@ -45,7 +45,7 @@ class BoardControllerIT {
                         .content("""{"name":"  1부 플롯  "}"""),
                 ).andExpect(status().isCreated)
                 .andExpect(jsonPath("$.data.name").value("1부 플롯"))
-                .andExpect(jsonPath("$.data.projectId").doesNotExist())
+                .andExpect(jsonPath("$.data.ownerType").doesNotExist())
                 .andExpect(jsonPath("$.data.viewport.zoom").value(1.0))
                 .andReturn()
                 .response.contentAsString
@@ -145,105 +145,121 @@ class BoardControllerIT {
     }
 
     @Test
-    fun `project mapping conflict and list filter and clear`() {
+    fun `owner attach, 1 to N, owner filter, and clear to idea`() {
         val bearer = bearerFor(createUser())
         val board1 = createBoard(bearer, "보드1")
         val board2 = createBoard(bearer, "보드2")
         val projectId = createProject(bearer, "작품")
 
-        mockMvc
-            .perform(
-                put("/api/boards/{id}/project", board1)
-                    .header("Authorization", bearer)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"projectId":$projectId}"""),
-            ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.data.projectId").value(projectId))
-
-        // 작품 필터 목록
-        mockMvc
-            .perform(get("/api/boards?projectId={p}", projectId).header("Authorization", bearer))
+        setOwner(board1, bearer, "project", projectId)
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.data.length()").value(1))
-            .andExpect(jsonPath("$.data[0].id").value(board1))
+            .andExpect(jsonPath("$.data.ownerType").value("project"))
+            .andExpect(jsonPath("$.data.ownerId").value(projectId))
 
-        // 같은 작품에 다른 보드 매핑 → 409
-        mockMvc
-            .perform(
-                put("/api/boards/{id}/project", board2)
-                    .header("Authorization", bearer)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"projectId":$projectId}"""),
-            ).andExpect(status().isConflict)
-            .andExpect(jsonPath("$.error.code").value("BOARD_PROJECT_ALREADY_MAPPED"))
+        // 1:N — 같은 작품에 두 번째 보드도 충돌 없이 연결
+        setOwner(board2, bearer, "project", projectId)
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.ownerId").value(projectId))
 
-        // 해제 후 재매핑 가능
+        // 소속 필터 목록 — 둘 다
         mockMvc
-            .perform(
-                put("/api/boards/{id}/project", board1)
-                    .header("Authorization", bearer)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"projectId":null}"""),
-            ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.data.projectId").doesNotExist())
+            .perform(get("/api/boards?ownerType=project&ownerId={p}", projectId).header("Authorization", bearer))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.length()").value(2))
 
-        mockMvc
-            .perform(
-                put("/api/boards/{id}/project", board2)
-                    .header("Authorization", bearer)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"projectId":$projectId}"""),
-            ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.data.projectId").value(projectId))
+        // 아이디어로 해제
+        setOwner(board1, bearer, null, null)
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.ownerType").doesNotExist())
     }
 
     @Test
-    fun `category deletion preserves board and clears mapping`() {
-        // FR-027: 매핑 대상(시리즈) 삭제 시 보드 보존·매핑만 해제(ON DELETE SET NULL)
+    fun `owner rejects foreign or unknown target with 400`() {
+        val bearer = bearerFor(createUser())
+        val boardId = createBoard(bearer, "보드")
+
+        // 없는 작품 → 400 BOARD_OWNER_INVALID
+        setOwner(boardId, bearer, "project", 999999L)
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.error.code").value("BOARD_OWNER_INVALID"))
+
+        // 미지원 owner 종류 → 400
+        setOwner(boardId, bearer, "memo", 1L)
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.error.code").value("BOARD_OWNER_INVALID"))
+    }
+
+    @Test
+    fun `global hub lists all boards with owner labels`() {
+        val bearer = bearerFor(createUser())
+        val projectId = createProject(bearer, "달밤의 늑대")
+        val categoryId = createCategory(bearer, "늑대 연대기")
+        val pBoard = createBoard(bearer, "작품 보드")
+        val cBoard = createBoard(bearer, "시리즈 보드")
+        createBoard(bearer, "막연한 구상") // 아이디어
+        setOwner(pBoard, bearer, "project", projectId).andExpect(status().isOk)
+        setOwner(cBoard, bearer, "category", categoryId).andExpect(status().isOk)
+
+        mockMvc
+            .perform(get("/api/boards/mine").header("Authorization", bearer))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.length()").value(3))
+            // 라벨이 작품명/시리즈명/"아이디어"로 동봉
+            .andExpect(jsonPath("$.data[?(@.id == $pBoard)].ownerLabel").value("달밤의 늑대"))
+            .andExpect(jsonPath("$.data[?(@.id == $cBoard)].ownerLabel").value("늑대 연대기"))
+    }
+
+    @Test
+    fun `project hard delete preserves board as idea`() {
+        // 041 FR-009: 작품 hard delete 시 그 보드는 owner null(아이디어)로 보존
+        val bearer = bearerFor(createUser())
+        val boardId = createBoard(bearer, "작품 보드")
+        val projectId = createProject(bearer, "작품")
+        setOwner(boardId, bearer, "project", projectId).andExpect(status().isOk)
+
+        mockMvc
+            .perform(delete("/api/projects/{id}", projectId).header("Authorization", bearer))
+            .andExpect(status().isNoContent)
+
+        mockMvc
+            .perform(get("/api/boards/{id}", boardId).header("Authorization", bearer))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.board.id").value(boardId))
+            .andExpect(jsonPath("$.data.board.ownerType").doesNotExist())
+    }
+
+    @Test
+    fun `category hard delete preserves board as idea`() {
+        // 041 FR-009: 시리즈 hard delete 시 그 보드는 owner null(아이디어)로 보존
         val bearer = bearerFor(createUser())
         val boardId = createBoard(bearer, "시리즈 보드")
         val categoryId = createCategory(bearer, "시리즈A")
-
-        mockMvc
-            .perform(
-                put("/api/boards/{id}/category", boardId)
-                    .header("Authorization", bearer)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"categoryId":$categoryId}"""),
-            ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.data.categoryId").value(categoryId))
+        setOwner(boardId, bearer, "category", categoryId).andExpect(status().isOk)
 
         mockMvc
             .perform(delete("/api/categories/{id}", categoryId).header("Authorization", bearer))
             .andExpect(status().isNoContent)
 
-        // 보드는 보존, 매핑만 해제
         mockMvc
             .perform(get("/api/boards/{id}", boardId).header("Authorization", bearer))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.data.board.id").value(boardId))
-            .andExpect(jsonPath("$.data.board.categoryId").doesNotExist())
+            .andExpect(jsonPath("$.data.board.ownerType").doesNotExist())
     }
 
     @Test
-    fun `unmapped filter returns only independent boards`() {
+    fun `unmapped filter returns only idea boards`() {
         val bearer = bearerFor(createUser())
         val mapped = createBoard(bearer, "매핑됨")
-        val independent = createBoard(bearer, "독립")
+        val idea = createBoard(bearer, "아이디어")
         val projectId = createProject(bearer, "작품")
-        mockMvc
-            .perform(
-                put("/api/boards/{id}/project", mapped)
-                    .header("Authorization", bearer)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"projectId":$projectId}"""),
-            ).andExpect(status().isOk)
+        setOwner(mapped, bearer, "project", projectId).andExpect(status().isOk)
 
         mockMvc
             .perform(get("/api/boards?unmapped=true").header("Authorization", bearer))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.data.length()").value(1))
-            .andExpect(jsonPath("$.data[0].id").value(independent))
+            .andExpect(jsonPath("$.data[0].id").value(idea))
     }
 
     @Test
@@ -363,6 +379,23 @@ class BoardControllerIT {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"sourceCardId":$source,"targetCardId":$target}"""),
             ).andExpect(status().isCreated)
+    }
+
+    /** PATCH /owner — ownerType/ownerId(null 허용). 호출부가 .andExpect 로 검증. */
+    private fun setOwner(
+        boardId: Long,
+        bearer: String,
+        ownerType: String?,
+        ownerId: Long?,
+    ): ResultActions {
+        val typeJson = ownerType?.let { "\"$it\"" } ?: "null"
+        val idJson = ownerId?.toString() ?: "null"
+        return mockMvc.perform(
+            patch("/api/boards/{id}/owner", boardId)
+                .header("Authorization", bearer)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"ownerType":$typeJson,"ownerId":$idJson}"""),
+        )
     }
 
     private fun createProject(

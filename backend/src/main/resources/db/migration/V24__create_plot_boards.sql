@@ -1,25 +1,28 @@
--- V24 — 플롯 보드(038). 작품/시리즈와 독립인 사용자 소유 캔버스 + 보드 전용 카드 + 카드 간 연결(링크).
--- 보드↔작품, 보드↔시리즈 매핑은 모두 0~1:0~1. 대상당 보드 1개 = 부분 유니크. 대상 삭제 시 보드 보존(SET NULL).
+-- V24 — 플롯 보드(038, 041 트랙 C 매핑 모델 전환 반영). 작품/시리즈와 독립인 사용자 소유 캔버스 + 보드 전용 카드 + 카드 간 연결(링크).
+-- 보드↔(작품|시리즈) 매핑 = 다형 단일소유(owner_type/owner_id, 041): owner_type='project'|'category'|NULL(아이디어). 한 대상에 보드 여러 개(1:N).
+-- 다형이라 진짜 FK 없음 — owner 무결성은 앱 검증, 대상 hard delete 시 owner null 강등(앱 훅, 보드 보존)으로 처리.
 -- 카드는 쪽지 책상 캡처 메모(memos)와 완전 별개(무참조). 보드 삭제 시 카드·링크 cascade, 카드 삭제 시 링크 cascade.
 CREATE TABLE boards (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     name VARCHAR(120) NOT NULL,
-    category_id BIGINT,
-    project_id BIGINT,
+    owner_type VARCHAR(16),
+    owner_id BIGINT,
     viewport_zoom DOUBLE PRECISION NOT NULL DEFAULT 1,
     viewport_x DOUBLE PRECISION NOT NULL DEFAULT 0,
     viewport_y DOUBLE PRECISION NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_boards_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    CONSTRAINT fk_boards_category FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL,
-    CONSTRAINT fk_boards_project FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE SET NULL
+    -- owner_type/owner_id 는 항상 함께 채워지거나 함께 NULL(아이디어 보드)
+    CONSTRAINT ck_boards_owner_pair CHECK (
+        (owner_type IS NULL AND owner_id IS NULL)
+        OR (owner_type IN ('project', 'category') AND owner_id IS NOT NULL)
+    )
 );
 CREATE INDEX idx_boards_user ON boards (user_id, id);
--- 대상당 보드 최대 1개(미매핑 다수 허용) — FR-026
-CREATE UNIQUE INDEX uq_boards_project ON boards (project_id) WHERE project_id IS NOT NULL;
-CREATE UNIQUE INDEX uq_boards_category ON boards (category_id) WHERE category_id IS NOT NULL;
+-- 소속 대상 보드 조회(내부 탭·집필 참조 대비). 1:N — 유니크 아님.
+CREATE INDEX idx_boards_owner ON boards (owner_type, owner_id);
 
 CREATE TABLE cards (
     id BIGSERIAL PRIMARY KEY,

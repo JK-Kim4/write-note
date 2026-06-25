@@ -14,6 +14,7 @@ import com.writenote.model.request.UpdateProjectRequest
 import com.writenote.model.response.PageResponse
 import com.writenote.model.response.ProjectCardResponse
 import com.writenote.model.response.ProjectResponse
+import com.writenote.repository.BoardRepository
 import com.writenote.repository.CategoryRepository
 import com.writenote.repository.DocumentRepository
 import com.writenote.repository.ProjectRepository
@@ -33,6 +34,7 @@ class ProjectService(
     private val workSessionRepository: WorkSessionRepository,
     private val categoryRepository: CategoryRepository,
     private val bodyCipherService: BodyCipherService,
+    private val boardRepository: BoardRepository,
 ) {
     @Transactional(rollbackFor = [Exception::class])
     fun createProject(
@@ -238,6 +240,8 @@ class ProjectService(
         projectId: Long,
     ) {
         val project = requireOwnedProject(userId, projectId)
+        // 이 작품에 소속된 플롯 보드(041)는 아이디어 보드로 강등(보드 보존). 다형이라 DB FK SET NULL 불가 → 앱 처리.
+        boardRepository.clearOwner("project", projectId)
         projectRepository.delete(project)
     }
 
