@@ -17,12 +17,12 @@
 
 | | |
 |---|---|
-| 마지막 갱신 | 2026-06-25 (트랙 C 코어 완료 — 커밋 `c9857d1`, develop merge 계속 보류) |
-| 완료된 트랙 | **A — 연결(Link) UI** ✅ (`d19b879`) · **B — 유비쿼터스 언어 정리** ✅ (`567935e`) · **C 코어 — 진입점·매핑·아이디어 보드** ✅ (`c9857d1`) |
+| 마지막 갱신 | 2026-06-26 (트랙 D 완료 — 커밋 `5909456`, develop merge 계속 보류) |
+| 완료된 트랙 | **A — 연결(Link) UI** ✅ (`d19b879`) · **B — 유비쿼터스 언어 정리** ✅ (`567935e`) · **C 코어 — 진입점·매핑·아이디어 보드** ✅ (`c9857d1`) · **D — 카드 종류 4종 정합 + UX 안전망** ✅ (`5909456`) |
 | 진행 중 트랙 | — |
-| **다음 진입** | **트랙 D — 카드 종류 정합 + UX 안전망 (§5-D): `brainstorming`부터**(4종 vs 5종 결정 포함). (§4 권장 순서 A→B→C→D) |
-| 블로커/대기 | 없음. **develop merge 계속 보류**(D·E 더 모은 뒤 — 사용자 결정 2026-06-25). 038이 develop보다 4커밋 뒤처짐(홈카드·다크모드 등) → merge 시 양방향 병합. 038 브랜치 유지 |
-| 직전 세션이 한 일 | **트랙 C 코어(041) 완료**: 매핑 모델 **dual-FK(project_id/category_id)→다형 단일소유(owner_type 'project'/'category'/null + owner_id) + 1:N** 전환(V24 in-place 편집·부분유니크인덱스 제거·CHECK 짝·idx_boards_owner). 다형이라 진짜 FK 상실 → 대상 hard delete 시 보드 owner null 강등(보존)을 ProjectService/CategoryService 훅. BE: `GET /boards/mine`(소속 라벨 작품 title/시리즈 name/"아이디어"·N+1 일괄·최근순) 신규 + `PATCH /{id}/owner`(set/clear, PUT 2개 대체) + POST owner(매핑충돌 409 제거) + `BOARD_OWNER_INVALID`(+)·`BOARD_*_ALREADY_MAPPED`(−). FE: `/boards` 허브 재설계(소속 라벨 칩 **작품=terracotta/시리즈=teal/아이디어=gray + "작품 ·"/"시리즈 ·" 종류 라벨**·클라 검색·생성 picker `BoardOwnerPicker`·나중에 붙이기/소속 변경), `BoardMappingControl` 제거. 로컬 DB 리셋(컨펌)·BE 게이트 GREEN·FE 게이트(test 690)·회귀 grep 0·**dogfooding 6/6**(소속 라벨 종류 구분 fix 포함). SDD=`specs/041-board-entry-points/`, 설계=`docs/board/board-track-c-design.md`. **내부 탭·집필 참조는 범위 밖(후속 ②③)**. 038에 커밋, develop 미merge |
+| **다음 진입** | **C-2(내부 탭·집필 참조, ISSUE-050)** 또는 **E(메모·인물 통합, 후순위·별도 spec)** — 사용자 선택. 보드 코어 트랙(A~D)은 완료 |
+| 블로커/대기 | 없음. **develop merge 계속 보류**(E 등 더 모은 뒤 — 사용자 결정 2026-06-26). 038이 develop보다 4커밋 뒤처짐(홈카드·다크모드 등) → merge 시 양방향 병합. 038 브랜치 유지 |
+| 직전 세션이 한 일 | **트랙 D(카드 종류 정합 + progressive disclosure + UX 안전망) 완료**: 카드 종류 5종(plot 기본)→**4종(character·place·event·theme)+무지정(null)** 정합(plot→event 대체, note 폐기). BE: `ALLOWED_CARD_TYPES` 4종·`normalizeCardType` nullable·**종류 전용 경로** `PATCH /{id}/cards/{cardId}/type`(설정·재탭 null 해제, updateCard에서 type 분리)·`Card.type`/`CardResponse.type` nullable·V25 in-place(NOT NULL DEFAULT plot→nullable)·로컬 DB 리셋(컨펌, board 3테이블 drop). FE: `cardKinds` 4종+`UNTYPED_KIND`(slate)·`kindOf` nullable(TDD)·`CardNode` 무지정 회색 외관 + **우측 칩 트레이(progressive disclosure)** — 무지정 카드만 선택 시 자동 노출, 종류 지정 카드는 **배지 클릭으로 트레이 토글**(dogfooding 피드백)·헤더 문구 제거·`+카드` 단일 버튼(무지정 생성)·`setCardType` API/훅/액션·**한눈에 보기 버튼·미니맵 토글**(undo/redo 제외→별도 트랙). 게이트 BE(ktlint·checkstyle·test·build) / FE(typecheck·lint0err·test 694·build) GREEN·회귀 grep 0·**dogfooding 전항 통과**. 설계=`docs/board/board-track-d-design.md`, 목업=`docs/research/2026-06-25-board-card-types-mockup.html`. speckit 풀과정 대신 경량 설계문서. 038에 커밋, develop 미merge |
 
 **새 세션 첫 행동**: ① 본 §0 → ② §1 대시보드 → ③ §5 진행 중(또는 다음) 트랙의 체크박스·링크 → ④ CLAUDE.md 의무대로 vault `02-PROGRESS`·`03-ISSUES`.
 
@@ -35,7 +35,7 @@
 | **A** | 연결(Link) UI 재개 | ✅ 완료 (커밋 `d19b879`, merge 보류) | FE + BE V26 앵커 |
 | **B** | 유비쿼터스 언어 정리 | ✅ 완료 (rename 전면+마이그레이션, develop merge 보류) | 무거움 (마이그레이션+전면 rename) |
 | **C 코어** | 진입점·매핑·아이디어 보드 | ✅ 완료 (커밋 `c9857d1`, merge 보류) | 중간 (마이그레이션 + BE 신규 2) |
-| **D** | 카드 종류 + UX 안전망 | ⬜ 대기 (← 다음 진입) | 가벼움 |
+| **D** | 카드 종류 4종 + UX 안전망 | ✅ 완료 (커밋 `5909456`, merge 보류) | 가벼움 (BE 종류모델 + FE 칩·안전망) |
 | **E** | 메모·인물 통합 | 🔴 후순위 (별도 spec) | 최대 |
 | **C-2** | 내부 탭(작품/시리즈 상세) · 집필 참조 | ⬜ 후속 (C에서 분리) | 중간 (호스트 UI·에디터 분할) |
 
@@ -146,7 +146,7 @@
   - [ ] brainstorming (호스트 UI·저장소 결정) — 결론 박을 위치: ______
   - [ ] spec/plan/tasks · 구현 · 검증 · 마무리
 
-### 트랙 D — 카드 종류 정합 + UX 안전망  `상태: 🔵 진행 중 (brainstorming 완료, 구현 중)`
+### 트랙 D — 카드 종류 정합 + UX 안전망  `상태: ✅ 완료 (커밋 5909456, develop merge 보류)`
 - **목표**: 종류 4종 정합 + progressive disclosure + 안전망.
 - **범위**: 종류 4종(인물·장소·사건·테마)·기본 무지정·생성 후 칩 부여/재탭 해제 / 한눈에 보기·미니맵 토글. **undo/redo·온보딩 제외**(별도/후순위).
 - **PRD 근거**: UX TASK-3·6. PRD §3·§11(2).
@@ -156,7 +156,7 @@
   - [x] 설계 문서 — `docs/board/board-track-d-design.md`(색 매핑·BE/FE 변경·종류 전용 경로·검증). speckit 풀과정 대신 경량 설계문서(사용자 "일단 작업하고 결과물 확인")
   - [x] 구현 (BE 선행 → FE) — BE: ALLOWED 4종·`normalizeCardType` nullable(TDD)·종류 전용 `PATCH .../cards/{id}/type`·`Card.type`/`CardResponse.type` nullable·V25 in-place(NOT NULL DEFAULT plot→nullable)·로컬 DB 리셋(컨펌). FE: `cardKinds` 4종+무지정(`UNTYPED_KIND`·`kindOf` TDD)·`CardNode` 우측 칩 트레이/무지정 외관·`+카드` 단일 버튼(무지정 생성)·`setCardType` API/훅/액션·한눈에 보기 버튼·미니맵 토글
   - [x] 검증 (게이트 + 회귀 grep + dogfooding) — BE ktlint·checkstyle·test·build GREEN / FE typecheck·lint0err·test 694·build GREEN / 회귀 grep 0(폐기 plot·note·DEFAULT_*·5종·addMenuOpen, RF nodeTypes 키 'plot'은 어댑터 식별자라 유지) / **dogfooding 전항 통과** + UX 피드백 반영(무지정만 트레이 자동·종류 지정은 배지 클릭·"이건 뭔가요?" 헤더 제거)
-  - [ ] 마무리 (finish-work + 회고) — 진행 중(038 커밋·roadmap/vault·회고). develop merge 여부 사용자 확인
+  - [x] 마무리 — **038 커밋 `5909456`**, develop merge 계속 보류(사용자 결정 2026-06-26) + roadmap §0/§1/§5 + vault 02-PROGRESS 갱신 + 회고
 
 ### 트랙 E — 메모·인물 통합 🔴  `상태: 후순위 (별도 spec)`
 - **선행 결정(데이터 모델)**: ① 완전 통합(메모·인물 폐기, M:N·캡처 손실 감수) ② 부분 통합(인물만 카드로) ③ 참조 통합(데이터 유지, "가져오기"로 카드화) ④ 보류(독립 유지).
