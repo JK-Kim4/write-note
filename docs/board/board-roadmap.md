@@ -17,12 +17,12 @@
 
 | | |
 |---|---|
-| 마지막 갱신 | 2026-06-25 (트랙 B 완료 + 보드 폴리시 — 커밋, develop merge 보류) |
-| 완료된 트랙 | **A — 연결(Link) UI** ✅ (`d19b879`) · **B — 유비쿼터스 언어 정리** ✅ (rename 전면 + 마이그레이션) |
+| 마지막 갱신 | 2026-06-25 (트랙 C 코어 완료 — 커밋 `c9857d1`, develop merge 계속 보류) |
+| 완료된 트랙 | **A — 연결(Link) UI** ✅ (`d19b879`) · **B — 유비쿼터스 언어 정리** ✅ (`567935e`) · **C 코어 — 진입점·매핑·아이디어 보드** ✅ (`c9857d1`) |
 | 진행 중 트랙 | — |
-| **다음 진입** | **트랙 C — 진입점·매핑·아이디어 보드 (§5-C): `brainstorming`부터**. (§4 권장 순서 A→B→C→D) |
-| 블로커/대기 | 없음. **develop merge 보류**(보드 트랙 더 모은 뒤 A+B+폴리시 함께) — 038 브랜치 유지 |
-| 직전 세션이 한 일 | **트랙 B(040) 완료**: `node/edge/board_nodes/board_edges`→`Card/Link/cards/links` **전면 rename**(BE 마이그레이션 V24~26 in-place 편집·엔티티 Card/Link·repo·service·DTO·controller endpoint `/cards`·`/links`·에러코드 BOARD_LINK_*·테스트 / FE 데이터계층·어댑터, RF API 보존). 로컬 DB 리셋(컨펌)·BE 게이트(test 536)·FE 게이트(test 690)·회귀 grep 0·dogfooding 전항 통과. **+ 보드 폴리시 2건**: ① 클릭-클릭 연결 앵커(마주보는 테두리 자동, `nearestHandlePair` TDD) ② 카드 디자인(타입별 배경 틴트 `-50`·전체 테두리 `-200`·선택선/핸들 타입색 통일, 좌측 스트라이프 제거 — 목업 `docs/research/2026-06-25-board-card-bg-mockup.html`). SDD=`specs/040-board-ubiquitous-language/`, 인벤토리=`docs/board/board-track-b-impact-survey.md`. **미커밋 아님 — 038에 커밋, develop 미merge** |
+| **다음 진입** | **트랙 D — 카드 종류 정합 + UX 안전망 (§5-D): `brainstorming`부터**(4종 vs 5종 결정 포함). (§4 권장 순서 A→B→C→D) |
+| 블로커/대기 | 없음. **develop merge 계속 보류**(D·E 더 모은 뒤 — 사용자 결정 2026-06-25). 038이 develop보다 4커밋 뒤처짐(홈카드·다크모드 등) → merge 시 양방향 병합. 038 브랜치 유지 |
+| 직전 세션이 한 일 | **트랙 C 코어(041) 완료**: 매핑 모델 **dual-FK(project_id/category_id)→다형 단일소유(owner_type 'project'/'category'/null + owner_id) + 1:N** 전환(V24 in-place 편집·부분유니크인덱스 제거·CHECK 짝·idx_boards_owner). 다형이라 진짜 FK 상실 → 대상 hard delete 시 보드 owner null 강등(보존)을 ProjectService/CategoryService 훅. BE: `GET /boards/mine`(소속 라벨 작품 title/시리즈 name/"아이디어"·N+1 일괄·최근순) 신규 + `PATCH /{id}/owner`(set/clear, PUT 2개 대체) + POST owner(매핑충돌 409 제거) + `BOARD_OWNER_INVALID`(+)·`BOARD_*_ALREADY_MAPPED`(−). FE: `/boards` 허브 재설계(소속 라벨 칩 **작품=terracotta/시리즈=teal/아이디어=gray + "작품 ·"/"시리즈 ·" 종류 라벨**·클라 검색·생성 picker `BoardOwnerPicker`·나중에 붙이기/소속 변경), `BoardMappingControl` 제거. 로컬 DB 리셋(컨펌)·BE 게이트 GREEN·FE 게이트(test 690)·회귀 grep 0·**dogfooding 6/6**(소속 라벨 종류 구분 fix 포함). SDD=`specs/041-board-entry-points/`, 설계=`docs/board/board-track-c-design.md`. **내부 탭·집필 참조는 범위 밖(후속 ②③)**. 038에 커밋, develop 미merge |
 
 **새 세션 첫 행동**: ① 본 §0 → ② §1 대시보드 → ③ §5 진행 중(또는 다음) 트랙의 체크박스·링크 → ④ CLAUDE.md 의무대로 vault `02-PROGRESS`·`03-ISSUES`.
 
@@ -34,9 +34,10 @@
 |---|---|---|---|
 | **A** | 연결(Link) UI 재개 | ✅ 완료 (커밋 `d19b879`, merge 보류) | FE + BE V26 앵커 |
 | **B** | 유비쿼터스 언어 정리 | ✅ 완료 (rename 전면+마이그레이션, develop merge 보류) | 무거움 (마이그레이션+전면 rename) |
-| **C** | 진입점·매핑·아이디어 보드 | ⬜ 대기 (← 다음 진입) | 중간 (BE 신규 3) |
-| **D** | 카드 종류 + UX 안전망 | ⬜ 대기 | 가벼움 |
+| **C 코어** | 진입점·매핑·아이디어 보드 | ✅ 완료 (커밋 `c9857d1`, merge 보류) | 중간 (마이그레이션 + BE 신규 2) |
+| **D** | 카드 종류 + UX 안전망 | ⬜ 대기 (← 다음 진입) | 가벼움 |
 | **E** | 메모·인물 통합 | 🔴 후순위 (별도 spec) | 최대 |
+| **C-2** | 내부 탭(작품/시리즈 상세) · 집필 참조 | ⬜ 후속 (C에서 분리) | 중간 (호스트 UI·에디터 분할) |
 
 > 상태 범례: ⬜ 대기 · 🔵 진행 중 · ✅ 완료 · 🔴 후순위/보류. 트랙 완료 시 이 표 + §0 + §5 체크박스를 함께 갱신.
 
@@ -126,16 +127,24 @@
   - [x] 클릭-클릭 연결 앵커 — 두 카드 중심 우세축으로 마주보는 테두리 자동(`linkGraph.nearestHandlePair` TDD, V26 앵커 재사용·신규 BE 0). 드래그 경로는 RF Loose라 기존대로
   - [x] 카드 디자인(Miro 스타일·저채도) — 타입별 **배경 틴트(-50)**+**전체 테두리(-200)**+**선택선/링(-500/-200)**+**핸들(-400)**+**칩(-100)** 타입색 통일, **좌측 스트라이프 제거**(디자인 안티패턴). `cardKinds.ts`+`CardNode.tsx`. 목업 `docs/research/2026-06-25-board-card-bg-mockup.html`(A안=Whisper 채택). 보드 `colorMode=light` 고정이라 다크 변형 불요
 
-### 트랙 C — 진입점·매핑·아이디어 보드 고도화  `상태: ⬜ 대기 (← 다음 진입)`
-- **목표**: PRD §5.4 세 진입점 + 아이디어 보드 UX.
-- **범위(BE 신규 3 + FE)**: 전역 허브(소속 라벨·`?q=` 검색) / 작품·시리즈 진입점(T043) / 집필 참조(`GET /works/:id/reference-boards` + 마지막 본 보드 기억) / 아이디어 보드 라벨·나중에 붙이기.
-- **PRD 근거**: §5.3·§5.4·§9·§10, UX TASK-4·4B·5.
+### 트랙 C 코어 — 진입점·매핑·아이디어 보드  `상태: ✅ 완료 (커밋 c9857d1, develop merge 보류)`
+- **목표**: 매핑 모델 전환 + 전역 허브 + 아이디어 보드·나중에 붙이기 + 전역 생성 picker. (내부 탭·집필 참조는 C-2로 분리)
+- **범위(마이그레이션 + BE 신규 2 + FE)**: dual-FK→owner 다형 단일소유+1:N(V24 in-place) / `GET /boards/mine`(소속 라벨·최근순) / `PATCH /{id}/owner`(set/clear) / 아이디어 보드·picker / 검색=클라 필터.
+- **PRD 근거**: §5.3·§5.4·§7·§10, UX TASK-4·4B.
+- **확정 결정(brainstorming 2026-06-25)**: 데이터 모델 B(owner_type/owner_id 다형 + 1:N) · 스코프 분할(코어만, ②③ 후속) · owner_type='project'/'category' · 대상 삭제 시 owner null 강등 · 검색 클라 필터.
 - **진척**:
-  - [ ] brainstorming — 결론 박을 위치: ______
-  - [ ] spec/plan/tasks
-  - [ ] 구현 (BE 선행 → FE)
-  - [ ] 검증 (게이트 + dogfooding)
-  - [ ] 마무리 (finish-work + 회고)
+  - [x] brainstorming — 결론: `docs/board/board-track-c-design.md`(설계 SoT) + 본 절 확정 결정
+  - [x] spec/plan/tasks — `specs/041-board-entry-points/`(spec·plan·research·data-model·contracts/board-api·quickstart·tasks·checklists). NEEDS_CLARIFICATION 0
+  - [x] 구현 (BE 선행 → FE) — V24 in-place·엔티티/repo/service/DTO/controller/에러코드·삭제 훅 / FE 데이터계층·허브 재설계·picker·BoardMappingControl 제거
+  - [x] 검증 — BE 게이트 GREEN(로컬 DB 리셋 후) / FE typecheck·lint0err·test 690·build / 회귀 grep 0 / **dogfooding 6/6**(소속 라벨 작품·시리즈 종류 구분 fix 포함)
+  - [x] 마무리 — **038 커밋 `c9857d1`**, develop merge 계속 보류(사용자 결정) + roadmap·vault 갱신 + 회고
+
+### 트랙 C-2 — 내부 탭 + 집필 참조 (C에서 분리)  `상태: ⬜ 후속`
+- **목표**: PRD §5.4 ② 작품/시리즈 내부 보드 탭 + ③ 집필 중 보드 참조(분할 뷰).
+- **범위·미결**: ② **호스트 UI 결정 필요**(작품 상세=현 집필 화면, 시리즈 상세=/library 드릴인 — 별도 상세 페이지 부재). `GET /boards?ownerType=&ownerId=`(C에서 계약 준비됨) 위. ③ `GET /works/:id/reference-boards`(작품+상위 시리즈, 상위 시리즈=project.categoryId) + **마지막 본 보드 저장소 결정**(localStorage vs 신규 서버 키 — `SettingsService.ALLOWED`는 임의값 불가) + 에디터 분할 뷰(dynamic import 격리).
+- **진척**:
+  - [ ] brainstorming (호스트 UI·저장소 결정) — 결론 박을 위치: ______
+  - [ ] spec/plan/tasks · 구현 · 검증 · 마무리
 
 ### 트랙 D — 카드 종류 정합 + UX 안전망  `상태: ⬜ 대기`
 - **목표**: 종류 progressive disclosure + 안전망.
@@ -193,4 +202,6 @@
 
 - **E 데이터 모델 결정** — 메모·인물 통합 방식 ①~④ (E 진입 시).
 - **카드 종류 4 vs 5** — PRD 4종 vs 현재 5종 정합 (트랙 D brainstorming).
-- **BE 신규 엔드포인트** — `GET /boards/mine`(또는 `/boards` 확장)·`GET /works/:id/reference-boards`·`?q=` (트랙 C).
+- **C-2 미결** — ② 내부 탭 호스트 UI(작품/시리즈 상세 페이지 부재) · ③ 집필 참조 `GET /works/:id/reference-boards` + 마지막 본 보드 저장소(localStorage vs 신규 서버 키) + 에디터 분할 뷰.
+- **develop merge 보류 중** — 보드 A+B+C 가 038 누적, develop 미반영(D·E 더 모은 뒤 — 사용자 결정). 038이 develop보다 4커밋 뒤처져 merge 시 양방향 병합 주의.
+- ✅ 완료(트랙 C): `GET /boards/mine`·`PATCH /{id}/owner` (`?q=`는 클라 필터로 대체, `/works/:id/reference-boards`는 C-2로 이연).
