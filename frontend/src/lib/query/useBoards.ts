@@ -123,6 +123,14 @@ export function useUpdateCard(boardId: number) {
     });
 }
 
+/** 카드 종류 설정/해제(트랙 D). 낙관은 캔버스 로컬 노드 data 에서, 실패 시 reseed 롤백. */
+export function useSetCardType(boardId: number) {
+    return useMutation({
+        mutationFn: ({ cardId, type }: { cardId: number; type: string | null }) =>
+            webElectronApi.boards.updateCardType(boardId, cardId, type),
+    });
+}
+
 export function useBatchCardPositions(boardId: number) {
     return useMutation({
         mutationFn: (items: CardPositionItem[]) => webElectronApi.boards.batchCardPositions(boardId, items),

@@ -35,7 +35,7 @@ data class UpdateViewportRequest(
     val y: Double,
 )
 
-/** 카드 생성 — 생성 시점 위치 부여. [body] 미지정 시 빈 본문. [type] 미지정 시 'plot'(V25). */
+/** 카드 생성 — 생성 시점 위치 부여. [body] 미지정 시 빈 본문. [type] 미지정 시 무지정(null, 트랙 D). */
 data class CreateCardRequest(
     val body: String? = null,
     val posX: Double,
@@ -44,12 +44,16 @@ data class CreateCardRequest(
     val type: String? = null,
 )
 
-/** 카드 단건 수정(본문/위치/타입) — null 필드는 미변경. */
+/** 카드 단건 수정(본문/위치) — null 필드는 미변경. 종류 변경은 [UpdateCardTypeRequest] 전용 경로. */
 data class UpdateCardRequest(
     val body: String? = null,
     val posX: Double? = null,
     val posY: Double? = null,
     val zIndex: Int? = null,
+)
+
+/** 카드 종류 설정/해제(트랙 D). [type]=null 이면 무지정 해제, 값은 4종(character/place/event/theme). */
+data class UpdateCardTypeRequest(
     val type: String? = null,
 )
 

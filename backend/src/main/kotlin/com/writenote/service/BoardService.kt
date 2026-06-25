@@ -192,10 +192,22 @@ class BoardService(
     ): CardResponse {
         val card = requireOwnedCard(userId, boardId, cardId)
         request.body?.let { card.body = it }
-        request.type?.let { card.type = normalizeCardType(it) }
         request.posX?.let { card.posX = it }
         request.posY?.let { card.posY = it }
         request.zIndex?.let { card.zIndex = it }
+        return toCard(card)
+    }
+
+    /** 카드 종류 설정/해제(트랙 D progressive disclosure). [type]=null 이면 무지정 해제, 값은 4종 검증. */
+    @Transactional(rollbackFor = [Exception::class])
+    fun setCardType(
+        userId: Long,
+        boardId: Long,
+        cardId: Long,
+        type: String?,
+    ): CardResponse {
+        val card = requireOwnedCard(userId, boardId, cardId)
+        card.type = normalizeCardType(type)
         return toCard(card)
     }
 
@@ -340,13 +352,13 @@ class BoardService(
         }
     }
 
-    /** 카드 역할 타입 정규화(V25) — null=기본 'plot', 허용 외 값은 [ValidationException]. */
-    private fun normalizeCardType(value: String?): String {
-        val type = value ?: DEFAULT_CARD_TYPE
-        if (type !in ALLOWED_CARD_TYPES) {
-            throw ValidationException("지원하지 않는 카드 타입입니다: $type")
+    /** 카드 역할 타입 정규화(트랙 D) — null=무지정(그대로 null), 값은 4종(character/place/event/theme) 검증. */
+    private fun normalizeCardType(value: String?): String? {
+        if (value == null) return null
+        if (value !in ALLOWED_CARD_TYPES) {
+            throw ValidationException("지원하지 않는 카드 타입입니다: $value")
         }
-        return type
+        return value
     }
 
     private fun toResponse(board: Board): BoardResponse =
@@ -434,8 +446,8 @@ class BoardService(
         )
 
     private companion object {
-        const val DEFAULT_CARD_TYPE = "plot"
-        val ALLOWED_CARD_TYPES = setOf("plot", "character", "place", "theme", "note")
+        // 카드 종류 4종(트랙 D). 무지정은 null로 표현(여기 미포함).
+        val ALLOWED_CARD_TYPES = setOf("character", "place", "event", "theme")
         const val OWNER_PROJECT = "project"
         const val OWNER_CATEGORY = "category"
         const val IDEA_LABEL = "아이디어"

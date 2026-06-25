@@ -7,6 +7,7 @@ import {
     Background,
     ConnectionMode,
     Controls,
+    MiniMap,
     Panel,
     ReactFlow,
     ReactFlowProvider,
@@ -33,6 +34,7 @@ import {
     useCreateLink,
     useDeleteCard,
     useDeleteLink,
+    useSetCardType,
     useUpdateCard,
     useUpdateViewport,
 } from "@/lib/query/useBoards";
@@ -41,7 +43,6 @@ import { CardNode, type CardNodeData } from "./CardNode";
 import { LinkEdge } from "./LinkEdge";
 import { BoardActionsContext } from "./boardActions";
 import { canLink, incidentLinkIds, nearestHandlePair, neighborCardIds, toRFEdge } from "./linkGraph";
-import { DEFAULT_KIND, CARD_KINDS } from "./cardKinds";
 
 /**
  * 플롯 보드 캔버스(038/039) — React Flow v12. 카드 생성/편집/드래그 배치·뷰포트·연결(Link)을 영속한다.
@@ -82,14 +83,14 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
     const [nodes, setNodes, onNodesChange] = useNodesState<Node<CardNodeData>>(detail.cards.map(toRFNode));
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(detail.links.map(toRFEdge));
     const [error, setError] = useState<string | null>(null);
-    const [addMenuOpen, setAddMenuOpen] = useState(false);
+    const [showMinimap, setShowMinimap] = useState(false);
     const [connectFromId, setConnectFromId] = useState<string | null>(null);
     const [pendingEmptyDrop, setPendingEmptyDrop] = useState<{
         fromId: string;
         fromHandle?: string;
         pos: XYPosition;
     } | null>(null);
-    const { screenToFlowPosition, getNode } = useReactFlow();
+    const { screenToFlowPosition, getNode, fitView } = useReactFlow();
     const wrapperRef = useRef<HTMLDivElement>(null);
     const tempCounter = useRef(0);
     const tempLinkCounter = useRef(0);
@@ -99,6 +100,7 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
 
     const createCard = useCreateCard(boardId);
     const updateCard = useUpdateCard(boardId);
+    const setCardTypeMut = useSetCardType(boardId);
     const batchPositions = useBatchCardPositions(boardId);
     const deleteCardMut = useDeleteCard(boardId);
     const updateViewport = useUpdateViewport(boardId);
@@ -161,6 +163,26 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
             );
         },
         [setNodes, updateCard, reseedFromServer],
+    );
+
+    // 종류 설정/해제(트랙 D) — 낙관적으로 노드 data.kind 즉시 반영, 실패 시 서버 진실로 reseed.
+    const setCardKind = useCallback(
+        (cardId: number, kind: string | null) => {
+            setNodes((nds) =>
+                nds.map((n) => (n.id === String(cardId) ? { ...n, data: { ...n.data, kind } } : n)),
+            );
+            if (isTemp(String(cardId))) return; // 임시 카드(미영속)는 로컬만
+            setCardTypeMut.mutate(
+                { cardId, type: kind },
+                {
+                    onError: () => {
+                        setError("종류 변경에 실패했습니다.");
+                        reseedFromServer();
+                    },
+                },
+            );
+        },
+        [setNodes, setCardTypeMut, reseedFromServer],
     );
 
     // ── 연결(Link) ──────────────────────────────────────────────────────────────
@@ -230,7 +252,7 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
         [screenToFlowPosition],
     );
 
-    // 빈 곳 drop 확인 → 새 카드(기본 종류) 생성 후 출발 카드와 연결.
+    // 빈 곳 drop 확인 → 새 카드(무지정) 생성 후 출발 카드와 연결.
     const handleConfirmEmptyDrop = useCallback(() => {
         const drop = pendingEmptyDrop;
         if (!drop) return;
@@ -240,11 +262,11 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
             id: tempId,
             type: "plot",
             position: drop.pos,
-            data: { body: "", kind: DEFAULT_KIND },
+            data: { body: "", kind: null },
         };
         setNodes((nds) => [...nds, optimistic]);
         createCard.mutate(
-            { body: "", posX: drop.pos.x, posY: drop.pos.y, type: DEFAULT_KIND },
+            { body: "", posX: drop.pos.x, posY: drop.pos.y },
             {
                 onSuccess: (card) => {
                     const realId = String(card.id);
@@ -317,7 +339,10 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
         setConnectFromId(null);
     }, []);
 
-    const boardActions = useMemo(() => ({ editCardBody, startConnect }), [editCardBody, startConnect]);
+    const boardActions = useMemo(
+        () => ({ editCardBody, startConnect, setCardKind }),
+        [editCardBody, startConnect, setCardKind],
+    );
 
     // 이웃 하이라이트 — 선택 카드 기준. 선택은 RF 자체 selected 를 단일 소스로.
     const selectedId = useMemo(() => nodes.find((n) => n.selected)?.id ?? null, [nodes]);
@@ -337,36 +362,33 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
         }));
     }, [edges, selectedId, handleDisconnect]);
 
-    const handleAddCard = useCallback(
-        (kind: string = DEFAULT_KIND) => {
-            setAddMenuOpen(false);
-            const rect = wrapperRef.current?.getBoundingClientRect();
-            const screen = rect
-                ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
-                : { x: 200, y: 200 };
-            const position = screenToFlowPosition(screen);
-            const tempId = `temp-${++tempCounter.current}`;
-            const optimistic: Node<CardNodeData> = {
-                id: tempId,
-                type: "plot",
-                position,
-                data: { body: "", kind },
-            };
-            setNodes((nds) => [...nds, optimistic]);
-            createCard.mutate(
-                { body: "", posX: position.x, posY: position.y, type: kind },
-                {
-                    onSuccess: (card) =>
-                        setNodes((nds) => nds.map((n) => (n.id === tempId ? { ...n, id: String(card.id) } : n))),
-                    onError: () => {
-                        setNodes((nds) => nds.filter((n) => n.id !== tempId));
-                        setError("카드 생성에 실패했습니다.");
-                    },
+    // + 카드 — 종류 안 묻고 무지정 빈 카드 생성(트랙 D). 종류는 선택 후 칩으로 부여.
+    const handleAddCard = useCallback(() => {
+        const rect = wrapperRef.current?.getBoundingClientRect();
+        const screen = rect
+            ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+            : { x: 200, y: 200 };
+        const position = screenToFlowPosition(screen);
+        const tempId = `temp-${++tempCounter.current}`;
+        const optimistic: Node<CardNodeData> = {
+            id: tempId,
+            type: "plot",
+            position,
+            data: { body: "", kind: null },
+        };
+        setNodes((nds) => [...nds, optimistic]);
+        createCard.mutate(
+            { body: "", posX: position.x, posY: position.y },
+            {
+                onSuccess: (card) =>
+                    setNodes((nds) => nds.map((n) => (n.id === tempId ? { ...n, id: String(card.id) } : n))),
+                onError: () => {
+                    setNodes((nds) => nds.filter((n) => n.id !== tempId));
+                    setError("카드 생성에 실패했습니다.");
                 },
-            );
-        },
-        [screenToFlowPosition, setNodes, createCard],
-    );
+            },
+        );
+    }, [screenToFlowPosition, setNodes, createCard]);
 
     const handleNodeDragStart: OnNodeDrag<Node<CardNodeData>> = useCallback((_e, _node, dragged) => {
         dragSnapshot.current = new Map(dragged.map((n) => [n.id, { x: n.position.x, y: n.position.y }]));
@@ -460,31 +482,35 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
                 >
                     <Background />
                     <Controls />
+                    {showMinimap && <MiniMap pannable zoomable className="!bg-white" />}
                     <Panel position="top-left">
-                        <div className="relative">
+                        <div className="flex items-center gap-1.5">
                             <button
                                 type="button"
-                                onClick={() => setAddMenuOpen((o) => !o)}
-                                aria-expanded={addMenuOpen}
+                                onClick={handleAddCard}
                                 className="rounded-md border border-gray-300 bg-white/80 px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm backdrop-blur hover:bg-gray-50"
                             >
                                 + 카드
                             </button>
-                            {addMenuOpen && (
-                                <div className="absolute left-0 mt-1 w-36 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
-                                    {CARD_KINDS.map((k) => (
-                                        <button
-                                            key={k.id}
-                                            type="button"
-                                            onClick={() => handleAddCard(k.id)}
-                                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
-                                        >
-                                            <span className={`h-2.5 w-2.5 rounded-full ${k.dot}`} aria-hidden="true" />
-                                            {k.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                            <button
+                                type="button"
+                                onClick={() => fitView({ duration: 300, padding: 0.2 })}
+                                className="rounded-md border border-gray-300 bg-white/80 px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm backdrop-blur hover:bg-gray-50"
+                            >
+                                한눈에 보기
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setShowMinimap((v) => !v)}
+                                aria-pressed={showMinimap}
+                                className={`rounded-md border px-3 py-1.5 text-sm font-medium shadow-sm backdrop-blur ${
+                                    showMinimap
+                                        ? "border-terracotta-300 bg-terracotta-50 text-terracotta-700"
+                                        : "border-gray-300 bg-white/80 text-gray-700 hover:bg-gray-50"
+                                }`}
+                            >
+                                미니맵
+                            </button>
                         </div>
                     </Panel>
                     {connectFromId && (

@@ -146,16 +146,17 @@
   - [ ] brainstorming (호스트 UI·저장소 결정) — 결론 박을 위치: ______
   - [ ] spec/plan/tasks · 구현 · 검증 · 마무리
 
-### 트랙 D — 카드 종류 정합 + UX 안전망  `상태: ⬜ 대기`
-- **목표**: 종류 progressive disclosure + 안전망.
-- **범위**: 생성 시 안 묻고 선택 후 칩 + 종류 변경 UI / 한눈에 보기·undo·redo·온보딩. **결정 보류**: PRD 4종 vs 현재 5종 정합.
-- **PRD 근거**: UX TASK-3·6·7.
+### 트랙 D — 카드 종류 정합 + UX 안전망  `상태: 🔵 진행 중 (brainstorming 완료, 구현 중)`
+- **목표**: 종류 4종 정합 + progressive disclosure + 안전망.
+- **범위**: 종류 4종(인물·장소·사건·테마)·기본 무지정·생성 후 칩 부여/재탭 해제 / 한눈에 보기·미니맵 토글. **undo/redo·온보딩 제외**(별도/후순위).
+- **PRD 근거**: UX TASK-3·6. PRD §3·§11(2).
+- **확정 결정(brainstorming 2026-06-25)**: 4종(plot→event·note 폐기) · 기본 무지정(null) · 생성 후 칩(progressive disclosure) · 무지정 외관=중립 회색(A안) · 칩 위치=카드 우측 세로 플로팅(C안) · 안전망=한눈에 보기 버튼+미니맵 토글(undo/redo 제외). 목업 `docs/research/2026-06-25-board-card-types-mockup.html`.
 - **진척**:
-  - [ ] brainstorming (4종 vs 5종 결정 포함) — 결론 박을 위치: ______
-  - [ ] (필요시) spec/plan/tasks
-  - [ ] 구현
-  - [ ] 검증 (게이트 + dogfooding)
-  - [ ] 마무리 (finish-work + 회고)
+  - [x] brainstorming (4종 vs 5종 결정 포함) — 결론: **`docs/board/board-track-d-design.md`**(설계 SoT) + 본 절 확정 결정
+  - [x] 설계 문서 — `docs/board/board-track-d-design.md`(색 매핑·BE/FE 변경·종류 전용 경로·검증). speckit 풀과정 대신 경량 설계문서(사용자 "일단 작업하고 결과물 확인")
+  - [x] 구현 (BE 선행 → FE) — BE: ALLOWED 4종·`normalizeCardType` nullable(TDD)·종류 전용 `PATCH .../cards/{id}/type`·`Card.type`/`CardResponse.type` nullable·V25 in-place(NOT NULL DEFAULT plot→nullable)·로컬 DB 리셋(컨펌). FE: `cardKinds` 4종+무지정(`UNTYPED_KIND`·`kindOf` TDD)·`CardNode` 우측 칩 트레이/무지정 외관·`+카드` 단일 버튼(무지정 생성)·`setCardType` API/훅/액션·한눈에 보기 버튼·미니맵 토글
+  - [x] 검증 (게이트 + 회귀 grep + dogfooding) — BE ktlint·checkstyle·test·build GREEN / FE typecheck·lint0err·test 694·build GREEN / 회귀 grep 0(폐기 plot·note·DEFAULT_*·5종·addMenuOpen, RF nodeTypes 키 'plot'은 어댑터 식별자라 유지) / **dogfooding 전항 통과** + UX 피드백 반영(무지정만 트레이 자동·종류 지정은 배지 클릭·"이건 뭔가요?" 헤더 제거)
+  - [ ] 마무리 (finish-work + 회고) — 진행 중(038 커밋·roadmap/vault·회고). develop merge 여부 사용자 확인
 
 ### 트랙 E — 메모·인물 통합 🔴  `상태: 후순위 (별도 spec)`
 - **선행 결정(데이터 모델)**: ① 완전 통합(메모·인물 폐기, M:N·캡처 손실 감수) ② 부분 통합(인물만 카드로) ③ 참조 통합(데이터 유지, "가져오기"로 카드화) ④ 보류(독립 유지).

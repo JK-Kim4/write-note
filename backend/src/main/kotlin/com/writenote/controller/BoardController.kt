@@ -8,6 +8,7 @@ import com.writenote.model.request.CreateLinkRequest
 import com.writenote.model.request.RenameBoardRequest
 import com.writenote.model.request.SetBoardOwnerRequest
 import com.writenote.model.request.UpdateCardRequest
+import com.writenote.model.request.UpdateCardTypeRequest
 import com.writenote.model.request.UpdateViewportRequest
 import com.writenote.model.response.BoardDetailResponse
 import com.writenote.model.response.BoardResponse
@@ -128,13 +129,22 @@ class BoardController(
             .body(Result.success(boardService.createCard(principal.userId, boardId, request)))
 
     @PatchMapping("/{boardId}/cards/{cardId}")
-    @Operation(summary = "카드 수정(본문/위치)", description = "null 필드는 미변경")
+    @Operation(summary = "카드 수정(본문/위치)", description = "null 필드는 미변경. 종류 변경은 /type 전용 경로")
     fun updateCard(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable boardId: Long,
         @PathVariable cardId: Long,
         @Valid @RequestBody request: UpdateCardRequest,
     ): Result<CardResponse> = Result.success(boardService.updateCard(principal.userId, boardId, cardId, request))
+
+    @PatchMapping("/{boardId}/cards/{cardId}/type")
+    @Operation(summary = "카드 종류 설정/해제", description = "type=null 이면 무지정 해제, 값은 4종(character/place/event/theme)")
+    fun setCardType(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @PathVariable boardId: Long,
+        @PathVariable cardId: Long,
+        @Valid @RequestBody request: UpdateCardTypeRequest,
+    ): Result<CardResponse> = Result.success(boardService.setCardType(principal.userId, boardId, cardId, request.type))
 
     @PatchMapping("/{boardId}/cards")
     @Operation(summary = "위치 배치 저장", description = "드래그 종료·다중선택 변경분 1회")

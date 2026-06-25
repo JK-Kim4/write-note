@@ -15,6 +15,7 @@ import {
     renameBoard,
     setBoardOwner,
     updateCard,
+    updateCardType,
     updateViewport,
 } from "@/lib/api/boards";
 import type {
@@ -47,6 +48,8 @@ export const boards = {
         createCard(boardId, input),
     updateCard: (boardId: number, cardId: number, input: UpdateCardInput): Promise<CardResponse> =>
         updateCard(boardId, cardId, input),
+    updateCardType: (boardId: number, cardId: number, type: string | null): Promise<CardResponse> =>
+        updateCardType(boardId, cardId, type),
     batchCardPositions: (boardId: number, items: CardPositionItem[]): Promise<CardResponse[]> =>
         batchCardPositions(boardId, items),
     deleteCard: (boardId: number, cardId: number): Promise<void> => deleteCard(boardId, cardId),

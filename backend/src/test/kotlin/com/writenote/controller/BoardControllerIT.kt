@@ -3,6 +3,7 @@ package com.writenote.controller
 import com.writenote.auth.JwtTokenProvider
 import com.writenote.entity.User
 import com.writenote.repository.UserRepository
+import org.hamcrest.Matchers.nullValue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -274,11 +275,11 @@ class BoardControllerIT {
     }
 
     @Test
-    fun `card type persists and defaults to plot and rejects unknown`() {
+    fun `card type persists 4 types, defaults to null, and rejects unknown`() {
         val bearer = bearerFor(createUser())
         val boardId = createBoard(bearer, "타입 보드")
 
-        // 타입 지정 → 응답에 반영
+        // 종류 지정(4종) → 응답에 반영
         mockMvc
             .perform(
                 post("/api/boards/{id}/cards", boardId)
@@ -288,7 +289,7 @@ class BoardControllerIT {
             ).andExpect(status().isCreated)
             .andExpect(jsonPath("$.data.type").value("character"))
 
-        // 미지정 → 기본 plot
+        // 미지정 → 무지정(null)
         mockMvc
             .perform(
                 post("/api/boards/{id}/cards", boardId)
@@ -296,15 +297,51 @@ class BoardControllerIT {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"body":"사건","posX":1.0,"posY":1.0}"""),
             ).andExpect(status().isCreated)
-            .andExpect(jsonPath("$.data.type").value("plot"))
+            .andExpect(jsonPath("$.data.type").value(nullValue()))
 
-        // 허용 외 타입 → 400
+        // 허용 외 종류 → 400
         mockMvc
             .perform(
                 post("/api/boards/{id}/cards", boardId)
                     .header("Authorization", bearer)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"posX":2.0,"posY":2.0,"type":"villain"}"""),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `setCardType assigns then clears card type`() {
+        val bearer = bearerFor(createUser())
+        val boardId = createBoard(bearer, "종류 보드")
+        val cardId = createCard(bearer, boardId, "카드", 0.0, 0.0)
+
+        // 부여(event)
+        mockMvc
+            .perform(
+                patch("/api/boards/{b}/cards/{c}/type", boardId, cardId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"type":"event"}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.type").value("event"))
+
+        // 재탭 해제(null)
+        mockMvc
+            .perform(
+                patch("/api/boards/{b}/cards/{c}/type", boardId, cardId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"type":null}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.type").value(nullValue()))
+
+        // 허용 외 종류 → 400
+        mockMvc
+            .perform(
+                patch("/api/boards/{b}/cards/{c}/type", boardId, cardId)
+                    .header("Authorization", bearer)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"type":"villain"}"""),
             ).andExpect(status().isBadRequest)
     }
 

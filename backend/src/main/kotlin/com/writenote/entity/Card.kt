@@ -14,7 +14,7 @@ import java.time.Instant
  * 카드(038). 보드([boardId]) 위의 한 장 — 기존 캡처 메모(memos)와 별개의 신규 객체.
  *
  * [posX]·[posY] 는 줌·팬과 무관한 캔버스 절대 좌표(음수·소수 허용). [zIndex] 는 겹침 순서. 정확히 한 보드에 속함(1:N).
- * [type] 은 역할 타입(plot/character/place/theme/note) — 생성 시 선택, 타입별 색상/라벨로 구분(V25).
+ * [type] 은 역할 종류(character/place/event/theme, 트랙 D) — null=무지정. 카드 선택 후 칩으로 부여·해제, 종류별 색/라벨로 구분.
  */
 @Entity
 @Table(name = "cards")
@@ -26,8 +26,8 @@ class Card(
     var boardId: Long = 0,
     @Column(nullable = false, columnDefinition = "TEXT")
     var body: String = "",
-    @Column(nullable = false, length = 16)
-    var type: String = "plot",
+    @Column(length = 16)
+    var type: String? = null,
     @Column(name = "pos_x", nullable = false)
     var posX: Double = 0.0,
     @Column(name = "pos_y", nullable = false)

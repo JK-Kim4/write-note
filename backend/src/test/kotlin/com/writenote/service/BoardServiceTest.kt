@@ -307,7 +307,7 @@ class BoardServiceTest {
         assertThat(captured.captured.body).isEqualTo("주인공 등장")
         assertThat(response.posX).isEqualTo(12.5)
         assertThat(response.posY).isEqualTo(-3.0)
-        assertThat(response.type).isEqualTo("plot")
+        assertThat(response.type).isNull()
     }
 
     @Test
@@ -325,15 +325,29 @@ class BoardServiceTest {
     }
 
     @Test
-    @DisplayName("createCard — 타입 미지정 시 기본 plot")
-    fun `createCard defaults type to plot`() {
+    @DisplayName("createCard — 타입 미지정 시 무지정(null)")
+    fun `createCard defaults type to null`() {
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
         val captured = slot<Card>()
         every { cardRepository.save(capture(captured)) } answers { savedCard(firstArg()) }
 
         service.createCard(1L, 100L, CreateCardRequest(posX = 0.0, posY = 0.0))
 
-        assertThat(captured.captured.type).isEqualTo("plot")
+        assertThat(captured.captured.type).isNull()
+    }
+
+    @Test
+    @DisplayName("createCard — event 타입 영속(4종)")
+    fun `createCard persists event type`() {
+        every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
+        val captured = slot<Card>()
+        every { cardRepository.save(capture(captured)) } answers { savedCard(firstArg()) }
+
+        val response =
+            service.createCard(1L, 100L, CreateCardRequest(body = "사건", posX = 0.0, posY = 0.0, type = "event"))
+
+        assertThat(captured.captured.type).isEqualTo("event")
+        assertThat(response.type).isEqualTo("event")
     }
 
     @Test
@@ -342,6 +356,17 @@ class BoardServiceTest {
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
 
         assertThatThrownBy { service.createCard(1L, 100L, CreateCardRequest(posX = 0.0, posY = 0.0, type = "villain")) }
+            .isInstanceOf(ValidationException::class.java)
+    }
+
+    @Test
+    @DisplayName("createCard — 폐기된 plot/note 타입은 ValidationException(4종 외)")
+    fun `createCard rejects legacy plot and note types`() {
+        every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
+
+        assertThatThrownBy { service.createCard(1L, 100L, CreateCardRequest(posX = 0.0, posY = 0.0, type = "plot")) }
+            .isInstanceOf(ValidationException::class.java)
+        assertThatThrownBy { service.createCard(1L, 100L, CreateCardRequest(posX = 0.0, posY = 0.0, type = "note")) }
             .isInstanceOf(ValidationException::class.java)
     }
 
@@ -367,6 +392,55 @@ class BoardServiceTest {
         assertThat(card.body).isEqualTo("new")
         assertThat(card.posX).isEqualTo(1.0)
         assertThat(response.body).isEqualTo("new")
+    }
+
+    @Test
+    @DisplayName("setCardType — 종류 부여(progressive disclosure)")
+    fun `setCardType sets type`() {
+        val card =
+            Card(id = 500L, boardId = 100L, body = "x", posX = 1.0, posY = 2.0, createdAt = Instant.now(), updatedAt = Instant.now())
+        every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
+        every { cardRepository.findByIdAndBoardId(eq(500L), eq(100L)) } returns Optional.of(card)
+
+        val response = service.setCardType(1L, 100L, 500L, "place")
+
+        assertThat(card.type).isEqualTo("place")
+        assertThat(response.type).isEqualTo("place")
+    }
+
+    @Test
+    @DisplayName("setCardType — null로 무지정 해제(재탭)")
+    fun `setCardType clears type to null`() {
+        val card =
+            Card(
+                id = 500L,
+                boardId = 100L,
+                body = "x",
+                type = "event",
+                posX = 1.0,
+                posY = 2.0,
+                createdAt = Instant.now(),
+                updatedAt = Instant.now(),
+            )
+        every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
+        every { cardRepository.findByIdAndBoardId(eq(500L), eq(100L)) } returns Optional.of(card)
+
+        val response = service.setCardType(1L, 100L, 500L, null)
+
+        assertThat(card.type).isNull()
+        assertThat(response.type).isNull()
+    }
+
+    @Test
+    @DisplayName("setCardType — 허용 외 종류는 ValidationException")
+    fun `setCardType rejects unknown type`() {
+        val card =
+            Card(id = 500L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now())
+        every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
+        every { cardRepository.findByIdAndBoardId(eq(500L), eq(100L)) } returns Optional.of(card)
+
+        assertThatThrownBy { service.setCardType(1L, 100L, 500L, "villain") }
+            .isInstanceOf(ValidationException::class.java)
     }
 
     @Test

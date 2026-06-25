@@ -41,8 +41,8 @@ export interface BoardResponse {
 export interface CardResponse {
     id: number;
     body: string;
-    /** 역할 타입(plot/character/place/theme/note, V25) */
-    type: string;
+    /** 역할 종류(character/place/event/theme, 트랙 D). null=무지정 */
+    type: string | null;
     posX: number;
     posY: number;
     zIndex: number;
@@ -81,6 +81,7 @@ export interface CreateCardInput {
     posX: number;
     posY: number;
     zIndex?: number;
+    /** 생성 시 종류(생략=무지정, 트랙 D). 보통 미지정 — 종류는 생성 후 칩으로 부여 */
     type?: string;
 }
 
@@ -89,7 +90,6 @@ export interface UpdateCardInput {
     posX?: number;
     posY?: number;
     zIndex?: number;
-    type?: string;
 }
 
 export interface CardPositionItem {
@@ -174,6 +174,18 @@ export function updateCard(
     return apiFetch<CardResponse>(`/api/boards/${boardId}/cards/${cardId}`, {
         method: "PATCH",
         body: JSON.stringify(input),
+    });
+}
+
+/** 카드 종류 설정/해제(트랙 D progressive disclosure). type=null 이면 무지정 해제. */
+export function updateCardType(
+    boardId: number,
+    cardId: number,
+    type: string | null,
+): Promise<CardResponse> {
+    return apiFetch<CardResponse>(`/api/boards/${boardId}/cards/${cardId}/type`, {
+        method: "PATCH",
+        body: JSON.stringify({ type }),
     });
 }
 

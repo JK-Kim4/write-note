@@ -40,11 +40,11 @@ data class BoardDetailResponse(
     val links: List<LinkResponse>,
 )
 
-/** 카드 응답. [type] = 역할 타입(plot/character/place/theme/note, V25). */
+/** 카드 응답. [type] = 역할 종류(character/place/event/theme, 트랙 D). null=무지정. */
 data class CardResponse(
     val id: Long,
     val body: String,
-    val type: String,
+    val type: String?,
     val posX: Double,
     val posY: Double,
     val zIndex: Int,
