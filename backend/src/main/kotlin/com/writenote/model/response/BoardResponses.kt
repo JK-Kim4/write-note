@@ -22,25 +22,25 @@ data class BoardResponse(
     val updatedAt: Instant,
 )
 
-/** 보드 목록 항목 — 노드 수 동봉. */
+/** 보드 목록 항목 — 카드 수 동봉. */
 data class BoardSummary(
     val id: Long,
     val name: String,
     val projectId: Long?,
     val categoryId: Long?,
-    val nodeCount: Int,
+    val cardCount: Int,
     val updatedAt: Instant,
 )
 
-/** 보드 하이드레이션 — 메타 + 노드 + 엣지를 한 번에. */
+/** 보드 하이드레이션 — 메타 + 카드 + 연결을 한 번에. */
 data class BoardDetailResponse(
     val board: BoardResponse,
-    val nodes: List<NodeResponse>,
-    val edges: List<EdgeResponse>,
+    val cards: List<CardResponse>,
+    val links: List<LinkResponse>,
 )
 
-/** 플롯 노드 응답. [type] = 역할 타입(plot/character/place/theme/note, V25). */
-data class NodeResponse(
+/** 카드 응답. [type] = 역할 타입(plot/character/place/theme/note, V25). */
+data class CardResponse(
     val id: Long,
     val body: String,
     val type: String,
@@ -50,11 +50,11 @@ data class NodeResponse(
     val updatedAt: Instant,
 )
 
-/** 연결(엣지) 응답. [sourceHandle]/[targetHandle]=연결 테두리 앵커(top/right/bottom/left 또는 null). */
-data class EdgeResponse(
+/** 연결(링크) 응답. [sourceHandle]/[targetHandle]=연결 테두리 앵커(top/right/bottom/left 또는 null). */
+data class LinkResponse(
     val id: Long,
-    val sourceNodeId: Long,
-    val targetNodeId: Long,
+    val sourceCardId: Long,
+    val targetCardId: Long,
     val sourceHandle: String?,
     val targetHandle: String?,
 )

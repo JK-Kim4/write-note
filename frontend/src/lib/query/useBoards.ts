@@ -4,18 +4,18 @@
  * 플롯 보드(038) React Query 훅. 키 컨벤션은 categories/projects 훅과 동형.
  *
  * 보드 목록/상세 쿼리 + CRUD·매핑 mutation. 이름 변경은 목록 캐시 낙관적 업데이트(실패 롤백).
- * 캔버스 내 고빈도 상호작용(노드 드래그/본문/엣지)의 낙관적 반영은 PlotBoardCanvas 의 React Flow
- * 로컬 상태가 담당(실패 시 직전 상태 복원) — 본 훅들은 영속 + 목록 nodeCount 무효화만 한다.
+ * 캔버스 내 고빈도 상호작용(카드 드래그/본문/연결)의 낙관적 반영은 PlotBoardCanvas 의 React Flow
+ * 로컬 상태가 담당(실패 시 직전 상태 복원) — 본 훅들은 영속 + 목록 cardCount 무효화만 한다.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { webElectronApi } from "@/lib/electron-api";
 import type {
     BoardListFilter,
     BoardSummary,
+    CardPositionItem,
     CreateBoardInput,
-    CreateNodeInput,
-    NodePositionItem,
-    UpdateNodeInput,
+    CreateCardInput,
+    UpdateCardInput,
 } from "@/lib/api/boards";
 
 export const boardKeys = {
@@ -39,7 +39,7 @@ export function useBoardDetail(boardId: number, enabled = true) {
         queryFn: () => webElectronApi.boards.get(boardId),
         enabled,
         // 보드 진입 시 1회 최신 하이드레이션(캔버스가 이 데이터로 시드). 단 세션 중 우발적 refetch가
-        // 캔버스의 진행 중 낙관 상태(미저장 드래그·temp 노드·편집)를 덮지 않도록 reconnect refetch는
+        // 캔버스의 진행 중 낙관 상태(미저장 드래그·temp 카드·편집)를 덮지 않도록 reconnect refetch는
         // 비활성하고 staleTime은 전역(60s) 상속한다(window focus는 전역 비활성). detail 재시드는
         // 진입 + 명시적 에러 복구 무효화에서만 일어난다.
         refetchOnMount: "always",
@@ -105,31 +105,31 @@ export function useSetBoardCategory() {
 
 // ── 캔버스 영속 mutation (낙관 반영은 캔버스 RF 로컬 상태) ──────────────────────
 
-export function useCreateNode(boardId: number) {
+export function useCreateCard(boardId: number) {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (input: CreateNodeInput) => webElectronApi.boards.createNode(boardId, input),
+        mutationFn: (input: CreateCardInput) => webElectronApi.boards.createCard(boardId, input),
         onSettled: () => qc.invalidateQueries({ queryKey: boardKeys.list() }),
     });
 }
 
-export function useUpdateNode(boardId: number) {
+export function useUpdateCard(boardId: number) {
     return useMutation({
-        mutationFn: ({ nodeId, input }: { nodeId: number; input: UpdateNodeInput }) =>
-            webElectronApi.boards.updateNode(boardId, nodeId, input),
+        mutationFn: ({ cardId, input }: { cardId: number; input: UpdateCardInput }) =>
+            webElectronApi.boards.updateCard(boardId, cardId, input),
     });
 }
 
-export function useBatchNodePositions(boardId: number) {
+export function useBatchCardPositions(boardId: number) {
     return useMutation({
-        mutationFn: (items: NodePositionItem[]) => webElectronApi.boards.batchNodePositions(boardId, items),
+        mutationFn: (items: CardPositionItem[]) => webElectronApi.boards.batchCardPositions(boardId, items),
     });
 }
 
-export function useDeleteNode(boardId: number) {
+export function useDeleteCard(boardId: number) {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (nodeId: number) => webElectronApi.boards.deleteNode(boardId, nodeId),
+        mutationFn: (cardId: number) => webElectronApi.boards.deleteCard(boardId, cardId),
         onSettled: () => qc.invalidateQueries({ queryKey: boardKeys.list() }),
     });
 }
@@ -141,24 +141,24 @@ export function useUpdateViewport(boardId: number) {
     });
 }
 
-export function useCreateEdge(boardId: number) {
+export function useCreateLink(boardId: number) {
     return useMutation({
         mutationFn: ({
-            sourceNodeId,
-            targetNodeId,
+            sourceCardId,
+            targetCardId,
             sourceHandle,
             targetHandle,
         }: {
-            sourceNodeId: number;
-            targetNodeId: number;
+            sourceCardId: number;
+            targetCardId: number;
             sourceHandle?: string | null;
             targetHandle?: string | null;
-        }) => webElectronApi.boards.createEdge(boardId, sourceNodeId, targetNodeId, sourceHandle, targetHandle),
+        }) => webElectronApi.boards.createLink(boardId, sourceCardId, targetCardId, sourceHandle, targetHandle),
     });
 }
 
-export function useDeleteEdge(boardId: number) {
+export function useDeleteLink(boardId: number) {
     return useMutation({
-        mutationFn: (edgeId: number) => webElectronApi.boards.deleteEdge(boardId, edgeId),
+        mutationFn: (linkId: number) => webElectronApi.boards.deleteLink(boardId, linkId),
     });
 }

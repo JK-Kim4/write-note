@@ -10,22 +10,23 @@ import jakarta.persistence.Table
 import java.time.Instant
 
 /**
- * 연결(엣지, 038). 같은 보드([boardId]) 안 두 노드 사이의 방향 있는 관계([sourceNodeId]→[targetNodeId]).
+ * 연결(링크, 038). 같은 보드([boardId]) 안 두 카드 사이의 관계([sourceCardId]↔[targetCardId]).
  *
- * 같은 방향 동일 쌍은 유일(DB UNIQUE), 자기참조 금지(DB CHECK). v1 은 관계 유형 라벨 없음. 노드 삭제 시 DB cascade.
+ * 같은 순서쌍은 유일(DB UNIQUE), 자기연결 금지(DB CHECK). 무방향(화살표 없음) — source/target 은 저장 순서일 뿐.
+ * [sourceHandle]/[targetHandle] 은 연결 테두리 앵커(top/right/bottom/left). 카드 삭제 시 DB cascade.
  */
 @Entity
-@Table(name = "board_edges")
-class BoardEdge(
+@Table(name = "links")
+class Link(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
     @Column(name = "board_id", nullable = false)
     var boardId: Long = 0,
-    @Column(name = "source_node_id", nullable = false)
-    var sourceNodeId: Long = 0,
-    @Column(name = "target_node_id", nullable = false)
-    var targetNodeId: Long = 0,
+    @Column(name = "source_card_id", nullable = false)
+    var sourceCardId: Long = 0,
+    @Column(name = "target_card_id", nullable = false)
+    var targetCardId: Long = 0,
     @Column(name = "source_handle", length = 8)
     var sourceHandle: String? = null,
     @Column(name = "target_handle", length = 8)

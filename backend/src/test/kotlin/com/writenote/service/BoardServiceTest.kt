@@ -1,22 +1,22 @@
 package com.writenote.service
 
 import com.writenote.entity.Board
-import com.writenote.entity.BoardEdge
-import com.writenote.entity.BoardNode
+import com.writenote.entity.Card
+import com.writenote.entity.Link
 import com.writenote.entity.Project
 import com.writenote.error.AuthException
 import com.writenote.error.ResourceNotFoundException
 import com.writenote.error.ValidationException
-import com.writenote.model.request.BatchNodePositionItem
+import com.writenote.model.request.BatchCardPositionItem
 import com.writenote.model.request.CreateBoardRequest
-import com.writenote.model.request.CreateEdgeRequest
-import com.writenote.model.request.CreateNodeRequest
-import com.writenote.model.request.UpdateNodeRequest
+import com.writenote.model.request.CreateCardRequest
+import com.writenote.model.request.CreateLinkRequest
+import com.writenote.model.request.UpdateCardRequest
 import com.writenote.model.request.UpdateViewportRequest
-import com.writenote.repository.BoardEdgeRepository
-import com.writenote.repository.BoardNodeRepository
 import com.writenote.repository.BoardRepository
+import com.writenote.repository.CardRepository
 import com.writenote.repository.CategoryRepository
+import com.writenote.repository.LinkRepository
 import com.writenote.repository.ProjectRepository
 import com.writenote.repository.UserRepository
 import io.mockk.every
@@ -34,8 +34,8 @@ import java.util.Optional
 
 class BoardServiceTest {
     private lateinit var boardRepository: BoardRepository
-    private lateinit var boardNodeRepository: BoardNodeRepository
-    private lateinit var boardEdgeRepository: BoardEdgeRepository
+    private lateinit var cardRepository: CardRepository
+    private lateinit var linkRepository: LinkRepository
     private lateinit var projectRepository: ProjectRepository
     private lateinit var categoryRepository: CategoryRepository
     private lateinit var userRepository: UserRepository
@@ -44,16 +44,16 @@ class BoardServiceTest {
     @BeforeEach
     fun setUp() {
         boardRepository = mockk()
-        boardNodeRepository = mockk()
-        boardEdgeRepository = mockk()
+        cardRepository = mockk()
+        linkRepository = mockk()
         projectRepository = mockk()
         categoryRepository = mockk()
         userRepository = mockk()
         service =
             BoardService(
                 boardRepository,
-                boardNodeRepository,
-                boardEdgeRepository,
+                cardRepository,
+                linkRepository,
                 projectRepository,
                 categoryRepository,
                 userRepository,
@@ -72,8 +72,8 @@ class BoardServiceTest {
         userId: Long = 1L,
     ): Board = Board(id = id, userId = userId, name = "보드", createdAt = Instant.now(), updatedAt = Instant.now())
 
-    private fun savedNode(n: BoardNode): BoardNode =
-        n.apply {
+    private fun savedCard(c: Card): Card =
+        c.apply {
             id = id ?: 500L
             createdAt = createdAt ?: Instant.now()
             updatedAt = updatedAt ?: Instant.now()
@@ -205,17 +205,17 @@ class BoardServiceTest {
         assertThat(response.viewport.y).isEqualTo(12.5)
     }
 
-    // ── nodes ─────────────────────────────────────────────────────────────────
+    // ── cards ─────────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("createNode — 본인 보드에 위치·본문 영속")
-    fun `createNode persists position and body`() {
+    @DisplayName("createCard — 본인 보드에 위치·본문 영속")
+    fun `createCard persists position and body`() {
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
-        val captured = slot<BoardNode>()
-        every { boardNodeRepository.save(capture(captured)) } answers { savedNode(firstArg()) }
+        val captured = slot<Card>()
+        every { cardRepository.save(capture(captured)) } answers { savedCard(firstArg()) }
 
         val response =
-            service.createNode(1L, 100L, CreateNodeRequest(body = "주인공 등장", posX = 12.5, posY = -3.0))
+            service.createCard(1L, 100L, CreateCardRequest(body = "주인공 등장", posX = 12.5, posY = -3.0))
 
         assertThat(captured.captured.boardId).isEqualTo(100L)
         assertThat(captured.captured.body).isEqualTo("주인공 등장")
@@ -225,45 +225,45 @@ class BoardServiceTest {
     }
 
     @Test
-    @DisplayName("createNode — 타입 지정 시 영속(V25)")
-    fun `createNode persists type`() {
+    @DisplayName("createCard — 타입 지정 시 영속(V25)")
+    fun `createCard persists type`() {
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
-        val captured = slot<BoardNode>()
-        every { boardNodeRepository.save(capture(captured)) } answers { savedNode(firstArg()) }
+        val captured = slot<Card>()
+        every { cardRepository.save(capture(captured)) } answers { savedCard(firstArg()) }
 
         val response =
-            service.createNode(1L, 100L, CreateNodeRequest(body = "주인공", posX = 0.0, posY = 0.0, type = "character"))
+            service.createCard(1L, 100L, CreateCardRequest(body = "주인공", posX = 0.0, posY = 0.0, type = "character"))
 
         assertThat(captured.captured.type).isEqualTo("character")
         assertThat(response.type).isEqualTo("character")
     }
 
     @Test
-    @DisplayName("createNode — 타입 미지정 시 기본 plot")
-    fun `createNode defaults type to plot`() {
+    @DisplayName("createCard — 타입 미지정 시 기본 plot")
+    fun `createCard defaults type to plot`() {
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
-        val captured = slot<BoardNode>()
-        every { boardNodeRepository.save(capture(captured)) } answers { savedNode(firstArg()) }
+        val captured = slot<Card>()
+        every { cardRepository.save(capture(captured)) } answers { savedCard(firstArg()) }
 
-        service.createNode(1L, 100L, CreateNodeRequest(posX = 0.0, posY = 0.0))
+        service.createCard(1L, 100L, CreateCardRequest(posX = 0.0, posY = 0.0))
 
         assertThat(captured.captured.type).isEqualTo("plot")
     }
 
     @Test
-    @DisplayName("createNode — 허용 외 타입은 ValidationException")
-    fun `createNode rejects unknown type`() {
+    @DisplayName("createCard — 허용 외 타입은 ValidationException")
+    fun `createCard rejects unknown type`() {
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
 
-        assertThatThrownBy { service.createNode(1L, 100L, CreateNodeRequest(posX = 0.0, posY = 0.0, type = "villain")) }
+        assertThatThrownBy { service.createCard(1L, 100L, CreateCardRequest(posX = 0.0, posY = 0.0, type = "villain")) }
             .isInstanceOf(ValidationException::class.java)
     }
 
     @Test
-    @DisplayName("updateNode — null 필드 미변경, 지정 필드만 갱신")
-    fun `updateNode patches only provided fields`() {
-        val node =
-            BoardNode(
+    @DisplayName("updateCard — null 필드 미변경, 지정 필드만 갱신")
+    fun `updateCard patches only provided fields`() {
+        val card =
+            Card(
                 id = 500L,
                 boardId = 100L,
                 body = "old",
@@ -274,141 +274,141 @@ class BoardServiceTest {
                 updatedAt = Instant.now(),
             )
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
-        every { boardNodeRepository.findByIdAndBoardId(eq(500L), eq(100L)) } returns Optional.of(node)
+        every { cardRepository.findByIdAndBoardId(eq(500L), eq(100L)) } returns Optional.of(card)
 
-        val response = service.updateNode(1L, 100L, 500L, UpdateNodeRequest(body = "new"))
+        val response = service.updateCard(1L, 100L, 500L, UpdateCardRequest(body = "new"))
 
-        assertThat(node.body).isEqualTo("new")
-        assertThat(node.posX).isEqualTo(1.0)
+        assertThat(card.body).isEqualTo("new")
+        assertThat(card.posX).isEqualTo(1.0)
         assertThat(response.body).isEqualTo("new")
     }
 
     @Test
-    @DisplayName("batchUpdateNodePositions — 변경분 일괄 위치 갱신")
-    fun `batchUpdateNodePositions updates positions`() {
-        val n1 =
-            BoardNode(id = 1L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now())
-        val n2 =
-            BoardNode(id = 2L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now())
+    @DisplayName("batchUpdateCardPositions — 변경분 일괄 위치 갱신")
+    fun `batchUpdateCardPositions updates positions`() {
+        val c1 =
+            Card(id = 1L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now())
+        val c2 =
+            Card(id = 2L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now())
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
-        every { boardNodeRepository.findByIdInAndBoardId(any(), eq(100L)) } returns listOf(n1, n2)
+        every { cardRepository.findByIdInAndBoardId(any(), eq(100L)) } returns listOf(c1, c2)
 
         val result =
-            service.batchUpdateNodePositions(
+            service.batchUpdateCardPositions(
                 1L,
                 100L,
                 listOf(
-                    BatchNodePositionItem(id = 1L, posX = 10.0, posY = 20.0),
-                    BatchNodePositionItem(id = 2L, posX = -5.0, posY = 7.0, zIndex = 3),
+                    BatchCardPositionItem(id = 1L, posX = 10.0, posY = 20.0),
+                    BatchCardPositionItem(id = 2L, posX = -5.0, posY = 7.0, zIndex = 3),
                 ),
             )
 
-        assertThat(n1.posX).isEqualTo(10.0)
-        assertThat(n2.posX).isEqualTo(-5.0)
-        assertThat(n2.zIndex).isEqualTo(3)
+        assertThat(c1.posX).isEqualTo(10.0)
+        assertThat(c2.posX).isEqualTo(-5.0)
+        assertThat(c2.zIndex).isEqualTo(3)
         assertThat(result).hasSize(2)
     }
 
     @Test
-    @DisplayName("batchUpdateNodePositions — 보드에 없는 노드 id 포함 시 404")
-    fun `batchUpdateNodePositions rejects foreign node id`() {
+    @DisplayName("batchUpdateCardPositions — 보드에 없는 카드 id 포함 시 404")
+    fun `batchUpdateCardPositions rejects foreign card id`() {
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
         // 2개 요청했으나 보드 소속은 1개만 반환 → 소유 검증 실패
-        every { boardNodeRepository.findByIdInAndBoardId(any(), eq(100L)) } returns
-            listOf(BoardNode(id = 1L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now()))
+        every { cardRepository.findByIdInAndBoardId(any(), eq(100L)) } returns
+            listOf(Card(id = 1L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now()))
 
         assertThatThrownBy {
-            service.batchUpdateNodePositions(
+            service.batchUpdateCardPositions(
                 1L,
                 100L,
                 listOf(
-                    BatchNodePositionItem(id = 1L, posX = 1.0, posY = 1.0),
-                    BatchNodePositionItem(id = 2L, posX = 2.0, posY = 2.0),
+                    BatchCardPositionItem(id = 1L, posX = 1.0, posY = 1.0),
+                    BatchCardPositionItem(id = 2L, posX = 2.0, posY = 2.0),
                 ),
             )
         }.isInstanceOf(ResourceNotFoundException::class.java)
     }
 
     @Test
-    @DisplayName("deleteNode — 본인 노드 삭제 위임(엣지는 DB cascade)")
-    fun `deleteNode delegates to repository`() {
-        val node =
-            BoardNode(id = 500L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now())
+    @DisplayName("deleteCard — 본인 카드 삭제 위임(연결은 DB cascade)")
+    fun `deleteCard delegates to repository`() {
+        val card =
+            Card(id = 500L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now())
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
-        every { boardNodeRepository.findByIdAndBoardId(eq(500L), eq(100L)) } returns Optional.of(node)
-        justRun { boardNodeRepository.delete(eq(node)) }
+        every { cardRepository.findByIdAndBoardId(eq(500L), eq(100L)) } returns Optional.of(card)
+        justRun { cardRepository.delete(eq(card)) }
 
-        service.deleteNode(1L, 100L, 500L)
+        service.deleteCard(1L, 100L, 500L)
 
-        verify(exactly = 1) { boardNodeRepository.delete(eq(node)) }
+        verify(exactly = 1) { cardRepository.delete(eq(card)) }
     }
 
-    // ── edges ─────────────────────────────────────────────────────────────────
+    // ── links ─────────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("createEdge — 자기 연결은 BOARD_EDGE_INVALID(400)")
-    fun `createEdge rejects self loop`() {
+    @DisplayName("createLink — 자기 연결은 BOARD_LINK_INVALID(400)")
+    fun `createLink rejects self loop`() {
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
 
-        assertThatThrownBy { service.createEdge(1L, 100L, CreateEdgeRequest(sourceNodeId = 5L, targetNodeId = 5L)) }
+        assertThatThrownBy { service.createLink(1L, 100L, CreateLinkRequest(sourceCardId = 5L, targetCardId = 5L)) }
             .isInstanceOf(AuthException::class.java)
     }
 
     @Test
-    @DisplayName("createEdge — 노드가 보드에 없으면 BOARD_EDGE_INVALID")
-    fun `createEdge rejects node not in board`() {
+    @DisplayName("createLink — 카드가 보드에 없으면 BOARD_LINK_INVALID")
+    fun `createLink rejects card not in board`() {
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
-        every { boardNodeRepository.findByIdAndBoardId(eq(5L), eq(100L)) } returns
-            Optional.of(BoardNode(id = 5L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now()))
-        every { boardNodeRepository.findByIdAndBoardId(eq(6L), eq(100L)) } returns Optional.empty()
+        every { cardRepository.findByIdAndBoardId(eq(5L), eq(100L)) } returns
+            Optional.of(Card(id = 5L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now()))
+        every { cardRepository.findByIdAndBoardId(eq(6L), eq(100L)) } returns Optional.empty()
 
-        assertThatThrownBy { service.createEdge(1L, 100L, CreateEdgeRequest(sourceNodeId = 5L, targetNodeId = 6L)) }
+        assertThatThrownBy { service.createLink(1L, 100L, CreateLinkRequest(sourceCardId = 5L, targetCardId = 6L)) }
             .isInstanceOf(AuthException::class.java)
     }
 
     @Test
-    @DisplayName("createEdge — 같은 방향 중복은 BOARD_EDGE_DUPLICATE(409)")
-    fun `createEdge rejects duplicate`() {
+    @DisplayName("createLink — 같은 방향 중복은 BOARD_LINK_DUPLICATE(409)")
+    fun `createLink rejects duplicate`() {
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
-        every { boardNodeRepository.findByIdAndBoardId(eq(5L), eq(100L)) } returns
-            Optional.of(BoardNode(id = 5L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now()))
-        every { boardNodeRepository.findByIdAndBoardId(eq(6L), eq(100L)) } returns
-            Optional.of(BoardNode(id = 6L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now()))
-        every { boardEdgeRepository.existsByBoardIdAndSourceNodeIdAndTargetNodeId(eq(100L), eq(5L), eq(6L)) } returns true
+        every { cardRepository.findByIdAndBoardId(eq(5L), eq(100L)) } returns
+            Optional.of(Card(id = 5L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now()))
+        every { cardRepository.findByIdAndBoardId(eq(6L), eq(100L)) } returns
+            Optional.of(Card(id = 6L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now()))
+        every { linkRepository.existsByBoardIdAndSourceCardIdAndTargetCardId(eq(100L), eq(5L), eq(6L)) } returns true
 
-        assertThatThrownBy { service.createEdge(1L, 100L, CreateEdgeRequest(sourceNodeId = 5L, targetNodeId = 6L)) }
+        assertThatThrownBy { service.createLink(1L, 100L, CreateLinkRequest(sourceCardId = 5L, targetCardId = 6L)) }
             .isInstanceOf(AuthException::class.java)
     }
 
     @Test
-    @DisplayName("createEdge — 유효하면 영속")
-    fun `createEdge persists when valid`() {
+    @DisplayName("createLink — 유효하면 영속")
+    fun `createLink persists when valid`() {
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
-        every { boardNodeRepository.findByIdAndBoardId(eq(5L), eq(100L)) } returns
-            Optional.of(BoardNode(id = 5L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now()))
-        every { boardNodeRepository.findByIdAndBoardId(eq(6L), eq(100L)) } returns
-            Optional.of(BoardNode(id = 6L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now()))
-        every { boardEdgeRepository.existsByBoardIdAndSourceNodeIdAndTargetNodeId(eq(100L), eq(5L), eq(6L)) } returns false
-        val captured = slot<BoardEdge>()
-        every { boardEdgeRepository.save(capture(captured)) } answers {
-            firstArg<BoardEdge>().apply {
+        every { cardRepository.findByIdAndBoardId(eq(5L), eq(100L)) } returns
+            Optional.of(Card(id = 5L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now()))
+        every { cardRepository.findByIdAndBoardId(eq(6L), eq(100L)) } returns
+            Optional.of(Card(id = 6L, boardId = 100L, posX = 0.0, posY = 0.0, createdAt = Instant.now(), updatedAt = Instant.now()))
+        every { linkRepository.existsByBoardIdAndSourceCardIdAndTargetCardId(eq(100L), eq(5L), eq(6L)) } returns false
+        val captured = slot<Link>()
+        every { linkRepository.save(capture(captured)) } answers {
+            firstArg<Link>().apply {
                 id = 900L
                 createdAt = Instant.now()
             }
         }
 
         val response =
-            service.createEdge(
+            service.createLink(
                 1L,
                 100L,
-                CreateEdgeRequest(sourceNodeId = 5L, targetNodeId = 6L, sourceHandle = "right", targetHandle = "left"),
+                CreateLinkRequest(sourceCardId = 5L, targetCardId = 6L, sourceHandle = "right", targetHandle = "left"),
             )
 
         assertThat(captured.captured.boardId).isEqualTo(100L)
         assertThat(captured.captured.sourceHandle).isEqualTo("right")
         assertThat(captured.captured.targetHandle).isEqualTo("left")
-        assertThat(response.sourceNodeId).isEqualTo(5L)
-        assertThat(response.targetNodeId).isEqualTo(6L)
+        assertThat(response.sourceCardId).isEqualTo(5L)
+        assertThat(response.targetCardId).isEqualTo(6L)
         assertThat(response.sourceHandle).isEqualTo("right")
         assertThat(response.targetHandle).isEqualTo("left")
     }

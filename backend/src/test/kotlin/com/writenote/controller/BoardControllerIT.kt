@@ -33,7 +33,7 @@ class BoardControllerIT {
     private lateinit var jwtTokenProvider: JwtTokenProvider
 
     @Test
-    fun `create independent board then nodes viewport persist and restore`() {
+    fun `create independent board then cards viewport persist and restore`() {
         val bearer = bearerFor(createUser())
 
         val boardId =
@@ -56,19 +56,19 @@ class BoardControllerIT {
             .perform(get("/api/boards/{id}", boardId).header("Authorization", bearer))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.data.board.id").value(boardId))
-            .andExpect(jsonPath("$.data.nodes.length()").value(0))
-            .andExpect(jsonPath("$.data.edges.length()").value(0))
+            .andExpect(jsonPath("$.data.cards.length()").value(0))
+            .andExpect(jsonPath("$.data.links.length()").value(0))
 
-        val node1 = createNode(bearer, boardId, "A", 10.0, 20.0)
-        val node2 = createNode(bearer, boardId, "B", -5.0, 7.0)
+        val card1 = createCard(bearer, boardId, "A", 10.0, 20.0)
+        val card2 = createCard(bearer, boardId, "B", -5.0, 7.0)
 
         // 배치 위치 저장(드래그 종료)
         mockMvc
             .perform(
-                patch("/api/boards/{id}/nodes", boardId)
+                patch("/api/boards/{id}/cards", boardId)
                     .header("Authorization", bearer)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""[{"id":$node1,"posX":100.0,"posY":200.0}]"""),
+                    .content("""[{"id":$card1,"posX":100.0,"posY":200.0}]"""),
             ).andExpect(status().isOk)
 
         // 뷰포트 저장
@@ -85,63 +85,63 @@ class BoardControllerIT {
         mockMvc
             .perform(get("/api/boards/{id}", boardId).header("Authorization", bearer))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.data.nodes.length()").value(2))
+            .andExpect(jsonPath("$.data.cards.length()").value(2))
             .andExpect(jsonPath("$.data.board.viewport.zoom").value(1.5))
 
         // 본문 수정
         mockMvc
             .perform(
-                patch("/api/boards/{b}/nodes/{n}", boardId, node1)
+                patch("/api/boards/{b}/cards/{c}", boardId, card1)
                     .header("Authorization", bearer)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"body":"A수정"}"""),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.data.body").value("A수정"))
 
-        // 연결 생성 후, 노드 삭제 시 엣지 cascade
-        createEdge(bearer, boardId, node1, node2)
+        // 연결 생성 후, 카드 삭제 시 연결 cascade
+        createLink(bearer, boardId, card1, card2)
         mockMvc
             .perform(get("/api/boards/{id}", boardId).header("Authorization", bearer))
-            .andExpect(jsonPath("$.data.edges.length()").value(1))
+            .andExpect(jsonPath("$.data.links.length()").value(1))
 
         mockMvc
-            .perform(delete("/api/boards/{b}/nodes/{n}", boardId, node1).header("Authorization", bearer))
+            .perform(delete("/api/boards/{b}/cards/{c}", boardId, card1).header("Authorization", bearer))
             .andExpect(status().isNoContent)
 
         mockMvc
             .perform(get("/api/boards/{id}", boardId).header("Authorization", bearer))
-            .andExpect(jsonPath("$.data.nodes.length()").value(1))
-            .andExpect(jsonPath("$.data.edges.length()").value(0))
+            .andExpect(jsonPath("$.data.cards.length()").value(1))
+            .andExpect(jsonPath("$.data.links.length()").value(0))
     }
 
     @Test
-    fun `edge rejects self loop with 400 and duplicate with 409`() {
+    fun `link rejects self loop with 400 and duplicate with 409`() {
         val bearer = bearerFor(createUser())
-        val boardId = createBoard(bearer, "엣지 검증")
-        val n1 = createNode(bearer, boardId, "A", 0.0, 0.0)
-        val n2 = createNode(bearer, boardId, "B", 1.0, 1.0)
+        val boardId = createBoard(bearer, "연결 검증")
+        val c1 = createCard(bearer, boardId, "A", 0.0, 0.0)
+        val c2 = createCard(bearer, boardId, "B", 1.0, 1.0)
 
-        // 자기 연결 → 400 BOARD_EDGE_INVALID
+        // 자기 연결 → 400 BOARD_LINK_INVALID
         mockMvc
             .perform(
-                post("/api/boards/{id}/edges", boardId)
+                post("/api/boards/{id}/links", boardId)
                     .header("Authorization", bearer)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"sourceNodeId":$n1,"targetNodeId":$n1}"""),
+                    .content("""{"sourceCardId":$c1,"targetCardId":$c1}"""),
             ).andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.error.code").value("BOARD_EDGE_INVALID"))
+            .andExpect(jsonPath("$.error.code").value("BOARD_LINK_INVALID"))
 
-        createEdge(bearer, boardId, n1, n2)
+        createLink(bearer, boardId, c1, c2)
 
-        // 같은 방향 중복 → 409 BOARD_EDGE_DUPLICATE
+        // 같은 방향 중복 → 409 BOARD_LINK_DUPLICATE
         mockMvc
             .perform(
-                post("/api/boards/{id}/edges", boardId)
+                post("/api/boards/{id}/links", boardId)
                     .header("Authorization", bearer)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"sourceNodeId":$n1,"targetNodeId":$n2}"""),
+                    .content("""{"sourceCardId":$c1,"targetCardId":$c2}"""),
             ).andExpect(status().isConflict)
-            .andExpect(jsonPath("$.error.code").value("BOARD_EDGE_DUPLICATE"))
+            .andExpect(jsonPath("$.error.code").value("BOARD_LINK_DUPLICATE"))
     }
 
     @Test
@@ -258,14 +258,14 @@ class BoardControllerIT {
     }
 
     @Test
-    fun `node type persists and defaults to plot and rejects unknown`() {
+    fun `card type persists and defaults to plot and rejects unknown`() {
         val bearer = bearerFor(createUser())
         val boardId = createBoard(bearer, "타입 보드")
 
         // 타입 지정 → 응답에 반영
         mockMvc
             .perform(
-                post("/api/boards/{id}/nodes", boardId)
+                post("/api/boards/{id}/cards", boardId)
                     .header("Authorization", bearer)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"body":"주인공","posX":0.0,"posY":0.0,"type":"character"}"""),
@@ -275,7 +275,7 @@ class BoardControllerIT {
         // 미지정 → 기본 plot
         mockMvc
             .perform(
-                post("/api/boards/{id}/nodes", boardId)
+                post("/api/boards/{id}/cards", boardId)
                     .header("Authorization", bearer)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"body":"사건","posX":1.0,"posY":1.0}"""),
@@ -285,7 +285,7 @@ class BoardControllerIT {
         // 허용 외 타입 → 400
         mockMvc
             .perform(
-                post("/api/boards/{id}/nodes", boardId)
+                post("/api/boards/{id}/cards", boardId)
                     .header("Authorization", bearer)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"posX":2.0,"posY":2.0,"type":"villain"}"""),
@@ -332,7 +332,7 @@ class BoardControllerIT {
             .response.contentAsString
             .let(::extractId)
 
-    private fun createNode(
+    private fun createCard(
         bearer: String,
         boardId: Long,
         body: String,
@@ -341,7 +341,7 @@ class BoardControllerIT {
     ): Long =
         mockMvc
             .perform(
-                post("/api/boards/{id}/nodes", boardId)
+                post("/api/boards/{id}/cards", boardId)
                     .header("Authorization", bearer)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"body":"$body","posX":$posX,"posY":$posY}"""),
@@ -350,7 +350,7 @@ class BoardControllerIT {
             .response.contentAsString
             .let(::extractId)
 
-    private fun createEdge(
+    private fun createLink(
         bearer: String,
         boardId: Long,
         source: Long,
@@ -358,10 +358,10 @@ class BoardControllerIT {
     ) {
         mockMvc
             .perform(
-                post("/api/boards/{id}/edges", boardId)
+                post("/api/boards/{id}/links", boardId)
                     .header("Authorization", bearer)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"sourceNodeId":$source,"targetNodeId":$target}"""),
+                    .content("""{"sourceCardId":$source,"targetCardId":$target}"""),
             ).andExpect(status().isCreated)
     }
 

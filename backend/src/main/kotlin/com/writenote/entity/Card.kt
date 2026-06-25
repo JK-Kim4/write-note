@@ -11,14 +11,14 @@ import jakarta.persistence.Table
 import java.time.Instant
 
 /**
- * 플롯 노드(038). 보드([boardId]) 위의 카드 — 기존 캡처 메모(memos)와 별개의 신규 객체.
+ * 카드(038). 보드([boardId]) 위의 한 장 — 기존 캡처 메모(memos)와 별개의 신규 객체.
  *
  * [posX]·[posY] 는 줌·팬과 무관한 캔버스 절대 좌표(음수·소수 허용). [zIndex] 는 겹침 순서. 정확히 한 보드에 속함(1:N).
  * [type] 은 역할 타입(plot/character/place/theme/note) — 생성 시 선택, 타입별 색상/라벨로 구분(V25).
  */
 @Entity
-@Table(name = "board_nodes")
-class BoardNode(
+@Table(name = "cards")
+class Card(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,

@@ -11,7 +11,7 @@ import type { BoardSummary } from "@/lib/api/boards";
 const ORIGIN = "http://localhost:3000";
 
 function summary(id: number, name: string): BoardSummary {
-    return { id, name, projectId: null, categoryId: null, nodeCount: 0, updatedAt: "2026-06-24T00:00:00Z" };
+    return { id, name, projectId: null, categoryId: null, cardCount: 0, updatedAt: "2026-06-24T00:00:00Z" };
 }
 
 function setup() {

@@ -1,29 +1,29 @@
 package com.writenote.service
 
 import com.writenote.entity.Board
-import com.writenote.entity.BoardEdge
-import com.writenote.entity.BoardNode
+import com.writenote.entity.Card
+import com.writenote.entity.Link
 import com.writenote.enums.AuthErrorCode
 import com.writenote.error.AuthException
 import com.writenote.error.ResourceNotFoundException
 import com.writenote.error.ValidationException
-import com.writenote.model.request.BatchNodePositionItem
+import com.writenote.model.request.BatchCardPositionItem
 import com.writenote.model.request.CreateBoardRequest
-import com.writenote.model.request.CreateEdgeRequest
-import com.writenote.model.request.CreateNodeRequest
+import com.writenote.model.request.CreateCardRequest
+import com.writenote.model.request.CreateLinkRequest
 import com.writenote.model.request.RenameBoardRequest
-import com.writenote.model.request.UpdateNodeRequest
+import com.writenote.model.request.UpdateCardRequest
 import com.writenote.model.request.UpdateViewportRequest
 import com.writenote.model.response.BoardDetailResponse
 import com.writenote.model.response.BoardResponse
 import com.writenote.model.response.BoardSummary
-import com.writenote.model.response.EdgeResponse
-import com.writenote.model.response.NodeResponse
+import com.writenote.model.response.CardResponse
+import com.writenote.model.response.LinkResponse
 import com.writenote.model.response.ViewportDto
-import com.writenote.repository.BoardEdgeRepository
-import com.writenote.repository.BoardNodeRepository
 import com.writenote.repository.BoardRepository
+import com.writenote.repository.CardRepository
 import com.writenote.repository.CategoryRepository
+import com.writenote.repository.LinkRepository
 import com.writenote.repository.ProjectRepository
 import com.writenote.repository.UserRepository
 import org.springframework.stereotype.Service
@@ -33,13 +33,13 @@ import org.springframework.transaction.annotation.Transactional
  * 플롯 보드(038) 유스케이스 — 작가별 격리(모든 조회·수정·삭제는 본인 보드만, 아니면 404).
  *
  * 보드↔작품·보드↔시리즈 매핑은 0~1:0~1 — 대상당 보드 1개(이미 매핑된 대상에 다른 보드 매핑 시 409).
- * 노드/엣지는 보드 전용이며 캡처 메모(memos)와 무관하다. 보드/노드 삭제 시 엣지는 DB cascade 로 정리.
+ * 카드/연결은 보드 전용이며 캡처 메모(memos)와 무관하다. 보드/카드 삭제 시 연결은 DB cascade 로 정리.
  */
 @Service
 class BoardService(
     private val boardRepository: BoardRepository,
-    private val boardNodeRepository: BoardNodeRepository,
-    private val boardEdgeRepository: BoardEdgeRepository,
+    private val cardRepository: CardRepository,
+    private val linkRepository: LinkRepository,
     private val projectRepository: ProjectRepository,
     private val categoryRepository: CategoryRepository,
     private val userRepository: UserRepository,
@@ -86,7 +86,7 @@ class BoardService(
                     boardRepository.findByUserIdAndProjectIdIsNullAndCategoryIdIsNullOrderByUpdatedAtDesc(userId)
                 else -> boardRepository.findByUserIdOrderByUpdatedAtDesc(userId)
             }
-        return boards.map { toSummary(it, boardNodeRepository.countByBoardId(requireNotNull(it.id)).toInt()) }
+        return boards.map { toSummary(it, cardRepository.countByBoardId(requireNotNull(it.id)).toInt()) }
     }
 
     @Transactional(readOnly = true)
@@ -95,9 +95,9 @@ class BoardService(
         boardId: Long,
     ): BoardDetailResponse {
         val board = requireOwnedBoard(userId, boardId)
-        val nodes = boardNodeRepository.findByBoardIdOrderByIdAsc(boardId).map(::toNode)
-        val edges = boardEdgeRepository.findByBoardIdOrderByIdAsc(boardId).map(::toEdge)
-        return BoardDetailResponse(board = toResponse(board), nodes = nodes, edges = edges)
+        val cards = cardRepository.findByBoardIdOrderByIdAsc(boardId).map(::toCard)
+        val links = linkRepository.findByBoardIdOrderByIdAsc(boardId).map(::toLink)
+        return BoardDetailResponse(board = toResponse(board), cards = cards, links = links)
     }
 
     @Transactional(rollbackFor = [Exception::class])
@@ -162,138 +162,138 @@ class BoardService(
         boardId: Long,
     ) {
         val board = requireOwnedBoard(userId, boardId)
-        // 노드·엣지는 DB FK ON DELETE CASCADE 로 함께 정리. 캡처 메모(memos)는 무관(무영향).
+        // 카드·연결은 DB FK ON DELETE CASCADE 로 함께 정리. 캡처 메모(memos)는 무관(무영향).
         boardRepository.delete(board)
     }
 
-    // ── 노드 ──────────────────────────────────────────────────────────────────
+    // ── 카드 ──────────────────────────────────────────────────────────────────
 
     @Transactional(rollbackFor = [Exception::class])
-    fun createNode(
+    fun createCard(
         userId: Long,
         boardId: Long,
-        request: CreateNodeRequest,
-    ): NodeResponse {
+        request: CreateCardRequest,
+    ): CardResponse {
         requireOwnedBoard(userId, boardId)
-        val node =
-            boardNodeRepository.save(
-                BoardNode(
+        val card =
+            cardRepository.save(
+                Card(
                     boardId = boardId,
                     body = request.body ?: "",
-                    type = normalizeNodeType(request.type),
+                    type = normalizeCardType(request.type),
                     posX = request.posX,
                     posY = request.posY,
                     zIndex = request.zIndex ?: 0,
                 ),
             )
-        return toNode(node)
+        return toCard(card)
     }
 
     @Transactional(rollbackFor = [Exception::class])
-    fun updateNode(
+    fun updateCard(
         userId: Long,
         boardId: Long,
-        nodeId: Long,
-        request: UpdateNodeRequest,
-    ): NodeResponse {
-        val node = requireOwnedNode(userId, boardId, nodeId)
-        request.body?.let { node.body = it }
-        request.type?.let { node.type = normalizeNodeType(it) }
-        request.posX?.let { node.posX = it }
-        request.posY?.let { node.posY = it }
-        request.zIndex?.let { node.zIndex = it }
-        return toNode(node)
+        cardId: Long,
+        request: UpdateCardRequest,
+    ): CardResponse {
+        val card = requireOwnedCard(userId, boardId, cardId)
+        request.body?.let { card.body = it }
+        request.type?.let { card.type = normalizeCardType(it) }
+        request.posX?.let { card.posX = it }
+        request.posY?.let { card.posY = it }
+        request.zIndex?.let { card.zIndex = it }
+        return toCard(card)
     }
 
     @Transactional(rollbackFor = [Exception::class])
-    fun batchUpdateNodePositions(
+    fun batchUpdateCardPositions(
         userId: Long,
         boardId: Long,
-        items: List<BatchNodePositionItem>,
-    ): List<NodeResponse> {
+        items: List<BatchCardPositionItem>,
+    ): List<CardResponse> {
         requireOwnedBoard(userId, boardId)
         if (items.isEmpty()) {
             return emptyList()
         }
         val ids = items.map { it.id }.distinct()
-        val nodesById =
-            boardNodeRepository
+        val cardsById =
+            cardRepository
                 .findByIdInAndBoardId(ids, boardId)
                 .associateBy { requireNotNull(it.id) }
-        if (nodesById.size != ids.size) {
-            throw ResourceNotFoundException("Board node not found")
+        if (cardsById.size != ids.size) {
+            throw ResourceNotFoundException("Card not found")
         }
         return items.map { item ->
-            val node = nodesById.getValue(item.id)
-            node.posX = item.posX
-            node.posY = item.posY
-            item.zIndex?.let { node.zIndex = it }
-            toNode(node)
+            val card = cardsById.getValue(item.id)
+            card.posX = item.posX
+            card.posY = item.posY
+            item.zIndex?.let { card.zIndex = it }
+            toCard(card)
         }
     }
 
     @Transactional(rollbackFor = [Exception::class])
-    fun deleteNode(
+    fun deleteCard(
         userId: Long,
         boardId: Long,
-        nodeId: Long,
+        cardId: Long,
     ) {
-        val node = requireOwnedNode(userId, boardId, nodeId)
-        // 걸린 엣지는 DB FK ON DELETE CASCADE 로 정리(고아 엣지 방지). 캡처 메모 무영향.
-        boardNodeRepository.delete(node)
+        val card = requireOwnedCard(userId, boardId, cardId)
+        // 걸린 연결은 DB FK ON DELETE CASCADE 로 정리(고아 연결 방지). 캡처 메모 무영향.
+        cardRepository.delete(card)
     }
 
-    // ── 엣지 ──────────────────────────────────────────────────────────────────
+    // ── 연결 ──────────────────────────────────────────────────────────────────
 
     @Transactional(rollbackFor = [Exception::class])
-    fun createEdge(
+    fun createLink(
         userId: Long,
         boardId: Long,
-        request: CreateEdgeRequest,
-    ): EdgeResponse {
+        request: CreateLinkRequest,
+    ): LinkResponse {
         requireOwnedBoard(userId, boardId)
-        if (request.sourceNodeId == request.targetNodeId) {
-            throw AuthException(AuthErrorCode.BOARD_EDGE_INVALID)
+        if (request.sourceCardId == request.targetCardId) {
+            throw AuthException(AuthErrorCode.BOARD_LINK_INVALID)
         }
         val bothInBoard =
-            boardNodeRepository.findByIdAndBoardId(request.sourceNodeId, boardId).isPresent &&
-                boardNodeRepository.findByIdAndBoardId(request.targetNodeId, boardId).isPresent
+            cardRepository.findByIdAndBoardId(request.sourceCardId, boardId).isPresent &&
+                cardRepository.findByIdAndBoardId(request.targetCardId, boardId).isPresent
         if (!bothInBoard) {
-            throw AuthException(AuthErrorCode.BOARD_EDGE_INVALID)
+            throw AuthException(AuthErrorCode.BOARD_LINK_INVALID)
         }
-        if (boardEdgeRepository.existsByBoardIdAndSourceNodeIdAndTargetNodeId(
+        if (linkRepository.existsByBoardIdAndSourceCardIdAndTargetCardId(
                 boardId,
-                request.sourceNodeId,
-                request.targetNodeId,
+                request.sourceCardId,
+                request.targetCardId,
             )
         ) {
-            throw AuthException(AuthErrorCode.BOARD_EDGE_DUPLICATE)
+            throw AuthException(AuthErrorCode.BOARD_LINK_DUPLICATE)
         }
-        val edge =
-            boardEdgeRepository.save(
-                BoardEdge(
+        val link =
+            linkRepository.save(
+                Link(
                     boardId = boardId,
-                    sourceNodeId = request.sourceNodeId,
-                    targetNodeId = request.targetNodeId,
+                    sourceCardId = request.sourceCardId,
+                    targetCardId = request.targetCardId,
                     sourceHandle = request.sourceHandle,
                     targetHandle = request.targetHandle,
                 ),
             )
-        return toEdge(edge)
+        return toLink(link)
     }
 
     @Transactional(rollbackFor = [Exception::class])
-    fun deleteEdge(
+    fun deleteLink(
         userId: Long,
         boardId: Long,
-        edgeId: Long,
+        linkId: Long,
     ) {
         requireOwnedBoard(userId, boardId)
-        val edge =
-            boardEdgeRepository
-                .findByIdAndBoardId(edgeId, boardId)
-                .orElseThrow { ResourceNotFoundException("Board edge not found") }
-        boardEdgeRepository.delete(edge)
+        val link =
+            linkRepository
+                .findByIdAndBoardId(linkId, boardId)
+                .orElseThrow { ResourceNotFoundException("Link not found") }
+        linkRepository.delete(link)
     }
 
     // ── 내부 헬퍼 ──────────────────────────────────────────────────────────────
@@ -306,15 +306,15 @@ class BoardService(
             .findByIdAndUserId(boardId, userId)
             .orElseThrow { ResourceNotFoundException("Board not found") }
 
-    private fun requireOwnedNode(
+    private fun requireOwnedCard(
         userId: Long,
         boardId: Long,
-        nodeId: Long,
-    ): BoardNode {
+        cardId: Long,
+    ): Card {
         requireOwnedBoard(userId, boardId)
-        return boardNodeRepository
-            .findByIdAndBoardId(nodeId, boardId)
-            .orElseThrow { ResourceNotFoundException("Board node not found") }
+        return cardRepository
+            .findByIdAndBoardId(cardId, boardId)
+            .orElseThrow { ResourceNotFoundException("Card not found") }
     }
 
     /** 작품 매핑 가능 검증 — 본인 작품이어야 하고, 다른 보드가 이미 매핑돼 있으면 409. */
@@ -353,11 +353,11 @@ class BoardService(
         }
     }
 
-    /** 노드 역할 타입 정규화(V25) — null=기본 'plot', 허용 외 값은 [ValidationException]. */
-    private fun normalizeNodeType(value: String?): String {
-        val type = value ?: DEFAULT_NODE_TYPE
-        if (type !in ALLOWED_NODE_TYPES) {
-            throw ValidationException("지원하지 않는 노드 타입입니다: $type")
+    /** 카드 역할 타입 정규화(V25) — null=기본 'plot', 허용 외 값은 [ValidationException]. */
+    private fun normalizeCardType(value: String?): String {
+        val type = value ?: DEFAULT_CARD_TYPE
+        if (type !in ALLOWED_CARD_TYPES) {
+            throw ValidationException("지원하지 않는 카드 타입입니다: $type")
         }
         return type
     }
@@ -375,39 +375,39 @@ class BoardService(
 
     private fun toSummary(
         board: Board,
-        nodeCount: Int,
+        cardCount: Int,
     ): BoardSummary =
         BoardSummary(
             id = requireNotNull(board.id),
             name = board.name,
             projectId = board.projectId,
             categoryId = board.categoryId,
-            nodeCount = nodeCount,
+            cardCount = cardCount,
             updatedAt = requireNotNull(board.updatedAt),
         )
 
-    private fun toNode(node: BoardNode): NodeResponse =
-        NodeResponse(
-            id = requireNotNull(node.id),
-            body = node.body,
-            type = node.type,
-            posX = node.posX,
-            posY = node.posY,
-            zIndex = node.zIndex,
-            updatedAt = requireNotNull(node.updatedAt),
+    private fun toCard(card: Card): CardResponse =
+        CardResponse(
+            id = requireNotNull(card.id),
+            body = card.body,
+            type = card.type,
+            posX = card.posX,
+            posY = card.posY,
+            zIndex = card.zIndex,
+            updatedAt = requireNotNull(card.updatedAt),
         )
 
     private companion object {
-        const val DEFAULT_NODE_TYPE = "plot"
-        val ALLOWED_NODE_TYPES = setOf("plot", "character", "place", "theme", "note")
+        const val DEFAULT_CARD_TYPE = "plot"
+        val ALLOWED_CARD_TYPES = setOf("plot", "character", "place", "theme", "note")
     }
 
-    private fun toEdge(edge: BoardEdge): EdgeResponse =
-        EdgeResponse(
-            id = requireNotNull(edge.id),
-            sourceNodeId = edge.sourceNodeId,
-            targetNodeId = edge.targetNodeId,
-            sourceHandle = edge.sourceHandle,
-            targetHandle = edge.targetHandle,
+    private fun toLink(link: Link): LinkResponse =
+        LinkResponse(
+            id = requireNotNull(link.id),
+            sourceCardId = link.sourceCardId,
+            targetCardId = link.targetCardId,
+            sourceHandle = link.sourceHandle,
+            targetHandle = link.targetHandle,
         )
 }

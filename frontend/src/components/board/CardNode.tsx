@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { useBoardActions } from "./boardActions";
-import { kindOf } from "./nodeKinds";
+import { kindOf } from "./cardKinds";
 
-// 커스텀 노드. data 변이(contravariance) 때문에 nodeTypes 할당이 까다로워 NodeProps 는 느슨하게
-// 받고 data 를 PlotNodeData 로 캐스트한다(런타임은 항상 PlotNodeData).
+// 커스텀 노드(React Flow). data 변이(contravariance) 때문에 nodeTypes 할당이 까다로워 NodeProps 는
+// 느슨하게 받고 data 를 CardNodeData 로 캐스트한다(런타임은 항상 CardNodeData).
 
 /**
- * 플롯 노드 카드(038) — 보드 전용 노드의 표시/편집. 본문은 네이티브 textarea(한글 IME 네이티브).
+ * 카드(038) — 보드 전용 카드의 표시/편집. 본문은 네이티브 textarea(한글 IME 네이티브).
  * 평상시 본문 말줄임(FR-015), 더블클릭 시 편집. 편집 영역은 `nodrag` 로 캔버스 드래그와 분리.
  * 역할 타입(V25)은 좌측 강조 테두리 + 타입 배지로 구분.
  *
@@ -17,7 +17,7 @@ import { kindOf } from "./nodeKinds";
  * 선택 시 "잇기" 버튼(클릭-클릭 모드). 이웃 하이라이트의 비이웃이면 dim(data.dimmed).
  */
 
-export type PlotNodeData = {
+export type CardNodeData = {
     body: string;
     /** 역할 타입(plot/character/place/theme/note, V25) */
     kind: string;
@@ -25,7 +25,7 @@ export type PlotNodeData = {
     dimmed?: boolean;
 };
 
-export type PlotNode = Node<PlotNodeData, "plot">;
+export type CardFlowNode = Node<CardNodeData, "plot">;
 
 // 핸들 id = 앵커(top/right/bottom/left). 연결 시 어느 테두리를 잡았는지 영속(039 트랙 A).
 const HANDLE_DEFS = [
@@ -35,11 +35,11 @@ const HANDLE_DEFS = [
     { id: "left", position: Position.Left },
 ] as const;
 
-export function NodeCard({ id, data, selected }: NodeProps) {
-    const body = (data as PlotNodeData).body;
-    const dimmed = (data as PlotNodeData).dimmed ?? false;
-    const kind = kindOf((data as PlotNodeData).kind);
-    const { editNodeBody, startConnect } = useBoardActions();
+export function CardNode({ id, data, selected }: NodeProps) {
+    const body = (data as CardNodeData).body;
+    const dimmed = (data as CardNodeData).dimmed ?? false;
+    const kind = kindOf((data as CardNodeData).kind);
+    const { editCardBody, startConnect } = useBoardActions();
     const [editing, setEditing] = useState(false);
     const [text, setText] = useState(body);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -61,7 +61,7 @@ export function NodeCard({ id, data, selected }: NodeProps) {
         setEditing(false);
         const next = text.trim();
         if (next !== body) {
-            editNodeBody(Number(id), next);
+            editCardBody(Number(id), next);
         }
     };
 
@@ -70,13 +70,14 @@ export function NodeCard({ id, data, selected }: NodeProps) {
         setEditing(false);
     };
 
-    const borderClass = selected ? "border-terracotta-500 ring-2 ring-terracotta-200" : "border-gray-300";
+    // 타입 구분 = 배경 틴트(kind.bg, -50) + 같은 계열 전체 테두리(kind.border, -200). 선택 시 같은 계열 진한 테두리+링.
+    const borderClass = selected ? kind.selected : kind.border;
     // 핸들 노출: 평상시 숨김, hover(group-hover)/선택 시만. DOM 에는 항상 존재(연결 동작 위해 display:none 금지).
     const handleVisibility = selected ? "opacity-100" : "opacity-0 group-hover:opacity-100";
 
     return (
         <div
-            className={`group relative w-48 rounded-lg border border-l-4 ${kind.accent} ${borderClass} bg-white px-3 py-2 shadow-sm transition-opacity ${dimmed ? "opacity-30" : "opacity-100"}`}
+            className={`group relative w-48 rounded-lg border ${borderClass} ${kind.bg} px-3 py-2 shadow-sm transition-opacity ${dimmed ? "opacity-30" : "opacity-100"}`}
             onDoubleClick={() => setEditing(true)}
         >
             {HANDLE_DEFS.map(({ id: handleId, position }) => (
@@ -86,7 +87,7 @@ export function NodeCard({ id, data, selected }: NodeProps) {
                     // 무방향(Loose) — 형식상 source 로 두지만 어느 핸들에서나 시작·종료 가능. id=앵커.
                     type="source"
                     position={position}
-                    className={`!h-3 !w-3 !border-2 !border-white !bg-terracotta-400 transition-opacity ${handleVisibility}`}
+                    className={`!h-3 !w-3 !border-2 !border-white ${kind.handle} transition-opacity ${handleVisibility}`}
                 />
             ))}
 
@@ -105,7 +106,7 @@ export function NodeCard({ id, data, selected }: NodeProps) {
                             e.preventDefault();
                             cancel();
                         }
-                        // 편집 중 Backspace/Delete 가 노드 삭제로 전파되지 않게 차단.
+                        // 편집 중 Backspace/Delete 가 카드 삭제로 전파되지 않게 차단.
                         e.stopPropagation();
                     }}
                     rows={4}

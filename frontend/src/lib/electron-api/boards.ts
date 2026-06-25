@@ -1,34 +1,34 @@
 /**
- * webElectronApi.boards (038) — 플롯 보드/노드/엣지/매핑. lib/api/boards 어댑터에 위임.
+ * webElectronApi.boards (038) — 플롯 보드/카드/연결/매핑. lib/api/boards 어댑터에 위임.
  */
 import {
-    batchNodePositions,
+    batchCardPositions,
     createBoard,
-    createEdge,
-    createNode,
+    createCard,
+    createLink,
     deleteBoard,
-    deleteEdge,
-    deleteNode,
+    deleteCard,
+    deleteLink,
     getBoard,
     listBoards,
     renameBoard,
     setBoardCategory,
     setBoardProject,
-    updateNode,
+    updateCard,
     updateViewport,
 } from "@/lib/api/boards";
 import type {
     BoardDetail,
-    BoardEdgeResponse,
     BoardListFilter,
-    BoardNodeResponse,
     BoardResponse,
     BoardSummary,
     BoardViewport,
+    CardPositionItem,
+    CardResponse,
     CreateBoardInput,
-    CreateNodeInput,
-    NodePositionItem,
-    UpdateNodeInput,
+    CreateCardInput,
+    LinkResponse,
+    UpdateCardInput,
 } from "@/lib/api/boards";
 
 export const boards = {
@@ -43,19 +43,19 @@ export const boards = {
         setBoardCategory(boardId, categoryId),
     updateViewport: (boardId: number, viewport: BoardViewport): Promise<BoardResponse> =>
         updateViewport(boardId, viewport),
-    createNode: (boardId: number, input: CreateNodeInput): Promise<BoardNodeResponse> =>
-        createNode(boardId, input),
-    updateNode: (boardId: number, nodeId: number, input: UpdateNodeInput): Promise<BoardNodeResponse> =>
-        updateNode(boardId, nodeId, input),
-    batchNodePositions: (boardId: number, items: NodePositionItem[]): Promise<BoardNodeResponse[]> =>
-        batchNodePositions(boardId, items),
-    deleteNode: (boardId: number, nodeId: number): Promise<void> => deleteNode(boardId, nodeId),
-    createEdge: (
+    createCard: (boardId: number, input: CreateCardInput): Promise<CardResponse> =>
+        createCard(boardId, input),
+    updateCard: (boardId: number, cardId: number, input: UpdateCardInput): Promise<CardResponse> =>
+        updateCard(boardId, cardId, input),
+    batchCardPositions: (boardId: number, items: CardPositionItem[]): Promise<CardResponse[]> =>
+        batchCardPositions(boardId, items),
+    deleteCard: (boardId: number, cardId: number): Promise<void> => deleteCard(boardId, cardId),
+    createLink: (
         boardId: number,
-        sourceNodeId: number,
-        targetNodeId: number,
+        sourceCardId: number,
+        targetCardId: number,
         sourceHandle?: string | null,
         targetHandle?: string | null,
-    ): Promise<BoardEdgeResponse> => createEdge(boardId, sourceNodeId, targetNodeId, sourceHandle, targetHandle),
-    deleteEdge: (boardId: number, edgeId: number): Promise<void> => deleteEdge(boardId, edgeId),
+    ): Promise<LinkResponse> => createLink(boardId, sourceCardId, targetCardId, sourceHandle, targetHandle),
+    deleteLink: (boardId: number, linkId: number): Promise<void> => deleteLink(boardId, linkId),
 };

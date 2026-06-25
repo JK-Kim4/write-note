@@ -1,20 +1,20 @@
 package com.writenote.controller
 
 import com.writenote.auth.AuthenticatedPrincipal
-import com.writenote.model.request.BatchNodePositionItem
+import com.writenote.model.request.BatchCardPositionItem
 import com.writenote.model.request.CreateBoardRequest
-import com.writenote.model.request.CreateEdgeRequest
-import com.writenote.model.request.CreateNodeRequest
+import com.writenote.model.request.CreateCardRequest
+import com.writenote.model.request.CreateLinkRequest
 import com.writenote.model.request.RenameBoardRequest
 import com.writenote.model.request.SetBoardCategoryRequest
 import com.writenote.model.request.SetBoardProjectRequest
-import com.writenote.model.request.UpdateNodeRequest
+import com.writenote.model.request.UpdateCardRequest
 import com.writenote.model.request.UpdateViewportRequest
 import com.writenote.model.response.BoardDetailResponse
 import com.writenote.model.response.BoardResponse
 import com.writenote.model.response.BoardSummary
-import com.writenote.model.response.EdgeResponse
-import com.writenote.model.response.NodeResponse
+import com.writenote.model.response.CardResponse
+import com.writenote.model.response.LinkResponse
 import com.writenote.model.response.Result
 import com.writenote.service.BoardService
 import io.swagger.v3.oas.annotations.Operation
@@ -36,11 +36,11 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * 플롯 보드(038) — 작가 본인 소유 보드/노드/엣지 CRUD. owner 식별은 JWT principal 에서만 도출.
+ * 플롯 보드(038) — 작가 본인 소유 보드/카드/연결 CRUD. owner 식별은 JWT principal 에서만 도출.
  */
 @RestController
 @RequestMapping("/api/boards")
-@Tag(name = "플롯 보드", description = "작품/시리즈와 독립인 플롯 설계 보드 — 노드·연결·매핑 (038)")
+@Tag(name = "플롯 보드", description = "작품/시리즈와 독립인 플롯 설계 보드 — 카드·연결·매핑 (038)")
 @SecurityRequirement(name = "BearerJwt")
 class BoardController(
     private val boardService: BoardService,
@@ -67,7 +67,7 @@ class BoardController(
     ): Result<List<BoardSummary>> = Result.success(boardService.listBoards(principal.userId, projectId, categoryId, unmapped))
 
     @GetMapping("/{boardId}")
-    @Operation(summary = "보드 열기(하이드레이션)", description = "메타 + 노드 + 엣지 + 뷰포트")
+    @Operation(summary = "보드 열기(하이드레이션)", description = "메타 + 카드 + 연결 + 뷰포트")
     fun getBoard(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable boardId: Long,
@@ -106,7 +106,7 @@ class BoardController(
     ): Result<BoardResponse> = Result.success(boardService.updateViewport(principal.userId, boardId, request))
 
     @DeleteMapping("/{boardId}")
-    @Operation(summary = "보드 삭제", description = "노드·엣지 cascade. 캡처 메모 무영향")
+    @Operation(summary = "보드 삭제", description = "카드·연결 cascade. 캡처 메모 무영향")
     fun deleteBoard(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable boardId: Long,
@@ -115,68 +115,68 @@ class BoardController(
         return ResponseEntity.noContent().build()
     }
 
-    // ── 노드 ──────────────────────────────────────────────────────────────────
+    // ── 카드 ──────────────────────────────────────────────────────────────────
 
-    @PostMapping("/{boardId}/nodes")
-    @Operation(summary = "노드 생성", description = "생성 시점 위치 부여")
-    fun createNode(
+    @PostMapping("/{boardId}/cards")
+    @Operation(summary = "카드 생성", description = "생성 시점 위치 부여")
+    fun createCard(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable boardId: Long,
-        @Valid @RequestBody request: CreateNodeRequest,
-    ): ResponseEntity<Result<NodeResponse>> =
+        @Valid @RequestBody request: CreateCardRequest,
+    ): ResponseEntity<Result<CardResponse>> =
         ResponseEntity
             .status(HttpStatus.CREATED)
-            .body(Result.success(boardService.createNode(principal.userId, boardId, request)))
+            .body(Result.success(boardService.createCard(principal.userId, boardId, request)))
 
-    @PatchMapping("/{boardId}/nodes/{nodeId}")
-    @Operation(summary = "노드 수정(본문/위치)", description = "null 필드는 미변경")
-    fun updateNode(
+    @PatchMapping("/{boardId}/cards/{cardId}")
+    @Operation(summary = "카드 수정(본문/위치)", description = "null 필드는 미변경")
+    fun updateCard(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable boardId: Long,
-        @PathVariable nodeId: Long,
-        @Valid @RequestBody request: UpdateNodeRequest,
-    ): Result<NodeResponse> = Result.success(boardService.updateNode(principal.userId, boardId, nodeId, request))
+        @PathVariable cardId: Long,
+        @Valid @RequestBody request: UpdateCardRequest,
+    ): Result<CardResponse> = Result.success(boardService.updateCard(principal.userId, boardId, cardId, request))
 
-    @PatchMapping("/{boardId}/nodes")
+    @PatchMapping("/{boardId}/cards")
     @Operation(summary = "위치 배치 저장", description = "드래그 종료·다중선택 변경분 1회")
-    fun batchUpdateNodes(
+    fun batchUpdateCards(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable boardId: Long,
-        @RequestBody items: List<BatchNodePositionItem>,
-    ): Result<List<NodeResponse>> = Result.success(boardService.batchUpdateNodePositions(principal.userId, boardId, items))
+        @RequestBody items: List<BatchCardPositionItem>,
+    ): Result<List<CardResponse>> = Result.success(boardService.batchUpdateCardPositions(principal.userId, boardId, items))
 
-    @DeleteMapping("/{boardId}/nodes/{nodeId}")
-    @Operation(summary = "노드 삭제", description = "걸린 엣지 cascade. 캡처 메모 무영향")
-    fun deleteNode(
+    @DeleteMapping("/{boardId}/cards/{cardId}")
+    @Operation(summary = "카드 삭제", description = "걸린 연결 cascade. 캡처 메모 무영향")
+    fun deleteCard(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable boardId: Long,
-        @PathVariable nodeId: Long,
+        @PathVariable cardId: Long,
     ): ResponseEntity<Void> {
-        boardService.deleteNode(principal.userId, boardId, nodeId)
+        boardService.deleteCard(principal.userId, boardId, cardId)
         return ResponseEntity.noContent().build()
     }
 
-    // ── 엣지 ──────────────────────────────────────────────────────────────────
+    // ── 연결 ──────────────────────────────────────────────────────────────────
 
-    @PostMapping("/{boardId}/edges")
+    @PostMapping("/{boardId}/links")
     @Operation(summary = "연결 생성", description = "자기연결/타보드 400, 중복 409")
-    fun createEdge(
+    fun createLink(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable boardId: Long,
-        @Valid @RequestBody request: CreateEdgeRequest,
-    ): ResponseEntity<Result<EdgeResponse>> =
+        @Valid @RequestBody request: CreateLinkRequest,
+    ): ResponseEntity<Result<LinkResponse>> =
         ResponseEntity
             .status(HttpStatus.CREATED)
-            .body(Result.success(boardService.createEdge(principal.userId, boardId, request)))
+            .body(Result.success(boardService.createLink(principal.userId, boardId, request)))
 
-    @DeleteMapping("/{boardId}/edges/{edgeId}")
+    @DeleteMapping("/{boardId}/links/{linkId}")
     @Operation(summary = "연결 삭제")
-    fun deleteEdge(
+    fun deleteLink(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable boardId: Long,
-        @PathVariable edgeId: Long,
+        @PathVariable linkId: Long,
     ): ResponseEntity<Void> {
-        boardService.deleteEdge(principal.userId, boardId, edgeId)
+        boardService.deleteLink(principal.userId, boardId, linkId)
         return ResponseEntity.noContent().build()
     }
 }

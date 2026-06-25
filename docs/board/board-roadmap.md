@@ -17,12 +17,12 @@
 
 | | |
 |---|---|
-| 마지막 갱신 | 2026-06-25 (트랙 A 완료 — 커밋, merge 보류) |
-| 완료된 트랙 | **A — 연결(Link) UI** ✅ (커밋 `d19b879`, develop merge 보류) |
+| 마지막 갱신 | 2026-06-25 (트랙 B 완료 + 보드 폴리시 — 커밋, develop merge 보류) |
+| 완료된 트랙 | **A — 연결(Link) UI** ✅ (`d19b879`) · **B — 유비쿼터스 언어 정리** ✅ (rename 전면 + 마이그레이션) |
 | 진행 중 트랙 | — |
-| **다음 진입** | **트랙 B — 유비쿼터스 언어 정리 (§5-B): `brainstorming`/영향범위 조사부터**. ⚠️ 트랙 A가 `node` 도메인 용어·V26 앵커 유지 → rename 대상에 포함 |
-| 블로커/대기 | 없음 |
-| 직전 세션이 한 일 | **트랙 A 완료·커밋 `d19b879`**: SDD 전과정 + FE 구현 + dogfooding 전항 통과. dogfooding 파생 **BE V26 앵커 확장**(floating 폐기, `board_edges.source_handle/target_handle`) + 클릭클릭 **카드 외부 분리 인디케이터**("연결할 카드 고르기"). 게이트 GREEN. **develop merge는 보드 트랙 B~E 후로 보류**. 회고 `~/obsidian/.../2026-06-25-board-link-ui-track-a.md` + 룰 §24(structured 입력)·§25(dogfooding 전항 확인) 추가 |
+| **다음 진입** | **트랙 C — 진입점·매핑·아이디어 보드 (§5-C): `brainstorming`부터**. (§4 권장 순서 A→B→C→D) |
+| 블로커/대기 | 없음. **develop merge 보류**(보드 트랙 더 모은 뒤 A+B+폴리시 함께) — 038 브랜치 유지 |
+| 직전 세션이 한 일 | **트랙 B(040) 완료**: `node/edge/board_nodes/board_edges`→`Card/Link/cards/links` **전면 rename**(BE 마이그레이션 V24~26 in-place 편집·엔티티 Card/Link·repo·service·DTO·controller endpoint `/cards`·`/links`·에러코드 BOARD_LINK_*·테스트 / FE 데이터계층·어댑터, RF API 보존). 로컬 DB 리셋(컨펌)·BE 게이트(test 536)·FE 게이트(test 690)·회귀 grep 0·dogfooding 전항 통과. **+ 보드 폴리시 2건**: ① 클릭-클릭 연결 앵커(마주보는 테두리 자동, `nearestHandlePair` TDD) ② 카드 디자인(타입별 배경 틴트 `-50`·전체 테두리 `-200`·선택선/핸들 타입색 통일, 좌측 스트라이프 제거 — 목업 `docs/research/2026-06-25-board-card-bg-mockup.html`). SDD=`specs/040-board-ubiquitous-language/`, 인벤토리=`docs/board/board-track-b-impact-survey.md`. **미커밋 아님 — 038에 커밋, develop 미merge** |
 
 **새 세션 첫 행동**: ① 본 §0 → ② §1 대시보드 → ③ §5 진행 중(또는 다음) 트랙의 체크박스·링크 → ④ CLAUDE.md 의무대로 vault `02-PROGRESS`·`03-ISSUES`.
 
@@ -33,8 +33,8 @@
 | 트랙 | 내용 | 상태 | 무게 |
 |---|---|---|---|
 | **A** | 연결(Link) UI 재개 | ✅ 완료 (커밋 `d19b879`, merge 보류) | FE + BE V26 앵커 |
-| **B** | 유비쿼터스 언어 정리 | ⬜ 대기 | 무거움 (마이그레이션+전면 rename) |
-| **C** | 진입점·매핑·아이디어 보드 | ⬜ 대기 | 중간 (BE 신규 3) |
+| **B** | 유비쿼터스 언어 정리 | ✅ 완료 (rename 전면+마이그레이션, develop merge 보류) | 무거움 (마이그레이션+전면 rename) |
+| **C** | 진입점·매핑·아이디어 보드 | ⬜ 대기 (← 다음 진입) | 중간 (BE 신규 3) |
 | **D** | 카드 종류 + UX 안전망 | ⬜ 대기 | 가벼움 |
 | **E** | 메모·인물 통합 | 🔴 후순위 (별도 spec) | 최대 |
 
@@ -111,19 +111,22 @@
   - [x] 검증 — **자동 게이트 GREEN**(FE typecheck·lint 0err·test 685·build / BE ktlint·test) + **dogfooding 전항 통과**(테두리 앵커·이웃강조·재진입 유지·끊기·빈곳·클릭클릭 인디케이터·가드·회귀)
   - [x] 마무리 — **커밋 `d19b879`**(038-memo-plot-board). **develop merge 보류**(보드 트랙 B~E 후) + 회고
 
-### 트랙 B — 유비쿼터스 언어 정리  `상태: ⬜ 대기 (← 다음 진입)`
+### 트랙 B — 유비쿼터스 언어 정리  `상태: ✅ 완료 (커밋, develop merge 보류)`
 - **목표**: `node/edge/노드/연결/board_nodes` → `Card/Link/카드/잇기/cards` 전면 통일.
 - **범위(BE 전면 + FE)**: 테이블 rename 마이그레이션 + 엔티티/repository/service/DTO/controller 경로 + FE 도메인 타입·훅·화면 문구. PRD §8 어댑터 경계(React Flow `node/edge` 는 어댑터 안에서만).
 - **⚠️ 트랙 A 완료로 추가된 rename 대상(놓치지 말 것)**: `board_edges.source_handle/target_handle`(V26)·신규 `linkGraph.ts`/`LinkEdge.tsx`/`boardActions.startConnect`·`useCreateEdge`의 sourceHandle/targetHandle·`BoardEdgeResponse`. 트랙 A는 화면 문구만 "카드"로 바꾸고 **코드 식별자(`NodeCard`/`board_nodes`/`useCreateNode` 등)는 `node`로 유지** → 전면 rename은 본 트랙 몫. 연결 UI는 동작 보존(회귀 grep 필수).
 - **리스크**: 광범위 rename·마이그레이션 회귀 → **A 안정 후** 진행(A 커밋 `d19b879`, develop 미merge — B와 함께 또는 후속에 merge 결정).
 - **진척**:
-  - [ ] brainstorming/영향범위 조사 (rename 대상 전수) — 결론 박을 위치: ______
-  - [ ] spec/plan/tasks
-  - [ ] 구현 (BE 선행 → FE)
-  - [ ] 검증 (게이트 + dogfooding + 회귀 grep)
-  - [ ] 마무리 (finish-work + 회고)
+  - [x] brainstorming/영향범위 조사 (rename 대상 전수) — 결론: **`docs/board/board-track-b-impact-survey.md`**(§0 네이밍 맵·§1 BE·§2 FE 인벤토리·§3 확정 결정). brainstorming 4결정(in-place 마이그레이션 / FE 이름만 통일 / bare Card·Link / boards 불변) 사용자 승인
+  - [x] spec/plan/tasks — `specs/040-board-ubiquitous-language/`(spec·plan·research·data-model·contracts/board-api·tasks). NEEDS_CLARIFICATION 0
+  - [x] 구현 (BE 선행 → FE) — BE: 마이그레이션 V24~26 in-place(`cards`/`links`+`source_card_id`/`target_card_id`+제약·인덱스명)·엔티티 `Card`/`Link`·`CardRepository`/`LinkRepository`·service createCard/createLink·DTO·controller endpoint `/cards`·`/links`·에러 `BOARD_LINK_*`·테스트. 로컬 DB 리셋(보드 3테이블 drop+history 삭제+재마이그레이션, 사용자 컨펌). FE: 데이터계층·`cardKinds`·`CardNode`·`linkGraph`(`neighborCardIds`/`incidentLinkIds`)·캔버스 도메인참조, **RF API 보존**
+  - [x] 검증 (게이트 + dogfooding + 회귀 grep) — BE test 536 / FE typecheck·lint0err·test 690·build / 회귀 grep 0(어댑터 밖 node/edge·DB board_nodes/edges·화면문구) / dogfooding 전항 통과
+  - [x] 마무리 — **038 커밋, develop merge 보류**(트랙 더 모은 뒤). 회고
+- **+ 보드 폴리시(트랙 B 세션 dogfooding 파생, 같은 커밋군)**:
+  - [x] 클릭-클릭 연결 앵커 — 두 카드 중심 우세축으로 마주보는 테두리 자동(`linkGraph.nearestHandlePair` TDD, V26 앵커 재사용·신규 BE 0). 드래그 경로는 RF Loose라 기존대로
+  - [x] 카드 디자인(Miro 스타일·저채도) — 타입별 **배경 틴트(-50)**+**전체 테두리(-200)**+**선택선/링(-500/-200)**+**핸들(-400)**+**칩(-100)** 타입색 통일, **좌측 스트라이프 제거**(디자인 안티패턴). `cardKinds.ts`+`CardNode.tsx`. 목업 `docs/research/2026-06-25-board-card-bg-mockup.html`(A안=Whisper 채택). 보드 `colorMode=light` 고정이라 다크 변형 불요
 
-### 트랙 C — 진입점·매핑·아이디어 보드 고도화  `상태: ⬜ 대기`
+### 트랙 C — 진입점·매핑·아이디어 보드 고도화  `상태: ⬜ 대기 (← 다음 진입)`
 - **목표**: PRD §5.4 세 진입점 + 아이디어 보드 UX.
 - **범위(BE 신규 3 + FE)**: 전역 허브(소속 라벨·`?q=` 검색) / 작품·시리즈 진입점(T043) / 집필 참조(`GET /works/:id/reference-boards` + 마지막 본 보드 기억) / 아이디어 보드 라벨·나중에 붙이기.
 - **PRD 근거**: §5.3·§5.4·§9·§10, UX TASK-4·4B·5.

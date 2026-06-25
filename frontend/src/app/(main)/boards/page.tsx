@@ -98,7 +98,7 @@ export default function BoardsPage() {
                                     {board.name}
                                 </Link>
                             )}
-                            <span className="mt-1 text-xs text-gray-400">노드 {board.nodeCount}개</span>
+                            <span className="mt-1 text-xs text-gray-400">카드 {board.cardCount}개</span>
 
                             <BoardMappingControl
                                 boardId={board.id}
@@ -120,7 +120,7 @@ export default function BoardsPage() {
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        if (window.confirm(`'${board.name}' 보드를 삭제할까요? 노드·연결도 함께 삭제됩니다.`)) {
+                                        if (window.confirm(`'${board.name}' 보드를 삭제할까요? 카드·연결도 함께 삭제됩니다.`)) {
                                             deleteBoard.mutate(board.id);
                                         }
                                     }}

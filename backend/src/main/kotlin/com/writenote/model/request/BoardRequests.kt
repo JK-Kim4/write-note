@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 
 // 플롯 보드(038) 요청 DTO 모음. 매핑 필드(projectId·categoryId)는 0~1 — null=미매핑/해제.
-// 노드 위치(posX/posY)는 캔버스 절대 좌표(음수·소수 허용).
+// 카드 위치(posX/posY)는 캔버스 절대 좌표(음수·소수 허용).
 
 /** 보드 생성 — 매핑은 선택(미지정 시 독립 보드). 대상에 이미 보드가 있으면 409. */
 data class CreateBoardRequest(
@@ -39,8 +39,8 @@ data class UpdateViewportRequest(
     val y: Double,
 )
 
-/** 노드 생성 — 생성 시점 위치 부여. [body] 미지정 시 빈 본문. [type] 미지정 시 'plot'(V25). */
-data class CreateNodeRequest(
+/** 카드 생성 — 생성 시점 위치 부여. [body] 미지정 시 빈 본문. [type] 미지정 시 'plot'(V25). */
+data class CreateCardRequest(
     val body: String? = null,
     val posX: Double,
     val posY: Double,
@@ -48,8 +48,8 @@ data class CreateNodeRequest(
     val type: String? = null,
 )
 
-/** 노드 단건 수정(본문/위치/타입) — null 필드는 미변경. */
-data class UpdateNodeRequest(
+/** 카드 단건 수정(본문/위치/타입) — null 필드는 미변경. */
+data class UpdateCardRequest(
     val body: String? = null,
     val posX: Double? = null,
     val posY: Double? = null,
@@ -58,17 +58,17 @@ data class UpdateNodeRequest(
 )
 
 /** 배치 위치 갱신 1건(드래그 종료·다중선택). */
-data class BatchNodePositionItem(
+data class BatchCardPositionItem(
     val id: Long,
     val posX: Double,
     val posY: Double,
     val zIndex: Int? = null,
 )
 
-/** 연결 생성 — source≠target, 같은 보드 노드, 중복 불가. [sourceHandle]/[targetHandle]=연결 테두리 앵커(top/right/bottom/left, 미지정 시 기본 핸들). */
-data class CreateEdgeRequest(
-    val sourceNodeId: Long,
-    val targetNodeId: Long,
+/** 연결 생성 — source≠target, 같은 보드 카드, 중복 불가. [sourceHandle]/[targetHandle]=연결 테두리 앵커(top/right/bottom/left, 미지정 시 기본 핸들). */
+data class CreateLinkRequest(
+    val sourceCardId: Long,
+    val targetCardId: Long,
     val sourceHandle: String? = null,
     val targetHandle: String? = null,
 )
