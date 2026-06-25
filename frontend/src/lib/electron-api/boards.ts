@@ -12,6 +12,7 @@ import {
     getBoard,
     listBoards,
     listMyBoards,
+    listReferenceBoards,
     renameBoard,
     setBoardOwner,
     updateCard,
@@ -36,6 +37,7 @@ import type {
 export const boards = {
     mine: (): Promise<BoardSummary[]> => listMyBoards(),
     list: (filter?: BoardListFilter): Promise<BoardSummary[]> => listBoards(filter),
+    referenceBoards: (projectId: number): Promise<BoardSummary[]> => listReferenceBoards(projectId),
     get: (boardId: number): Promise<BoardDetail> => getBoard(boardId),
     create: (input: CreateBoardInput): Promise<BoardResponse> => createBoard(input),
     rename: (boardId: number, name: string): Promise<BoardResponse> => renameBoard(boardId, name),

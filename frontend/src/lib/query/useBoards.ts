@@ -24,6 +24,7 @@ export const boardKeys = {
     mine: () => [...boardKeys.all, "mine"] as const,
     list: (filter?: BoardListFilter) =>
         filter ? ([...boardKeys.all, "list", filter] as const) : ([...boardKeys.all, "list"] as const),
+    reference: (projectId: number) => [...boardKeys.all, "reference", projectId] as const,
     detail: (id: number) => [...boardKeys.all, "detail", id] as const,
 };
 
@@ -32,6 +33,16 @@ export function useBoardsMine() {
     return useQuery({
         queryKey: boardKeys.mine(),
         queryFn: () => webElectronApi.boards.mine(),
+        refetchOnMount: "always",
+    });
+}
+
+/** 집필 참조(043) — 그 작품 보드 + 상위 시리즈 보드(최근순). 집필 화면 슬라이드오버용. */
+export function useReferenceBoards(projectId: number, enabled = true) {
+    return useQuery({
+        queryKey: boardKeys.reference(projectId),
+        queryFn: () => webElectronApi.boards.referenceBoards(projectId),
+        enabled,
         refetchOnMount: "always",
     });
 }

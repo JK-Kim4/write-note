@@ -15,6 +15,7 @@ import { formatStopwatch } from "@/lib/formatStopwatch";
 import { rememberLastProject } from "@/lib/lastProject";
 import type { OutlineItem } from "@/lib/editor/outline";
 import { BWorkSidePanel, type Tab as SidePanelTab } from "@/components/b/BWorkSidePanel";
+import { BoardReferencePanel } from "@/components/b/BoardReferencePanel";
 import { ExportDialog } from "@/components/export/ExportDialog";
 import { PrintOverlay } from "@/components/export/PrintOverlay";
 import { usePdfExport } from "@/lib/export/usePdfExport";
@@ -120,6 +121,8 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
     const [panelTab, setPanelTab] = useState<SidePanelTab>("memos");
     // 내보내기 다이얼로그(023 Round 3 진입점).
     const [exportOpen, setExportOpen] = useState(false);
+    // 집필 중 보드 참조(043) — 우측 슬라이드오버. 기본 닫힘.
+    const [boardRefOpen, setBoardRefOpen] = useState(false);
     const { printModels, exportPdf, clearPrint } = usePdfExport();
 
     // 에디터 코어로부터 받은 저장 상태 / 충돌 핸들러
@@ -318,15 +321,25 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                     </select>
                 </div>
             </div>
-            {/* 내보내기 */}
-            <div className="border-b border-gray-200 px-3 py-2">
+            {/* 보드 참조(043) + 내보내기 */}
+            <div className="flex gap-2 border-b border-gray-200 px-3 py-2">
+                <button
+                    type="button"
+                    onClick={() => {
+                        setBoardRefOpen(true);
+                        setLeftDrawerOpen(false);
+                    }}
+                    className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+                >
+                    보드 참조
+                </button>
                 <button
                     type="button"
                     onClick={() => {
                         setExportOpen(true);
                         setLeftDrawerOpen(false);
                     }}
-                    className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+                    className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
                 >
                     내보내기
                 </button>
@@ -574,6 +587,11 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
             )}
 
             {printModels && <PrintOverlay models={printModels} paperSize={paperSize} onDone={clearPrint} />}
+
+            {/* 집필 중 보드 참조(043) — 우측 슬라이드오버. 작품 보드 + 상위 시리즈 보드 곁눈질. */}
+            {!Number.isNaN(projectId) && (
+                <BoardReferencePanel projectId={projectId} open={boardRefOpen} onClose={() => setBoardRefOpen(false)} />
+            )}
 
             {/* 충돌 다이얼로그 — 에디터 슬롯이 콜백으로 올린 conflict / 해결 핸들러 사용 */}
             {conflictHandlers.conflict != null && (

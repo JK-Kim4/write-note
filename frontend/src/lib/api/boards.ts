@@ -104,6 +104,11 @@ export function listMyBoards(): Promise<BoardSummary[]> {
     return apiFetch<BoardSummary[]>("/api/boards/mine", { method: "GET" });
 }
 
+/** 집필 참조(043, PRD §9) — 그 작품 보드 + 상위 시리즈 보드, 최근순. 본인 작품 아니면 404. */
+export function listReferenceBoards(projectId: number): Promise<BoardSummary[]> {
+    return apiFetch<BoardSummary[]>(`/api/boards/reference?projectId=${projectId}`, { method: "GET" });
+}
+
 /** 소속 필터 목록(내부 탭 ②용). ownerType+ownerId 또는 unmapped. */
 export function listBoards(filter?: BoardListFilter): Promise<BoardSummary[]> {
     const qs = new URLSearchParams();
