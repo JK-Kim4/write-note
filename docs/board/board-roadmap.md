@@ -22,7 +22,7 @@
 | 진행 중 트랙 | — |
 | **다음 진입** | **E(메모·인물 통합)** — 비파괴 초안 완료(`docs/board/board-track-e-design-draft.md`), **데이터 모델 D1~D6 사용자 결정 대기**(③ 참조통합 권고 / ④ 보류 안전). 또는 **develop merge**(A~D+C-2 누적 — 사용자 결정). 보드 코어 트랙 A~D + C-2 완료 |
 | 블로커/대기 | 없음. **develop merge 계속 보류**(E 결정 뒤 — 사용자 결정). 038이 develop보다 4커밋 뒤처짐(홈카드·다크모드 등) → merge 시 양방향 병합. 038 브랜치 유지 |
-| 직전 세션이 한 일 | **C-2(내부 탭 + 집필 참조) 완료 + E 비파괴 초안**(야간 자동 진행). **042 내부 탭**(FE only, BE=0): 별도 작품/시리즈 상세 페이지 부재(실측) → 작품 상세=집필 화면 `BWorkSidePanel` "보드" 탭, 시리즈 상세=`/library` 드릴인 "시리즈 보드" 섹션. owner picker 없이 이름만 생성(owner 자동) + 열기(→/boards/{id}). 신규 `InlineBoardList`(View 테스트 5). **043 집필 참조**(BE 선행→FE): `GET /api/boards/reference?projectId=`(작품 보드 + 상위 시리즈 보드 최근순, BoardServiceTest 3 + IT 2) + FE 집필 좌패널 "보드 참조" 토글 → 우측 슬라이드오버(`PlotBoardCanvas` dynamic·후보 전환·last-viewed localStorage·집필 3패널 무변경). 마지막 본 보드는 `SettingsService.ALLOWED` 값 화이트리스트라 임의 boardId 불가 → localStorage(비파괴). 게이트 BE(ktlint·checkstyle·test·build) / FE(typecheck·lint0err·test 703·build) GREEN·회귀 grep clean. **authed 분할뷰 dogfooding 은 로그인 불가로 보고서 체크리스트 이연**(핸드오프 §7). **E**=메모·인물 통합 비파괴 설계 초안(충돌 정리·4 옵션·D1~D6 결정지점·③ 참조통합 권고) — **코드/스키마/캡처 경로 무변경**(가드 3). 설계 SoT=`docs/board/board-track-c2-design.md`·`board-track-e-design-draft.md`. 보고서=`docs/research/2026-06-26-overnight-autorun-report.html` |
+| 직전 세션이 한 일 | **C-2(내부 탭 + 집필 참조) 완료 + E 비파괴 초안**(야간 자동 진행). **042 내부 탭**(FE only, BE=0): 별도 작품/시리즈 상세 페이지 부재(실측) → 작품 상세=집필 화면 `BWorkSidePanel` "보드" 탭, 시리즈 상세=`/library` 드릴인 "시리즈 보드" 섹션. owner picker 없이 이름만 생성(owner 자동) + 열기(→/boards/{id}). 신규 `InlineBoardList`(View 테스트 5). **043 집필 참조**(BE 선행→FE): `GET /api/boards/reference?projectId=`(작품 보드 + 상위 시리즈 보드 최근순, BoardServiceTest 3 + IT 2) + FE 집필 좌패널 "보드 참조" 토글 → 우측 슬라이드오버(`PlotBoardCanvas` dynamic·후보 전환·last-viewed localStorage·집필 3패널 무변경). 마지막 본 보드는 `SettingsService.ALLOWED` 값 화이트리스트라 임의 boardId 불가 → localStorage(비파괴). 게이트 BE(ktlint·checkstyle·test·build) / FE(typecheck·lint0err·test 703·build) GREEN·회귀 grep clean. **authed dogfooding = 2026-06-26 사용자 로컬 풀스택 통과("잘 작동")** — 자동 진행 시점엔 로그인 불가였으나 풀스택 기동 후 확인. **E**=메모·인물 통합 비파괴 설계 초안(충돌 정리·4 옵션·D1~D6 결정지점·③ 참조통합 권고) — **코드/스키마/캡처 경로 무변경**(가드 3). 설계 SoT=`docs/board/board-track-c2-design.md`·`board-track-e-design-draft.md`. 보고서=`docs/research/2026-06-26-overnight-autorun-report.html` |
 
 **새 세션 첫 행동**: ① 본 §0 → ② §1 대시보드 → ③ §5 진행 중(또는 다음) 트랙의 체크박스·링크 → ④ CLAUDE.md 의무대로 vault `02-PROGRESS`·`03-ISSUES`.
 
@@ -146,7 +146,7 @@
   - [x] 결정 (호스트 UI·저장소) — 결론: `docs/board/board-track-c2-design.md` §0 실측표·§1·§2
   - [x] 042 내부 탭 (FE only, BE=0) — `specs/042-board-internal-tabs/`. `InlineBoardList`(View 테스트 5)·BWorkSidePanel 보드 탭·LibraryBoard 시리즈 보드 섹션. 게이트 GREEN(typecheck·lint0err·test 699·build·회귀 clean). 커밋 `c7a3c88`
   - [x] 043 집필 참조 (BE 선행→FE) — `specs/043-board-writing-reference/`. BE: `listReferenceBoards`·`GET /reference`(BoardServiceTest 3 + IT 2). FE: `lastViewedBoard`(TDD 4)·`useReferenceBoards`·`BoardReferencePanel` 슬라이드오버·BStudioShell 토글. 게이트 GREEN(BE ktlint·checkstyle·test·build / FE typecheck·lint0err·test 703·build·회귀 clean). 커밋 `976c4dd`(BE)·`02b9b62`(FE)
-  - [x] 검증 — 자동 게이트 전항 GREEN + 회귀 grep clean. **authed dogfooding(집필실 보드 탭·시리즈 보드 섹션·생성→이동·참조 슬라이드오버 표시/전환/last-viewed) = 로그인 불가로 보고서 체크리스트 이연**(핸드오프 §7)
+  - [x] 검증 — 자동 게이트 전항 GREEN + 회귀 grep clean. **authed dogfooding = 2026-06-26 사용자 로컬 풀스택 통과("잘 작동")**(집필실 보드 탭·시리즈 보드 섹션·생성→이동·참조 슬라이드오버). 자동 진행 시점엔 로그인 불가였으나 풀스택(DB·BE 8080·FE 3000) 기동 후 확인
   - [x] 마무리 — 038 커밋(develop merge 보류) + roadmap/vault 갱신 + HTML 보고서
 
 ### 트랙 D — 카드 종류 정합 + UX 안전망  `상태: ✅ 완료 (커밋 5909456, develop merge 보류)`
@@ -207,7 +207,7 @@
 ## 7. 후속/미해결
 
 - **E 데이터 모델 결정** — 메모·인물 통합 방식 ①~④ + D1~D6(비파괴 초안 `board-track-e-design-draft.md` 권고 = ③ 참조 통합). **사용자 결정 대기**.
-- **C-2 authed dogfooding** — 042 집필실 보드 탭·시리즈 보드 섹션·생성→이동 / 043 참조 슬라이드오버 표시·보드 전환·last-viewed·집필 레이아웃 무회귀. 로그인 불가로 미검증 → 보고서 `docs/research/2026-06-26-overnight-autorun-report.html` 체크리스트.
+- ✅ **C-2 authed dogfooding 통과**(2026-06-26 사용자 로컬 풀스택 "잘 작동") — 042 보드 탭·시리즈 섹션·생성→이동 / 043 참조 슬라이드오버. 자동 진행 시점 미검증분 해소(전 마이크로 항목 개별 확인은 사용자 판단).
 - **develop merge 보류 중** — 보드 A+B+C+D+C-2 가 038 누적, develop 미반영(E 결정 뒤 — 사용자 결정). 038이 develop보다 4커밋 뒤처져 merge 시 양방향 병합 주의.
 - ✅ 완료(트랙 C-2): `GET /api/boards/reference?projectId=`(작품+상위 시리즈, `/works/:id/...`는 코드베이스 API 베이스 `/api/boards`로 정합) · 내부 탭 호스트 UI(작품=집필 화면 탭·시리즈=라이브러리 섹션) · 마지막 본 보드=localStorage.
 - ✅ 완료(트랙 D): 카드 종류 4 vs 5 정합(4종+무지정).
