@@ -14,7 +14,7 @@ import { Timewatch } from "@/components/b/Timewatch";
 import { formatStopwatch } from "@/lib/formatStopwatch";
 import { rememberLastProject } from "@/lib/lastProject";
 import type { OutlineItem } from "@/lib/editor/outline";
-import { BWorkSidePanel } from "@/components/b/BWorkSidePanel";
+import { BWorkSidePanel, type Tab as SidePanelTab } from "@/components/b/BWorkSidePanel";
 import { ExportDialog } from "@/components/export/ExportDialog";
 import { PrintOverlay } from "@/components/export/PrintOverlay";
 import { usePdfExport } from "@/lib/export/usePdfExport";
@@ -117,7 +117,7 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
     const endWorkModalRef = useRef<HTMLDivElement>(null);
     // 보조 패널 접기·탭 상태
     const [panelOpen, setPanelOpen] = useState(true);
-    const [panelTab, setPanelTab] = useState<"memos" | "characters">("memos");
+    const [panelTab, setPanelTab] = useState<SidePanelTab>("memos");
     // 내보내기 다이얼로그(023 Round 3 진입점).
     const [exportOpen, setExportOpen] = useState(false);
     const { printModels, exportPdf, clearPrint } = usePdfExport();

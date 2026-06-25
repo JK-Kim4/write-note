@@ -6,14 +6,16 @@ import { genderLabel } from "@/lib/api/characters";
 import { useCreateCharacter, useProjectCharacters } from "@/lib/query/useCharacters";
 import { useCaptureMemo, useProjectMemos, useRemoveLinkMemo, useSetPinMemo } from "@/lib/query/useMemos";
 import { goalProgress } from "@/lib/goalGauge";
+import { InlineBoardList } from "@/components/board/InlineBoardList";
 
 /**
- * B타입 집필 보조 패널 — fable-test WorkSidePanel 이식 (w-80, 메모/인물 탭, ◀▶ 접이식).
+ * B타입 집필 보조 패널 — fable-test WorkSidePanel 이식 (w-80, 메모/인물/보드 탭, ◀▶ 접이식).
  * 메모 탭 = 이 작품에 연결된 메모(고정 우선) + 인라인 캡처. 인물 탭 = 목록 + 빠른 추가.
+ * 보드 탭(042) = 이 작품에 매달린 플롯 보드 목록 + 이름만 생성 + 열기(내부 탭, PRD §5.4 ②).
  * 공백 최소화: 목록·입력을 패널 전체 높이에 채우고 빈 상태에도 바로 쓸 수 있는 입력을 둔다.
  */
 
-type Tab = "memos" | "characters";
+export type Tab = "memos" | "characters" | "boards";
 
 function MemosTab({ projectId }: { projectId: number }) {
     const memosQuery = useProjectMemos(projectId);
@@ -204,6 +206,15 @@ function CharactersTab({ projectId }: { projectId: number }) {
     );
 }
 
+/** 보드 탭(042) — 이 작품에 매달린 플롯 보드만. 생성은 owner 자동(이 작품), 열기는 보드 캔버스로 이동. */
+function BoardsTab({ projectId }: { projectId: number }) {
+    return (
+        <div className="h-full overflow-y-auto p-3">
+            <InlineBoardList ownerType="project" ownerId={projectId} emptyHint="아직 이 작품 보드가 없어요." />
+        </div>
+    );
+}
+
 type SidePanelProps = {
     projectId: number;
     /** controlled 접기·탭 상태 — 두 인스턴스(inline·drawer)가 부모 state 를 공유해 일관 유지. 미전달 시 비제어(로컬 state). */
@@ -280,6 +291,18 @@ export function BWorkSidePanel({
                 >
                     인물
                 </button>
+                <button
+                    type="button"
+                    onMouseDown={keepEditorFocus}
+                    onClick={() => setTab("boards")}
+                    className={
+                        tab === "boards"
+                            ? "flex-1 bg-terracotta-50 px-3 py-2 text-sm font-medium text-terracotta-700"
+                            : "flex-1 px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
+                    }
+                >
+                    보드
+                </button>
                 {collapsible && (
                     <button
                         type="button"
@@ -293,7 +316,13 @@ export function BWorkSidePanel({
                 )}
             </div>
             <div className="min-h-0 flex-1">
-                {tab === "memos" ? <MemosTab projectId={projectId} /> : <CharactersTab projectId={projectId} />}
+                {tab === "memos" ? (
+                    <MemosTab projectId={projectId} />
+                ) : tab === "characters" ? (
+                    <CharactersTab projectId={projectId} />
+                ) : (
+                    <BoardsTab projectId={projectId} />
+                )}
             </div>
             {wordCount != null && (
                 <div className="border-t border-gray-200 bg-white px-3 py-2.5">
