@@ -17,12 +17,12 @@
 
 | | |
 |---|---|
-| 마지막 갱신 | 2026-06-25 (트랙 A 구현·dogfooding 통과 → 마무리) |
-| 완료된 트랙 | — (A 마무리 직전) |
-| 진행 중 트랙 | **A — 연결(Link) UI 재개** (구현·검증✅ **dogfooding 통과** → build 게이트 → finish-work+회고) |
-| **다음 진입** | **트랙 A 마무리 — FE build 게이트 → finish-work(merge·vault) + 회고** |
+| 마지막 갱신 | 2026-06-25 (트랙 A 완료 — 커밋, merge 보류) |
+| 완료된 트랙 | **A — 연결(Link) UI** ✅ (커밋 `d19b879`, develop merge 보류) |
+| 진행 중 트랙 | — |
+| **다음 진입** | **트랙 B — 유비쿼터스 언어 정리 (§5-B): `brainstorming`/영향범위 조사부터**. ⚠️ 트랙 A가 `node` 도메인 용어·V26 앵커 유지 → rename 대상에 포함 |
 | 블로커/대기 | 없음 |
-| 직전 세션이 한 일 | SDD 전과정 + FE 구현 + **dogfooding 통과**(테두리 앵커·이웃강조·재진입 유지·끊기). **dogfooding 파생: 테두리 앵커 요구 → BE V26 확장**(`board_edges.source_handle/target_handle`, floating 폐기·핸들 앵커 영속). 트랙 A가 "신규 BE 0"→"BE V26 앵커"로 범위 변경 |
+| 직전 세션이 한 일 | **트랙 A 완료·커밋 `d19b879`**: SDD 전과정 + FE 구현 + dogfooding 전항 통과. dogfooding 파생 **BE V26 앵커 확장**(floating 폐기, `board_edges.source_handle/target_handle`) + 클릭클릭 **카드 외부 분리 인디케이터**("연결할 카드 고르기"). 게이트 GREEN. **develop merge는 보드 트랙 B~E 후로 보류**. 회고 `~/obsidian/.../2026-06-25-board-link-ui-track-a.md` + 룰 §24(structured 입력)·§25(dogfooding 전항 확인) 추가 |
 
 **새 세션 첫 행동**: ① 본 §0 → ② §1 대시보드 → ③ §5 진행 중(또는 다음) 트랙의 체크박스·링크 → ④ CLAUDE.md 의무대로 vault `02-PROGRESS`·`03-ISSUES`.
 
@@ -32,7 +32,7 @@
 
 | 트랙 | 내용 | 상태 | 무게 |
 |---|---|---|---|
-| **A** | 연결(Link) UI 재개 | 🔵 진행 중 (spec✅·plan 대기) | 가벼움 (FE only) |
+| **A** | 연결(Link) UI 재개 | ✅ 완료 (커밋 `d19b879`, merge 보류) | FE + BE V26 앵커 |
 | **B** | 유비쿼터스 언어 정리 | ⬜ 대기 | 무거움 (마이그레이션+전면 rename) |
 | **C** | 진입점·매핑·아이디어 보드 | ⬜ 대기 | 중간 (BE 신규 3) |
 | **D** | 카드 종류 + UX 안전망 | ⬜ 대기 | 가벼움 |
@@ -96,7 +96,7 @@
 
 > 각 트랙 진척 체크박스를 단계 완료 시마다 `[x]` 로 갱신하고, brainstorming/설계 결론은 **링크된 파일**(`specs/` 또는 본 문서 부록)에 박는다 — 대화에만 두지 않는다.
 
-### 트랙 A — 연결(Link) UI 재개 🥇  `상태: 🔵 진행 중`
+### 트랙 A — 연결(Link) UI 재개 🥇  `상태: ✅ 완료 (커밋 d19b879, develop merge 보류)`
 - **목표**: 보류된 연결 UI 복원. BE·훅 그대로, FE 캔버스 결선만.
 - **범위(FE only)**: `NodeCard` 연결점(`Handle`) + `PlotBoardCanvas` `useEdgesState`·`edges` 렌더·`nodesConnectable={true}`·`onConnect`(→`useCreateEdge`)·엣지 삭제(→`useDeleteEdge`) + PRD `TASK-2` UX(hover 단서·드래그 피드백·빈 곳 drop "새 카드 만들어 잇기"·클릭-클릭 대체).
 - **PRD 근거**: `board-ux-worksheet.md` TASK-2.
@@ -108,13 +108,14 @@
   - [x] plan — `specs/039-board-link-ui/plan.md`(+research·data-model·contracts·quickstart). RF v12 연결 API 설치본 타입 직접검증, 변경/신규 파일·순수헬퍼 시그니처 확정
   - [x] tasks — `specs/039-board-link-ui/tasks.md`(25 task: Setup/Foundational/US1 잇기·US2 끊기·US3 이웃/Polish, 순수헬퍼 TDD + 캔버스=dogfooding 게이트)
   - [x] 구현 (FE, TDD) — linkGraph(TDD 13)·LinkEdge·PlotBoardCanvas 결선·NodeCard Handle. 화면문구 노드→카드. **+ dogfooding 파생 BE V26 앵커 확장**(테두리 고정 영속, floating 폐기)
-  - [x] 검증 — **자동 게이트 GREEN**(FE typecheck·lint 0err·test 685·build / BE ktlint·test) + **dogfooding 통과**(테두리 앵커·이웃강조·재진입 유지·끊기)
-  - [ ] 마무리 (build 최종 게이트 → finish-work + 회고)
+  - [x] 검증 — **자동 게이트 GREEN**(FE typecheck·lint 0err·test 685·build / BE ktlint·test) + **dogfooding 전항 통과**(테두리 앵커·이웃강조·재진입 유지·끊기·빈곳·클릭클릭 인디케이터·가드·회귀)
+  - [x] 마무리 — **커밋 `d19b879`**(038-memo-plot-board). **develop merge 보류**(보드 트랙 B~E 후) + 회고
 
-### 트랙 B — 유비쿼터스 언어 정리  `상태: ⬜ 대기`
+### 트랙 B — 유비쿼터스 언어 정리  `상태: ⬜ 대기 (← 다음 진입)`
 - **목표**: `node/edge/노드/연결/board_nodes` → `Card/Link/카드/잇기/cards` 전면 통일.
 - **범위(BE 전면 + FE)**: 테이블 rename 마이그레이션 + 엔티티/repository/service/DTO/controller 경로 + FE 도메인 타입·훅·화면 문구. PRD §8 어댑터 경계(React Flow `node/edge` 는 어댑터 안에서만).
-- **리스크**: 광범위 rename·마이그레이션 회귀 → **A 안정 후** 진행.
+- **⚠️ 트랙 A 완료로 추가된 rename 대상(놓치지 말 것)**: `board_edges.source_handle/target_handle`(V26)·신규 `linkGraph.ts`/`LinkEdge.tsx`/`boardActions.startConnect`·`useCreateEdge`의 sourceHandle/targetHandle·`BoardEdgeResponse`. 트랙 A는 화면 문구만 "카드"로 바꾸고 **코드 식별자(`NodeCard`/`board_nodes`/`useCreateNode` 등)는 `node`로 유지** → 전면 rename은 본 트랙 몫. 연결 UI는 동작 보존(회귀 grep 필수).
+- **리스크**: 광범위 rename·마이그레이션 회귀 → **A 안정 후** 진행(A 커밋 `d19b879`, develop 미merge — B와 함께 또는 후속에 merge 결정).
 - **진척**:
   - [ ] brainstorming/영향범위 조사 (rename 대상 전수) — 결론 박을 위치: ______
   - [ ] spec/plan/tasks
