@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>야간 자동 진행 보고서 — 보드 C-2 + E 초안 (2026-06-26)</title>
+<style>
+  :root{
+    --bg:#f6f4ef; --surface:#fffdf9; --ink:#2a2620; --muted:#6b6357; --line:#e4ddd0;
+    --terra:#b4552e; --terra-soft:#f5e7df; --teal:#2f7d77; --teal-soft:#e2f0ee;
+    --green:#2e7d4f; --amber:#9a6a16; --slate:#5b6470; --slate-soft:#eceef1;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+    line-height:1.65;font-size:15px}
+  .wrap{max-width:1000px;margin:0 auto;padding:40px 22px 80px}
+  header.top{border-bottom:2px solid var(--terra);padding-bottom:18px;margin-bottom:28px}
+  h1{font-size:25px;margin:0 0 6px}
+  .sub{color:var(--muted);font-size:14px}
+  h2{font-size:19px;margin:38px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+  h3{font-size:15px;margin:20px 0 8px}
+  p{margin:8px 0}
+  code{background:#efeae0;border-radius:5px;padding:1px 6px;font-size:13px;
+    font-family:"SF Mono",ui-monospace,Menlo,monospace}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0;
+    box-shadow:0 1px 0 rgba(42,38,32,.03)}
+  .grid{display:grid;gap:14px}
+  @media(min-width:720px){.grid.two{grid-template-columns:1fr 1fr}}
+  .pill{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;margin-right:6px}
+  .pill.green{background:#e2f0e7;color:var(--green)}
+  .pill.terra{background:var(--terra-soft);color:var(--terra)}
+  .pill.teal{background:var(--teal-soft);color:var(--teal)}
+  .pill.amber{background:#f4ecd9;color:var(--amber)}
+  .pill.slate{background:var(--slate-soft);color:var(--slate)}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;background:#faf7f1}
+  .dec{border-left:4px solid var(--terra)}
+  .dec h3{margin-top:0}
+  .dec dl{margin:6px 0 0;display:grid;grid-template-columns:128px 1fr;gap:4px 12px}
+  .dec dt{color:var(--muted);font-size:12.5px;font-weight:600}
+  .dec dd{margin:0;font-size:14px}
+  ul.check{list-style:none;padding:0;margin:8px 0}
+  ul.check li{padding:7px 0 7px 30px;position:relative;border-bottom:1px dashed var(--line)}
+  ul.check li:before{content:"☐";position:absolute;left:4px;top:6px;color:var(--terra);font-size:16px}
+  ul.check li b{font-weight:600}
+  pre{background:#2a2620;color:#f3ede2;border-radius:10px;padding:14px 16px;overflow:auto;font-size:12.5px;
+    font-family:"SF Mono",ui-monospace,Menlo,monospace;line-height:1.5}
+  .note{background:#fbf4e8;border:1px solid #e8d9b8;border-radius:10px;padding:12px 16px;font-size:13.5px;color:#6a5a30}
+  .ok{color:var(--green);font-weight:600}
+  .muted{color:var(--muted)}
+  .mono{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:13px}
+  footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1>야간 자동 진행 보고서 — 보드 로드맵 C-2 + E 초안</h1>
+  <div class="sub">2026-06-26 · 브랜치 <code>038-memo-plot-board</code> · 자동 진행(사용자 부재) · develop merge 보류 유지</div>
+</header>
+
+<div class="note">
+  <b>한눈에:</b> C-2(내부 탭 + 집필 참조)를 두 작업 단위(042·043)로 끝내고 게이트 전항 GREEN으로 커밋했습니다.
+  E(메모·인물 통합)는 가드대로 <b>비파괴 설계 초안</b>까지만 했습니다(코드·스키마·캡처 경로 무변경).
+  로그인이 안 돼서 인증 화면 동작은 못 봤고, 아래 <a href="#dogfood">dogfooding 체크리스트</a>로 넘깁니다.
+</div>
+
+<h2 id="summary">1. 작업 요약</h2>
+<table>
+  <tr><th>작업 단위</th><th>내용</th><th>커밋</th><th>게이트</th></tr>
+  <tr>
+    <td><b>042</b> 내부 탭<br><span class="pill terra">FE only</span></td>
+    <td>작품 상세(집필 화면) <code>BWorkSidePanel</code>에 "보드" 탭 + 시리즈 상세(/library 드릴인)에 "시리즈 보드" 섹션. owner 스코프 목록·이름만 생성·열기. 신규 <code>InlineBoardList</code>. BE=0(041 계약 재사용).</td>
+    <td class="mono">c7a3c88</td>
+    <td><span class="ok">GREEN</span><br><span class="muted">typecheck·lint0err·test 699·build·회귀 clean</span></td>
+  </tr>
+  <tr>
+    <td><b>043</b> 집필 참조<br><span class="pill teal">BE→FE</span></td>
+    <td>BE <code>GET /api/boards/reference?projectId=</code>(작품 보드 + 상위 시리즈 보드 최근순). FE 집필 좌패널 "보드 참조" 토글 → 우측 슬라이드오버(보드 전환·캔버스 dynamic·마지막 본 보드 localStorage).</td>
+    <td class="mono">976c4dd<br>02b9b62</td>
+    <td><span class="ok">GREEN</span><br><span class="muted">BE ktlint·checkstyle·test·build / FE test 703·build·회귀 clean</span></td>
+  </tr>
+  <tr>
+    <td><b>E</b> 메모·인물 통합<br><span class="pill amber">초안만</span></td>
+    <td>비파괴 설계 초안 — 데이터 충돌 정리·4 옵션·결정 지점 D1~D6·③ 참조통합 권고. <b>코드·스키마·캡처 경로 무변경</b>(가드 3).</td>
+    <td class="muted">문서만</td>
+    <td><span class="muted">해당 없음<br>(미구현)</span></td>
+  </tr>
+</table>
+
+<div class="grid two">
+  <div class="card">
+    <h3>게이트 결과 (자동 검증)</h3>
+    <p><span class="pill green">BE</span> ktlintMain·ktlintTest·checkstyleMain·test·build — <b class="ok">전부 BUILD SUCCESSFUL</b></p>
+    <p><span class="pill green">FE</span> typecheck · lint(<b>0 errors</b>, 48 warnings=기존 ISSUE-034 react-hooks/refs) · test <b>703</b>(baseline 694 + InlineBoardListView 5 + lastViewedBoard 4) · build(RSC 경계 OK)</p>
+    <p><span class="pill green">회귀 grep</span> 어댑터 밖 <code>node/edge</code> 0 · 신규 파일 폐기 용어 0</p>
+  </div>
+  <div class="card">
+    <h3>신규 테스트</h3>
+    <ul style="margin:6px 0;padding-left:18px">
+      <li><code>BoardServiceTest</code> +3 — reference 파생(작품+상위시리즈 최근순 / 미분류=작품만 / 비소유 404)</li>
+      <li><code>BoardControllerIT</code> +2 — reference 반환·아이디어 제외 / 비소유 404</li>
+      <li><code>InlineBoardList.test</code> +5 — 목록·빈상태·열기·생성·로딩/에러</li>
+      <li><code>lastViewedBoard.test</code> +4 — 기억·되읽기·덮어쓰기·손상 내성(TDD)</li>
+    </ul>
+  </div>
+</div>
+
+<h2 id="decisions">2. 결정 로그 (사용자 부재 — 자동 확정)</h2>
+<p class="muted">각 결정은 핸드오프 §4 우선순위(코드베이스 실측 → PRD 정책 → 보수적 비파괴 기본값)로 확정했습니다. 설계 SoT = <code>docs/board/board-track-c2-design.md</code>.</p>
+
+<div class="card dec">
+  <h3>D-1 · C-2를 두 spec으로 분할 (042 내부 탭 / 043 집필 참조)</h3>
+  <dl>
+    <dt>무엇</dt><dd>C-2를 한 번에 다 할지, 쪼갤지.</dd>
+    <dt>코드베이스</dt><dd>내부 탭은 <code>GET /boards?ownerType=&ownerId=</code>(041 계약) 재사용 → BE=0. 집필 참조는 <code>reference-boards</code> 신규 BE + 슬라이드오버 필요(회귀 민감 집필실).</dd>
+    <dt>PRD</dt><dd>§5.4 ② 내부 탭(관리)과 ③ 집필 참조(읽기)는 의도가 다름.</dd>
+    <dt>채택</dt><dd><b>분할</b> — 042(FE only, 저위험) 먼저, 043(BE+FE) 다음. 핸드오프 §3 "작업 단위가 크면 더 쪼갠다" 정합.</dd>
+    <dt>대안</dt><dd>한 spec 일괄 → 게이트·배포 단위가 섞이고 회귀 추적이 어려움(기각).</dd>
+    <dt>되돌리기</dt><dd>두 커밋은 독립 — 어느 쪽이든 단독 revert 가능.</dd>
+  </dl>
+</div>
+
+<div class="card dec">
+  <h3>D-2 · 내부 탭 호스트 UI = 작품(집필 화면 탭) / 시리즈(라이브러리 섹션)</h3>
+  <dl>
+    <dt>무엇</dt><dd>"작품/시리즈 상세에 보드 탭"을 어디에 다는가.</dd>
+    <dt>코드베이스</dt><dd><b>실측: 별도 작품/시리즈 상세 페이지가 없음</b>(라우트 = <code>/library</code>·<code>/works/[id]</code>·<code>/boards</code>뿐). 작품 상세 = 집필 화면(<code>works/[id]</code>), 시리즈 상세 = /library 드릴인(<code>?folder=</code>).</dd>
+    <dt>PRD</dt><dd>§5.4 ② "그 주체에 매달린 보드만, 생성 시 owner 자동".</dd>
+    <dt>채택</dt><dd>작품 = <code>BWorkSidePanel</code>에 "보드" 탭(메모·인물·보드) · 시리즈 = /library 드릴인에 "시리즈 보드" 섹션. 둘 다 owner 자동 생성(picker 없이 이름만).</dd>
+    <dt>대안</dt><dd>새 작품/시리즈 상세 라우트 신설 → 범위 폭증·기존 흐름 충돌(기각).</dd>
+    <dt>되돌리기</dt><dd>탭/섹션 추가뿐 — 제거 시 원복. 에디터 레이아웃 무변경.</dd>
+  </dl>
+</div>
+
+<div class="card dec">
+  <h3>D-3 · reference-boards 경로 = <span class="mono">/api/boards/reference?projectId=</span></h3>
+  <dl>
+    <dt>무엇</dt><dd>핸드오프가 적은 <code>GET /works/:id/reference-boards</code>의 실제 경로.</dd>
+    <dt>코드베이스</dt><dd>API 베이스는 <code>/api/projects</code>("works"는 FE 라우트명일 뿐). 보드 도메인 로직이라 <code>/api/boards</code> 하위가 응집적. <code>/{boardId}</code>보다 리터럴 <code>/reference</code>를 앞에 둬 라우팅 충돌 회피.</dd>
+    <dt>PRD</dt><dd>§9·§10 — 그 작품 보드 + 상위 시리즈 보드.</dd>
+    <dt>채택</dt><dd><code>GET /api/boards/reference?projectId=</code> · 상위 시리즈 = <code>project.categoryId</code>(실측) · 본인 작품 아니면 404.</dd>
+    <dt>대안</dt><dd><code>/api/projects/{id}/reference-boards</code> — 컨트롤러 교차 결합(보드 로직이 ProjectController로)이라 기각.</dd>
+    <dt>되돌리기</dt><dd>엔드포인트 추가뿐, 기존 계약 무변경.</dd>
+  </dl>
+</div>
+
+<div class="card dec">
+  <h3>D-4 · 마지막 본 보드 저장소 = localStorage</h3>
+  <dl>
+    <dt>무엇</dt><dd>작품별 "마지막 본 보드"를 서버에 둘지 localStorage에 둘지.</dd>
+    <dt>코드베이스</dt><dd><b>실측: <code>SettingsService.ALLOWED</code>는 key별 "값 화이트리스트"</b>(<code>theme∈{light,dark,system}</code> 등). 임의 boardId를 받는 키를 추가하면 그 검증 불변식이 깨짐.</dd>
+    <dt>PRD</dt><dd>§9 "마지막으로 본 보드를 기억했다가 기본으로 연다".</dd>
+    <dt>채택</dt><dd><b>localStorage</b> <code>writenote.board.lastViewed.v1</code>(projectId→boardId 맵, 손상 내성). 비파괴 기본값.</dd>
+    <dt>대안</dt><dd>서버 키 신설 — ALLOWED 화이트리스트 모델을 깨거나 새 테이블 필요(기각, 마이그레이션 회피).</dd>
+    <dt>되돌리기</dt><dd>순수 헬퍼 1개. 서버 변경 0.</dd>
+  </dl>
+</div>
+
+<div class="card dec">
+  <h3>D-5 · 집필 참조 UI = 우측 슬라이드오버(overlay), 분할 레이아웃 비변경</h3>
+  <dl>
+    <dt>무엇</dt><dd>참조 보드를 어떻게 띄우는가(레이아웃 분할 vs 오버레이).</dd>
+    <dt>코드베이스</dt><dd>집필실은 자체 EditContext 에디터 + 3패널 flex로 <b>회귀 민감</b>(ISSUE-048 포커스 등). 에디터 flex를 재구성하면 위험.</dd>
+    <dt>PRD</dt><dd>§5.4 ③ "곁눈질 — 읽기 중심", §9 "원고와 나란히".</dd>
+    <dt>채택</dt><dd>우측 <b>슬라이드오버 overlay</b>(<code>BoardReferencePanel</code>) — 집필 3패널 flex 무변경. 보드 캔버스는 <code>dynamic(ssr:false)</code>로 번들 격리(PRD §9). 토글 켜면 원고 위에 곁들여 표시, 끄면 전폭 복귀.</dd>
+    <dt>대안</dt><dd>에디터 옆 4번째 컬럼 = 880px에서 과밀 + flex 재구성 회귀 위험(기각).</dd>
+    <dt>되돌리기</dt><dd>토글 + 패널 컴포넌트만 — 제거 시 집필실 원복.</dd>
+  </dl>
+</div>
+
+<div class="card dec">
+  <h3>D-6 · E(메모·인물 통합) 방향 = ③ 참조 통합 권고 (단, 사용자 결정 대기)</h3>
+  <dl>
+    <dt>무엇</dt><dd>메모·인물을 보드로 어떻게 통합하나(파괴적 결정 영역).</dd>
+    <dt>코드베이스</dt><dd><b>실측 충돌 확정</b> — 메모=M:N(<code>memo_projects</code>)·iOS 캡처(<code>source/captured_at</code>)·soft-delete, 인물=구조화 필드(age/gender/traits), 카드=1보드 전속·평문. 차원이 안 맞아 "그냥 이관" 불가.</dd>
+    <dt>PRD</dt><dd>§0 "메모·인물 메뉴 폐기 → Card 흡수"(이상). §3 N:N 비목표.</dd>
+    <dt>채택</dt><dd><b>③ 참조 통합("가져오기") 권고</b> — 원본 보존, 보드에 "가져오기"로 카드 복제만 추가(비파괴, 마이그레이션 0). <b>단 자동 구현 금지 — 사용자가 D1~D6 결정</b>(가드 3).</dd>
+    <dt>대안</dt><dd>① 완전 통합 / ② 부분 통합 = 데이터·캡처 경로 손실(파괴적) → 자동 진행 금지. ④ 보류 = 안전.</dd>
+    <dt>되돌리기</dt><dd>현재 변경 0(문서만). ③ 구현 시에도 "가져온 카드 삭제"로 원복.</dd>
+  </dl>
+  <p class="muted" style="margin-top:10px">상세: <code>docs/board/board-track-e-design-draft.md</code> (충돌표·4 옵션·D1~D6·비파괴 스케치).</p>
+</div>
+
+<h2 id="dogfood">3. dogfooding 체크리스트 (일어나서 확인)</h2>
+<p class="muted">로그인이 필요한 화면이라 자동 진행 중엔 못 봤습니다(핸드오프 §7). 아래를 직접 확인해 주세요.</p>
+
+<h3>풀스택 로컬 기동 (3개 함께)</h3>
+<pre>cd /Users/jongwan-air/Desktop/workspaces/write-note
+# 1) DB
+docker compose up -d --wait postgres
+# 2) 백엔드 (별도 터미널)
+cd backend && ./gradlew bootRun --args='--spring.profiles.active=local'
+# 3) 프론트 (별도 터미널)
+cd frontend && pnpm dev   # → http://localhost:3000</pre>
+<p class="muted">로그인 후 작품(집필실)·시리즈(작품 보관함)에 보드가 보이려면, 먼저 보드를 1~2개 만들어 작품/시리즈에 붙여 두면 확인이 쉽습니다(상단 "보드" 메뉴 → 새 보드 → "이 작품/시리즈 전체").</p>
+
+<h3>042 내부 탭</h3>
+<ul class="check">
+  <li><b>작품 보드 탭</b> — 집필실(<code>/works/{id}</code>) 우측 보조 패널에 <b>메모·인물·보드</b> 3탭. "보드" 탭에 이 작품에 붙은 보드만 보임.</li>
+  <li><b>작품 보드 생성</b> — "보드" 탭의 "+ 새 보드" → 이름만 입력 → 생성되며 그 보드 캔버스로 이동(<code>/boards/{id}</code>). 만든 보드의 소속이 이 작품인지(상단 보드 메뉴 라벨 "작품 · …").</li>
+  <li><b>시리즈 보드 섹션</b> — 작품 보관함(/library)에서 시리즈를 열면(드릴인) 아래 "시리즈 보드" 섹션에 그 시리즈 보드만 보임 + "+ 새 보드"(이 시리즈 소속 자동).</li>
+  <li><b>빈 상태</b> — 보드가 없을 때 빈 캔버스 대신 안내 + "+ 새 보드"만 보임.</li>
+  <li><b>열기</b> — 목록의 보드 클릭 시 그 보드 캔버스로 이동.</li>
+</ul>
+
+<h3>043 집필 참조 (슬라이드오버)</h3>
+<ul class="check">
+  <li><b>토글</b> — 집필실 좌측 패널(목차 위)의 "보드 참조" 버튼 → 우측에서 슬라이드오버가 열림. ✕ 또는 ESC로 닫힘.</li>
+  <li><b>후보</b> — 그 작품 보드 + <b>상위 시리즈</b>(작품이 시리즈 소속일 때) 보드가 모두 후보. 여러 개면 상단 드롭다운으로 전환, 하나면 바로 표시.</li>
+  <li><b>캔버스</b> — 슬라이드오버 안에 보드 카드/연결이 보이고 읽을 수 있음(곁눈질). 원고는 왼쪽에 그대로(레이아웃 안 깨짐).</li>
+  <li><b>마지막 본 보드</b> — 보드를 전환한 뒤 닫았다 다시 열면, 마지막에 보던 보드가 기본으로 열림(작품별 기억).</li>
+  <li><b>빈 상태</b> — 작품에 붙은 보드가 하나도 없으면 "보드로 가기" 안내.</li>
+  <li><b>집필 무회귀</b> — 보드 참조를 열고 닫은 뒤 본문 입력(한글 IME)·자동저장·목차가 정상인지(에디터 레이아웃 회귀 점검).</li>
+</ul>
+
+<h3>무회귀 (트랙 A~D 보존)</h3>
+<ul class="check">
+  <li>보드 캔버스(전역 <code>/boards/{id}</code>)에서 카드 만들기·잇기·종류 칩·한눈에 보기가 그대로 동작.</li>
+  <li>전역 보드 허브(<code>/boards</code>) 목록·검색·소속 라벨·생성 picker 정상.</li>
+</ul>
+
+<h2 id="open">4. 미해결 / 막힌 지점</h2>
+<div class="grid two">
+  <div class="card">
+    <h3><span class="pill green">게이트</span> RED 없음</h3>
+    <p>BE/FE 모든 단위가 GREEN으로 커밋. 회귀를 누적하지 않았습니다.</p>
+  </div>
+  <div class="card">
+    <h3><span class="pill amber">결정 보류</span> E 데이터 모델</h3>
+    <p>메모·인물 통합 방향(D1~D6)은 파괴적 결정이라 자동 확정하지 않았습니다. 비파괴 초안만 작성 — <b>③ 참조 통합 권고</b> / ④ 보류도 안전. 사용자 결정 후 spec 승격.</p>
+  </div>
+  <div class="card">
+    <h3><span class="pill slate">미검증</span> authed 동작</h3>
+    <p>로그인 불가로 042·043의 인증 뒤 화면 동작은 못 봤습니다(자동 게이트는 GREEN이나, 게이트가 화면 상호작용을 증명하진 않음). 위 체크리스트로 확인 필요.</p>
+  </div>
+  <div class="card">
+    <h3><span class="pill slate">참고</span> 작품 탭 ↔ 참조 분리</h3>
+    <p>집필실에 "보드 탭"(관리, 042)과 "보드 참조"(읽기, 043)가 둘 다 있습니다. PRD의 관리/읽기 구분을 따른 의도적 분리지만, 써 보고 중복감이 들면 통합을 후속으로 잡을 수 있습니다.</p>
+  </div>
+</div>
+
+<h2 id="next">5. 다음 진입점</h2>
+<div class="card">
+  <ol style="margin:4px 0;padding-left:20px">
+    <li><b>위 dogfooding 체크리스트 확인</b> — 042·043 authed 동작 + 집필 무회귀. 문제 있으면 그 항목만 systematic-debugging.</li>
+    <li><b>E 데이터 모델 결정</b> — <code>board-track-e-design-draft.md</code>의 D1~D6. ③ 참조통합(권고·비파괴) / ④ 보류(안전) / ①② 파괴적(별도 신중 설계). 결정 후 ③이면 <code>specs/044-board-import-from-memo-character/</code> 신규(추가 only).</li>
+    <li><b>develop merge 결정</b> — A~D + C-2 누적분(038)을 develop에 올릴지. 038이 develop보다 4커밋 뒤처져 양방향 병합 주의(§18).</li>
+  </ol>
+</div>
+
+<footer>
+  생성: 2026-06-26 야간 자동 진행 · 커밋 <span class="mono">c7a3c88 · 976c4dd · 02b9b62</span> (038-memo-plot-board) ·
+  설계 SoT <code>docs/board/board-track-c2-design.md</code> · <code>board-track-e-design-draft.md</code> · roadmap §0/§5 갱신.
+</footer>
+
+</div>
+</body>
+</html>
