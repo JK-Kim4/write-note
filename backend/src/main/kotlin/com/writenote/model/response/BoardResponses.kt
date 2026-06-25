@@ -50,9 +50,11 @@ data class NodeResponse(
     val updatedAt: Instant,
 )
 
-/** 연결(엣지) 응답. */
+/** 연결(엣지) 응답. [sourceHandle]/[targetHandle]=연결 테두리 앵커(top/right/bottom/left 또는 null). */
 data class EdgeResponse(
     val id: Long,
     val sourceNodeId: Long,
     val targetNodeId: Long,
+    val sourceHandle: String?,
+    val targetHandle: String?,
 )

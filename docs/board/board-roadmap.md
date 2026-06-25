@@ -17,12 +17,12 @@
 
 | | |
 |---|---|
-| 마지막 갱신 | 2026-06-25 (방향 수립 + 로드맵 문서화 세션) |
-| 완료된 트랙 | — (아직 없음) |
-| 진행 중 트랙 | — |
-| **다음 진입** | **트랙 A — 연결(Link) UI 재개 → `brainstorming` 부터** (§5-A) |
+| 마지막 갱신 | 2026-06-25 (트랙 A 구현·dogfooding 통과 → 마무리) |
+| 완료된 트랙 | — (A 마무리 직전) |
+| 진행 중 트랙 | **A — 연결(Link) UI 재개** (구현·검증✅ **dogfooding 통과** → build 게이트 → finish-work+회고) |
+| **다음 진입** | **트랙 A 마무리 — FE build 게이트 → finish-work(merge·vault) + 회고** |
 | 블로커/대기 | 없음 |
-| 직전 세션이 한 일 | 코드베이스 실측 + PRD/UX v0.2 분석 → 갭·트랙 A~E 확정 → 본 로드맵 작성 |
+| 직전 세션이 한 일 | SDD 전과정 + FE 구현 + **dogfooding 통과**(테두리 앵커·이웃강조·재진입 유지·끊기). **dogfooding 파생: 테두리 앵커 요구 → BE V26 확장**(`board_edges.source_handle/target_handle`, floating 폐기·핸들 앵커 영속). 트랙 A가 "신규 BE 0"→"BE V26 앵커"로 범위 변경 |
 
 **새 세션 첫 행동**: ① 본 §0 → ② §1 대시보드 → ③ §5 진행 중(또는 다음) 트랙의 체크박스·링크 → ④ CLAUDE.md 의무대로 vault `02-PROGRESS`·`03-ISSUES`.
 
@@ -32,7 +32,7 @@
 
 | 트랙 | 내용 | 상태 | 무게 |
 |---|---|---|---|
-| **A** | 연결(Link) UI 재개 | ⬜ 대기 | 가벼움 (FE only) |
+| **A** | 연결(Link) UI 재개 | 🔵 진행 중 (spec✅·plan 대기) | 가벼움 (FE only) |
 | **B** | 유비쿼터스 언어 정리 | ⬜ 대기 | 무거움 (마이그레이션+전면 rename) |
 | **C** | 진입점·매핑·아이디어 보드 | ⬜ 대기 | 중간 (BE 신규 3) |
 | **D** | 카드 종류 + UX 안전망 | ⬜ 대기 | 가벼움 |
@@ -96,16 +96,20 @@
 
 > 각 트랙 진척 체크박스를 단계 완료 시마다 `[x]` 로 갱신하고, brainstorming/설계 결론은 **링크된 파일**(`specs/` 또는 본 문서 부록)에 박는다 — 대화에만 두지 않는다.
 
-### 트랙 A — 연결(Link) UI 재개 🥇  `상태: ⬜ 대기`
+### 트랙 A — 연결(Link) UI 재개 🥇  `상태: 🔵 진행 중`
 - **목표**: 보류된 연결 UI 복원. BE·훅 그대로, FE 캔버스 결선만.
-- **범위(FE only)**: `NodeCard` 연결점(`Handle`) + `PlotBoardCanvas` `useEdgesState`·`edges` 렌더·`nodesConnectable={true}`·`onConnect`(→`useCreateEdge`)·엣지 삭제(→`useDeleteEdge`) + PRD `TASK-2` UX(hover 단서·드래그 피드백·빈 곳 drop "새 카드 만들어 잇기"·클릭-클릭 대체·백링크 패널).
-- **PRD 근거**: `board-ux-worksheet.md` TASK-2. **재개 전 확인**: `useCreateEdge`/`useDeleteEdge` 낙관/롤백 유무.
+- **범위(FE only)**: `NodeCard` 연결점(`Handle`) + `PlotBoardCanvas` `useEdgesState`·`edges` 렌더·`nodesConnectable={true}`·`onConnect`(→`useCreateEdge`)·엣지 삭제(→`useDeleteEdge`) + PRD `TASK-2` UX(hover 단서·드래그 피드백·빈 곳 drop "새 카드 만들어 잇기"·클릭-클릭 대체).
+- **PRD 근거**: `board-ux-worksheet.md` TASK-2.
+- **확정 결정(brainstorming 2026-06-25)**: ① **무방향 선**(화살표·source/target 구분 없음, RF `ConnectionMode.Loose`. 단 BE는 A→B·B→A 별개 허용 → FE가 "이미 이어진 쌍(양방향)·자기연결" 선제 차단). ② **이웃 하이라이트**(별도 백링크 패널 없음 — 선택 카드의 이웃 node/edge 강조·나머지 dim).
+- **실측 확정(재개 전 확인 완료)**: `useCreateEdge`/`useDeleteEdge` = 순수 mutationFn, **낙관/롤백·캐시무효화 없음**(노드 훅은 `onSettled: invalidate list` 함). 제거분 = `nodesConnectable={false}`·`useEdgesState`/`edges`/`onConnect` 없음·`Handle` 미노출. BE 엣지: 자기연결 400·타보드/없는노드 400·정확순서쌍 중복 409·relation_type 없음.
 - **진척**:
-  - [ ] brainstorming (연결 인터랙션 요구사항 확정) — 결론 박을 위치: ______
-  - [ ] (FE-only 소규모면 spec 생략 가능) spec/plan/tasks
-  - [ ] 구현 (FE)
-  - [ ] 검증 (게이트 + dogfooding: 잇기·빈곳생성·클릭클릭·백링크)
-  - [ ] 마무리 (finish-work + 회고)
+  - [x] brainstorming (연결 인터랙션 요구사항 확정) — 결론: `specs/039-board-link-ui/spec.md`(US1 잇기·US2 끊기·US3 이웃강조) + 본 절 확정 결정
+  - [x] spec — `specs/039-board-link-ui/spec.md`(NEEDS_CLARIFICATION 0, 끊기=hover ✕·빈곳drop=확인모달 default)
+  - [x] plan — `specs/039-board-link-ui/plan.md`(+research·data-model·contracts·quickstart). RF v12 연결 API 설치본 타입 직접검증, 변경/신규 파일·순수헬퍼 시그니처 확정
+  - [x] tasks — `specs/039-board-link-ui/tasks.md`(25 task: Setup/Foundational/US1 잇기·US2 끊기·US3 이웃/Polish, 순수헬퍼 TDD + 캔버스=dogfooding 게이트)
+  - [x] 구현 (FE, TDD) — linkGraph(TDD 13)·LinkEdge·PlotBoardCanvas 결선·NodeCard Handle. 화면문구 노드→카드. **+ dogfooding 파생 BE V26 앵커 확장**(테두리 고정 영속, floating 폐기)
+  - [x] 검증 — **자동 게이트 GREEN**(FE typecheck·lint 0err·test 685·build / BE ktlint·test) + **dogfooding 통과**(테두리 앵커·이웃강조·재진입 유지·끊기)
+  - [ ] 마무리 (build 최종 게이트 → finish-work + 회고)
 
 ### 트랙 B — 유비쿼터스 언어 정리  `상태: ⬜ 대기`
 - **목표**: `node/edge/노드/연결/board_nodes` → `Card/Link/카드/잇기/cards` 전면 통일.

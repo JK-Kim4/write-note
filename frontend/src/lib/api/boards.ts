@@ -48,6 +48,9 @@ export interface BoardEdgeResponse {
     id: number;
     sourceNodeId: number;
     targetNodeId: number;
+    /** 연결 테두리 앵커(top/right/bottom/left 또는 null). 039 트랙 A — 사용자가 고른 테두리 영속. */
+    sourceHandle: string | null;
+    targetHandle: string | null;
 }
 
 export interface BoardDetail {
@@ -176,10 +179,12 @@ export function createEdge(
     boardId: number,
     sourceNodeId: number,
     targetNodeId: number,
+    sourceHandle?: string | null,
+    targetHandle?: string | null,
 ): Promise<BoardEdgeResponse> {
     return apiFetch<BoardEdgeResponse>(`/api/boards/${boardId}/edges`, {
         method: "POST",
-        body: JSON.stringify({ sourceNodeId, targetNodeId }),
+        body: JSON.stringify({ sourceNodeId, targetNodeId, sourceHandle, targetHandle }),
     });
 }
 

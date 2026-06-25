@@ -65,8 +65,10 @@ data class BatchNodePositionItem(
     val zIndex: Int? = null,
 )
 
-/** 연결 생성 — source≠target, 같은 보드 노드, 중복 불가. */
+/** 연결 생성 — source≠target, 같은 보드 노드, 중복 불가. [sourceHandle]/[targetHandle]=연결 테두리 앵커(top/right/bottom/left, 미지정 시 기본 핸들). */
 data class CreateEdgeRequest(
     val sourceNodeId: Long,
     val targetNodeId: Long,
+    val sourceHandle: String? = null,
+    val targetHandle: String? = null,
 )

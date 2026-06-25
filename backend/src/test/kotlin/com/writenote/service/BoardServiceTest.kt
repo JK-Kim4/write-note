@@ -397,10 +397,19 @@ class BoardServiceTest {
             }
         }
 
-        val response = service.createEdge(1L, 100L, CreateEdgeRequest(sourceNodeId = 5L, targetNodeId = 6L))
+        val response =
+            service.createEdge(
+                1L,
+                100L,
+                CreateEdgeRequest(sourceNodeId = 5L, targetNodeId = 6L, sourceHandle = "right", targetHandle = "left"),
+            )
 
         assertThat(captured.captured.boardId).isEqualTo(100L)
+        assertThat(captured.captured.sourceHandle).isEqualTo("right")
+        assertThat(captured.captured.targetHandle).isEqualTo("left")
         assertThat(response.sourceNodeId).isEqualTo(5L)
         assertThat(response.targetNodeId).isEqualTo(6L)
+        assertThat(response.sourceHandle).isEqualTo("right")
+        assertThat(response.targetHandle).isEqualTo("left")
     }
 }

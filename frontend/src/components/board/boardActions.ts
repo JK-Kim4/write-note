@@ -9,6 +9,8 @@ import { createContext, useContext } from "react";
 export type BoardActions = {
     /** 노드 본문 편집 커밋(영속 + RF 상태 갱신). 캔버스가 구현. */
     editNodeBody: (nodeId: number, body: string) => void;
+    /** 클릭-클릭 잇기 모드 시작(이 카드를 출발점으로). 캔버스가 구현. */
+    startConnect: (nodeId: number) => void;
 };
 
 export const BoardActionsContext = createContext<BoardActions | null>(null);

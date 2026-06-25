@@ -50,7 +50,12 @@ export const boards = {
     batchNodePositions: (boardId: number, items: NodePositionItem[]): Promise<BoardNodeResponse[]> =>
         batchNodePositions(boardId, items),
     deleteNode: (boardId: number, nodeId: number): Promise<void> => deleteNode(boardId, nodeId),
-    createEdge: (boardId: number, sourceNodeId: number, targetNodeId: number): Promise<BoardEdgeResponse> =>
-        createEdge(boardId, sourceNodeId, targetNodeId),
+    createEdge: (
+        boardId: number,
+        sourceNodeId: number,
+        targetNodeId: number,
+        sourceHandle?: string | null,
+        targetHandle?: string | null,
+    ): Promise<BoardEdgeResponse> => createEdge(boardId, sourceNodeId, targetNodeId, sourceHandle, targetHandle),
     deleteEdge: (boardId: number, edgeId: number): Promise<void> => deleteEdge(boardId, edgeId),
 };

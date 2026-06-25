@@ -26,6 +26,10 @@ class BoardEdge(
     var sourceNodeId: Long = 0,
     @Column(name = "target_node_id", nullable = false)
     var targetNodeId: Long = 0,
+    @Column(name = "source_handle", length = 8)
+    var sourceHandle: String? = null,
+    @Column(name = "target_handle", length = 8)
+    var targetHandle: String? = null,
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: Instant? = null,
 ) {

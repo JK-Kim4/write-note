@@ -275,6 +275,8 @@ class BoardService(
                     boardId = boardId,
                     sourceNodeId = request.sourceNodeId,
                     targetNodeId = request.targetNodeId,
+                    sourceHandle = request.sourceHandle,
+                    targetHandle = request.targetHandle,
                 ),
             )
         return toEdge(edge)
@@ -405,5 +407,7 @@ class BoardService(
             id = requireNotNull(edge.id),
             sourceNodeId = edge.sourceNodeId,
             targetNodeId = edge.targetNodeId,
+            sourceHandle = edge.sourceHandle,
+            targetHandle = edge.targetHandle,
         )
 }

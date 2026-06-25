@@ -143,8 +143,17 @@ export function useUpdateViewport(boardId: number) {
 
 export function useCreateEdge(boardId: number) {
     return useMutation({
-        mutationFn: ({ sourceNodeId, targetNodeId }: { sourceNodeId: number; targetNodeId: number }) =>
-            webElectronApi.boards.createEdge(boardId, sourceNodeId, targetNodeId),
+        mutationFn: ({
+            sourceNodeId,
+            targetNodeId,
+            sourceHandle,
+            targetHandle,
+        }: {
+            sourceNodeId: number;
+            targetNodeId: number;
+            sourceHandle?: string | null;
+            targetHandle?: string | null;
+        }) => webElectronApi.boards.createEdge(boardId, sourceNodeId, targetNodeId, sourceHandle, targetHandle),
     });
 }
 
