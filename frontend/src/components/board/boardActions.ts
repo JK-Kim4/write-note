@@ -13,6 +13,10 @@ export type BoardActions = {
     startConnect: (cardId: number) => void;
     /** 카드 종류 설정/해제(트랙 D). kind=null 이면 무지정 해제. 낙관적 + 실패 시 롤백. 캔버스가 구현. */
     setCardKind: (cardId: number, kind: string | null) => void;
+    /** 생성 직후 자동 본문 편집을 열 대상 카드 id(044). null=없음. 실제 id 확정 후 캔버스가 set. */
+    autoEditCardId: string | null;
+    /** 자동 편집을 연 카드가 소비(1회성) — 캔버스의 autoEditCardId 를 null 로. 캔버스가 구현. */
+    consumeAutoEdit: (cardId: number) => void;
 };
 
 export const BoardActionsContext = createContext<BoardActions | null>(null);

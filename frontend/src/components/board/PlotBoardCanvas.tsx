@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { webElectronApi } from "@/lib/electron-api";
 import {
@@ -42,6 +42,8 @@ import type { BoardDetail, CardResponse } from "@/lib/api/boards";
 import { CardNode, type CardNodeData } from "./CardNode";
 import { LinkEdge } from "./LinkEdge";
 import { BoardActionsContext } from "./boardActions";
+import { BoardEmptyGuide } from "./BoardEmptyGuide";
+import { isPaneHit } from "./boardCanvasHelpers";
 import { canLink, incidentLinkIds, nearestHandlePair, neighborCardIds, toRFEdge } from "./linkGraph";
 
 /**
@@ -90,6 +92,8 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
         fromHandle?: string;
         pos: XYPosition;
     } | null>(null);
+    // 생성 직후 자동 본문 편집을 열 대상(044) — 실제 id 확정(onSuccess) 후 set, CardNode 가 소비.
+    const [autoEditCardId, setAutoEditCardId] = useState<string | null>(null);
     const { screenToFlowPosition, getNode, fitView } = useReactFlow();
     const wrapperRef = useRef<HTMLDivElement>(null);
     const tempCounter = useRef(0);
@@ -339,9 +343,14 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
         setConnectFromId(null);
     }, []);
 
+    // 자동 편집 소비(044) — 편집을 연 카드가 호출해 1회성으로 닫는다.
+    const consumeAutoEdit = useCallback((cardId: number) => {
+        setAutoEditCardId((cur) => (cur === String(cardId) ? null : cur));
+    }, []);
+
     const boardActions = useMemo(
-        () => ({ editCardBody, startConnect, setCardKind }),
-        [editCardBody, startConnect, setCardKind],
+        () => ({ editCardBody, startConnect, setCardKind, autoEditCardId, consumeAutoEdit }),
+        [editCardBody, startConnect, setCardKind, autoEditCardId, consumeAutoEdit],
     );
 
     // 이웃 하이라이트 — 선택 카드 기준. 선택은 RF 자체 selected 를 단일 소스로.
@@ -362,33 +371,55 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
         }));
     }, [edges, selectedId, handleDisconnect]);
 
-    // + 카드 — 종류 안 묻고 무지정 빈 카드 생성(트랙 D). 종류는 선택 후 칩으로 부여.
+    // 카드 생성 공통(044) — 세 경로("+ 카드" 버튼 · 빈 곳 더블클릭 · 빈 보드 안내 버튼)가 공유.
+    // 종류는 안 묻고 무지정 빈 카드 생성(트랙 D). 낙관적 temp 노드 → 생성 → onSuccess 에서 실제 id
+    // 확정 후 자동 편집 진입(temp→real 스왑 리마운트 키 유실 방지), onError 롤백.
+    const createCardAt = useCallback(
+        (position: XYPosition) => {
+            const tempId = `temp-${++tempCounter.current}`;
+            const optimistic: Node<CardNodeData> = {
+                id: tempId,
+                type: "plot",
+                position,
+                data: { body: "", kind: null },
+            };
+            setNodes((nds) => [...nds, optimistic]);
+            createCard.mutate(
+                { body: "", posX: position.x, posY: position.y },
+                {
+                    onSuccess: (card) => {
+                        const realId = String(card.id);
+                        setNodes((nds) => nds.map((n) => (n.id === tempId ? { ...n, id: realId } : n)));
+                        setAutoEditCardId(realId);
+                    },
+                    onError: () => {
+                        setNodes((nds) => nds.filter((n) => n.id !== tempId));
+                        setError("카드 생성에 실패했습니다.");
+                    },
+                },
+            );
+        },
+        [setNodes, createCard],
+    );
+
+    // + 카드 / 빈 보드 안내 버튼 — 캔버스 중앙에 생성.
     const handleAddCard = useCallback(() => {
         const rect = wrapperRef.current?.getBoundingClientRect();
         const screen = rect
             ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
             : { x: 200, y: 200 };
-        const position = screenToFlowPosition(screen);
-        const tempId = `temp-${++tempCounter.current}`;
-        const optimistic: Node<CardNodeData> = {
-            id: tempId,
-            type: "plot",
-            position,
-            data: { body: "", kind: null },
-        };
-        setNodes((nds) => [...nds, optimistic]);
-        createCard.mutate(
-            { body: "", posX: position.x, posY: position.y },
-            {
-                onSuccess: (card) =>
-                    setNodes((nds) => nds.map((n) => (n.id === tempId ? { ...n, id: String(card.id) } : n))),
-                onError: () => {
-                    setNodes((nds) => nds.filter((n) => n.id !== tempId));
-                    setError("카드 생성에 실패했습니다.");
-                },
-            },
-        );
-    }, [screenToFlowPosition, setNodes, createCard]);
+        createCardAt(screenToFlowPosition(screen));
+    }, [screenToFlowPosition, createCardAt]);
+
+    // 빈 곳(pane) 더블클릭 → 그 자리에 카드 생성(044). React Flow 12 엔 onPaneDoubleClick 이 없어
+    // wrapper 네이티브 더블클릭 + isPaneHit 로 카드/핸들/컨트롤 위 더블클릭을 제외한다(zoomOnDoubleClick=false).
+    const handlePaneDoubleClick = useCallback(
+        (e: ReactMouseEvent<HTMLDivElement>) => {
+            if (!isPaneHit(e.target)) return;
+            createCardAt(screenToFlowPosition({ x: e.clientX, y: e.clientY }));
+        },
+        [screenToFlowPosition, createCardAt],
+    );
 
     const handleNodeDragStart: OnNodeDrag<Node<CardNodeData>> = useCallback((_e, _node, dragged) => {
         dragSnapshot.current = new Map(dragged.map((n) => [n.id, { x: n.position.x, y: n.position.y }]));
@@ -449,7 +480,11 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
 
     return (
         <BoardActionsContext.Provider value={boardActions}>
-            <div ref={wrapperRef} className="h-[calc(100vh-9rem)] w-full rounded-xl border border-gray-200 bg-white">
+            <div
+                ref={wrapperRef}
+                onDoubleClick={handlePaneDoubleClick}
+                className="relative h-[calc(100vh-9rem)] w-full rounded-xl border border-gray-200 bg-white"
+            >
                 <ReactFlow
                     nodes={displayNodes}
                     edges={displayEdges}
@@ -478,6 +513,7 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
                     colorMode="light"
                     minZoom={0.2}
                     maxZoom={2}
+                    zoomOnDoubleClick={false}
                     proOptions={{ hideAttribution: true }}
                 >
                     <Background />
@@ -568,6 +604,7 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
                         </Panel>
                     )}
                 </ReactFlow>
+                {nodes.length === 0 && <BoardEmptyGuide onCreate={handleAddCard} />}
             </div>
         </BoardActionsContext.Provider>
     );

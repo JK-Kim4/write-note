@@ -43,7 +43,7 @@ export function CardNode({ id, data, selected }: NodeProps) {
     const dimmed = (data as CardNodeData).dimmed ?? false;
     const kind = kindOf((data as CardNodeData).kind);
     const isUntyped = kind.id === null;
-    const { editCardBody, startConnect, setCardKind } = useBoardActions();
+    const { editCardBody, startConnect, setCardKind, autoEditCardId, consumeAutoEdit } = useBoardActions();
     const [editing, setEditing] = useState(false);
     const [text, setText] = useState(body);
     // 종류 트레이: 무지정 카드는 선택 시 자동, 종류 지정 카드는 배지를 눌러 열었을 때만(trayOpen).
@@ -69,6 +69,15 @@ export function CardNode({ id, data, selected }: NodeProps) {
             textareaRef.current?.focus();
         }
     }, [editing]);
+
+    // 생성 직후 자동 본문 편집 진입(044) — 캔버스가 실제 id 확정 후 autoEditCardId 를 이 카드로 지정하면
+    // 편집을 열고 1회성 소비. 기존 더블클릭 편집과 독립.
+    useEffect(() => {
+        if (autoEditCardId === id && !editing) {
+            setEditing(true);
+            consumeAutoEdit(Number(id));
+        }
+    }, [autoEditCardId, id, editing, consumeAutoEdit]);
 
     const commit = () => {
         setEditing(false);
