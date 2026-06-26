@@ -67,18 +67,10 @@ export const HOME_TOUR_STEPS = [
         },
     },
     {
-        element: '[data-tour="nav-memos"]',
+        element: '[data-tour="nav-boards"]',
         popover: {
-            title: "메모",
-            description: "떠오른 아이디어를 곁쪽지로 남겨요. 집필 중에도 빠르게 기록할 수 있어요.",
-            side: "bottom" as const,
-        },
-    },
-    {
-        element: '[data-tour="nav-characters"]',
-        popover: {
-            title: "인물",
-            description: "등장인물을 한곳에 정리해요. 이름·나이·성격 등을 기록해 두세요.",
+            title: "보드",
+            description: "인물·사건·설정을 카드로 펼쳐 플롯을 설계해요. 작품·시리즈에 매달아 집필 중에도 참고할 수 있어요.",
             side: "bottom" as const,
         },
     },

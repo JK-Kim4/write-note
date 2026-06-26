@@ -5,15 +5,13 @@ import { useRouter } from "next/navigation";
 import { useProjectCards } from "@/lib/query/useProjects";
 import { selectDashboard, weekDayRanges } from "@/lib/dashboardView";
 import { useWeeklyByDay } from "@/lib/query/useSessions";
-import { useInboxMemos } from "@/lib/query/useMemos";
-import { toInboxMemoView } from "@/lib/memoView";
-import { QuickCapture } from "@/components/QuickCapture";
+import { useBoardsMine } from "@/lib/query/useBoards";
 import { BResumeCard } from "@/components/b/dashboard/BResumeCard";
 import { BWorkMiniCard } from "@/components/b/dashboard/BWorkMiniCard";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { BRhythmCard } from "@/components/b/dashboard/BRhythmCard";
 import { BTodayGauge } from "@/components/b/dashboard/BTodayGauge";
-import { BMemoStrip } from "@/components/b/dashboard/BMemoStrip";
+import { BBoardStrip } from "@/components/b/dashboard/BBoardStrip";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { usePreferences } from "@/stores/preferences";
 import { LITERARY_QUOTES, pickRandom } from "@/lib/literaryQuotes";
@@ -33,21 +31,20 @@ export default function BDashboardPage() {
     const todayDateLabel = `${now.getMonth() + 1}/${now.getDate()}`;
     const dailyGoalMinutes = usePreferences((s) => s.dailyGoalMinutes);
     const todayMs = weeklyQuery.data?.dayMs[todayIndex] ?? 0;
-    const memosQuery = useInboxMemos();
-    const [captureOpen, setCaptureOpen] = useState(false);
-    const [memoDrawerOpen, setMemoDrawerOpen] = useState(false);
+    const boardsQuery = useBoardsMine();
+    const [boardDrawerOpen, setBoardDrawerOpen] = useState(false);
     // 방문(마운트)마다 무작위 1구절 — mounted 가드로만 표시해 SSR 하이드레이션 불일치를 피한다(028 US3).
     const [quote] = useState(() => pickRandom(LITERARY_QUOTES));
 
-    // 메모 drawer — 키보드 사용자가 ESC 로 닫을 수 있도록(works/[id] 패턴 정합).
+    // 보드 drawer — 키보드 사용자가 ESC 로 닫을 수 있도록(works/[id] 패턴 정합).
     useEffect(() => {
-        if (!memoDrawerOpen) return;
+        if (!boardDrawerOpen) return;
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === "Escape") setMemoDrawerOpen(false);
+            if (e.key === "Escape") setBoardDrawerOpen(false);
         };
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
-    }, [memoDrawerOpen]);
+    }, [boardDrawerOpen]);
 
     const dateLabel = mounted
         ? new Intl.DateTimeFormat("ko-KR", {
@@ -58,14 +55,10 @@ export default function BDashboardPage() {
           }).format(new Date())
         : "";
 
-    // 최근 메모 3장 — 보조 맥락이라 조회 실패는 조용한 빈 상태로 격하(전체 차단 X).
-    const recentMemos = [...(memosQuery.data ?? [])]
-        .sort((a, b) => (a.capturedAt < b.capturedAt ? 1 : -1))
-        .slice(0, 3)
-        .map((m) => {
-            const v = toInboxMemoView(m, new Date());
-            return { id: v.id, body: v.body, dateLabel: v.dateLabel };
-        });
+    // 최근 보드 4개 — 보조 맥락이라 조회 실패는 조용한 빈 상태로 격하(전체 차단 X). /boards/mine 는 최근순.
+    const recentBoards = (boardsQuery.data ?? [])
+        .slice(0, 4)
+        .map((b) => ({ id: b.id, name: b.name, ownerLabel: b.ownerLabel, cardCount: b.cardCount }));
 
     return (
         <div>
@@ -105,7 +98,7 @@ export default function BDashboardPage() {
                 <section className="mt-8 rounded-xl border border-gray-200 bg-white p-8 text-center">
                     <h2 className="text-lg font-bold text-gray-900">작업실이 준비됐습니다</h2>
                     <p className="mt-2 text-sm text-gray-600">
-                        메모와 등장인물, 지난 세션의 마지막 한 줄까지 한자리에.
+                        작품과 보드, 지난 세션의 마지막 한 줄까지 한자리에.
                     </p>
                     <button
                         type="button"
@@ -121,16 +114,16 @@ export default function BDashboardPage() {
                     {/* 상단 풀폭: 이어서쓰기 */}
                     <BResumeCard card={resume} onOpen={() => router.push(`/works/${resume.id}`)} />
 
-                    {/* 880px 미만: 메모 drawer 토글 버튼 */}
+                    {/* 880px 미만: 보드 drawer 토글 버튼 */}
                     <button
                         type="button"
-                        onClick={() => setMemoDrawerOpen(true)}
+                        onClick={() => setBoardDrawerOpen(true)}
                         className="mt-3 w-full rounded-lg border border-amber-200 bg-amber-50 py-2 text-xs text-amber-700 min-[880px]:hidden"
                     >
-                        메모 보기
+                        보드 보기
                     </button>
 
-                    {/* 2컬럼: 좌=작품미니카드+리듬 / 우=메모(상시) */}
+                    {/* 2컬럼: 좌=작품미니카드+리듬 / 우=보드(상시) */}
                     <div className="mt-4 grid gap-4 min-[880px]:grid-cols-[1fr_320px]">
                         {/* 좌 컬럼 */}
                         <div className="flex flex-col gap-4">
@@ -157,70 +150,67 @@ export default function BDashboardPage() {
                             </div>
                         </div>
 
-                        {/* 우 컬럼: 메모 패널 상시(≥880px) */}
+                        {/* 우 컬럼: 보드 패널 상시(≥880px) */}
                         <div className="hidden min-[880px]:block">
-                            <BMemoStrip
-                                memos={recentMemos}
-                                onNew={() => setCaptureOpen(true)}
-                                onOpenAll={() => router.push("/memos")}
+                            <BBoardStrip
+                                boards={recentBoards}
+                                onOpen={(id) => router.push(`/boards/${id}`)}
+                                onNew={() => router.push("/boards")}
+                                onOpenAll={() => router.push("/boards")}
                             />
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* 880px 미만 메모 drawer 백드롭 */}
-            {memoDrawerOpen && (
+            {/* 880px 미만 보드 drawer 백드롭 */}
+            {boardDrawerOpen && (
                 <div
                     aria-hidden="true"
                     className="fixed inset-0 z-20 bg-gray-900/40 min-[880px]:hidden"
-                    onClick={() => setMemoDrawerOpen(false)}
+                    onClick={() => setBoardDrawerOpen(false)}
                 />
             )}
 
-            {/* 880px 미만 메모 drawer */}
+            {/* 880px 미만 보드 drawer */}
             <div
                 role="dialog"
                 aria-modal="true"
-                aria-label="메모"
-                inert={!memoDrawerOpen || undefined}
+                aria-label="보드"
+                inert={!boardDrawerOpen || undefined}
                 className={`fixed inset-y-0 right-0 z-30 flex w-80 flex-col overflow-hidden bg-white shadow-xl transition-transform duration-200 min-[880px]:hidden ${
-                    memoDrawerOpen ? "translate-x-0" : "translate-x-full"
+                    boardDrawerOpen ? "translate-x-0" : "translate-x-full"
                 }`}
             >
                 <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2">
-                    <span className="text-sm font-medium text-gray-700">메모</span>
+                    <span className="text-sm font-medium text-gray-700">보드</span>
                     <button
                         type="button"
-                        aria-label="메모 패널 닫기"
-                        onClick={() => setMemoDrawerOpen(false)}
+                        aria-label="보드 패널 닫기"
+                        onClick={() => setBoardDrawerOpen(false)}
                         className="rounded-md px-2 py-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                     >
                         ✕
                     </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-3">
-                    <BMemoStrip
-                        memos={recentMemos}
+                    <BBoardStrip
+                        boards={recentBoards}
+                        onOpen={(id) => {
+                            setBoardDrawerOpen(false);
+                            router.push(`/boards/${id}`);
+                        }}
                         onNew={() => {
-                            setMemoDrawerOpen(false);
-                            setCaptureOpen(true);
+                            setBoardDrawerOpen(false);
+                            router.push("/boards");
                         }}
                         onOpenAll={() => {
-                            setMemoDrawerOpen(false);
-                            router.push("/memos");
+                            setBoardDrawerOpen(false);
+                            router.push("/boards");
                         }}
                     />
                 </div>
             </div>
-
-            {captureOpen && (
-                <QuickCapture
-                    activeProjectId={null}
-                    onClose={() => setCaptureOpen(false)}
-                    onCaptured={() => void memosQuery.refetch()}
-                />
-            )}
         </div>
     );
 }

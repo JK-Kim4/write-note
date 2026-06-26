@@ -14,7 +14,7 @@ import { Timewatch } from "@/components/b/Timewatch";
 import { formatStopwatch } from "@/lib/formatStopwatch";
 import { rememberLastProject } from "@/lib/lastProject";
 import type { OutlineItem } from "@/lib/editor/outline";
-import { BWorkSidePanel, type Tab as SidePanelTab } from "@/components/b/BWorkSidePanel";
+import { BWorkSidePanel } from "@/components/b/BWorkSidePanel";
 import { BoardReferencePanel } from "@/components/b/BoardReferencePanel";
 import { ExportDialog } from "@/components/export/ExportDialog";
 import { PrintOverlay } from "@/components/export/PrintOverlay";
@@ -116,9 +116,8 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
     const rightDrawerRef = useRef<HTMLDivElement>(null);
     const conflictModalRef = useRef<HTMLDivElement>(null);
     const endWorkModalRef = useRef<HTMLDivElement>(null);
-    // 보조 패널 접기·탭 상태
+    // 보조 패널 접기 상태(044 — 보드 단일 패널, 탭 제거)
     const [panelOpen, setPanelOpen] = useState(true);
-    const [panelTab, setPanelTab] = useState<SidePanelTab>("memos");
     // 내보내기 다이얼로그(023 Round 3 진입점).
     const [exportOpen, setExportOpen] = useState(false);
     // 집필 중 보드 참조(043) — 우측 슬라이드오버. 기본 닫힘.
@@ -414,11 +413,11 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                 </button>
                 <button
                     type="button"
-                    aria-label="쪽지·인물 패널 열기"
+                    aria-label="보드 패널 열기"
                     onClick={() => setRightDrawerOpen(true)}
                     className="pointer-events-auto rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 shadow-sm hover:bg-gray-50"
                 >
-                    쪽지·인물
+                    보드
                 </button>
             </div>
 
@@ -468,17 +467,17 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                 ref={rightDrawerRef}
                 role="dialog"
                 aria-modal="true"
-                aria-label="쪽지·인물"
+                aria-label="보드"
                 inert={!rightDrawerOpen || undefined}
                 className={`fixed inset-y-0 right-0 z-30 flex w-80 flex-col overflow-hidden bg-gray-50 shadow-xl transition-transform duration-200 min-[880px]:hidden ${
                     rightDrawerOpen ? "translate-x-0" : "translate-x-full"
                 }`}
             >
                 <div className="flex items-center justify-between border-b border-gray-200 bg-white px-3 py-2">
-                    <span className="text-sm font-medium text-gray-700">쪽지·인물</span>
+                    <span className="text-sm font-medium text-gray-700">보드</span>
                     <button
                         type="button"
-                        aria-label="쪽지·인물 패널 닫기"
+                        aria-label="보드 패널 닫기"
                         onClick={() => setRightDrawerOpen(false)}
                         className="rounded-md px-2 py-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                     >
@@ -499,8 +498,6 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                     <BWorkSidePanel
                         projectId={projectId}
                         collapsible={false}
-                        tab={panelTab}
-                        onTabChange={setPanelTab}
                         wordCount={totalWordCount}
                         targetLength={targetLength}
                     />
@@ -567,8 +564,6 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                     projectId={projectId}
                     isOpen={panelOpen}
                     onOpenChange={setPanelOpen}
-                    tab={panelTab}
-                    onTabChange={setPanelTab}
                     wordCount={totalWordCount}
                     targetLength={targetLength}
                 />

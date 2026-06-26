@@ -89,14 +89,11 @@ function stubDocument(id: number, text = "마지막 문장.") {
     );
 }
 
-function stubMemos(memos: unknown[] = []) {
+// 044 보드 중심 전환 — 홈 우측 패널이 메모(/api/memos) 대신 보드(/api/boards/mine)를 조회한다.
+function stubBoardsMine(boards: unknown[] = []) {
     server.use(
-        http.get(`${ORIGIN}/api/memos`, () =>
-            HttpResponse.json({
-                success: true,
-                data: { content: memos, page: 0, size: 100, totalElements: memos.length, totalPages: 1 },
-                error: null,
-            }),
+        http.get(`${ORIGIN}/api/boards/mine`, () =>
+            HttpResponse.json({ success: true, data: boards, error: null }),
         ),
     );
 }
@@ -115,7 +112,7 @@ describe("BDashboardPage(/) 행위", () => {
         stubCards([cardJson(42, "B작품", "2026-06-10T02:00:00Z", { nextScene: "바다 장면" })]);
         stubDocument(42, "마지막 문장 예시.");
         stubWeekly();
-        stubMemos();
+        stubBoardsMine();
 
         renderPage();
 
@@ -130,7 +127,7 @@ describe("BDashboardPage(/) 행위", () => {
     it("작품이 0개일 때 '작업실이 준비됐습니다' + '첫 작품 시작하기'가 보이고 클릭 시 /library?new=1 push", async () => {
         stubCards([]);
         stubWeekly();
-        stubMemos();
+        stubBoardsMine();
 
         renderPage();
 
@@ -151,7 +148,7 @@ describe("BDashboardPage(/) 행위", () => {
             ),
         );
         stubWeekly();
-        stubMemos();
+        stubBoardsMine();
 
         renderPage();
 
