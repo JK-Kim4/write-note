@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>보드 — 기획 vs 구현 GAP 분석 (2026-06-26)</title>
+<style>
+  :root{
+    --bg:#f6f4ef; --surface:#fffdf9; --ink:#2a2620; --muted:#6b6357; --line:#e4ddd0;
+    --terra:#b4552e; --teal:#2f7d77; --green:#2e7d4f; --amber:#9a6a16; --red:#b3402e; --slate:#5b6470;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+    line-height:1.6;font-size:14.5px}
+  .wrap{max-width:1080px;margin:0 auto;padding:38px 22px 80px}
+  header.top{border-bottom:2px solid var(--terra);padding-bottom:16px;margin-bottom:24px}
+  h1{font-size:24px;margin:0 0 5px}
+  .sub{color:var(--muted);font-size:13.5px}
+  h2{font-size:18px;margin:34px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+  h3{font-size:15px;margin:18px 0 7px}
+  p{margin:7px 0}
+  code{background:#efeae0;border-radius:5px;padding:1px 5px;font-size:12.5px;
+    font-family:"SF Mono",ui-monospace,Menlo,monospace}
+  .mono{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+  th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;background:#faf7f1}
+  td.s{white-space:nowrap;font-weight:700;text-align:center;width:78px}
+  .ok{color:var(--green)} .part{color:var(--amber)} .no{color:var(--red)} .intent{color:var(--slate)}
+  .badge{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 9px}
+  .b-ok{background:#e2f0e7;color:var(--green)} .b-part{background:#f4ecd9;color:var(--amber)}
+  .b-no{background:#f6e3df;color:var(--red)} .b-intent{background:#eceef1;color:var(--slate)}
+  .cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:14px 0}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .n{font-size:26px;font-weight:800;line-height:1}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:4px}
+  .note{background:#fbf4e8;border:1px solid #e8d9b8;border-radius:10px;padding:12px 16px;font-size:13px;color:#6a5a30;margin:12px 0}
+  .legend{font-size:12.5px;color:var(--muted);margin:6px 0 14px}
+  .legend b{color:var(--ink)}
+  ul.tight{margin:6px 0;padding-left:20px}
+  ul.tight li{margin:3px 0}
+  footer{margin-top:46px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1>보드(Board) — 기획 문서 vs 실제 구현 GAP 분석</h1>
+  <div class="sub">2026-06-26 · 대조 대상: <code>board-prd.md</code> v0.2 · <code>board-ux-worksheet.md</code> v0.2 ↔ 실제 코드(038 + 트랙 A·B·C·D·C-2·E1) · 브랜치 <code>038-memo-plot-board</code></div>
+</header>
+
+<div class="legend">
+  상태 범례 — <span class="badge b-ok">✅ 구현</span> 기획대로 됨 ·
+  <span class="badge b-part">⚠️ 부분/변경</span> 일부만 또는 설계 의도적 변경 ·
+  <span class="badge b-no">❌ 미구현(갭)</span> 빠짐 ·
+  <span class="badge b-intent">⏸ 의도적 제외</span> 비목표/후속으로 명시 결정됨
+</div>
+
+<div class="cards">
+  <div class="stat"><div class="n ok">✅ 5</div><div class="l">완성 (TASK 단위)</div></div>
+  <div class="stat"><div class="n part">⚠️ 3</div><div class="l">부분/의도 변경</div></div>
+  <div class="stat"><div class="n no">❌ 4</div><div class="l">미구현 갭(미추적)</div></div>
+  <div class="stat"><div class="n intent">⏸ 5</div><div class="l">의도적 제외(추적됨)</div></div>
+</div>
+
+<div class="note">
+  <b>핵심:</b> 구조적 기능(잇기·언어·진입점·매핑·종류·집필 참조)은 트랙 A~E1로 <b>거의 완성</b>. 빠진 것은 대부분
+  <b>TASK-1 카드 만들기 UX 디테일</b>(빈 보드 안내·더블클릭 생성)과 <b>TASK-7 온보딩 코치마크</b> — 로드맵 §3 갭 분석이
+  이를 카탈로그하지 않았고 트랙 A가 "TASK-1 잔여"로 제외했으나 추적 주인이 없어 회수되지 않음(아래 §원인).
+</div>
+
+<h2>1. UX 작업지시서(TASK-1 ~ TASK-7) 대조</h2>
+
+<h3>TASK-1 · 카드 만들기 &nbsp;<span class="badge b-no">❌ 핵심 갭</span></h3>
+<table>
+  <tr><th>기획(빌드 순서/완료 기준)</th><th class="s">상태</th><th>구현 근거 / 비고</th></tr>
+  <tr><td>① 툴바 "+ 새 카드" → 중앙 생성 + 제목칸 포커스</td><td class="s part">⚠️</td><td>버튼 있음(문구는 <code>+ 카드</code>) <span class="mono">PlotBoardCanvas:493</span>. "제목칸"은 없음 — 카드가 <b>본문(body) 단일 모델</b>이라 제목 개념 부재</td></tr>
+  <tr><td>② 빈 보드 진입 시 중앙 단일 진입점 (빈 캔버스 절대 노출 금지)</td><td class="s no">❌</td><td>빈 보드 안내/엠프티 스테이트 없음. 오히려 038 <code>spec.md FR-005</code>가 "빈 캔버스로 정상 표시"로 <b>정반대 명시</b></td></tr>
+  <tr><td>③ 빈 곳 더블클릭 → 그 자리에 카드 생성</td><td class="s no">❌</td><td><code>onPaneClick</code>(단일, 선택해제)만 있고 <code>onDoubleClick/onPaneDoubleClick</code> 없음 <span class="mono">PlotBoardCanvas:468</span>. (카드 더블클릭=본문 편집은 별개)</td></tr>
+  <tr><td>완료 기준 "빈 캔버스가 노출되지 않는다"</td><td class="s no">❌</td><td>현재 빈 보드 = 빈 캔버스 노출</td></tr>
+</table>
+
+<h3>TASK-2 · 카드 잇기 &nbsp;<span class="badge b-ok">✅ 거의 완성</span></h3>
+<table>
+  <tr><th>기획</th><th class="s">상태</th><th>구현 근거</th></tr>
+  <tr><td>hover "이을 수 있다" 단서(연결점, 평상시 숨김)</td><td class="s part">⚠️</td><td>사방 <code>Handle</code> hover/선택 시만 노출 ✅ <span class="mono">CardNode:88-97</span>. 단 <b>"끌어서 잇기" 텍스트 힌트는 미렌더</b>(COPY <code>hoverHint</code> 미사용)</td></tr>
+  <tr><td>드래그 선 따라오기 + 유효 카드 초록 강조</td><td class="s ok">✅</td><td><span class="mono">PlotBoardCanvas:222</span> 유효성 강조</td></tr>
+  <tr><td>유효 drop 연결 / 빈 곳 drop "새 카드 만들어 이을까요?"</td><td class="s ok">✅</td><td><span class="mono">PlotBoardCanvas:236,533</span></td></tr>
+  <tr><td>클릭-클릭(잇기 모드) 대체 경로</td><td class="s ok">✅</td><td>잇기 버튼 → 대상 클릭</td></tr>
+  <tr><td>낙관적 업데이트 + 실패 롤백</td><td class="s ok">✅</td><td>RF 로컬 상태 reseed</td></tr>
+</table>
+
+<h3>TASK-3 · 카드 종류 &nbsp;<span class="badge b-part">⚠️ 의도 변경</span></h3>
+<table>
+  <tr><th>기획</th><th class="s">상태</th><th>구현 근거</th></tr>
+  <tr><td>선택 시 "이건 뭔가요?" + 칩 4개(인물·장소·사건·테마)</td><td class="s part">⚠️</td><td>4종 칩 ✅(트랙 D). 단 <b>"이건 뭔가요?" 헤더는 제거</b>(트랙 D dogfooding — "AI 냄새" 지적). progressive disclosure 칩 트레이로 대체</td></tr>
+  <tr><td>지정 시 색 반영 / 재탭 해제</td><td class="s ok">✅</td><td>타입별 배경 틴트·테두리·칩 <span class="mono">cardKinds.ts</span> · 재탭 null 해제</td></tr>
+  <tr><td>만들 때 종류 안 묻기(선택 후에만)</td><td class="s ok">✅</td><td>"+ 카드"=무지정 생성(트랙 D)</td></tr>
+  <tr><td>relation_type "어떤 사이인가요?"</td><td class="s intent">⏸</td><td>연결에 relation_type 미구현(PRD §7 "후속"). Link 엔티티에 컬럼 없음</td></tr>
+</table>
+
+<h3>TASK-4 / 4B · 보드 매핑 & 전역 허브 &nbsp;<span class="badge b-ok">✅ 완성</span></h3>
+<table>
+  <tr><th>기획</th><th class="s">상태</th><th>구현 근거(트랙 C)</th></tr>
+  <tr><td>내부 생성(owner 자동, 이름만) / 전역 생성(picker "이 보드는 어디에 쓸 건가요?")</td><td class="s ok">✅</td><td><code>BoardOwnerPicker</code> · <code>InlineBoardList</code>(C-2)</td></tr>
+  <tr><td>1:N · 아이디어 보드 · "나중에 붙이기"</td><td class="s ok">✅</td><td>owner 다형 단일 + <code>PATCH /{id}/owner</code></td></tr>
+  <tr><td>전역 허브: 최근순 · 소속 라벨 · 키워드 검색</td><td class="s ok">✅</td><td><code>GET /boards/mine</code> · 클라 필터 검색 · 라벨 칩</td></tr>
+  <tr><td>소속 종류 필터(선택)</td><td class="s part">⚠️</td><td>검색은 클라 필터로 대체(별도 필터 UI 없음 — 설계상 충분)</td></tr>
+</table>
+
+<h3>TASK-5 · 집필 중 보드 참조 &nbsp;<span class="badge b-ok">✅ 완성</span></h3>
+<table>
+  <tr><th>기획</th><th class="s">상태</th><th>구현 근거(043)</th></tr>
+  <tr><td>그 작품 + 상위 시리즈 보드 / 전환 / 마지막 본 보드 기억 / dynamic import 격리</td><td class="s ok">✅</td><td><code>GET /boards/reference</code> · <code>BoardReferencePanel</code> · <code>lastViewedBoard</code>(localStorage) · <code>PlotBoardCanvas</code> dynamic</td></tr>
+</table>
+
+<h3>TASK-6 · 길 잃음 방지 & 안전망 &nbsp;<span class="badge b-part">⚠️</span></h3>
+<table>
+  <tr><th>기획</th><th class="s">상태</th><th>구현 근거</th></tr>
+  <tr><td>"한눈에 보기"(fit view)</td><td class="s ok">✅</td><td><span class="mono">PlotBoardCanvas:497-500</span></td></tr>
+  <tr><td>줌 최소/최대 한계</td><td class="s ok">✅</td><td>minZoom 0.2 / maxZoom 2</td></tr>
+  <tr><td>미니맵 토글</td><td class="s ok">✅</td><td><span class="mono">PlotBoardCanvas:485,512</span></td></tr>
+  <tr><td><b>undo/redo</b>(이동·연결·삭제 되돌리기, "우선순위 높음")</td><td class="s intent">⏸</td><td>미구현 — 트랙 D에서 <b>명시 제외</b>("별도/후순위")</td></tr>
+</table>
+
+<h3>TASK-7 · 첫 진입 1회성 안내 &nbsp;<span class="badge b-no">❌ 미구현</span></h3>
+<table>
+  <tr><th>기획</th><th class="s">상태</th><th>구현 근거</th></tr>
+  <tr><td>처음 카드 hover "끌어서 잇기" 1회 / 처음 선택 "이건 뭔가요?" 1회 / 상황형 코치마크</td><td class="s no">❌</td><td>전부 미구현. 트랙 A <code>spec.md</code> Out of Scope에 "TASK-7" 명시 제외했으나 후속 추적 없음</td></tr>
+</table>
+
+<h2>2. 유비쿼터스 언어(§5) · COPY 상수 대조</h2>
+<table>
+  <tr><th>기획 COPY / 규칙</th><th class="s">상태</th><th>구현</th></tr>
+  <tr><td>화면·도메인에 <code>node/edge/메모</code> 노출 0, <code>Card/Link</code> 통일</td><td class="s ok">✅</td><td>트랙 B 전면 rename. node/edge 어댑터 안에서만</td></tr>
+  <tr><td>잇기·이어요(연결 동사)</td><td class="s ok">✅</td><td>잇기 버튼·"연결 끊기"</td></tr>
+  <tr><td><code>card.newButton</code> "+ 새 카드"</td><td class="s part">⚠️</td><td>실제 "+ 카드"(문구 차이)</td></tr>
+  <tr><td><code>card.emptyBoard</code>/<code>emptyBoardButton</code> "여기에 첫 카드를 적어보세요"/"+ 카드 만들기"</td><td class="s no">❌</td><td>빈 보드 상태 자체 없음 → COPY 미사용(TASK-1 ② 연동)</td></tr>
+  <tr><td><code>card.titlePlaceholder</code> "카드 제목"</td><td class="s part">⚠️</td><td>제목 필드 없음(body 단일 모델)</td></tr>
+  <tr><td><code>link.hoverHint</code> "끌어서 잇기"</td><td class="s no">❌</td><td>미렌더(TASK-2 hover 힌트)</td></tr>
+  <tr><td><code>board.*</code>(ownerPrompt·attachAction·searchPlaceholder·labelIdea 등)</td><td class="s ok">✅</td><td>트랙 C picker/허브에서 사용</td></tr>
+  <tr><td><code>view.fitView</code> "한눈에 보기" / <code>actions.disconnect</code> "연결 끊기"</td><td class="s ok">✅</td><td>버튼·LinkEdge ✕</td></tr>
+</table>
+
+<h2>3. PRD 데이터 모델(§7) · API(§10) 대조</h2>
+<table>
+  <tr><th>기획(PRD §7/§10)</th><th class="s">상태</th><th>구현</th></tr>
+  <tr><td>card: title + content(2필드)</td><td class="s part">⚠️</td><td><b>body 단일</b>으로 병합 구현(설계 변경). Card 엔티티에 title/content 없음 <span class="mono">entity/Card.kt</span></td></tr>
+  <tr><td>card: width/height nullable(리사이즈)</td><td class="s intent">⏸</td><td>미구현(PRD "리사이즈 허용 시" = 선택). 리사이즈 UI 없음</td></tr>
+  <tr><td>card: pos_x/pos_y/z_index, card_type nullable</td><td class="s ok">✅</td><td>posX·posY·zIndex·type(4종+null)</td></tr>
+  <tr><td>link: relation_type nullable</td><td class="s intent">⏸</td><td>미구현(PRD "후속"). 대신 sourceHandle/targetHandle(앵커, 트랙 A) 추가</td></tr>
+  <tr><td>board: owner_type/owner_id(시리즈·작품·null) + viewport</td><td class="s ok">✅</td><td>다형 단일소유(트랙 C) + 뷰포트 영속</td></tr>
+  <tr><td>API §10 (boards·mine·reference·owner·viewport·cards·links CRUD)</td><td class="s ok">✅</td><td><code>BoardController</code> 16 endpoint(경로 일부 차이: /owner 분리, cards/links를 /{boardId} 하위로 중첩)</td></tr>
+  <tr><td>"특정 카드 기준 연결된 카드(백링크 포함)를 본다"(§3 목표)</td><td class="s part">⚠️</td><td><b>이웃 하이라이트</b>(비이웃 dim)로 구현 <span class="mono">LinkEdge.tsx:16,47</span> — 별도 백링크 패널/목록은 없음(트랙 A 결정)</td></tr>
+</table>
+
+<h2>4. PRD 핵심 결정(§4) · 비목표(§3)</h2>
+<table>
+  <tr><th>항목</th><th class="s">상태</th><th>비고</th></tr>
+  <tr><td>Card↔카드 1:1, Board↔(시리즈/작품) 1:N, 아이디어 보드, flow 좌표계, 저장 타이밍(드래그 종료/연결/종류), 어댑터 경계, 진입점 3곳</td><td class="s ok">✅</td><td>§4 핵심 결정 7개 모두 충족(A~C-2)</td></tr>
+  <tr><td>실시간 공동편집 / 타임라인 뷰 / 인라인 <code>[[ ]]</code> / N:N(같은 카드 여러 보드)</td><td class="s intent">⏸</td><td>PRD §3 <b>1차 비목표</b>로 명시 — 의도적 제외(정상)</td></tr>
+  <tr><td>메모·인물 통합(두 메뉴 폐기→보드)</td><td class="s ok">✅</td><td>E1(044) — UI 폐기·데이터 보존. "가져오기"(카드화)는 E2 후속</td></tr>
+</table>
+
+<h2>5. 갭 발생 원인 (왜 누락됐나)</h2>
+<div class="note" style="background:#f6e3df;border-color:#e0bcb2;color:#6a3328">
+  <b>한 줄:</b> 로드맵 §3 갭 분석이 <b>UX worksheet TASK-1(빈 보드 안내·더블클릭 생성)·TASK-7을 갭으로 카탈로그하지 않았고</b>,
+  트랙 A가 "TASK-1 잔여"로 명시 제외했으나 <b>그 잔여에 추적 주인(ISSUE)이 없어</b> 어느 후속 트랙도 회수하지 않음.
+</div>
+<ul class="tight">
+  <li><b>모순된 스펙 미화해</b> — 038 <code>spec.md FR-005</code>는 "빈 캔버스로 정상 표시"(허용), UX worksheet TASK-1은 "빈 캔버스 절대 노출 금지"(반대). 같은 날(2026-06-25) 따로 작성됐고 화해 안 됨. 038은 자기 스펙대로 빈 캔버스로 구현.</li>
+  <li><b>갭 분석의 입자 부족</b> — 로드맵 §3은 PRD의 <b>구조적 6축</b>(연결·언어·진입점·아이디어·종류·메모통합)만 갭으로 잡고, UX worksheet의 <b>TASK 단위 디테일</b>(TASK-1 ②③·TASK-7)을 누락. → 어느 트랙에도 배정 안 됨.</li>
+  <li><b>주인 없는 "잔여"</b> — 트랙 A <code>specs/039.../spec.md</code> Out of Scope에 "빈 곳 더블클릭 단독 카드 생성(TASK-1 잔여)"·"코치마크(TASK-7)" 명시 제외. 옳은 범위 결정이나 <b>ISSUE·후속 항목으로 등재 안 됨</b>(ISSUE-050·로드맵 §7 grep=0).</li>
+  <li><b>가정 전파</b> — 트랙 D 설계가 "빈 곳 더블클릭 새 카드도 무지정"이라 적어 <b>더블클릭 생성이 있다고 가정</b>(실재 미확인). "TASK-1은 됐다"는 전제가 후속으로 번짐.</li>
+</ul>
+
+<h2>6. 권고 — 회수할 잔여 백로그</h2>
+<table>
+  <tr><th>항목</th><th class="s">우선</th><th>제안</th></tr>
+  <tr><td>TASK-1 ② 빈 보드 중앙 안내(빈 캔버스 금지) + ③ 빈 곳 더블클릭 생성</td><td class="s no">🟠</td><td>핵심 갭. <code>onPaneDoubleClick</code>→그 자리 카드 생성+본문 포커스 + 카드 0개 시 중앙 안내(COPY 재사용). 038 FR-005 모순도 함께 정정</td></tr>
+  <tr><td>TASK-2 hover "끌어서 잇기" 텍스트 힌트 / TASK-7 코치마크</td><td class="s part">🟡</td><td>발견성 보조. driver.js 온보딩과 겹쳐 범위 큼 → 별도 트랙</td></tr>
+  <tr><td>relation_type / 카드 리사이즈 / undo·redo</td><td class="s intent">🟢</td><td>PRD/트랙에서 이미 "후속·선택"으로 결정됨 — 백로그 유지</td></tr>
+  <tr><td><b>프로세스</b>: Out of Scope 잔여는 ISSUE로 추적 주인 부여 · 갭 분석은 UX worksheet TASK 단위까지 대조</td><td class="s no">🟠</td><td>회고/룰 후보(재발 방지)</td></tr>
+</table>
+
+<footer>
+  생성: 2026-06-26 · 대조 SoT: <code>docs/board/board-prd.md</code> · <code>board-ux-worksheet.md</code> ↔ 코드(<code>PlotBoardCanvas</code>·<code>CardNode</code>·<code>BoardController</code>·<code>entity/Card·Link</code> 등) · 근거는 file:line으로 표기.
+</footer>
+
+</div>
+</body>
+</html>
