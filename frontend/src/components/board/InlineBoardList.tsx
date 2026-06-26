@@ -63,20 +63,20 @@ export function InlineBoardListView({
     return (
         <div className="flex flex-col gap-2">
             {isLoading ? (
-                <p className="px-1 py-2 text-xs text-gray-400">{COPY.loading}</p>
+                <p className="px-1 py-2 text-xs text-faint">{COPY.loading}</p>
             ) : isError ? (
                 <div className="px-1 py-2">
-                    <p className="text-xs text-gray-500">{COPY.loadError}</p>
+                    <p className="text-xs text-muted">{COPY.loadError}</p>
                     <button
                         type="button"
                         onClick={onRetry}
-                        className="mt-1.5 rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                        className="mt-1.5 rounded-md border border-border-strong px-2 py-1 text-xs text-muted-strong hover:bg-surface-2"
                     >
                         {COPY.retry}
                     </button>
                 </div>
             ) : boards.length === 0 ? (
-                <p className="rounded-md border border-dashed border-gray-300 px-3 py-3 text-center text-xs text-gray-400">
+                <p className="rounded-md border border-dashed border-border-strong px-3 py-3 text-center text-xs text-faint">
                     {emptyHint}
                 </p>
             ) : (
@@ -86,10 +86,10 @@ export function InlineBoardListView({
                             <button
                                 type="button"
                                 onClick={() => onOpen(board.id)}
-                                className="flex w-full items-center justify-between gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-left hover:border-terracotta-300 hover:bg-terracotta-50"
+                                className="flex w-full items-center justify-between gap-2 rounded-md border border-border bg-surface px-3 py-2 text-left hover:border-terracotta-300 hover:bg-terracotta-50"
                             >
-                                <span className="truncate text-sm font-medium text-gray-800">{board.name}</span>
-                                <span className="shrink-0 text-xs text-gray-400">카드 {board.cardCount}</span>
+                                <span className="truncate text-sm font-medium text-ink">{board.name}</span>
+                                <span className="shrink-0 text-xs text-faint">카드 {board.cardCount}</span>
                             </button>
                         </li>
                     ))}
@@ -112,7 +112,7 @@ export function InlineBoardListView({
                         placeholder={COPY.namePlaceholder}
                         maxLength={120}
                         aria-label="새 보드 이름"
-                        className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none"
+                        className="w-full rounded-md border border-border-strong px-2 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none"
                     />
                     <div className="flex gap-1.5">
                         <button
@@ -129,7 +129,7 @@ export function InlineBoardListView({
                                 setDraft("");
                                 setAdding(false);
                             }}
-                            className="rounded-md border border-gray-200 px-3 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                            className="rounded-md border border-border px-3 py-1 text-xs text-muted-strong hover:bg-surface-2"
                         >
                             {COPY.cancel}
                         </button>
@@ -139,7 +139,7 @@ export function InlineBoardListView({
                 <button
                     type="button"
                     onClick={() => setAdding(true)}
-                    className="rounded-md border border-dashed border-gray-300 px-3 py-1.5 text-sm text-gray-500 hover:border-terracotta-400 hover:text-terracotta-600"
+                    className="rounded-md border border-dashed border-border-strong px-3 py-1.5 text-sm text-muted hover:border-terracotta-400 hover:text-terracotta-600"
                 >
                     {COPY.newButton}
                 </button>

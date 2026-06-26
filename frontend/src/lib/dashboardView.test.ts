@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { barScale, formatRelativeTime, selectDashboard, startOfWeekMonday, weekDayRanges } from "./dashboardView";
+import {
+    barScale,
+    formatRelativeTime,
+    HOME_OTHER_CARDS_LIMIT,
+    limitHomeOthers,
+    selectDashboard,
+    startOfWeekMonday,
+    weekDayRanges,
+} from "./dashboardView";
 import type { ProjectCard } from "@/lib/types/domain";
 
 function card(over: Partial<ProjectCard> & { id: number; docUpdatedAt: string }): ProjectCard {
@@ -12,6 +20,7 @@ function card(over: Partial<ProjectCard> & { id: number; docUpdatedAt: string })
         worldNotes: null,
         nextScene: "",
         categoryId: null,
+        categoryName: null,
         paperSize: "A4",
         layoutMode: "paper",
         effectivePaperSize: "A4",
@@ -26,6 +35,29 @@ function card(over: Partial<ProjectCard> & { id: number; docUpdatedAt: string })
         ...over,
     };
 }
+
+describe("limitHomeOthers", () => {
+    const others = (n: number): ProjectCard[] =>
+        Array.from({ length: n }, (_, i) => card({ id: i + 1, docUpdatedAt: "2026-06-01T00:00:00Z" }));
+
+    it("others 3개 — 상위 2개만 표시 + hasMore true", () => {
+        const { visible, hasMore } = limitHomeOthers(others(3));
+        expect(visible).toHaveLength(HOME_OTHER_CARDS_LIMIT);
+        expect(hasMore).toBe(true);
+    });
+
+    it("others 2개 — 2개 표시 + hasMore false (작품 ≤ 3개)", () => {
+        const { visible, hasMore } = limitHomeOthers(others(2));
+        expect(visible).toHaveLength(2);
+        expect(hasMore).toBe(false);
+    });
+
+    it("others 0개 — 빈 표시 + hasMore false", () => {
+        const { visible, hasMore } = limitHomeOthers([]);
+        expect(visible).toEqual([]);
+        expect(hasMore).toBe(false);
+    });
+});
 
 describe("selectDashboard", () => {
     it("빈 배열이면 resume null + others 빈 배열", () => {

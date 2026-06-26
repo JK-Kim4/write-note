@@ -6,11 +6,11 @@ import Link from "next/link";
  */
 export default function MypageNotFound() {
     return (
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
-            <p className="text-sm text-gray-500">존재하지 않는 섹션입니다.</p>
+        <div className="rounded-xl border border-border bg-surface p-5">
+            <p className="text-sm text-muted">존재하지 않는 섹션입니다.</p>
             <Link
                 href="/mypage/profile"
-                className="mt-2 inline-block rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+                className="mt-2 inline-block rounded-md border border-border-strong px-3 py-1.5 text-sm text-muted-strong hover:bg-surface-2"
             >
                 프로필로 이동
             </Link>

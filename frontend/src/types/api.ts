@@ -95,6 +95,8 @@ export interface CategoryResponse {
 
 /** 작품 카드 집계 (018/022) — GET /api/projects/cards. 작품 + 챕터·세션 집계 동봉. */
 export interface ProjectCardResponse extends ProjectResponse {
+    /** 소속 시리즈명(038) — categoryId→Category.name 매핑. null = 미분류. */
+    categoryName: string | null;
     /** 활성 챕터 word_count 합. */
     wordCount: number;
     /** 활성 챕터 중 최신 updated_at (ISO8601) — "최근에 집필함" 기준. */

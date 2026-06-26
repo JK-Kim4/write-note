@@ -252,7 +252,7 @@ function PageBox({
                 width: geo.pageWidthPx,
                 height: sheetHeight,
                 flex: "none",
-                background: "#fff",
+                background: "var(--w-ms-page)",
                 borderRadius: 8,
                 boxShadow: "0 1px 3px rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.08)",
             }}
@@ -276,7 +276,7 @@ function PageBox({
                         if (b.attr.type === "hr") {
                             return (
                                 <div key={idx} style={{ position: "absolute", top: f.offsetY, left: 0, width: geo.contentWidthPx, height: f.height, display: "flex", alignItems: "center" }}>
-                                    <div style={{ width: "100%", borderTop: "2px solid #d4d4d8" }} />
+                                    <div style={{ width: "100%", borderTop: "2px solid var(--w-border-strong)" }} />
                                 </div>
                             );
                         }
@@ -292,7 +292,7 @@ function PageBox({
                         const marker = isList && f.startLine === 0 ? (b.listNumber != null ? `${b.listNumber}.` : "•") : null;
                         return (
                             <div key={idx} style={{ position: "absolute", top: f.offsetY, left: 0, width: geo.contentWidthPx, height: f.height, overflow: "hidden" }} {...headingDataAttr}>
-                                {isQuote && <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: "#a1a1aa" }} />}
+                                {isQuote && <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: "var(--w-ms-quote)" }} />}
                                 {marker != null && (
                                     <div
                                         style={{
@@ -303,7 +303,7 @@ function PageBox({
                                             fontSize: b.fontSizePx,
                                             lineHeight: `${b.lineHeightPx}px`,
                                             fontFamily: FONT_FAMILY,
-                                            color: "#6b7280",
+                                            color: "var(--w-muted)",
                                             boxSizing: "border-box",
                                             textAlign: b.listNumber != null ? "right" : "center",
                                             paddingRight: b.listNumber != null ? 6 : 0,
@@ -325,7 +325,7 @@ function PageBox({
                                         wordBreak: "break-word",
                                         // iOS text inflation 차단 — px 고정 line-height 와 어긋나 줄이 겹치는 것 방지.
                                         WebkitTextSizeAdjust: "100%",
-                                        color: "#1f2937",
+                                        color: "var(--w-ink)",
                                     }}
                                 >
                                     {renderRuns(b.text, b.marks)}
@@ -336,11 +336,11 @@ function PageBox({
                     return null;
                 })}
                 {caret && caret.pageIndex === page.index && (
-                    <div className="poc-caret" style={{ position: "absolute", left: caret.x, top: caret.y, height: caret.height, width: 2, background: "#a8542e" }} />
+                    <div className="poc-caret" style={{ position: "absolute", left: caret.x, top: caret.y, height: caret.height, width: 2, background: "var(--w-accent)" }} />
                 )}
             </div>
             {!isContinuous && (
-                <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, textAlign: "center", fontSize: 12, color: "#9ca3af" }}>{page.index + 1}</div>
+                <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, textAlign: "center", fontSize: 12, color: "var(--w-faint)" }}>{page.index + 1}</div>
             )}
         </div>
     );
@@ -1138,8 +1138,8 @@ export const CustomEditor = forwardRef<
                     alignItems: "center",
                     gap: 4,
                     padding: "8px 14px",
-                    borderBottom: "1px solid #e5e7eb",
-                    background: "#fafafa",
+                    borderBottom: "1px solid var(--w-border)",
+                    background: "var(--w-surface-2)",
                     flex: "none",
                     flexWrap: "wrap",
                 }}
@@ -1202,17 +1202,17 @@ export const CustomEditor = forwardRef<
                         aria-label="축소"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => setUserZoom((z) => Math.max(0.5, Math.round((z - 0.1) * 10) / 10))}
-                        style={{ width: 28, height: 28, fontSize: 15, border: "1px solid #d1d5db", borderRadius: 7, background: "#fff", color: "#374151", cursor: "pointer", lineHeight: 1 }}
+                        style={{ width: 28, height: 28, fontSize: 15, border: "1px solid var(--w-border-strong)", borderRadius: 7, background: "var(--w-surface)", color: "var(--w-ink-2)", cursor: "pointer", lineHeight: 1 }}
                     >
                         −
                     </button>
-                    <span style={{ fontSize: 12, minWidth: 42, textAlign: "center", color: "#6b7280" }}>{Math.round(userZoom * 100)}%</span>
+                    <span style={{ fontSize: 12, minWidth: 42, textAlign: "center", color: "var(--w-muted)" }}>{Math.round(userZoom * 100)}%</span>
                     <button
                         type="button"
                         aria-label="확대"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => setUserZoom((z) => Math.min(2, Math.round((z + 0.1) * 10) / 10))}
-                        style={{ width: 28, height: 28, fontSize: 15, border: "1px solid #d1d5db", borderRadius: 7, background: "#fff", color: "#374151", cursor: "pointer", lineHeight: 1 }}
+                        style={{ width: 28, height: 28, fontSize: 15, border: "1px solid var(--w-border-strong)", borderRadius: 7, background: "var(--w-surface)", color: "var(--w-ink-2)", cursor: "pointer", lineHeight: 1 }}
                     >
                         +
                     </button>
@@ -1236,7 +1236,7 @@ export const CustomEditor = forwardRef<
                 className="custom-editor-scroll"
                 // 은은한 배경 — 흰 페이지가 "책상 위 종이"처럼 떠 보이게(흰-on-흰 답답함 해소).
                 // 029: 바운드된 relative wrapper 를 절대위치로 꽉 채워 내부 세로 스크롤 보장(창 전체 스크롤 X → 패널 고정).
-                style={{ position: "absolute", inset: 0, overflow: "auto", outline: "none", caretColor: "transparent", background: "#eceae4" }}
+                style={{ position: "absolute", inset: 0, overflow: "auto", outline: "none", caretColor: "transparent", background: "var(--w-ms-outer)" }}
             >
             <style>{"@keyframes pocBlink{0%,49%{opacity:1}50%,100%{opacity:0}} .poc-caret{animation:pocBlink 1s step-end infinite}"}</style>
             {/* iOS(WebKit)는 CSS zoom 이 글자·줄 배치 불균일(줄 겹침) → transform:scale(wrapper 가 scaled
@@ -1317,9 +1317,9 @@ function pagedNavBtnStyle(side: "left" | "right", disabled: boolean): CSSPropert
         width: 40,
         height: 64,
         borderRadius: 12,
-        border: "1px solid #d1d5db",
-        background: "rgba(255,255,255,0.9)",
-        color: "#374151",
+        border: "1px solid var(--w-border-strong)",
+        background: "var(--w-surface)",
+        color: "var(--w-ink-2)",
         fontSize: 26,
         lineHeight: 1,
         cursor: disabled ? "default" : "pointer",

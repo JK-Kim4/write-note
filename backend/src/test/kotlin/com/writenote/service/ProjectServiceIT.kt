@@ -144,6 +144,23 @@ class ProjectServiceIT
         }
 
         @Test
+        @DisplayName("listCards — 시리즈 소속 작품은 categoryName, 미분류는 null (038 US1)")
+        fun `listCards exposes categoryName for series and null for uncategorized`() {
+            val userId = requireNotNull(savedUser().id)
+            val series = categoryService.create(userId, CreateCategoryRequest(name = "내 시리즈"))
+            val inSeries = projectService.createProject(userId, CreateProjectRequest(title = "시리즈 작품"))
+            projectService.moveCategory(userId, inSeries.id, series.id)
+            val uncategorized = projectService.createProject(userId, CreateProjectRequest(title = "미분류 작품"))
+
+            entityManager.flush()
+            entityManager.clear()
+
+            val cards = projectService.listCards(userId)
+            assertThat(cards.first { it.id == inSeries.id }.categoryName).isEqualTo("내 시리즈")
+            assertThat(cards.first { it.id == uncategorized.id }.categoryName).isNull()
+        }
+
+        @Test
         @DisplayName("deleteProject — cascade 로 characters / documents 모두 0행 (FR-007/011 / SC-002)")
         fun `deleteProject cascades to characters and documents`() {
             val user = savedUser()

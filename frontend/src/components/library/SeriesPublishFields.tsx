@@ -18,7 +18,7 @@ const GENRE_PRESET_SET: ReadonlySet<string> = new Set(GENRE_PRESETS);
 const GENRE_CUSTOM = "__custom__";
 
 const FIELD_CLASS =
-    "mt-1 w-full rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1";
+    "mt-1 w-full rounded-md border border-border-strong px-2 py-1 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1";
 
 /**
  * 시리즈(카테고리) 메타 입력 (033) — 장르·줄거리(R3) + 판형·출판방식(R2).
@@ -70,7 +70,7 @@ export function SeriesPublishFields({
 
     return (
         <div className="mt-2 space-y-2">
-            <label htmlFor={`${idPrefix}-genre`} className="block text-xs text-gray-500">
+            <label htmlFor={`${idPrefix}-genre`} className="block text-xs text-muted">
                 장르
                 <select
                     id={`${idPrefix}-genre`}
@@ -97,7 +97,7 @@ export function SeriesPublishFields({
                     className={FIELD_CLASS}
                 />
             )}
-            <label htmlFor={`${idPrefix}-synopsis`} className="block text-xs text-gray-500">
+            <label htmlFor={`${idPrefix}-synopsis`} className="block text-xs text-muted">
                 줄거리
                 <textarea
                     id={`${idPrefix}-synopsis`}
@@ -108,7 +108,7 @@ export function SeriesPublishFields({
                     className={FIELD_CLASS}
                 />
             </label>
-            <label htmlFor={`${idPrefix}-target`} className="block text-xs text-gray-500">
+            <label htmlFor={`${idPrefix}-target`} className="block text-xs text-muted">
                 목표 분량(글자수)
                 <input
                     id={`${idPrefix}-target`}
@@ -129,7 +129,7 @@ export function SeriesPublishFields({
                     className={FIELD_CLASS}
                 />
             </label>
-            <label htmlFor={`${idPrefix}-layout`} className="block text-xs text-gray-500">
+            <label htmlFor={`${idPrefix}-layout`} className="block text-xs text-muted">
                 출판 방식
                 <select
                     id={`${idPrefix}-layout`}
@@ -143,7 +143,7 @@ export function SeriesPublishFields({
                 </select>
             </label>
             {layoutMode !== "web" && (
-                <label htmlFor={`${idPrefix}-paper`} className="block text-xs text-gray-500">
+                <label htmlFor={`${idPrefix}-paper`} className="block text-xs text-muted">
                     판형
                     <select
                         id={`${idPrefix}-paper`}

@@ -11,6 +11,8 @@ export type Project = ProjectResponse;
 
 /** 작품 벽/홈 카드용 — 작품 + 카드 집계(018 BE 동봉) + 본문에서 파생한 마지막 문장 원료(클라 파생). */
 export type ProjectCard = Project & {
+    /** 소속 시리즈명(038). null = 미분류. categoryId→Category.name 매핑(BE 동봉). */
+    categoryName: string | null;
     /** 본문 plainText(마지막 문장 파생 원료, 클라 파생). 빈 문자열 = 본문 없음. */
     lastSentenceSource: string;
     /** 문서 글자수. */

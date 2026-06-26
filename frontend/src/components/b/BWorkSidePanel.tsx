@@ -37,13 +37,13 @@ export function BWorkSidePanel({
 
     if (!isOpen) {
         return (
-            <div className="flex w-8 shrink-0 flex-col items-center rounded-xl border border-gray-200 bg-gray-50 py-2">
+            <div className="flex w-8 shrink-0 flex-col items-center rounded-xl border border-border bg-surface-2 py-2">
                 <button
                     type="button"
                     onMouseDown={keepEditorFocus}
                     aria-label="보조 패널 펼치기"
                     onClick={() => setIsOpen(true)}
-                    className="rounded-md px-1 py-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                    className="rounded-md px-1 py-1 text-sm text-faint hover:bg-surface-3 hover:text-muted-strong"
                 >
                     ◀
                 </button>
@@ -52,8 +52,8 @@ export function BWorkSidePanel({
     }
 
     return (
-        <div className="flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
-            <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2">
+        <div className="flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-surface-2">
+            <div className="flex items-center justify-between border-b border-border px-3 py-2">
                 <span className="text-sm font-medium text-terracotta-700">보드</span>
                 {collapsible && (
                     <button
@@ -61,7 +61,7 @@ export function BWorkSidePanel({
                         onMouseDown={keepEditorFocus}
                         aria-label="보조 패널 접기"
                         onClick={() => setIsOpen(false)}
-                        className="px-1 py-1 text-sm text-gray-400 hover:text-gray-600"
+                        className="px-1 py-1 text-sm text-faint hover:text-muted-strong"
                     >
                         ▶
                     </button>
@@ -71,12 +71,12 @@ export function BWorkSidePanel({
                 <InlineBoardList ownerType="project" ownerId={projectId} emptyHint="아직 이 작품 보드가 없어요." />
             </div>
             {wordCount != null && (
-                <div className="border-t border-gray-200 bg-white px-3 py-2.5">
+                <div className="border-t border-border bg-surface px-3 py-2.5">
                     <div className="flex items-baseline justify-between">
-                        <span className="text-xs text-gray-500">분량</span>
-                        {goal != null && <span className="text-sm font-bold text-gray-700">{goal.percent}%</span>}
+                        <span className="text-xs text-muted">분량</span>
+                        {goal != null && <span className="text-sm font-bold text-ink-2">{goal.percent}%</span>}
                     </div>
-                    <p className="mt-0.5 text-sm text-gray-700">
+                    <p className="mt-0.5 text-sm text-ink-2">
                         {wordCount.toLocaleString()}자{targetLength ? ` / ${targetLength.toLocaleString()}자` : ""}
                     </p>
                     {goal != null && (

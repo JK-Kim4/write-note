@@ -45,9 +45,9 @@ export function NicknameSection({ currentNickname }: { currentNickname: string }
     };
 
     return (
-        <section className="rounded-xl border border-gray-200 bg-white p-5">
-            <h2 className="text-base font-semibold text-gray-900">닉네임</h2>
-            <p className="mt-0.5 text-xs text-gray-400">
+        <section className="rounded-xl border border-border bg-surface p-5">
+            <h2 className="text-base font-semibold text-ink">닉네임</h2>
+            <p className="mt-0.5 text-xs text-faint">
                 다른 작가에게 보이는 이름입니다. 2~16자의 한글·영문·숫자·밑줄을 쓸 수 있어요.
             </p>
             <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-start">
@@ -65,7 +65,7 @@ export function NicknameSection({ currentNickname }: { currentNickname: string }
                             setError(null);
                         }}
                         maxLength={16}
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-terracotta-400"
+                        className="w-full rounded-md border border-border-strong px-3 py-2 text-sm text-ink outline-none focus:border-terracotta-400"
                     />
                     {error ? (
                         <p role="alert" className="mt-1 text-xs text-red-500">
@@ -80,7 +80,7 @@ export function NicknameSection({ currentNickname }: { currentNickname: string }
                 <button
                     type="submit"
                     disabled={mutation.isPending || value.trim().length === 0}
-                    className="rounded-md bg-terracotta-600 px-4 py-2 text-sm font-medium text-white hover:bg-terracotta-700 disabled:opacity-50"
+                    className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink hover:bg-terracotta-700 disabled:opacity-50"
                 >
                     {mutation.isPending ? "저장 중…" : "변경"}
                 </button>

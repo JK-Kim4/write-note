@@ -15,9 +15,9 @@ type Props = {
 
 export function BBoardStrip({ boards, onOpen, onOpenAll, onNew }: Props) {
     return (
-        <div className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-4">
+        <div className="flex h-full flex-col rounded-xl border border-border bg-surface p-4">
             <div className="flex items-center justify-between">
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">보드</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted">보드</p>
                 <button
                     type="button"
                     aria-label="보드 모두 보기"
@@ -28,7 +28,7 @@ export function BBoardStrip({ boards, onOpen, onOpenAll, onNew }: Props) {
                 </button>
             </div>
             {boards.length === 0 ? (
-                <p className="mt-3 text-xs text-gray-400">아직 보드가 없어요</p>
+                <p className="mt-3 text-xs text-faint">아직 보드가 없어요</p>
             ) : (
                 <ul className="mt-3 space-y-2">
                     {boards.map((b) => (
@@ -36,10 +36,10 @@ export function BBoardStrip({ boards, onOpen, onOpenAll, onNew }: Props) {
                             <button
                                 type="button"
                                 onClick={() => onOpen(b.id)}
-                                className="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white p-2 text-left hover:border-terracotta-300 hover:bg-terracotta-50"
+                                className="flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-surface p-2 text-left hover:border-terracotta-300 hover:bg-terracotta-50"
                             >
-                                <span className="truncate text-xs font-medium text-gray-700">{b.name}</span>
-                                <span className="shrink-0 text-[11px] text-gray-400">
+                                <span className="truncate text-xs font-medium text-ink-2">{b.name}</span>
+                                <span className="shrink-0 text-[11px] text-faint">
                                     {b.ownerLabel} · 카드 {b.cardCount}
                                 </span>
                             </button>
@@ -51,7 +51,7 @@ export function BBoardStrip({ boards, onOpen, onOpenAll, onNew }: Props) {
                 type="button"
                 aria-label="새 보드 만들기"
                 onClick={onNew}
-                className="mt-3 w-full rounded-lg border border-dashed border-gray-300 py-2 text-xs text-terracotta-600"
+                className="mt-3 w-full rounded-lg border border-dashed border-border-strong py-2 text-xs text-terracotta-600"
             >
                 + 새 보드
             </button>

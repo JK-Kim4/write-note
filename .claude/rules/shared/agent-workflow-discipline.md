@@ -434,6 +434,29 @@ dogfooding/수동 검증 게이트는 **일부 항목 통과를 전체 통과로
 
 - dogfooding에서 "테두리 앵커·이웃·유지·끊기"만 통과 받았는데 "전항 통과"로 단정 → build 게이트(서버 중지)+finish-work 질문으로 직행 → 사용자 "아직 다른 체크리스트들 확인 못했어"로 정정 → 빈곳 drop·클릭클릭·가드·회귀 미확인이라 서버 재기동 왕복.
 - 회피 가능 시점: 마무리 직전 quickstart 전항(잇기 4경로·끊기·이웃·가드·영속·회귀)을 사용자가 봤는지 대조.
+## 26. 워크트리 생성 native 도구의 base 검증 (HARD-GATE)
+
+워크트리 생성 native 도구(`EnterWorktree` 등)는 `worktree.baseRef` 같은 설정과 **무관하게 의도와 다른 base(기본 브랜치 등)에서 분기**할 수 있다. 생성 직후 `git merge-base`/`git log`로 **의도한 base 커밋을 포함하는지 검증**하고, 아니면 `git reset --hard <원하는 base>`로 정정한다(작업 전이면 무해). base 미검증은 stale·누락된 전제(다른 작업 merge분 누락 등) 위에 작업을 쌓아 §18(베이스 정합)·§15(검증 미성숙 전제) 위반으로 번진다.
+
+### 회피 절차
+
+1. 워크트리 생성 직후: `git merge-base --is-ancestor <원하는 base> HEAD`로 의도한 base 포함 여부 확인.
+2. 누락이면 작업 착수 전 `git reset --hard origin/<원하는 base>`로 정정.
+3. 도구가 base 설정을 따른다고 단정하지 않는다 — 검증으로 확인.
+
+### 회귀 사례 — 2026-06-24 038 EnterWorktree baseRef 무시
+
+- `git config worktree.baseRef head`(현재 HEAD=develop) 설정 후 `EnterWorktree` 했으나 origin/main(`e4772ed`)에서 분기 → 036/037 포함 develop(`f497951`)이 누락. merge-base 검증으로 즉시 발견 → `git reset --hard origin/develop`로 정정(작업물 0이라 무해).
+- 회피 가능 시점: 워크트리 생성 직후 merge-base 검증(본 사례는 검증 단계가 차단함 — 룰로 영구화).
+
+## 27. 공유 타입에 필수 필드 추가 시 생성처 전수 조사 (HARD-GATE)
+
+공유 타입(`ProjectCard` 등)에 **필수(non-optional) 필드를 추가**할 때, 그 타입의 **객체 리터럴 생성처(특히 테스트 fixture)를 `grep`으로 전수 조사**해 함께 갱신한다. typecheck가 결국 잡아주지만, 누락분이 여러 곳이면 RED→수정→RED 반복으로 비용이 든다. 추가 직전 `grep -rl "<타입명>"` 로 생성처를 모아 한 번에 정합시킨다.
+
+### 회귀 사례 — 2026-06-24 038 ProjectCard.categoryName
+
+- `ProjectCard`에 `categoryName: string | null` 필수 추가 → 테스트 fixture 6곳(BWorkMiniCard·DraggableWorkCard·LibraryBoard·SeriesExportDialog·useCategories·BResumeCard test) 누락 → typecheck 2회 RED(1차 5개 발견·수정 후 2차 1개 추가 발견).
+- 회피 가능 시점: 필수 필드 추가 직전 `grep -rl "ProjectCard"` 로 fixture 생성처 전수 조사.
 
 ## 메타 — 본 룰의 누적 정책
 

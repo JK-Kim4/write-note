@@ -29,8 +29,8 @@ const NAV_ITEMS = [
 // 메뉴 칩 — 단색 라인 아이콘(lucide) + 라벨. 평상시 회색, 선택은 테라코타(주 액센트),
 // hover 는 물방울 청록(teal, 로고 빗방울 모티프) — product 절제 원칙: 진한 색은 선택/hover 에만.
 const NAV_CHIP = "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors";
-const NAV_ACTIVE_CLASS = `${NAV_CHIP} bg-terracotta-50 font-medium text-terracotta-700`;
-const NAV_IDLE_CLASS = `${NAV_CHIP} text-gray-600 hover:bg-teal-50 hover:text-teal-800`;
+const NAV_ACTIVE_CLASS = `${NAV_CHIP} bg-accent-soft font-medium text-accent-text`;
+const NAV_IDLE_CLASS = `${NAV_CHIP} text-muted-strong hover:bg-teal-50 hover:text-teal-800`;
 
 export default function BLayout({ children }: { children: React.ReactNode }) {
     useAuthGuard("requireAuth");
@@ -68,15 +68,15 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
     if (!hydrated) return null;
 
     return (
-        <div className="flex-1 bg-gray-50 font-sans text-gray-900 antialiased">
+        <div className="flex-1 bg-surface-2 font-sans text-ink antialiased">
             {/* 키보드 사용자용 본문 바로가기 — 평소 숨김, 포커스 시 노출(WCAG 2.4.1). */}
             <a
                 href="#main-content"
-                className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-50 focus:rounded-md focus:bg-terracotta-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+                className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-50 focus:rounded-md focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-accent-ink"
             >
                 본문으로 건너뛰기
             </a>
-            <header className="sticky top-0 z-20 border-b border-gray-200 bg-white">
+            <header className="sticky top-0 z-20 border-b border-border bg-surface">
                 <div className="mx-auto flex h-14 max-w-7xl items-center gap-6 px-4">
                     <Link href="/" aria-label="소설비 홈" className="shrink-0">
                         <span
@@ -111,7 +111,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                     {/* 마이페이지(계정·신원) — 앱 설정(/settings)과 분리된 계정 영역 진입점. */}
                     <Link
                         href="/mypage"
-                        className="hidden rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 md:block"
+                        className="hidden rounded-md px-3 py-1.5 text-sm text-muted-strong hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 md:block"
                     >
                         마이페이지
                     </Link>
@@ -119,7 +119,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                         type="button"
                         onClick={handleLogout}
                         disabled={isLoggingOut}
-                        className="hidden rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 md:block"
+                        className="hidden rounded-md border border-border-strong px-3 py-1.5 text-sm text-muted-strong hover:bg-surface-2 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 md:block"
                     >
                         로그아웃
                     </button>
@@ -129,7 +129,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                         aria-label="메뉴"
                         aria-expanded={mobileMenuOpen}
                         onClick={() => setMobileMenuOpen((o) => !o)}
-                        className="ml-auto inline-flex items-center justify-center rounded-md p-2 text-gray-600 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 md:hidden"
+                        className="ml-auto inline-flex items-center justify-center rounded-md p-2 text-muted-strong hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1 md:hidden"
                     >
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
                             {mobileMenuOpen ? (
@@ -142,7 +142,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                 </div>
                 {/* 모바일 메뉴 패널 — sticky 헤더 내부(스크롤 시 함께 고정). md 이상에선 숨김. */}
                 {mobileMenuOpen && (
-                    <nav className="flex flex-col gap-0.5 border-t border-gray-200 bg-white px-4 py-2 md:hidden">
+                    <nav className="flex flex-col gap-0.5 border-t border-border bg-surface px-4 py-2 md:hidden">
                         {NAV_ITEMS.map((item) => {
                             const isActive = item.exact
                                 ? pathname === item.href
@@ -152,18 +152,18 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                                     key={item.href}
                                     href={item.href}
                                     onClick={() => setMobileMenuOpen(false)}
-                                    className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm ${isActive ? "bg-terracotta-50 font-medium text-terracotta-700" : "text-gray-700 hover:bg-teal-50 hover:text-teal-800"}`}
+                                    className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm ${isActive ? "bg-accent-soft font-medium text-accent-text" : "text-ink-2 hover:bg-teal-50 hover:text-teal-800"}`}
                                 >
                                     <item.Icon size={16} strokeWidth={1.75} aria-hidden className="shrink-0" />
                                     {item.label}
                                 </Link>
                             );
                         })}
-                        <div className="my-1 border-t border-gray-100" />
+                        <div className="my-1 border-t border-border" />
                         <Link
                             href="/mypage"
                             onClick={() => setMobileMenuOpen(false)}
-                            className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm text-ink-2 hover:bg-surface-2"
                         >
                             마이페이지
                         </Link>
@@ -171,7 +171,7 @@ export default function BLayout({ children }: { children: React.ReactNode }) {
                             type="button"
                             onClick={handleLogout}
                             disabled={isLoggingOut}
-                            className="rounded-md px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                            className="rounded-md px-3 py-2 text-left text-sm text-muted-strong hover:bg-surface-2 disabled:opacity-50"
                         >
                             로그아웃
                         </button>

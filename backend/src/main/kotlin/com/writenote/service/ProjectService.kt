@@ -133,6 +133,7 @@ class ProjectService(
                 } ?: ""
             ProjectCardResponse.from(
                 base = projectMapper.toResponse(project, categoryById[project.categoryId]),
+                categoryName = categoryById[project.categoryId]?.name,
                 wordCount = wordCount,
                 documentUpdatedAt = documentUpdatedAt,
                 totalDurationMs = durationByProjectId[projectId] ?: 0L,
