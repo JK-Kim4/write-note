@@ -17,12 +17,12 @@
 
 | | |
 |---|---|
-| 마지막 갱신 | 2026-06-26 (C-2 완료 — 042 `c7a3c88`·043 `976c4dd`+`02b9b62`, E 비파괴 초안, develop merge 계속 보류) |
-| 완료된 트랙 | **A — 연결(Link) UI** ✅ (`d19b879`) · **B — 유비쿼터스 언어 정리** ✅ (`567935e`) · **C 코어 — 진입점·매핑·아이디어 보드** ✅ (`c9857d1`) · **D — 카드 종류 4종 정합 + UX 안전망** ✅ (`5909456`) · **C-2 — 내부 탭 + 집필 참조** ✅ (042 `c7a3c88` · 043 `976c4dd`/`02b9b62`) |
-| 진행 중 트랙 | — |
-| **다음 진입** | **E(메모·인물 통합)** — 비파괴 초안 완료(`docs/board/board-track-e-design-draft.md`), **데이터 모델 D1~D6 사용자 결정 대기**(③ 참조통합 권고 / ④ 보류 안전). 또는 **develop merge**(A~D+C-2 누적 — 사용자 결정). 보드 코어 트랙 A~D + C-2 완료 |
-| 블로커/대기 | 없음. **develop merge 계속 보류**(E 결정 뒤 — 사용자 결정). 038이 develop보다 4커밋 뒤처짐(홈카드·다크모드 등) → merge 시 양방향 병합. 038 브랜치 유지 |
-| 직전 세션이 한 일 | **C-2(내부 탭 + 집필 참조) 완료 + E 비파괴 초안**(야간 자동 진행). **042 내부 탭**(FE only, BE=0): 별도 작품/시리즈 상세 페이지 부재(실측) → 작품 상세=집필 화면 `BWorkSidePanel` "보드" 탭, 시리즈 상세=`/library` 드릴인 "시리즈 보드" 섹션. owner picker 없이 이름만 생성(owner 자동) + 열기(→/boards/{id}). 신규 `InlineBoardList`(View 테스트 5). **043 집필 참조**(BE 선행→FE): `GET /api/boards/reference?projectId=`(작품 보드 + 상위 시리즈 보드 최근순, BoardServiceTest 3 + IT 2) + FE 집필 좌패널 "보드 참조" 토글 → 우측 슬라이드오버(`PlotBoardCanvas` dynamic·후보 전환·last-viewed localStorage·집필 3패널 무변경). 마지막 본 보드는 `SettingsService.ALLOWED` 값 화이트리스트라 임의 boardId 불가 → localStorage(비파괴). 게이트 BE(ktlint·checkstyle·test·build) / FE(typecheck·lint0err·test 703·build) GREEN·회귀 grep clean. **authed dogfooding = 2026-06-26 사용자 로컬 풀스택 통과("잘 작동")** — 자동 진행 시점엔 로그인 불가였으나 풀스택 기동 후 확인. **E**=메모·인물 통합 비파괴 설계 초안(충돌 정리·4 옵션·D1~D6 결정지점·③ 참조통합 권고) — **코드/스키마/캡처 경로 무변경**(가드 3). 설계 SoT=`docs/board/board-track-c2-design.md`·`board-track-e-design-draft.md`. 보고서=`docs/research/2026-06-26-overnight-autorun-report.html` |
+| 마지막 갱신 | 2026-06-26 (E 1단계=044 보드 중심 전환 완료·dogfooding 통과, **develop PR 생성**) |
+| 완료된 트랙 | **A — 연결(Link) UI** ✅ (`d19b879`) · **B — 유비쿼터스 언어 정리** ✅ (`567935e`) · **C 코어 — 진입점·매핑·아이디어 보드** ✅ (`c9857d1`) · **D — 카드 종류 4종 정합 + UX 안전망** ✅ (`5909456`) · **C-2 — 내부 탭 + 집필 참조** ✅ (042 `c7a3c88` · 043 `976c4dd`/`02b9b62`) · **E 1단계 — 보드 중심 전환(메모·인물 UI 폐기)** ✅ (`048f22e`) |
+| 진행 중 트랙 | **develop PR 생성·충돌 해소** (038→develop 양방향 병합 9파일 충돌) |
+| **다음 진입** | **develop PR 충돌 해소**(홈 페이지 = develop 작품카드/다크모드 + 044 보드패널 병합 등 9파일) → 머지. 그 후 **E 2단계 가져오기**(기존 메모·인물 → 보드 카드 복제, `specs/045` 후보). |
+| 블로커/대기 | **develop PR 양방향 병합 충돌**(9파일, §아래 PR 항목). 038이 develop보다 4커밋 뒤처짐(홈카드·다크모드·룰) → merge 시 충돌 해소 필요. 038 브랜치 유지 |
+| 직전 세션이 한 일 | **E 1단계 = 044 보드 중심 전환**(사용자 대화로 결정): 메모·인물 앱 내 UI 전부 폐기 → 보드가 이야기 요소의 유일한 자리. **데이터·스키마·iOS 캡처(`POST /api/capture`)·BE 컨트롤러/서비스 보존(비파괴, 복원 가능)**. 홈 우측 메모 패널→보드 패널(신규 `BBoardStrip`), 집필실 `BWorkSidePanel` 메모·인물 탭 폐기→보드 단일, nav 메모·인물 폐기, `/memos`·`/characters` 라우트 삭제+redirect, ⌘+N 메모 캡처 폐기, 온보딩 메모·인물 단계→보드 단계. 고아 컴포넌트 삭제(BMemoStrip·QuickCapture·QuickCaptureModal·LinkPopover). 게이트 GREEN(typecheck·lint0err·test 704·build)·**서브에이전트 전수조사로 메모·인물 도달 경로 0 확인**·**사용자 dogfooding 통과("작동 잘 됨")**. 커밋 `048f22e`. "가져오기"는 E 2단계(후속). 죽은 FE 모듈 5(useMemos·useCharacters·api/memo·api/characters·memoView)는 가져오기 재사용 위해 보존. 설계=`docs/superpowers/specs/2026-06-26-board-centric-shift-design.md`. **이전: C-2(내부 탭 + 집필 참조) 완료 + E 비파괴 초안**(야간 자동 진행). **042 내부 탭**(FE only, BE=0): 별도 작품/시리즈 상세 페이지 부재(실측) → 작품 상세=집필 화면 `BWorkSidePanel` "보드" 탭, 시리즈 상세=`/library` 드릴인 "시리즈 보드" 섹션. owner picker 없이 이름만 생성(owner 자동) + 열기(→/boards/{id}). 신규 `InlineBoardList`(View 테스트 5). **043 집필 참조**(BE 선행→FE): `GET /api/boards/reference?projectId=`(작품 보드 + 상위 시리즈 보드 최근순, BoardServiceTest 3 + IT 2) + FE 집필 좌패널 "보드 참조" 토글 → 우측 슬라이드오버(`PlotBoardCanvas` dynamic·후보 전환·last-viewed localStorage·집필 3패널 무변경). 마지막 본 보드는 `SettingsService.ALLOWED` 값 화이트리스트라 임의 boardId 불가 → localStorage(비파괴). 게이트 BE(ktlint·checkstyle·test·build) / FE(typecheck·lint0err·test 703·build) GREEN·회귀 grep clean. **authed dogfooding = 2026-06-26 사용자 로컬 풀스택 통과("잘 작동")** — 자동 진행 시점엔 로그인 불가였으나 풀스택 기동 후 확인. **E**=메모·인물 통합 비파괴 설계 초안(충돌 정리·4 옵션·D1~D6 결정지점·③ 참조통합 권고) — **코드/스키마/캡처 경로 무변경**(가드 3). 설계 SoT=`docs/board/board-track-c2-design.md`·`board-track-e-design-draft.md`. 보고서=`docs/research/2026-06-26-overnight-autorun-report.html` |
 
 **새 세션 첫 행동**: ① 본 §0 → ② §1 대시보드 → ③ §5 진행 중(또는 다음) 트랙의 체크박스·링크 → ④ CLAUDE.md 의무대로 vault `02-PROGRESS`·`03-ISSUES`.
 
@@ -37,7 +37,8 @@
 | **C 코어** | 진입점·매핑·아이디어 보드 | ✅ 완료 (커밋 `c9857d1`, merge 보류) | 중간 (마이그레이션 + BE 신규 2) |
 | **D** | 카드 종류 4종 + UX 안전망 | ✅ 완료 (커밋 `5909456`, merge 보류) | 가벼움 (BE 종류모델 + FE 칩·안전망) |
 | **C-2** | 내부 탭(작품/시리즈 상세) · 집필 참조 | ✅ 완료 (042 `c7a3c88` · 043 `976c4dd`/`02b9b62`, merge 보류) | 중간 (FE 탭/섹션 + BE reference-boards + 슬라이드오버) |
-| **E** | 메모·인물 통합 | 🔴 후순위 — **비파괴 초안 완료, D1~D6 결정 대기** | 최대 (파괴적 — ③ 참조통합이 비파괴) |
+| **E 1단계** | 보드 중심 전환(메모·인물 UI 폐기) | ✅ 완료 (`048f22e`, dogfooding 통과) | 큼 (FE 전면 제거 + 홈 보드 패널) |
+| **E 2단계** | 가져오기(메모·인물 → 보드 카드 복제) | ⬜ 후속 (`specs/045` 후보) | 중간 (BE import endpoint + FE) |
 
 > 상태 범례: ⬜ 대기 · 🔵 진행 중 · ✅ 완료 · 🔴 후순위/보류. 트랙 완료 시 이 표 + §0 + §5 체크박스를 함께 갱신.
 
@@ -161,7 +162,11 @@
   - [x] 검증 (게이트 + 회귀 grep + dogfooding) — BE ktlint·checkstyle·test·build GREEN / FE typecheck·lint0err·test 694·build GREEN / 회귀 grep 0(폐기 plot·note·DEFAULT_*·5종·addMenuOpen, RF nodeTypes 키 'plot'은 어댑터 식별자라 유지) / **dogfooding 전항 통과** + UX 피드백 반영(무지정만 트레이 자동·종류 지정은 배지 클릭·"이건 뭔가요?" 헤더 제거)
   - [x] 마무리 — **038 커밋 `5909456`**, develop merge 계속 보류(사용자 결정 2026-06-26) + roadmap §0/§1/§5 + vault 02-PROGRESS 갱신 + 회고
 
-### 트랙 E — 메모·인물 통합 🔴  `상태: 후순위 — 비파괴 초안 완료, D1~D6 결정 대기`
+### 트랙 E — 메모·인물 통합  `상태: 1단계 완료(044 보드 중심 전환, 048f22e) · 2단계(가져오기) 후속`
+
+- **확정(사용자 대화 2026-06-26)**: 완전 보드 중심 — 메모·인물 앱 내 UI 전부 폐기(메뉴·라우트·홈 패널·집필실 탭·⌘+N), **데이터·스키마·iOS 캡처·BE 보존**(비파괴). 홈 우측=보드 패널(`BBoardStrip`). 가져오기는 2단계. 설계 SoT=`docs/superpowers/specs/2026-06-26-board-centric-shift-design.md`. 게이트 GREEN(test 704)·전수조사 도달경로 0·dogfooding 통과.
+- **2단계(가져오기, 후속 `specs/045`)**: 기존 메모·인물(DB 보존) → 보드 카드 복제. BE import 조회/생성 endpoint + FE "가져오기" UI. 죽은 FE 모듈(useMemos·useCharacters·api/memo·api/characters·memoView)은 이때 재사용.
+
 - **선행 결정(데이터 모델)**: ① 완전 통합(메모·인물 폐기, M:N·캡처 손실 감수) ② 부분 통합(인물만 카드로) ③ 참조 통합(데이터 유지, "가져오기"로 카드화) ④ 보류(독립 유지).
 - **비파괴 초안(야간 자동 — 코드/스키마 무변경)**: `docs/board/board-track-e-design-draft.md`. 충돌 본질(메모 M:N·캡처 정체성·soft-delete / 인물 구조화 필드 / 카드 1보드전속·평문 — 실측 확정) + 4 옵션 비파괴 분석 + **데이터 모델 결정 지점 D1~D6** + **③ 참조 통합 권고**(비파괴, 마이그레이션 0, 되돌리기=가져온 카드 삭제). ①②는 파괴적이라 자동 진행 금지 영역.
 - **진척**:
