@@ -20,6 +20,7 @@ import {
 } from "@/lib/query/useCategories";
 import { DraggableWorkCard, workDragId } from "./DraggableWorkCard";
 import { CategoryTile, categoryDropId, type CategoryUpdateInput } from "./CategoryTile";
+import { InlineBoardList } from "@/components/board/InlineBoardList";
 import { SeriesPublishFields } from "./SeriesPublishFields";
 import { SeriesExportDialog, type SeriesExportSubmit } from "./SeriesExportDialog";
 import { PrintOverlay } from "@/components/export/PrintOverlay";
@@ -419,6 +420,18 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                             아직 이 시리즈에 작품이 없어요. 새로 시작하거나, 다른 작품을 끌어다 놓으세요.
                         </p>
                     )}
+
+                    {/* 시리즈 보드(042 내부 탭) — 이 시리즈에 매달린 플롯 보드. 생성은 이 시리즈 소속 자동. */}
+                    <section className="mt-8">
+                        <h2 className="mb-3 text-sm font-semibold text-gray-500">시리즈 보드</h2>
+                        <div className="max-w-md">
+                            <InlineBoardList
+                                ownerType="category"
+                                ownerId={activeFolder}
+                                emptyHint="아직 이 시리즈 보드가 없어요. 시리즈를 관통하는 인물·연표·떡밥을 보드로 펼쳐 보세요."
+                            />
+                        </div>
+                    </section>
                 </div>
             )}
 

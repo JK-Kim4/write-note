@@ -2,7 +2,7 @@
  * OnboardingTour 완료 분기 — 축하 애니메이션 연결 테스트.
  *
  * 검증 대상:
- *   - step 6 "바로 시작"(onPrevClick) 클릭 → OnboardingCelebration 렌더
+ *   - step 5(보드, 044) "바로 시작"(onPrevClick) 클릭 → OnboardingCelebration 렌더
  *   - "더 보기"(onNextClick) 클릭 → OnboardingCelebration 미렌더(라이브러리로 이동)
  *   - ESC/onCloseClick 클릭 → OnboardingCelebration 미렌더
  *   - OnboardingCelebration onDone 호출 → 컴포넌트 unmount(showCelebration false)
@@ -75,14 +75,14 @@ afterEach(() => {
 });
 
 describe("OnboardingTour — 축하 애니메이션 연결", () => {
-    it("step 6 '바로 시작'(onPrevClick) 클릭 → OnboardingCelebration 렌더", async () => {
+    it("step 5(보드, 044) '바로 시작'(onPrevClick) 클릭 → OnboardingCelebration 렌더", async () => {
         renderTour();
         // settings 로드 후 driver.drive() 호출까지 대기
         await waitFor(() => expect(driveMock).toHaveBeenCalled());
 
         const steps = capturedConfig?.steps as Array<{ popover?: { onPrevClick?: () => void } }>;
         act(() => {
-            steps?.[5]?.popover?.onPrevClick?.();
+            steps?.[4]?.popover?.onPrevClick?.();
         });
 
         expect(screen.getByText("작업실이 준비됐어요")).toBeDefined();
@@ -94,7 +94,7 @@ describe("OnboardingTour — 축하 애니메이션 연결", () => {
 
         const steps = capturedConfig?.steps as Array<{ popover?: { onNextClick?: () => void } }>;
         act(() => {
-            steps?.[5]?.popover?.onNextClick?.();
+            steps?.[4]?.popover?.onNextClick?.();
         });
 
         // 라이브러리로 이동 — 축하 없음
@@ -120,7 +120,7 @@ describe("OnboardingTour — 축하 애니메이션 연결", () => {
         // 바로 시작 클릭 → 축하 표시
         const steps = capturedConfig?.steps as Array<{ popover?: { onPrevClick?: () => void } }>;
         act(() => {
-            steps?.[5]?.popover?.onPrevClick?.();
+            steps?.[4]?.popover?.onPrevClick?.();
         });
 
         expect(screen.getByText("작업실이 준비됐어요")).toBeDefined();

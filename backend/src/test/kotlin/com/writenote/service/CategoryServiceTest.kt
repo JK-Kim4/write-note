@@ -6,6 +6,7 @@ import com.writenote.error.ValidationException
 import com.writenote.mapper.CategoryMapper
 import com.writenote.model.request.CreateCategoryRequest
 import com.writenote.model.request.UpdateCategoryRequest
+import com.writenote.repository.BoardRepository
 import com.writenote.repository.CategoryDuration
 import com.writenote.repository.CategoryProjectCount
 import com.writenote.repository.CategoryRepository
@@ -29,6 +30,7 @@ class CategoryServiceTest {
     private lateinit var projectRepository: ProjectRepository
     private lateinit var userRepository: UserRepository
     private lateinit var categoryMapper: CategoryMapper
+    private lateinit var boardRepository: BoardRepository
     private lateinit var service: CategoryService
 
     @BeforeEach
@@ -37,7 +39,8 @@ class CategoryServiceTest {
         projectRepository = mockk()
         userRepository = mockk()
         categoryMapper = CategoryMapper()
-        service = CategoryService(categoryRepository, projectRepository, userRepository, categoryMapper)
+        boardRepository = mockk()
+        service = CategoryService(categoryRepository, projectRepository, userRepository, categoryMapper, boardRepository)
     }
 
     private fun count(
@@ -402,15 +405,17 @@ class CategoryServiceTest {
     // ── delete ──────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("delete — 본인 모음 repository.delete 위임(작품 보존은 DB SET NULL)")
+    @DisplayName("delete — 보드 owner 강등(보드 보존, 041) 후 repository.delete 위임(작품 보존은 DB SET NULL)")
     fun `delete delegates to repository`() {
         val category =
             Category(id = 8L, userId = 1L, name = "삭제대상", createdAt = Instant.now(), updatedAt = Instant.now())
         every { categoryRepository.findByIdAndUserId(eq(8L), eq(1L)) } returns Optional.of(category)
+        every { boardRepository.clearOwner(eq("category"), eq(8L)) } returns 1
         every { categoryRepository.delete(eq(category)) } returns Unit
 
         service.delete(1L, 8L)
 
+        verify(exactly = 1) { boardRepository.clearOwner(eq("category"), eq(8L)) }
         verify(exactly = 1) { categoryRepository.delete(eq(category)) }
     }
 

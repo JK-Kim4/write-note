@@ -7,6 +7,7 @@ import com.writenote.mapper.CategoryMapper
 import com.writenote.model.request.CreateCategoryRequest
 import com.writenote.model.request.UpdateCategoryRequest
 import com.writenote.model.response.CategoryResponse
+import com.writenote.repository.BoardRepository
 import com.writenote.repository.CategoryRepository
 import com.writenote.repository.ProjectRepository
 import com.writenote.repository.UserRepository
@@ -25,6 +26,7 @@ class CategoryService(
     private val projectRepository: ProjectRepository,
     private val userRepository: UserRepository,
     private val categoryMapper: CategoryMapper,
+    private val boardRepository: BoardRepository,
 ) {
     @Transactional(rollbackFor = [Exception::class])
     fun create(
@@ -138,6 +140,8 @@ class CategoryService(
     ) {
         val category = requireOwnedCategory(userId, categoryId)
         // 소속 작품은 DB FK ON DELETE SET NULL 로 미분류 전환(작품 무손실, FR-007)
+        // 이 시리즈에 소속된 플롯 보드(041)는 아이디어 보드로 강등(보드 보존). 다형이라 DB FK 불가 → 앱 처리.
+        boardRepository.clearOwner("category", categoryId)
         categoryRepository.delete(category)
     }
 

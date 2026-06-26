@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>보드 카드 배경 틴트 — 색상 비교 (소설비)</title>
+<style>
+  :root {
+    --parchment: #f3ede1;
+    --canvas: #faf8f3;        /* 보드 캔버스(따뜻한 거의-흰) */
+    --ink: #2a2620;
+    --ink-soft: #5b554c;
+    --line: #9ca3af;          /* 연결선 회색(--w-line) */
+    --hairline: #e7e0d3;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--parchment);
+    color: var(--ink);
+    font-family: "Apple SD Gothic Neo", "Noto Sans KR", system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 40px 24px 80px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 8px; }
+  header p { color: var(--ink-soft); margin: 0 0 4px; font-size: 0.92rem; max-width: 70ch; }
+  .meta { font-size: 0.8rem; color: var(--ink-soft); margin-top: 10px; }
+  .note { background: #fff; border: 1px solid var(--hairline); border-radius: 12px; padding: 14px 18px; margin: 22px 0 8px; font-size: 0.88rem; color: var(--ink-soft); }
+  .note b { color: var(--ink); }
+
+  section.opt { margin-top: 34px; }
+  .opt-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .opt-head h2 { font-size: 1.1rem; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+  .badge-rec { font-size: 0.72rem; font-weight: 700; color: #8a4325; background: #f6e3d6; border: 1px solid #e0a781; border-radius: 999px; padding: 2px 9px; }
+  .opt-head .desc { font-size: 0.85rem; color: var(--ink-soft); }
+
+  /* dotted 보드 캔버스 */
+  .canvas {
+    background-color: var(--canvas);
+    background-image: radial-gradient(rgba(120,110,95,0.22) 1px, transparent 1px);
+    background-size: 22px 22px;
+    background-position: -1px -1px;
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    padding: 30px 26px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 26px 30px;
+    align-items: flex-start;
+  }
+
+  /* 카드 — 실제 CardNode 레이아웃(w-48=192px, rounded-lg, 칩, 본문). 좌측 스트라이프 제거 → 배경 틴트 + full border. */
+  .card {
+    position: relative;
+    width: 192px;
+    border-radius: 10px;
+    border: 1.5px solid;
+    padding: 9px 12px 11px;
+    box-shadow: 0 1px 2px rgba(40,35,29,0.06), 0 4px 10px rgba(40,35,29,0.05);
+  }
+  .card .chip {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 2px 7px;
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+  .card .body { font-size: 0.82rem; color: #3a352e; white-space: pre-wrap; }
+  .card .body.empty { color: #b8ad9c; }
+  /* 사방 핸들 점(장식) */
+  .card .h { position: absolute; width: 9px; height: 9px; border-radius: 999px; background: #d48d62; border: 2px solid #fff; }
+  .card .h.t { top: -5px; left: 50%; transform: translateX(-50%); }
+  .card .h.r { right: -5px; top: 50%; transform: translateY(-50%); }
+  .card .h.b { bottom: -5px; left: 50%; transform: translateX(-50%); }
+  .card .h.l { left: -5px; top: 50%; transform: translateY(-50%); }
+  .card.sel { box-shadow: 0 0 0 2px #c77a4f, 0 0 0 5px #f6e3d6; }
+  .seltag { position: absolute; top: -9px; right: 8px; font-size: 9px; font-weight: 700; color: #8a4325; background: #f6e3d6; border: 1px solid #e0a781; border-radius: 999px; padding: 1px 6px; }
+
+  .cap { font-size: 0.8rem; color: var(--ink-soft); margin-top: 10px; }
+  .cap code { background: #f4efe6; border: 1px solid var(--hairline); border-radius: 5px; padding: 0 5px; font-size: 0.78rem; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.78rem; color: var(--ink-soft); margin-top: 8px; }
+
+  footer { margin-top: 40px; border-top: 1px solid var(--hairline); padding-top: 20px; font-size: 0.9rem; color: var(--ink-soft); }
+  footer b { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>보드 카드 배경 틴트 — 색상 비교</h1>
+    <p>현재 카드는 <b>흰 배경 + 좌측 색 띠(border-left)</b>로만 타입을 구분한다. 요청대로 <b>배경색까지 타입 색으로 통일</b>(Miro 스타일)하되 채도를 낮춰 편안하게. 좌측 띠는 떼고 <b>배경 틴트 + 같은 계열 전체 테두리</b>로 바꾼다(이게 시각적으로도 더 또렷하고, 좌측 띠 패턴 자체가 디자인 안티패턴이라 정리됨).</p>
+    <p class="meta">5종 타입 = 플롯·인물·장소·테마·메모 · 색은 기존 팔레트(terracotta·teal·emerald·violet·slate) 유지 · 저채도 3단계를 비교 · 본문 대비 ≥ 4.5:1(AA)</p>
+  </header>
+
+  <div class="note">
+    아래 <b>현행</b>을 기준으로 <b>A 옅게 → B 중간(권장) → C 또렷</b> 순으로 배경이 진해진다. 같은 dotted 캔버스 위에 5종을 나란히 둬서 ① 타입 구분이 충분한지 ② 채도가 불편하지 않은지 한 화면에서 본다. 마음에 드는 단계(또는 "A와 B 사이" 같은 중간)를 골라주면 그 값으로 실제 카드(<code>CardNode</code>)에 반영한다.
+  </div>
+
+  <!-- 현행 -->
+  <section class="opt">
+    <div class="opt-head"><h2>현행 (지금)</h2><span class="desc">흰 배경 + 좌측 색 띠. 배경은 타입과 무관하게 전부 흰색.</span></div>
+    <div class="canvas">
+      <div class="card" style="background:#fff;border-color:#d1d5db;border-left:4px solid #d48d62;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#fbf3ee;color:#8a4325;">플롯/사건</span>
+        <div class="body">주인공이 폐허에서 깨어난다</div>
+      </div>
+      <div class="card" style="background:#fff;border-color:#d1d5db;border-left:4px solid #3d8aa3;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#ecf5f8;color:#0a5c79;">인물</span>
+        <div class="body">서린 — 기억을 잃은 추적자</div>
+      </div>
+      <div class="card" style="background:#fff;border-color:#d1d5db;border-left:4px solid #34d399;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#ecfdf5;color:#047857;">장소</span>
+        <div class="body">잿빛 항구도시</div>
+      </div>
+      <div class="card" style="background:#fff;border-color:#d1d5db;border-left:4px solid #a78bfa;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#f5f3ff;color:#6d28d9;">테마/소재</span>
+        <div class="body empty">(빈 카드 — 더블클릭해 편집)</div>
+      </div>
+      <div class="card" style="background:#fff;border-color:#d1d5db;border-left:4px solid #94a3b8;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#f1f5f9;color:#334155;">메모</span>
+        <div class="body">복선: 깨진 회중시계</div>
+      </div>
+    </div>
+    <div class="cap">배경이 전부 흰색이라, 멀리서 보면 타입이 칩·띠로만 구별된다. 캔버스에 카드가 많아지면 한눈에 종류가 안 읽힌다.</div>
+  </section>
+
+  <!-- A 옅게 -->
+  <section class="opt">
+    <div class="opt-head"><h2>A · 옅게 (Whisper)</h2><span class="desc">배경 = 가장 옅은 틴트(−50), 테두리 = 같은 계열 −200. 현행에서 한 끗만 더한 가장 보수적.</span></div>
+    <div class="canvas">
+      <div class="card" style="background:#fbf3ee;border-color:#ecc7ad;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#f6e3d6;color:#8a4325;">플롯/사건</span>
+        <div class="body">주인공이 폐허에서 깨어난다</div>
+      </div>
+      <div class="card" style="background:#ecf5f8;border-color:#a3cdd9;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#cfe6ed;color:#0a5c79;">인물</span>
+        <div class="body">서린 — 기억을 잃은 추적자</div>
+      </div>
+      <div class="card" style="background:#ecfdf5;border-color:#a7f3d0;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#d1fae5;color:#047857;">장소</span>
+        <div class="body">잿빛 항구도시</div>
+      </div>
+      <div class="card" style="background:#f5f3ff;border-color:#ddd6fe;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#ede9fe;color:#6d28d9;">테마/소재</span>
+        <div class="body empty">(빈 카드 — 더블클릭해 편집)</div>
+      </div>
+      <div class="card" style="background:#f8fafc;border-color:#e2e8f0;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#f1f5f9;color:#334155;">메모</span>
+        <div class="body">복선: 깨진 회중시계</div>
+      </div>
+    </div>
+    <div class="cap">아주 은은함. dotted 캔버스 위에서도 흰 카드보다 분명히 낫지만, 옆 카드와 색차가 작아 멀리서는 여전히 약하다.</div>
+  </section>
+
+  <!-- B 중간(권장) -->
+  <section class="opt">
+    <div class="opt-head"><h2>B · 중간 (Soft)</h2><span class="badge-rec">권장</span><span class="desc">배경 = −50과 −100 사이 저채도 틴트, 테두리 = 계열 −300. 한눈에 구분되면서 채도는 편안. Miro 스티커 느낌.</span></div>
+    <div class="canvas">
+      <div class="card" style="background:#f8ebe1;border-color:#dca77f;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#f6e3d6;color:#8a4325;">플롯/사건</span>
+        <div class="body">주인공이 폐허에서 깨어난다</div>
+      </div>
+      <div class="card sel" style="background:#deeef3;border-color:#7fb6c6;">
+        <span class="seltag">선택됨</span>
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#cfe6ed;color:#0a5c79;">인물</span>
+        <div class="body">서린 — 기억을 잃은 추적자</div>
+      </div>
+      <div class="card" style="background:#def5ea;border-color:#86d6b2;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#d1fae5;color:#047857;">장소</span>
+        <div class="body">잿빛 항구도시</div>
+      </div>
+      <div class="card" style="background:#efebfd;border-color:#c0b2ef;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#ede9fe;color:#6d28d9;">테마/소재</span>
+        <div class="body empty">(빈 카드 — 더블클릭해 편집)</div>
+      </div>
+      <div class="card" style="background:#eef1f5;border-color:#c2ccd8;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#f1f5f9;color:#334155;">메모</span>
+        <div class="body">복선: 깨진 회중시계</div>
+      </div>
+    </div>
+    <div class="cap">타입 구분이 또렷하면서도 채도가 낮아 장시간 봐도 피로하지 않다. 가운데 카드는 <b>선택 상태</b>(terracotta 링) — 틴트 위에서도 선택이 잘 읽힌다. <b>권장.</b></div>
+  </section>
+
+  <!-- C 또렷 -->
+  <section class="opt">
+    <div class="opt-head"><h2>C · 또렷 (Tinted)</h2><span class="desc">배경 = −100, 테두리 = 계열 −400. 가장 sticky-note 같은 또렷함. 색이 강해 호불호.</span></div>
+    <div class="canvas">
+      <div class="card" style="background:#f6e3d6;border-color:#d48d62;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#fbf3ee;color:#8a4325;">플롯/사건</span>
+        <div class="body">주인공이 폐허에서 깨어난다</div>
+      </div>
+      <div class="card" style="background:#cfe6ed;border-color:#3d8aa3;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#ecf5f8;color:#0a5c79;">인물</span>
+        <div class="body">서린 — 기억을 잃은 추적자</div>
+      </div>
+      <div class="card" style="background:#d1fae5;border-color:#34d399;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#ecfdf5;color:#047857;">장소</span>
+        <div class="body">잿빛 항구도시</div>
+      </div>
+      <div class="card" style="background:#ede9fe;border-color:#a78bfa;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#f5f3ff;color:#6d28d9;">테마/소재</span>
+        <div class="body empty">(빈 카드 — 더블클릭해 편집)</div>
+      </div>
+      <div class="card" style="background:#f1f5f9;border-color:#94a3b8;">
+        <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+        <span class="chip" style="background:#f8fafc;color:#334155;">메모</span>
+        <div class="body">복선: 깨진 회중시계</div>
+      </div>
+    </div>
+    <div class="cap">멀리서도 종류가 바로 읽힘. 다만 emerald(장소)·violet(테마)는 −100부터 채도가 올라와, "편안함"보다 "또렷함"이 앞선다. 캔버스에 카드가 빽빽하면 다소 산만할 수 있음.</div>
+  </section>
+
+  <footer>
+    <p><b>다음 단계:</b> A / B / C 중 하나(또는 "B인데 장소·테마만 한 단계 낮춰" 같은 미세조정)를 골라주면, 그 값으로 <code>cardKinds.ts</code>에 <code>bg</code>·<code>border</code> 토큰을 더하고 <code>CardNode.tsx</code>의 좌측 띠를 배경 틴트로 교체한다(칩·핸들·선택 링·본문 대비는 보존). 다크 모드 대응도 같이 정한다.</p>
+    <p style="margin-top:8px;">기본 추천은 <b>B(중간)</b> — 소설비의 "절제된 따뜻함" 원칙(저채도·계열색·full border)에 가장 맞고, 타입 구분과 편안함의 균형이 가장 좋다.</p>
+  </footer>
+</div>
+</body>
+</html>

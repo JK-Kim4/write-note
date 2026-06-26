@@ -15,6 +15,7 @@ import { logs } from "./logs";
 import { contact } from "./contact";
 import { shell } from "./shell";
 import { settings } from "./settings";
+import { boards } from "./boards";
 
 export const webElectronApi = {
     projects,
@@ -26,6 +27,7 @@ export const webElectronApi = {
     contact,
     shell,
     settings,
+    boards,
 };
 
 export type WebElectronApi = typeof webElectronApi;
