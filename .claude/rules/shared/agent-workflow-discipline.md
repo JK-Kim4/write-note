@@ -458,6 +458,30 @@ dogfooding/수동 검증 게이트는 **일부 항목 통과를 전체 통과로
 - `ProjectCard`에 `categoryName: string | null` 필수 추가 → 테스트 fixture 6곳(BWorkMiniCard·DraggableWorkCard·LibraryBoard·SeriesExportDialog·useCategories·BResumeCard test) 누락 → typecheck 2회 RED(1차 5개 발견·수정 후 2차 1개 추가 발견).
 - 회피 가능 시점: 필수 필드 추가 직전 `grep -rl "ProjectCard"` 로 fixture 생성처 전수 조사.
 
+## 28. 기획 문서 → 작업 도출 시 요구사항 전수 카탈로그 + 잔여 추적 주인 부여 (HARD-GATE)
+
+기획 문서(PRD·UX 작업지시서·디자인 spec)를 분석해 **갭/트랙/작업을 도출**할 때, 요구사항을 **PRD 상위 축이 아니라 가장 세밀한 단위(UX TASK·완료 기준 체크박스·FR·COPY 항목)까지 전수 대조**한다. 구조적 기능만 보고 UX 디테일(빈 상태 안내·인터랙션 단서·온보딩 등)을 누락하면, 그 디테일은 어느 트랙에도 배정되지 않은 채 사라진다.
+
+추가 3원칙:
+- **잔여 추적 주인 의무** — 범위에서 **의도적으로 제외(Out of Scope)한 잔여**는 즉시 **ISSUE(추적 주인)로 등재**한다. spec 본문에 "후속/잔여"라고만 적고 ISSUE를 안 만들면 주인 없는 잔여가 되어 회수되지 않는다.
+- **문서 간 모순 화해 의무** — 같은 대상에 **여러 기획 문서가 모순**(한 spec은 허용, 다른 spec은 금지 등)하면, 어느 문서가 SoT인지 정해 **화해한 뒤** 구현한다. 미화해 모순은 구현이 한쪽을 임의 채택하게 만든다.
+- **선행 완료 가정 전파 금지** — 후속 설계가 선행 트랙의 기능 완료를 전제하면, 그 전제를 **실재 확인(grep/실행)** 한다. "이전 트랙에서 됐겠지"를 단정하지 않는다.
+
+### 회피 절차
+
+1. 기획 문서로 갭 분석/트랙 분해 시: PRD 축뿐 아니라 **UX worksheet의 TASK·완료 기준·FR·COPY 단위까지 체크리스트화**해 각 항목을 구현/배정/제외 중 하나로 분류한다.
+2. "제외"로 분류한 항목은 그 자리에서 **ISSUE로 등재**(추적 주인).
+3. 같은 요구에 문서 모순이 보이면 SoT를 정해 화해(예: PRD/UX worksheet 가 상위면 옛 spec FR을 정정).
+4. 후속 트랙이 선행 기능을 전제하면 실재 확인 후 진행.
+
+### 회귀 사례 — 2026-06-26 보드 TASK-1 카드 만들기 누락
+
+- `board-prd.md`/`board-ux-worksheet.md`로 보드 고도화 트랙(A~E)을 분해할 때, 로드맵 §3 갭 분석이 **PRD 구조 6축만** 갭으로 잡고 **UX worksheet TASK-1 ②③(빈 보드 안내·빈 곳 더블클릭 생성)·TASK-7(코치마크)을 카탈로그하지 않음** → 어느 트랙에도 배정 안 됨.
+- 트랙 A(`specs/039-board-link-ui/spec.md`)가 "TASK-1 잔여·TASK-7"을 Out of Scope로 명시 제외했으나 **추적 ISSUE 부재** → 후속 트랙 B~E1 어느 것도 회수 안 함.
+- 게다가 `specs/038-memo-plot-board/spec.md` **FR-005**("빈 캔버스로 정상 표시")가 UX worksheet TASK-1("빈 캔버스 절대 노출 금지")과 **정면 모순**인데 미화해 → 038은 자기 spec대로 빈 캔버스 구현. 트랙 D 설계가 "빈 곳 더블클릭 새 카드도 무지정"이라 적어 **더블클릭 생성이 있다고 가정 전파**.
+- 결국 develop merge 후 사용자 dogfooding에서 "더블클릭 카드 생성 안내 빠진 듯"으로 발견 → GAP 전수 분석(`docs/research/2026-06-26-board-spec-vs-impl-gap.html`)으로 규명, ISSUE-051 등재.
+- 회피 가능 시점: 로드맵 §3 갭 분석 작성 시 UX worksheet **TASK 단위까지 대조** + Out of Scope 잔여를 **즉시 ISSUE 등재** + 038 FR-005 모순 화해.
+
 ## 메타 — 본 룰의 누적 정책
 
 본 룰은 **회고 회귀 사례에서 도출** 된 항목을 누적한다. 새 항목 추가 절차:
