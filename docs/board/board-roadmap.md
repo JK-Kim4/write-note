@@ -17,12 +17,12 @@
 
 | | |
 |---|---|
-| 마지막 갱신 | 2026-06-26 (보드 A~E1 **develop merge 완료**(PR #74) + 기획 vs 구현 GAP 분석 + TASK-1 보완 핸드오프) |
-| 완료된 트랙 | **A — 연결(Link) UI** ✅ (`d19b879`) · **B — 유비쿼터스 언어 정리** ✅ (`567935e`) · **C 코어 — 진입점·매핑·아이디어 보드** ✅ (`c9857d1`) · **D — 카드 종류 4종 정합 + UX 안전망** ✅ (`5909456`) · **C-2 — 내부 탭 + 집필 참조** ✅ (042 `c7a3c88` · 043 `976c4dd`/`02b9b62`) · **E 1단계 — 보드 중심 전환(메모·인물 UI 폐기)** ✅ (`048f22e`) |
-| 진행 중 트랙 | — (보드 코어 A~E1 완료·develop merge) |
-| **다음 진입** | **TASK-1 카드 만들기 UX 보완** ([[03-ISSUES]] ISSUE-051) — 핸드오프 `docs/board/2026-06-26-task1-card-creation-handoff.md`(기능 요구사항 정의 → speckit `specs/044`, **develop 기반 새 브랜치**). 빈 보드 안내·빈 곳 더블클릭 생성(+038 FR-005 모순 정정). 그 후 **E 2단계 가져오기**(메모·인물 → 보드 카드 복제, `specs/045` 후보). GAP 분석 보고서 `docs/research/2026-06-26-board-spec-vs-impl-gap.html` |
-| 블로커/대기 | 없음. 보드 A~E1 **develop merge 완료**(PR #74 MERGED, `28bbde4`). **main 승격 미실행**(사용자 결정 대기). 038 브랜치는 새 작업 develop 기반 분기로 역할 종료 |
-| 직전 세션이 한 일 | **develop merge(PR #74 MERGED) + 기획 vs 구현 GAP 분석 + TASK-1 핸드오프**: 보드 A~E1을 develop에 merge(양방향 충돌 9파일 해소 — 홈 `page.tsx`=develop 작품카드/다크모드+044 보드패널 / `BStudioShell`·`BWorkSidePanel`=다크모드토큰+044구조 / `memos`·`characters`·`BMemoStrip`=삭제유지 / `CLAUDE.md` union·룰 §24/25 유지+develop §26/27 재번호 / 신규 보드 컴포넌트 다크모드 토큰화; 게이트 FE test 707·BE build GREEN). **GAP 분석**(`docs/research/2026-06-26-board-spec-vs-impl-gap.html`): PRD/UX worksheet↔코드 전수 대조(✅5/⚠️3/❌4/⏸5) — 미회수 잔여=TASK-1 ②③(빈 보드 안내·빈곳 더블클릭 생성)·TASK-7·TASK-2 hover 힌트; 원인=로드맵 §3 갭분석이 UX TASK 단위 미카탈로그+"TASK-1 잔여" 추적주인 부재+038 FR-005 모순. → ISSUE-051 등재 + 핸드오프 `docs/board/2026-06-26-task1-card-creation-handoff.md`. **이전: E 1단계 = 044 보드 중심 전환**(사용자 대화로 결정): 메모·인물 앱 내 UI 전부 폐기 → 보드가 이야기 요소의 유일한 자리. **데이터·스키마·iOS 캡처(`POST /api/capture`)·BE 컨트롤러/서비스 보존(비파괴, 복원 가능)**. 홈 우측 메모 패널→보드 패널(신규 `BBoardStrip`), 집필실 `BWorkSidePanel` 메모·인물 탭 폐기→보드 단일, nav 메모·인물 폐기, `/memos`·`/characters` 라우트 삭제+redirect, ⌘+N 메모 캡처 폐기, 온보딩 메모·인물 단계→보드 단계. 고아 컴포넌트 삭제(BMemoStrip·QuickCapture·QuickCaptureModal·LinkPopover). 게이트 GREEN(typecheck·lint0err·test 704·build)·**서브에이전트 전수조사로 메모·인물 도달 경로 0 확인**·**사용자 dogfooding 통과("작동 잘 됨")**. 커밋 `048f22e`. "가져오기"는 E 2단계(후속). 죽은 FE 모듈 5(useMemos·useCharacters·api/memo·api/characters·memoView)는 가져오기 재사용 위해 보존. 설계=`docs/superpowers/specs/2026-06-26-board-centric-shift-design.md`. **이전: C-2(내부 탭 + 집필 참조) 완료 + E 비파괴 초안**(야간 자동 진행). **042 내부 탭**(FE only, BE=0): 별도 작품/시리즈 상세 페이지 부재(실측) → 작품 상세=집필 화면 `BWorkSidePanel` "보드" 탭, 시리즈 상세=`/library` 드릴인 "시리즈 보드" 섹션. owner picker 없이 이름만 생성(owner 자동) + 열기(→/boards/{id}). 신규 `InlineBoardList`(View 테스트 5). **043 집필 참조**(BE 선행→FE): `GET /api/boards/reference?projectId=`(작품 보드 + 상위 시리즈 보드 최근순, BoardServiceTest 3 + IT 2) + FE 집필 좌패널 "보드 참조" 토글 → 우측 슬라이드오버(`PlotBoardCanvas` dynamic·후보 전환·last-viewed localStorage·집필 3패널 무변경). 마지막 본 보드는 `SettingsService.ALLOWED` 값 화이트리스트라 임의 boardId 불가 → localStorage(비파괴). 게이트 BE(ktlint·checkstyle·test·build) / FE(typecheck·lint0err·test 703·build) GREEN·회귀 grep clean. **authed dogfooding = 2026-06-26 사용자 로컬 풀스택 통과("잘 작동")** — 자동 진행 시점엔 로그인 불가였으나 풀스택 기동 후 확인. **E**=메모·인물 통합 비파괴 설계 초안(충돌 정리·4 옵션·D1~D6 결정지점·③ 참조통합 권고) — **코드/스키마/캡처 경로 무변경**(가드 3). 설계 SoT=`docs/board/board-track-c2-design.md`·`board-track-e-design-draft.md`. 보고서=`docs/research/2026-06-26-overnight-autorun-report.html` |
+| 마지막 갱신 | 2026-06-27 (**TASK-1 카드 만들기 UX 보완(044) 완료** — 빈 보드 안내·빈 곳 더블클릭 생성·생성 직후 자동 편집·카드 삭제 버튼·연결카드 삭제 버그픽스, develop merge) |
+| 완료된 트랙 | **A — 연결(Link) UI** ✅ (`d19b879`) · **B — 유비쿼터스 언어 정리** ✅ (`567935e`) · **C 코어 — 진입점·매핑·아이디어 보드** ✅ (`c9857d1`) · **D — 카드 종류 4종 정합 + UX 안전망** ✅ (`5909456`) · **C-2 — 내부 탭 + 집필 참조** ✅ (042 `c7a3c88` · 043 `976c4dd`/`02b9b62`) · **E 1단계 — 보드 중심 전환(메모·인물 UI 폐기)** ✅ (`048f22e`) · **TASK-1 — 카드 만들기 UX 보완(044)** ✅ (ISSUE-051 해소) |
+| 진행 중 트랙 | — (보드 코어 A~E1 + TASK-1 UX 완료·develop merge) |
+| **다음 진입** | **E 2단계 — 가져오기**(메모·인물 → 보드 카드 복제, `specs/045` 후보) + **E 데이터 모델 D1~D6 결정**([[03-ISSUES]] · `board-track-e-design-draft.md` ③ 참조통합 권고, 사용자 결정 대기). (TASK-1 UX 보완(044)·ISSUE-051 **완료**.) |
+| 블로커/대기 | 없음. 보드 A~E1 + TASK-1 UX **develop merge 완료**. **main 승격 미실행**(사용자 결정 대기). E 데이터 모델 D1~D6은 사용자 결정 대기 |
+| 직전 세션이 한 일 | **TASK-1 카드 만들기 UX 보완(044) — speckit 사이클 + dogfooding + 버그픽스**(ISSUE-051 해소): 빈 보드(카드 0개) 진입 시 캔버스(격자·툴바) 유지한 채 **중앙 안내 오버레이**(`BoardEmptyGuide`, "여기에 첫 카드를 적어보세요"+버튼, 사용자 피드백으로 흰 화면 takeover→투명 오버레이 정정) + **빈 곳 더블클릭→그 자리 생성**(RF 12 onPaneDoubleClick 부재→wrapper onDoubleClick+isPaneHit pane 한정, zoomOnDoubleClick=false) + 세 경로 공통 `createCardAt`+**생성 직후 자동 편집**(autoEditCardId, onSuccess 실제 id 확정 후) + 빈 카드 즉시저장·잔존(사용자 결정). **카드 선택 시 '삭제' 버튼 추가**(연결할 카드 고르기 옆, deleteElements 재사용). **버그픽스**: 연결된 카드 삭제 시 RF가 엣지 onEdgesDelete도 발화→백엔드 cascade로 사라진 링크 중복삭제 404→거짓 "연결 끊기 실패" 토스트 → `isNotFoundError` 멱등 처리로 제거(키보드 Backspace 기존 버그도 해소). FE only(BE 0)·038 FR-005 모순 정정 동반. 게이트 GREEN(lint0err·typecheck·**test 716**·build)·FE/BE 런타임로그 에러0·DB 고아링크0·**사용자 dogfooding 빈보드 안내 확정**. speckit `specs/044-board-card-creation-ux/`. **이전: develop merge(PR #74 MERGED) + 기획 vs 구현 GAP 분석 + TASK-1 핸드오프**: 보드 A~E1을 develop에 merge(양방향 충돌 9파일 해소 — 홈 `page.tsx`=develop 작품카드/다크모드+044 보드패널 / `BStudioShell`·`BWorkSidePanel`=다크모드토큰+044구조 / `memos`·`characters`·`BMemoStrip`=삭제유지 / `CLAUDE.md` union·룰 §24/25 유지+develop §26/27 재번호 / 신규 보드 컴포넌트 다크모드 토큰화; 게이트 FE test 707·BE build GREEN). **GAP 분석**(`docs/research/2026-06-26-board-spec-vs-impl-gap.html`): PRD/UX worksheet↔코드 전수 대조(✅5/⚠️3/❌4/⏸5) — 미회수 잔여=TASK-1 ②③(빈 보드 안내·빈곳 더블클릭 생성)·TASK-7·TASK-2 hover 힌트; 원인=로드맵 §3 갭분석이 UX TASK 단위 미카탈로그+"TASK-1 잔여" 추적주인 부재+038 FR-005 모순. → ISSUE-051 등재 + 핸드오프 `docs/board/2026-06-26-task1-card-creation-handoff.md`. **이전: E 1단계 = 044 보드 중심 전환**(사용자 대화로 결정): 메모·인물 앱 내 UI 전부 폐기 → 보드가 이야기 요소의 유일한 자리. **데이터·스키마·iOS 캡처(`POST /api/capture`)·BE 컨트롤러/서비스 보존(비파괴, 복원 가능)**. 홈 우측 메모 패널→보드 패널(신규 `BBoardStrip`), 집필실 `BWorkSidePanel` 메모·인물 탭 폐기→보드 단일, nav 메모·인물 폐기, `/memos`·`/characters` 라우트 삭제+redirect, ⌘+N 메모 캡처 폐기, 온보딩 메모·인물 단계→보드 단계. 고아 컴포넌트 삭제(BMemoStrip·QuickCapture·QuickCaptureModal·LinkPopover). 게이트 GREEN(typecheck·lint0err·test 704·build)·**서브에이전트 전수조사로 메모·인물 도달 경로 0 확인**·**사용자 dogfooding 통과("작동 잘 됨")**. 커밋 `048f22e`. "가져오기"는 E 2단계(후속). 죽은 FE 모듈 5(useMemos·useCharacters·api/memo·api/characters·memoView)는 가져오기 재사용 위해 보존. 설계=`docs/superpowers/specs/2026-06-26-board-centric-shift-design.md`. **이전: C-2(내부 탭 + 집필 참조) 완료 + E 비파괴 초안**(야간 자동 진행). **042 내부 탭**(FE only, BE=0): 별도 작품/시리즈 상세 페이지 부재(실측) → 작품 상세=집필 화면 `BWorkSidePanel` "보드" 탭, 시리즈 상세=`/library` 드릴인 "시리즈 보드" 섹션. owner picker 없이 이름만 생성(owner 자동) + 열기(→/boards/{id}). 신규 `InlineBoardList`(View 테스트 5). **043 집필 참조**(BE 선행→FE): `GET /api/boards/reference?projectId=`(작품 보드 + 상위 시리즈 보드 최근순, BoardServiceTest 3 + IT 2) + FE 집필 좌패널 "보드 참조" 토글 → 우측 슬라이드오버(`PlotBoardCanvas` dynamic·후보 전환·last-viewed localStorage·집필 3패널 무변경). 마지막 본 보드는 `SettingsService.ALLOWED` 값 화이트리스트라 임의 boardId 불가 → localStorage(비파괴). 게이트 BE(ktlint·checkstyle·test·build) / FE(typecheck·lint0err·test 703·build) GREEN·회귀 grep clean. **authed dogfooding = 2026-06-26 사용자 로컬 풀스택 통과("잘 작동")** — 자동 진행 시점엔 로그인 불가였으나 풀스택 기동 후 확인. **E**=메모·인물 통합 비파괴 설계 초안(충돌 정리·4 옵션·D1~D6 결정지점·③ 참조통합 권고) — **코드/스키마/캡처 경로 무변경**(가드 3). 설계 SoT=`docs/board/board-track-c2-design.md`·`board-track-e-design-draft.md`. 보고서=`docs/research/2026-06-26-overnight-autorun-report.html` |
 
 **새 세션 첫 행동**: ① 본 §0 → ② §1 대시보드 → ③ §5 진행 중(또는 다음) 트랙의 체크박스·링크 → ④ CLAUDE.md 의무대로 vault `02-PROGRESS`·`03-ISSUES`.
 
@@ -38,6 +38,7 @@
 | **D** | 카드 종류 4종 + UX 안전망 | ✅ 완료 (커밋 `5909456`, merge 보류) | 가벼움 (BE 종류모델 + FE 칩·안전망) |
 | **C-2** | 내부 탭(작품/시리즈 상세) · 집필 참조 | ✅ 완료 (042 `c7a3c88` · 043 `976c4dd`/`02b9b62`, merge 보류) | 중간 (FE 탭/섹션 + BE reference-boards + 슬라이드오버) |
 | **E 1단계** | 보드 중심 전환(메모·인물 UI 폐기) | ✅ 완료 (`048f22e`, dogfooding 통과) | 큼 (FE 전면 제거 + 홈 보드 패널) |
+| **TASK-1 UX** | 카드 만들기 UX 보완(빈 보드 안내·빈곳 더블클릭 생성·자동 편집·삭제 버튼) | ✅ 완료 (044, ISSUE-051, develop merge) | 작음 (FE only, BE 0) |
 | **E 2단계** | 가져오기(메모·인물 → 보드 카드 복제) | ⬜ 후속 (`specs/045` 후보) | 중간 (BE import endpoint + FE) |
 
 > 상태 범례: ⬜ 대기 · 🔵 진행 중 · ✅ 완료 · 🔴 후순위/보류. 트랙 완료 시 이 표 + §0 + §5 체크박스를 함께 갱신.
@@ -175,6 +176,18 @@
   - [ ] (결정 후) 별도 spec — ③=`specs/044-board-import-from-memo-character/`(비파괴, 추가 only) / ①②=파괴적이라 마이그레이션·백필·롤백 설계
   - [ ] (이후 구현·검증·마무리)
 
+### 트랙 TASK-1 보완 — 카드 만들기 UX (044)  `상태: ✅ 완료 (develop merge, ISSUE-051 해소)`
+- **목표**: 기획 vs 구현 GAP 분석에서 드러난 board-ux-worksheet **TASK-1 ②③** 미회수 잔여 회수(빈 보드 안내·빈 곳 더블클릭 생성) + 038 FR-005 모순 정정.
+- **범위(FE only, BE 0)**: 기존 카드 생성(`POST /api/boards/{id}/cards`)·본문 편집 재사용. 변경 = `PlotBoardCanvas`·`CardNode`·`boardActions` + 신규 `BoardEmptyGuide`·`boardCanvasHelpers`.
+- **확정 결정(brainstorming 2026-06-27)**: ① 빈 카드도 즉시 저장·잔존(worksheet "본문 없이 벗어나면 카드 안 남음" 대체) ② 범위=TASK-1만(TASK-2 hover 힌트·TASK-7 코치마크는 ISSUE-051 잔여로 분리) ③ 038 FR-005 직접 정정 + 044 supersede ④ (dogfooding 피드백) 빈 보드 안내는 **보드를 가리는 별도 페이지가 아니라 캔버스 위 투명 오버레이**.
+- **진척**:
+  - [x] brainstorming (저장 시점·범위·FR-005 화해 확정) — 핸드오프 `docs/board/2026-06-26-task1-card-creation-handoff.md`
+  - [x] spec/plan/tasks — `specs/044-board-card-creation-ux/`(NEEDS_CLARIFICATION 0, React Flow 12 API 설치본 실측: onPaneDoubleClick 부재·zoomOnDoubleClick·screenToFlowPosition·pane class)
+  - [x] 구현 (FE, TDD) — `BoardEmptyGuide`·빈곳 더블클릭(isPaneHit TDD)·`createCardAt` 통합·autoEdit(실제 id 확정 후)·삭제 버튼(deleteElements). 빈보드 안내 투명 오버레이 정정
+  - [x] 검증 — 게이트 GREEN(lint0err·typecheck·**test 716**·build) + FE/BE 런타임로그 에러0 + DB 고아링크0 + **사용자 dogfooding 빈보드 안내 확정**
+  - [x] 버그픽스 — 연결된 카드 삭제 거짓 "연결 끊기 실패"(RF onEdgesDelete↔백엔드 cascade 404) → `isNotFoundError` 멱등(TDD 4). 키보드 Backspace 기존 버그도 해소
+  - [x] 마무리 — develop merge + roadmap/vault 갱신 + 회고. **잔여=TASK-2 hover 힌트·TASK-7 코치마크(ISSUE-051, 별도 트랙)**
+
 ---
 
 ## 6. 작업 워크플로우 + 세션 핸드오프 프로토콜
@@ -213,7 +226,8 @@
 
 - **E 데이터 모델 결정** — 메모·인물 통합 방식 ①~④ + D1~D6(비파괴 초안 `board-track-e-design-draft.md` 권고 = ③ 참조 통합). **사용자 결정 대기**.
 - ✅ **C-2 authed dogfooding 통과**(2026-06-26 사용자 로컬 풀스택 "잘 작동") — 042 보드 탭·시리즈 섹션·생성→이동 / 043 참조 슬라이드오버. 자동 진행 시점 미검증분 해소(전 마이크로 항목 개별 확인은 사용자 판단).
-- **develop merge 보류 중** — 보드 A+B+C+D+C-2 가 038 누적, develop 미반영(E 결정 뒤 — 사용자 결정). 038이 develop보다 4커밋 뒤처져 merge 시 양방향 병합 주의.
+- ✅ **develop merge 완료** — 보드 A~E1(PR #74) + TASK-1 UX 보완(044) 모두 develop 반영. **main 승격(production 배포)만 사용자 결정 대기.**
+- ✅ **완료(TASK-1 044, ISSUE-051)** — 빈 보드 안내(투명 오버레이)·빈 곳 더블클릭 생성·생성 직후 자동 편집·카드 삭제 버튼·연결카드 삭제 거짓에러 버그픽스. **잔여=TASK-2 hover "끌어서 잇기" 텍스트 힌트·TASK-7 첫 진입 코치마크**(ISSUE-051에 별도 트랙으로 추적).
 - ✅ 완료(트랙 C-2): `GET /api/boards/reference?projectId=`(작품+상위 시리즈, `/works/:id/...`는 코드베이스 API 베이스 `/api/boards`로 정합) · 내부 탭 호스트 UI(작품=집필 화면 탭·시리즈=라이브러리 섹션) · 마지막 본 보드=localStorage.
 - ✅ 완료(트랙 D): 카드 종류 4 vs 5 정합(4종+무지정).
 - ✅ 완료(트랙 C): `GET /boards/mine`·`PATCH /{id}/owner` (`?q=`는 클라 필터로 대체).
