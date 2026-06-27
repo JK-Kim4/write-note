@@ -34,6 +34,35 @@ interface BoardReferencePanelProps {
     initialBoardId?: number | null;
 }
 
+/**
+ * 보드 본문(상세 + 캔버스) — **열림에 따라 마운트/언마운트되는 자식**.
+ * 부모 최상단에서 useBoardDetail 을 호출하면 패널이 늘 마운트돼 있어 같은 보드를 닫았다 다시 열 때
+ * observer 가 remount 되지 않아 `refetchOnMount:"always"` 가 재발동하지 않고 stale 캐시로 재시드된다
+ * (= 오버레이에서 편집 → 닫기 → 재오픈 시 편집 유실). 본문을 자식으로 분리해 재오픈마다 fresh mount →
+ * 서버 최신 재하이드레이션(편집 반영). 보드 전환(key 변경)에도 동일하게 fresh.
+ */
+function BoardReferenceCanvas({ boardId }: { boardId: number }) {
+    const detail = useBoardDetail(boardId, true);
+    if (detail.isLoading) {
+        return <p className="py-12 text-center text-sm text-gray-400">보드를 여는 중…</p>;
+    }
+    if (detail.isError || !detail.data) {
+        return (
+            <div className="py-12 text-center">
+                <p className="text-sm text-gray-500">보드를 불러올 수 없습니다.</p>
+                <button
+                    type="button"
+                    onClick={() => detail.refetch()}
+                    className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                >
+                    다시 시도
+                </button>
+            </div>
+        );
+    }
+    return <PlotBoardCanvas key={boardId} boardId={boardId} detail={detail.data} />;
+}
+
 export function BoardReferencePanel({ projectId, open, onClose, initialBoardId }: BoardReferencePanelProps) {
     const router = useRouter();
     const boards = useReferenceBoards(projectId, open);
@@ -85,8 +114,6 @@ export function BoardReferencePanel({ projectId, open, onClose, initialBoardId }
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
     }, [open, onClose]);
-
-    const detail = useBoardDetail(effectiveId ?? 0, open && effectiveId != null);
 
     return (
         <>
@@ -179,21 +206,10 @@ export function BoardReferencePanel({ projectId, open, onClose, initialBoardId }
                                         보드로 가기
                                     </Link>
                                 </div>
-                            ) : detail.isLoading ? (
+                            ) : effectiveId == null ? (
                                 <p className="py-12 text-center text-sm text-gray-400">보드를 여는 중…</p>
-                            ) : detail.isError || !detail.data || effectiveId == null ? (
-                                <div className="py-12 text-center">
-                                    <p className="text-sm text-gray-500">보드를 불러올 수 없습니다.</p>
-                                    <button
-                                        type="button"
-                                        onClick={() => detail.refetch()}
-                                        className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
-                                    >
-                                        다시 시도
-                                    </button>
-                                </div>
                             ) : (
-                                <PlotBoardCanvas key={effectiveId} boardId={effectiveId} detail={detail.data} />
+                                <BoardReferenceCanvas key={effectiveId} boardId={effectiveId} />
                             )}
                         </div>
                     </>
