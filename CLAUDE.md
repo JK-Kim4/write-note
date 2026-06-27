@@ -101,16 +101,15 @@ V1 wireframe 완료 + 구현 진행 중 — 001 Phase 1A Backend Foundation / 00
 | 프론트 (web 앱 `frontend/`) | Vercel (same-origin 프록시 — `/api/*` → `BACKEND_ORIGIN` rewrite) |
 | 백엔드 | OCI Compute 인스턴스 (self-managed, Docker 컨테이너) |
 | DB | 같은 OCI Compute 의 self-managed PostgreSQL (public 미노출, Flyway 자동 적용) |
-| 데스크톱 (`desktop/`) | GitHub Releases — `v*` 태그 push 시 `.github/workflows/release.yml` 이 네이티브 러너에서 dmg/exe 빌드·게시 |
-| 다운로드 페이지 (`download-site/`) | Vercel 정적 배포 (Production Branch = `main`, Root = `download-site`) — 데스크톱 설치파일 안내. **웹 앱과 분리** |
 
 > Render(백엔드)·Supabase(DB)는 2026-06-16 폐기. 도메인 = soseolbi.com 확보(2026-06-21, 위 인프라 구성 참조).
+> **데스크톱 앱(`desktop/`)·다운로드 페이지(`download-site/`)는 폐기**(2026-06-27 정리, 코드·워크플로우·설계문서 제거). 본 프로젝트는 **웹 앱(`frontend/`+`backend/`) 전용**이며, GitHub Releases·버전 태그(`v*`)는 웹 앱 릴리즈 노트로만 운영한다.
 
 ### 브랜치 모델 (README §"브랜치 전략")
 
 | 브랜치 | 역할 |
 |---|---|
-| `main` | **웹 앱 production 코드베이스**(2026-06-21 `develop→main` 승격, `7628e66`). main push → Vercel production(soseolbi.com) 자동배포 + 다운로드 페이지 production. develop 과 동기 유지 |
+| `main` | **웹 앱 production 코드베이스**(2026-06-21 `develop→main` 승격, `7628e66`). main push → Vercel production(soseolbi.com) 자동배포. develop 과 동기 유지 |
 | `develop` | 다음 release 통합 target. push → Vercel preview 자동배포. 작은 FE 기능은 develop 직접 작업 후 main merge |
 | `feature/*` | 신규 기능, 워크트리 격리 |
 | `release/*` · `hotfix/*` | 출시 안정화 / production 긴급 fix (발생 시 생성) |
@@ -120,12 +119,11 @@ V1 wireframe 완료 + 구현 진행 중 — 001 Phase 1A Backend Foundation / 00
 - **도메인 = soseolbi.com** (2026-06-21 harubuild.xyz 에서 전환). **Cloudflare 경유**(GoDaddy 도메인 → Cloudflare 네임서버): 프론트 `soseolbi.com`(Vercel, Cloudflare 프록시 **OFF**), 백엔드 `api.soseolbi.com`(OCI, Cloudflare 프록시 **ON** + Origin Certificate). 구 harubuild.xyz → 308 redirect.
 - **FE** = Vercel (project "write-note", team narae-note). same-origin 프록시 — `/api/*` → `BACKEND_ORIGIN`(=`https://api.soseolbi.com`) rewrite. **Root Directory=`frontend`**.
 - **BE** = OCI Compute(`free-a1`, ap-seoul-1, `ssh oci`) Docker 컨테이너 + 앞단 Caddy(:443) + self-managed PostgreSQL(Docker, 로컬 전용, Flyway 자동).
-- **데스크톱**(`desktop/`) = GitHub Releases(`v*` 태그 push → `release.yml`). **다운로드 페이지**(`download-site/`) = 별도 Vercel 정적 배포(Root=download-site, Production=main) — 웹 앱과 분리.
 
 ### 배포 방식 (HARD-GATE — 정상 경로 = git push 자동배포)
 
 - **FE 재배포 = `main`/`develop` push 시 Vercel git 자동배포** (정상 경로, 2026-06-21~). **`main` push → production**(soseolbi.com alias, **무중단** immutable 배포), 기타 브랜치 push → preview. 별도 명령 불필요.
-  - ⚠️ **수동 `vercel --prod` 는 비권장 — 실패한다**: Root Directory=`frontend` 설정 때문에 (a) `cd frontend && vercel --prod` → 경로 중복 `frontend/frontend` 오류, (b) repo 루트 실행 → backend·desktop 포함 repo 전체(~1GB) 업로드 → **100MB 초과 deploy_failed**. 핫픽스로 꼭 필요하면 `.vercelignore` 선행. **그냥 push 로 자동배포가 맞다.** (2026-06-21 실증 — 메모리 [[deployment-live]])
+  - ⚠️ **수동 `vercel --prod` 는 비권장 — 실패한다**: Root Directory=`frontend` 설정 때문에 (a) `cd frontend && vercel --prod` → 경로 중복 `frontend/frontend` 오류, (b) repo 루트 실행 → frontend 외 backend 등 포함 repo 전체 업로드 → **100MB 초과 deploy_failed**. 핫픽스로 꼭 필요하면 `.vercelignore` 선행. **그냥 push 로 자동배포가 맞다.** (2026-06-21 실증 — 메모리 [[deployment-live]])
 - **BE 재배포 = OCI Docker blue-green 무중단** (수동, 내가 직접 수행 가능 — 단 prod 쓰기라 사용자 컨펌 시; external-infra-safety §1). 절차: `cd backend && ./gradlew bootJar` → `scp build/libs/*.jar oci:be-build/backend.jar` → `ssh oci 'sudo bash ~/be-build/blue-green-deploy.sh'`. 상세 = 메모리 [[deployment-live]].
 - **배포 순서 의존(HARD-GATE) = 방향 의존** (고정 아님 — 어느 쪽이 새 계약/요구를 도입하느냐로 결정):
   - **FE 선행 → BE 후행**: BE 가 FE 가 보내는 것을 *요구*하게 될 때. 예) `CsrfDefenseFilter` 가 쿠키 변경요청에 `X-WriteNote-Client` 헤더 요구 — BE 가 먼저 나가면 헤더 없는 기존 프론트 변경요청이 403.
