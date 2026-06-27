@@ -104,8 +104,10 @@
 ## 5. 작업 트랙 (각 트랙 = 독립 세션 단위)
 
 > 각 트랙 진척 체크박스를 단계 완료 시마다 `[x]` 로 갱신하고, brainstorming/설계 결론은 **링크된 파일**(`specs/` 또는 본 문서 부록)에 박는다 — 대화에만 두지 않는다.
+>
+> ⚠️ **트랙 A~E1 의 "마무리" 칸에 남은 "develop merge 보류" 표기는 작성 당시 기록(역사)** — 실제로는 전부 **PR #74(`b2c3ef6`)로 develop merge·push 완료**(2026-06-26~27). 현재 상태는 각 트랙 헤더 `상태:` + §1 대시보드 기준.
 
-### 트랙 A — 연결(Link) UI 재개 🥇  `상태: ✅ 완료 (커밋 d19b879, develop merge 보류)`
+### 트랙 A — 연결(Link) UI 재개 🥇  `상태: ✅ 완료 (커밋 d19b879, develop merge PR #74)`
 - **목표**: 보류된 연결 UI 복원. BE·훅 그대로, FE 캔버스 결선만.
 - **범위(FE only)**: `NodeCard` 연결점(`Handle`) + `PlotBoardCanvas` `useEdgesState`·`edges` 렌더·`nodesConnectable={true}`·`onConnect`(→`useCreateEdge`)·엣지 삭제(→`useDeleteEdge`) + PRD `TASK-2` UX(hover 단서·드래그 피드백·빈 곳 drop "새 카드 만들어 잇기"·클릭-클릭 대체).
 - **PRD 근거**: `board-ux-worksheet.md` TASK-2.
@@ -120,7 +122,7 @@
   - [x] 검증 — **자동 게이트 GREEN**(FE typecheck·lint 0err·test 685·build / BE ktlint·test) + **dogfooding 전항 통과**(테두리 앵커·이웃강조·재진입 유지·끊기·빈곳·클릭클릭 인디케이터·가드·회귀)
   - [x] 마무리 — **커밋 `d19b879`**(038-memo-plot-board). **develop merge 보류**(보드 트랙 B~E 후) + 회고
 
-### 트랙 B — 유비쿼터스 언어 정리  `상태: ✅ 완료 (커밋, develop merge 보류)`
+### 트랙 B — 유비쿼터스 언어 정리  `상태: ✅ 완료 (커밋, develop merge PR #74)`
 - **목표**: `node/edge/노드/연결/board_nodes` → `Card/Link/카드/잇기/cards` 전면 통일.
 - **범위(BE 전면 + FE)**: 테이블 rename 마이그레이션 + 엔티티/repository/service/DTO/controller 경로 + FE 도메인 타입·훅·화면 문구. PRD §8 어댑터 경계(React Flow `node/edge` 는 어댑터 안에서만).
 - **⚠️ 트랙 A 완료로 추가된 rename 대상(놓치지 말 것)**: `board_edges.source_handle/target_handle`(V26)·신규 `linkGraph.ts`/`LinkEdge.tsx`/`boardActions.startConnect`·`useCreateEdge`의 sourceHandle/targetHandle·`BoardEdgeResponse`. 트랙 A는 화면 문구만 "카드"로 바꾸고 **코드 식별자(`NodeCard`/`board_nodes`/`useCreateNode` 등)는 `node`로 유지** → 전면 rename은 본 트랙 몫. 연결 UI는 동작 보존(회귀 grep 필수).
@@ -135,7 +137,7 @@
   - [x] 클릭-클릭 연결 앵커 — 두 카드 중심 우세축으로 마주보는 테두리 자동(`linkGraph.nearestHandlePair` TDD, V26 앵커 재사용·신규 BE 0). 드래그 경로는 RF Loose라 기존대로
   - [x] 카드 디자인(Miro 스타일·저채도) — 타입별 **배경 틴트(-50)**+**전체 테두리(-200)**+**선택선/링(-500/-200)**+**핸들(-400)**+**칩(-100)** 타입색 통일, **좌측 스트라이프 제거**(디자인 안티패턴). `cardKinds.ts`+`CardNode.tsx`. 목업 `docs/research/2026-06-25-board-card-bg-mockup.html`(A안=Whisper 채택). 보드 `colorMode=light` 고정이라 다크 변형 불요
 
-### 트랙 C 코어 — 진입점·매핑·아이디어 보드  `상태: ✅ 완료 (커밋 c9857d1, develop merge 보류)`
+### 트랙 C 코어 — 진입점·매핑·아이디어 보드  `상태: ✅ 완료 (커밋 c9857d1, develop merge PR #74)`
 - **목표**: 매핑 모델 전환 + 전역 허브 + 아이디어 보드·나중에 붙이기 + 전역 생성 picker. (내부 탭·집필 참조는 C-2로 분리)
 - **범위(마이그레이션 + BE 신규 2 + FE)**: dual-FK→owner 다형 단일소유+1:N(V24 in-place) / `GET /boards/mine`(소속 라벨·최근순) / `PATCH /{id}/owner`(set/clear) / 아이디어 보드·picker / 검색=클라 필터.
 - **PRD 근거**: §5.3·§5.4·§7·§10, UX TASK-4·4B.
@@ -147,7 +149,7 @@
   - [x] 검증 — BE 게이트 GREEN(로컬 DB 리셋 후) / FE typecheck·lint0err·test 690·build / 회귀 grep 0 / **dogfooding 6/6**(소속 라벨 작품·시리즈 종류 구분 fix 포함)
   - [x] 마무리 — **038 커밋 `c9857d1`**, develop merge 계속 보류(사용자 결정) + roadmap·vault 갱신 + 회고
 
-### 트랙 C-2 — 내부 탭 + 집필 참조 (C에서 분리)  `상태: ✅ 완료 (042 c7a3c88 · 043 976c4dd/02b9b62, merge 보류)`
+### 트랙 C-2 — 내부 탭 + 집필 참조 (C에서 분리)  `상태: ✅ 완료 (042 c7a3c88 · 043 976c4dd/02b9b62, develop merge PR #74)`
 - **목표**: PRD §5.4 ② 작품/시리즈 내부 보드 탭 + ③ 집필 중 보드 참조(분할 뷰).
 - **확정 결정(야간 자동 — 코드 실측 기반)**: ② **호스트 UI** = 별도 작품/시리즈 상세 페이지 부재(실측 — 라우트 /library·/works/[id]·/boards뿐) → 작품 상세=집필 화면 `BWorkSidePanel` "보드" 탭, 시리즈 상세=/library 드릴인 "시리즈 보드" 섹션. `GET /boards?ownerType=&ownerId=`(041 계약) 재사용 → 042 BE=0. ③ **마지막 본 보드 저장소** = localStorage(`SettingsService.ALLOWED`가 값 화이트리스트라 임의 boardId 서버 키 불가 — 실측 확정, 비파괴 기본값). `GET /api/boards/reference?projectId=`(작품 보드 + 상위 시리즈, 상위=project.categoryId) 신규. 분할 뷰=우측 슬라이드오버(overlay, 집필 3패널 flex 무변경 — 회귀 위험 ↓). 설계 SoT=`docs/board/board-track-c2-design.md`.
 - **진척**:
@@ -157,7 +159,7 @@
   - [x] 검증 — 자동 게이트 전항 GREEN + 회귀 grep clean. **authed dogfooding = 2026-06-26 사용자 로컬 풀스택 통과("잘 작동")**(집필실 보드 탭·시리즈 보드 섹션·생성→이동·참조 슬라이드오버). 자동 진행 시점엔 로그인 불가였으나 풀스택(DB·BE 8080·FE 3000) 기동 후 확인
   - [x] 마무리 — 038 커밋(develop merge 보류) + roadmap/vault 갱신 + HTML 보고서
 
-### 트랙 D — 카드 종류 정합 + UX 안전망  `상태: ✅ 완료 (커밋 5909456, develop merge 보류)`
+### 트랙 D — 카드 종류 정합 + UX 안전망  `상태: ✅ 완료 (커밋 5909456, develop merge PR #74)`
 - **목표**: 종류 4종 정합 + progressive disclosure + 안전망.
 - **범위**: 종류 4종(인물·장소·사건·테마)·기본 무지정·생성 후 칩 부여/재탭 해제 / 한눈에 보기·미니맵 토글. **undo/redo·온보딩 제외**(별도/후순위).
 - **PRD 근거**: UX TASK-3·6. PRD §3·§11(2).
