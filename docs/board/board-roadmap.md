@@ -168,7 +168,7 @@
 ### 트랙 E — 메모·인물 통합  `상태: 1단계 완료(044 보드 중심 전환, 048f22e) · 2단계(가져오기) 후속`
 
 - **확정(사용자 대화 2026-06-26)**: 완전 보드 중심 — 메모·인물 앱 내 UI 전부 폐기(메뉴·라우트·홈 패널·집필실 탭·⌘+N), **데이터·스키마·iOS 캡처·BE 보존**(비파괴). 홈 우측=보드 패널(`BBoardStrip`). 가져오기는 2단계. 설계 SoT=`docs/superpowers/specs/2026-06-26-board-centric-shift-design.md`. 게이트 GREEN(test 704)·전수조사 도달경로 0·dogfooding 통과.
-- **2단계(가져오기, 후속 `specs/045`)**: 기존 메모·인물(DB 보존) → 보드 카드 복제. BE import 조회/생성 endpoint + FE "가져오기" UI. 죽은 FE 모듈(useMemos·useCharacters·api/memo·api/characters·memoView)은 이때 재사용.
+- **2단계(가져오기, 후속 `specs/047`)**: 기존 메모·인물(DB 보존) → 보드 카드 복제. BE import 조회/생성 endpoint + FE "가져오기" UI. 죽은 FE 모듈(useMemos·useCharacters·api/memo·api/characters·memoView)은 이때 재사용. ⚠️ 번호 정정: 045=코치마크·046=인라인 오버레이가 선점 → 가져오기 = **047**.
 
 - **선행 결정(데이터 모델)**: ① 완전 통합(메모·인물 폐기, M:N·캡처 손실 감수) ② 부분 통합(인물만 카드로) ③ 참조 통합(데이터 유지, "가져오기"로 카드화) ④ 보류(독립 유지).
 - **비파괴 초안(야간 자동 — 코드/스키마 무변경)**: `docs/board/board-track-e-design-draft.md`. 충돌 본질(메모 M:N·캡처 정체성·soft-delete / 인물 구조화 필드 / 카드 1보드전속·평문 — 실측 확정) + 4 옵션 비파괴 분석 + **데이터 모델 결정 지점 D1~D6** + **③ 참조 통합 권고**(비파괴, 마이그레이션 0, 되돌리기=가져온 카드 삭제). ①②는 파괴적이라 자동 진행 금지 영역.
@@ -188,7 +188,19 @@
   - [x] 구현 (FE, TDD) — `BoardEmptyGuide`·빈곳 더블클릭(isPaneHit TDD)·`createCardAt` 통합·autoEdit(실제 id 확정 후)·삭제 버튼(deleteElements). 빈보드 안내 투명 오버레이 정정
   - [x] 검증 — 게이트 GREEN(lint0err·typecheck·**test 716**·build) + FE/BE 런타임로그 에러0 + DB 고아링크0 + **사용자 dogfooding 빈보드 안내 확정**
   - [x] 버그픽스 — 연결된 카드 삭제 거짓 "연결 끊기 실패"(RF onEdgesDelete↔백엔드 cascade 404) → `isNotFoundError` 멱등(TDD 4). 키보드 Backspace 기존 버그도 해소
-  - [x] 마무리 — develop merge + roadmap/vault 갱신 + 회고. **잔여=TASK-2 hover 힌트·TASK-7 코치마크(ISSUE-051, 별도 트랙 → `specs/046` 후보, 다음 세션 트랙 2)**. 핸드오프 `docs/board/2026-06-27-next-session-handoff.md`
+  - [x] 마무리 — develop merge + roadmap/vault 갱신 + 회고. **잔여(TASK-2 힌트·TASK-7 코치마크)는 045에서 완료 → ISSUE-051 완전 종료**.
+
+### 트랙 045 — "끌어서 잇기" 코치마크 (ISSUE-051 잔여)  `상태: ✅ 완료 (develop merge b2c3ef6, ISSUE-051 완전 종료)`
+- **목표**: 보드 처음 진입 시 잇기 제스처 발견성 — 처음 어느 카드든 연결점에 커서 올리면 그 점에서 "끌어서 잇기" 1회.
+- **확정 결정(brainstorming 목업 2026-06-27)**: ① 첫 진입 1회만(매 hover는 연결점만) ② 커서 올라간 그 연결점에서 바깥으로 ③ 자체 코치마크(driver.js 아님 — 튜토리얼벽·다크함정 회피) ④ localStorage 단일 플래그(FE only) ⑤ 보드 페이지 + 집필 참조 공통 ⑥ "이건 뭔가요?" 제거. 문서 모순 화해(룰28): worksheet TASK-7(첫진입 1회) vs 핸드오프 TASK-2(매hover) → 첫 진입 1회 통합. 실측: `HandleProps`가 onMouseEnter/Leave forward.
+- **진척**: [x] brainstorming(위치 목업)·[x] speckit `specs/045-board-link-coachmark/`(spec/plan/tasks)·[x] 구현(`boardCoachmark`·`linkHintPlacement` 순수 TDD 11 + `CardNode` 결선)·[x] 게이트 GREEN(test 727)·[x] dogfooding 통과·[x] 마무리(merge·vault·회고). 설계 `board-link-coachmark-design.md`.
+
+### 트랙 046 — 집필 화면 인라인 보드 편집 + 오버레이 열고/닫기  `상태: ✅ 완료 (develop merge b2c3ef6)`
+- **목표**: 집필 화면 보드 목록 "열기"의 완전 이탈 제거 → 이미 있던 인라인 참조 패널(편집 가능 캔버스)로 보고·수정 통일 + 열고/닫기 다듬기.
+- **확정 결정(인터랙티브 목업 2026-06-27)**: A안(인라인 오버레이 재사용) + 진입 통일(목록 클릭→인라인 preselect, `router.push`는 라이브러리 시리즈 보드만 유지)·토글+active·슬라이드·✕/ESC/투명 바깥클릭(원고 안 어두워짐)·⤢ 넓게·↗ 전체화면. 경량 설계문서(트랙 D 선례, speckit 풀과정 생략).
+- **변경(FE only, BE 0)**: `InlineBoardList` onOpenBoard·`BWorkSidePanel`·`BStudioShell` 토글/결선·`BoardReferencePanel`.
+- **dogfooding 버그픽스 2**: (a) 재오픈 유실 = detail+캔버스를 자식 `BoardReferenceCanvas`로 분리(재오픈마다 fresh refetch) (b) 연결카드 삭제 간헐 거짓 토스트 = 중복 link 삭제 레이스 제거(공용 `PlotBoardCanvas`, ISSUE-052).
+- **진척**: [x] 디자인 목업 잠금·[x] 구현·[x] 게이트 GREEN(test 727)·[x] dogfooding 전항(오버레이+메인페이지 회귀·시리즈보드 router 유지)·[x] 마무리(merge·vault·회고). 설계 `board-writing-inline-overlay-design.md`. **ux-mockup 스킬 신설**.
 
 ---
 
