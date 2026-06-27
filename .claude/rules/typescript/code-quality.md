@@ -56,6 +56,7 @@
 - 데이터 fetching 은 container / page 레벨, 표시 컴포넌트는 props 만
 - Server state = React Query, Local UI = Zustand / `useState` (docs/plan §2-1)
 - `react-hooks/exhaustive-deps` 활성
+- **빈 상태(empty-state) 안내는 화면 컨텍스트 유지 + 오버레이가 default** — 빈 리스트/캔버스/보드의 안내는 그 화면의 컨텍스트(격자·툴바·헤더 등)를 **유지한 채 위에 얹는다**(`pointer-events-none` 컨테이너 + 액션 버튼만 `pointer-events-auto`). "빈 화면 노출 금지" 류 요구를 "화면 전체를 흰 화면으로 가린다"로 해석 금지 — **전체 화면 takeover(별도 페이지처럼 덮기)는 사용자가 명시 요청할 때만**. 회귀: 2026-06-27 044 보드 빈 보드 안내를 1차로 `bg-white inset-0` 전체 takeover 로 만들어 "별도 흰 페이지"가 됨 → 사용자 2회 멈춤("보드 위 안내여야지 새 페이지가 아니다") → 투명 비차단 오버레이로 정정.
 - **커스텀 훅 반환 객체/함수를 `useCallback`/`useEffect` deps 에 직접 넣지 말 것** — 커스텀 훅(예: `useDocumentSession`)이 매 렌더 새 인스턴스를 반환하면, 그것을 deps 로 잡은 `useCallback`/effect 가 매 렌더 새로 생성·실행된다. 반환 함수가 미안정이면 **ref 로 안정화**(`const xRef = useRef(x); useEffect(() => { xRef.current = x; })` 후 `xRef.current` 참조)하거나, 훅이 반환 함수를 `useCallback` 으로 안정화한다. **effect 가 부모 setState 를 호출하는 경우 deps 불안정 = 무한 렌더 → JavaScript heap OOM** 으로 직결된다.
 
 #### 회귀 사례 — 2026-06-14 022 챕터 BChapterEditor 무한루프 OOM
