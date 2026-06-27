@@ -196,7 +196,7 @@ export function CardNode({ id, data, selected }: NodeProps) {
                         }}
                         className="rounded-full border border-dashed border-terracotta-400/50 bg-white/60 px-3 py-1 text-[11px] font-semibold text-terracotta-600 shadow-sm backdrop-blur-sm hover:bg-white/90 hover:text-terracotta-700"
                     >
-                        ↗ 연결할 카드 고르기
+                        연결할 카드 고르기
                     </button>
                     <button
                         type="button"
@@ -206,7 +206,7 @@ export function CardNode({ id, data, selected }: NodeProps) {
                         }}
                         className="rounded-full border border-dashed border-gray-300 bg-white/60 px-3 py-1 text-[11px] font-semibold text-gray-500 shadow-sm backdrop-blur-sm hover:border-red-300 hover:bg-white/90 hover:text-red-600"
                     >
-                        ✕ 삭제
+                        삭제
                     </button>
                 </div>
             )}
