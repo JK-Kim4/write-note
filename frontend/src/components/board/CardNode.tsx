@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
+import { Handle, Position, useReactFlow, type Node, type NodeProps } from "@xyflow/react";
 import { useBoardActions } from "./boardActions";
 import { CARD_KINDS, kindOf } from "./cardKinds";
 
@@ -44,6 +44,8 @@ export function CardNode({ id, data, selected }: NodeProps) {
     const kind = kindOf((data as CardNodeData).kind);
     const isUntyped = kind.id === null;
     const { editCardBody, startConnect, setCardKind, autoEditCardId, consumeAutoEdit } = useBoardActions();
+    // 삭제 — RF deleteElements 로 기존 삭제 파이프라인(onNodesDelete→deleteCardMut) 재사용(키보드 Backspace 와 동일 경로).
+    const { deleteElements } = useReactFlow();
     const [editing, setEditing] = useState(false);
     const [text, setText] = useState(body);
     // 종류 트레이: 무지정 카드는 선택 시 자동, 종류 지정 카드는 배지를 눌러 열었을 때만(trayOpen).
@@ -183,18 +185,30 @@ export function CardNode({ id, data, selected }: NodeProps) {
                 </div>
             )}
 
-            {/* 클릭-클릭 연결 진입 — 카드 바깥 하단에 분리된 은은한 인디케이터(선택 시). */}
+            {/* 카드 바깥 하단 인디케이터(선택 시) — 잇기 진입 + 삭제. */}
             {selected && !editing && (
-                <button
-                    type="button"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        startConnect(Number(id));
-                    }}
-                    className="nodrag nopan absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-dashed border-terracotta-400/50 bg-white/60 px-3 py-1 text-[11px] font-semibold text-terracotta-600 shadow-sm backdrop-blur-sm hover:bg-white/90 hover:text-terracotta-700"
-                >
-                    ↗ 연결할 카드 고르기
-                </button>
+                <div className="nodrag nopan absolute -bottom-9 left-1/2 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap">
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            startConnect(Number(id));
+                        }}
+                        className="rounded-full border border-dashed border-terracotta-400/50 bg-white/60 px-3 py-1 text-[11px] font-semibold text-terracotta-600 shadow-sm backdrop-blur-sm hover:bg-white/90 hover:text-terracotta-700"
+                    >
+                        ↗ 연결할 카드 고르기
+                    </button>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            void deleteElements({ nodes: [{ id }] });
+                        }}
+                        className="rounded-full border border-dashed border-gray-300 bg-white/60 px-3 py-1 text-[11px] font-semibold text-gray-500 shadow-sm backdrop-blur-sm hover:border-red-300 hover:bg-white/90 hover:text-red-600"
+                    >
+                        ✕ 삭제
+                    </button>
+                </div>
             )}
         </div>
     );
