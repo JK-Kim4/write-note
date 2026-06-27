@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>트랙 2 — "끌어서 잇기" 코치마크 (커서가 올라간 연결점에서 나오는 버전)</title>
+<style>
+  :root{
+    --terra-50:#fbf3ee; --terra-100:#f6e3d6; --terra-200:#ecc7ad; --terra-400:#d48d62; --terra-500:#c77a4f; --terra-600:#a8542e; --terra-700:#8a4325;
+    --teal-50:#ecf5f8; --teal-100:#cfe6ed; --teal-200:#a3cdd9; --teal-400:#3d8aa3; --teal-500:#1c7791; --teal-700:#0a5c79;
+    --slate-50:#f8fafc; --slate-100:#f1f5f9; --slate-200:#e2e8f0; --slate-300:#cbd5e1; --slate-400:#94a3b8; --slate-500:#64748b;
+    --ink:#26211c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",system-ui,sans-serif;background:#efece6;color:#2a2620;line-height:1.5;padding:30px 24px 90px}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:#6b6358;font-size:13.5px;margin:0 0 6px;max-width:940px}
+  .legend{color:#8a8175;font-size:12.5px;margin:0 0 8px;max-width:940px}
+  h2{font-size:16px;margin:34px 0 4px;padding-top:18px;border-top:1px solid #ddd6cc}
+  .h2sub{color:#6b6358;font-size:12.5px;margin:0 0 22px;max-width:940px}
+  .row{display:flex;gap:30px;flex-wrap:wrap;align-items:flex-start}
+  .col h3{font-size:13px;margin:0 0 10px;color:#2f2a23;text-align:center}
+  .canvas{position:relative;border:1px solid #e2ddd3;border-radius:12px;background:#fff;
+    background-image:radial-gradient(#d9d3c7 1px,transparent 1px);background-size:18px 18px;
+    width:260px;height:190px;display:flex;justify-content:center;align-items:center}
+  .card{position:relative;width:184px;border-radius:9px;border:1px solid;padding:8px 12px;box-shadow:0 1px 2px rgba(0,0,0,.07);background:#fff}
+  .card .badge{display:inline-block;border-radius:999px;padding:1px 7px;font-size:10px;font-weight:600;margin-bottom:5px}
+  .card .body{font-size:13px;color:#3f3a33}
+  .h{position:absolute;width:11px;height:11px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.05)}
+  .h.t{top:-6px;left:50%;transform:translateX(-50%)} .h.r{right:-6px;top:50%;transform:translateY(-50%)}
+  .h.b{bottom:-6px;left:50%;transform:translateX(-50%)} .h.l{left:-6px;top:50%;transform:translateY(-50%)}
+  /* 커서가 올라간 연결점 = 강조(살짝 키움) */
+  .h.active{width:14px;height:14px;box-shadow:0 0 0 4px rgba(168,84,46,.18),0 0 0 1px rgba(0,0,0,.05)}
+  .k-event{background:var(--terra-50);border-color:var(--terra-200)} .k-event .badge{background:var(--terra-100);color:var(--terra-700)} .k-event .h{background:var(--terra-400)}
+  .k-char{background:var(--teal-50);border-color:var(--teal-200)} .k-char .badge{background:var(--teal-100);color:var(--teal-700)} .k-char .h{background:var(--teal-400)}
+  .k-untyped{background:var(--slate-50);border-color:var(--slate-200)} .k-untyped .badge{background:var(--slate-100);color:var(--slate-500)} .k-untyped .h{background:var(--slate-400)}
+
+  /* 코치마크: 연결점에서 나오는 다크 툴팁 + 캐럿 */
+  .cm{position:absolute;z-index:5;background:var(--ink);color:#fff;font-size:11.5px;font-weight:600;
+    padding:4px 9px;border-radius:7px;white-space:nowrap;box-shadow:0 6px 16px rgba(0,0,0,.22);pointer-events:none}
+  .cm::after{content:"";position:absolute;width:0;height:0;border:5px solid transparent}
+  .cm.up::after{top:-10px;left:50%;transform:translateX(-50%);border-bottom-color:var(--ink)}
+  .cm.down::after{bottom:-10px;left:50%;transform:translateX(-50%);border-top-color:var(--ink)}
+  .cm.left::after{left:-10px;top:50%;transform:translateY(-50%);border-right-color:var(--ink)}
+  .cm.right::after{right:-10px;top:50%;transform:translateY(-50%);border-left-color:var(--ink)}
+
+  /* 가짜 커서 */
+  .cursor{position:absolute;width:16px;height:16px;z-index:6;pointer-events:none;
+    background:no-repeat center/contain url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M2 1l11 6-5 1.5L6 14 2 1z" fill="black" stroke="white" stroke-width="1"/></svg>')}
+
+  .behavior{margin-top:34px;background:#fff;border:1px solid #e2ddd3;border-radius:12px;padding:16px 18px;max-width:940px}
+  .behavior h3{margin:0 0 8px;font-size:14px}
+  .behavior ul{margin:0;padding-left:18px;font-size:13px;color:#3f3a33}
+  .behavior li{margin:3px 0}
+  code{background:#f1ece3;padding:1px 5px;border-radius:4px;font-size:12px}
+  .drop{color:#9a5a3a}
+</style>
+</head>
+<body>
+  <h1>"끌어서 잇기" 코치마크 — 커서가 올라간 연결점에서</h1>
+  <p class="sub">처음 어느 카드든 <b>연결점(동그라미)에 마우스를 올리면</b> 그 점에서 "끌어서 잇기"가 딱 1회 나옵니다. 보는 즉시 기억(localStorage) → 이후 영영 안 뜸. 매 hover는 지금처럼 연결점만.</p>
+  <p class="legend">아래 4개는 <b>커서가 올라간 연결점에 따라</b> 라벨이 그 점에서 바깥으로 나오는 모습입니다(같은 카드, 커서 위치만 다름). 네 방향 모두 자연스러운지 봐 주세요.</p>
+  <p class="legend drop">※ "이건 뭔가요?"(카드 선택 시 종류 안내)는 사용자 결정으로 <b>제거</b> — 이 코치마크 하나만 만듭니다.</p>
+
+  <h2>커서가 올라간 연결점에서 나오는 모습 (네 방향)</h2>
+  <p class="h2sub">기술 확인 완료: React Flow <code>Handle</code> 이 마우스 이벤트를 받아 "어느 연결점에 커서가 올라갔는지"를 감지할 수 있음. 라벨은 그 연결점 바깥으로, <code>pointer-events-none</code> 이라 잇기 드래그를 방해하지 않음.</p>
+  <div class="row">
+    <div class="col">
+      <h3>위쪽 연결점</h3>
+      <div class="canvas">
+        <div class="card k-event">
+          <span class="badge">사건</span><div class="body">2부 — 재회</div>
+          <span class="h t active"></span><span class="h r"></span><span class="h b"></span><span class="h l"></span>
+          <div class="cm down" style="bottom:calc(100% + 11px);left:50%;transform:translateX(-50%)">끌어서 잇기</div>
+          <span class="cursor" style="top:-12px;left:calc(50% + 4px)"></span>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <h3>오른쪽 연결점</h3>
+      <div class="canvas">
+        <div class="card k-char">
+          <span class="badge">인물</span><div class="body">주인공 — 서윤</div>
+          <span class="h t"></span><span class="h r active"></span><span class="h b"></span><span class="h l"></span>
+          <div class="cm left" style="left:calc(100% + 13px);top:50%;transform:translateY(-50%)">끌어서 잇기</div>
+          <span class="cursor" style="right:-14px;top:calc(50% + 2px)"></span>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <h3>아래쪽 연결점</h3>
+      <div class="canvas">
+        <div class="card k-untyped">
+          <span class="badge">종류 없음</span><div class="body">메모: 떡밥 회수?</div>
+          <span class="h t"></span><span class="h r"></span><span class="h b active"></span><span class="h l"></span>
+          <div class="cm up" style="top:calc(100% + 11px);left:50%;transform:translateX(-50%)">끌어서 잇기</div>
+          <span class="cursor" style="bottom:-14px;left:calc(50% + 4px)"></span>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <h3>왼쪽 연결점</h3>
+      <div class="canvas">
+        <div class="card k-event">
+          <span class="badge">사건</span><div class="body">발단 — 편지</div>
+          <span class="h t"></span><span class="h r"></span><span class="h b"></span><span class="h l active"></span>
+          <div class="cm right" style="right:calc(100% + 13px);top:50%;transform:translateY(-50%)">끌어서 잇기</div>
+          <span class="cursor" style="left:-14px;top:calc(50% + 2px)"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="behavior">
+    <h3>동작·기술 (공통)</h3>
+    <ul>
+      <li><b>트리거</b>: 처음 어느 연결점이든 커서가 올라가면 그 점에서 1회 노출 → <code>localStorage</code> "봤음" 기록 → 재진입·다른 보드에서 안 뜸.</li>
+      <li><b>강조</b>: 커서 올라간 연결점은 살짝 커지며 라벨이 그 방향으로 나옴(위/오른쪽/아래/왼쪽).</li>
+      <li><b>매 hover</b>: 본 뒤로는 지금처럼 <b>연결점만</b>(글자 없음).</li>
+      <li><b>비차단</b>: <code>pointer-events-none</code> — 잇기 드래그·클릭 방해 0.</li>
+      <li><b>범위</b>: 보드 페이지 + 집필 참조 패널 공통(공유 캔버스). 홈 온보딩과 독립.</li>
+      <li><b>FE only</b>: 백엔드·마이그레이션·에러코드 0. TASK-7 "이건 뭔가요?"는 제거.</li>
+    </ul>
+  </div>
+</body>
+</html>

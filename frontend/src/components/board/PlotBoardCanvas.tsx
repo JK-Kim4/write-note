@@ -301,19 +301,32 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
         [setEdges, deleteLinkMut, reseedFromServer],
     );
 
+    // 카드 삭제로 함께 제거되는 연결선은 백엔드 FK CASCADE 가 정리한다 → 프론트가 중복으로 삭제하지 않는다(레이스 제거).
+    // onNodesDelete 와 onEdgesDelete 는 같은 동기 배치에서 발화하므로, 삭제 중인 카드 id 를 ref 에 적고
+    // edge 처리는 마이크로태스크로 미뤄 두 콜백의 발화 순서와 무관하게 cascade 여부를 판정한다.
+    const cascadingCardIdsRef = useRef<Set<string>>(new Set());
+
     // Delete 키 끊기(보조) — RF 가 edges 에서 이미 제거. 영속만.
     const handleEdgesDelete = useCallback(
         (deleted: Edge[]) => {
-            deleted.forEach((e) => {
-                if (isTempLink(e.id)) return;
-                deleteLinkMut.mutate(Number(e.id), {
-                    onError: (err) => {
-                        // 카드 삭제 시 RF 가 연결 엣지의 onEdgesDelete 도 발화 → 백엔드 cascade 로 이미 사라진
-                        // 링크를 중복 삭제해 404. 이미 끊긴 상태 = 목표 달성이므로 거짓 에러로 알리지 않는다(044).
-                        if (isNotFoundError(err)) return;
-                        setError("연결 끊기에 실패했습니다.");
-                        reseedFromServer();
-                    },
+            queueMicrotask(() => {
+                deleted.forEach((e) => {
+                    if (isTempLink(e.id)) return;
+                    // 카드 삭제 cascade 로 함께 사라진 연결선이면 백엔드가 정리 → 중복 삭제(레이스) 금지.
+                    if (
+                        cascadingCardIdsRef.current.has(String(e.source)) ||
+                        cascadingCardIdsRef.current.has(String(e.target))
+                    ) {
+                        return;
+                    }
+                    deleteLinkMut.mutate(Number(e.id), {
+                        onError: (err) => {
+                            // 그 외 경로의 404(이미 끊김) = 목표 달성이므로 거짓 에러로 알리지 않는다(044).
+                            if (isNotFoundError(err)) return;
+                            setError("연결 끊기에 실패했습니다.");
+                            reseedFromServer();
+                        },
+                    });
                 });
             });
         },
@@ -456,6 +469,8 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
 
     const handleNodesDelete = useCallback(
         (deleted: Node[]) => {
+            // 이 배치에서 삭제되는 카드 id 기록 → onEdgesDelete 가 cascade 연결선의 중복 삭제를 건너뛰게 한다.
+            cascadingCardIdsRef.current = new Set(deleted.map((n) => n.id));
             deleted
                 .filter((n) => !isTemp(n.id))
                 .forEach((n) =>

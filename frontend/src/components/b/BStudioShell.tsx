@@ -122,6 +122,12 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
     const [exportOpen, setExportOpen] = useState(false);
     // 집필 중 보드 참조(043) — 우측 슬라이드오버. 기본 닫힘.
     const [boardRefOpen, setBoardRefOpen] = useState(false);
+    // 046: 사이드 목록 클릭으로 특정 보드를 인라인 오버레이로 열 때 preselect 할 id(툴바 버튼은 null=마지막 본 보드).
+    const [boardRefInitialId, setBoardRefInitialId] = useState<number | null>(null);
+    const openBoardRef = (id: number) => {
+        setBoardRefInitialId(id);
+        setBoardRefOpen(true);
+    };
     const { printModels, exportPdf, clearPrint } = usePdfExport();
 
     // 에디터 코어로부터 받은 저장 상태 / 충돌 핸들러
@@ -325,10 +331,21 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                 <button
                     type="button"
                     onClick={() => {
+                        // 046: 토글 — 열려 있으면 닫고, 닫혀 있으면 마지막 본 보드(null)로 연다.
+                        if (boardRefOpen) {
+                            setBoardRefOpen(false);
+                            return;
+                        }
+                        setBoardRefInitialId(null);
                         setBoardRefOpen(true);
                         setLeftDrawerOpen(false);
                     }}
-                    className="flex-1 rounded-md border border-border-strong px-3 py-1.5 text-sm text-muted-strong hover:bg-surface-2"
+                    aria-pressed={boardRefOpen}
+                    className={`flex-1 rounded-md border px-3 py-1.5 text-sm ${
+                        boardRefOpen
+                            ? "border-terracotta-600 bg-terracotta-600 font-semibold text-white"
+                            : "border-border-strong text-muted-strong hover:bg-surface-2"
+                    }`}
                 >
                     보드 참조
                 </button>
@@ -500,6 +517,7 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                         collapsible={false}
                         wordCount={totalWordCount}
                         targetLength={targetLength}
+                        onOpenBoard={openBoardRef}
                     />
                 </div>
             </div>
@@ -566,6 +584,7 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                     onOpenChange={setPanelOpen}
                     wordCount={totalWordCount}
                     targetLength={targetLength}
+                    onOpenBoard={openBoardRef}
                 />
             </div>
 
@@ -585,7 +604,12 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
 
             {/* 집필 중 보드 참조(043) — 우측 슬라이드오버. 작품 보드 + 상위 시리즈 보드 곁눈질. */}
             {!Number.isNaN(projectId) && (
-                <BoardReferencePanel projectId={projectId} open={boardRefOpen} onClose={() => setBoardRefOpen(false)} />
+                <BoardReferencePanel
+                    projectId={projectId}
+                    open={boardRefOpen}
+                    onClose={() => setBoardRefOpen(false)}
+                    initialBoardId={boardRefInitialId}
+                />
             )}
 
             {/* 충돌 다이얼로그 — 에디터 슬롯이 콜백으로 올린 conflict / 해결 핸들러 사용 */}

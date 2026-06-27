@@ -20,6 +20,8 @@ type SidePanelProps = {
     /** 분량 지표(031) — 작품 전체 글자수(실시간) · 목표 분량 진행률. 패널 하단 고정 카드. */
     wordCount?: number;
     targetLength?: number | null;
+    /** 보드 열기(046) — 전달 시 보드 페이지 이동 대신 집필 화면 인라인 오버레이로 연다. */
+    onOpenBoard?: (boardId: number) => void;
 };
 
 export function BWorkSidePanel({
@@ -29,6 +31,7 @@ export function BWorkSidePanel({
     collapsible = true,
     wordCount,
     targetLength,
+    onOpenBoard,
 }: SidePanelProps) {
     const goal = wordCount != null && targetLength != null ? goalProgress(wordCount, targetLength) : null;
     // collapsible=false 면 항상 펼침(drawer 는 자체 ✕ 로만 닫는다).
@@ -68,7 +71,12 @@ export function BWorkSidePanel({
                 )}
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
-                <InlineBoardList ownerType="project" ownerId={projectId} emptyHint="아직 이 작품 보드가 없어요." />
+                <InlineBoardList
+                    ownerType="project"
+                    ownerId={projectId}
+                    emptyHint="아직 이 작품 보드가 없어요."
+                    onOpenBoard={onOpenBoard}
+                />
             </div>
             {wordCount != null && (
                 <div className="border-t border-border bg-surface px-3 py-2.5">

@@ -153,20 +153,27 @@ export interface InlineBoardListProps {
     ownerId: number;
     /** 빈 상태 안내(예: "아직 이 작품 보드가 없어요."). */
     emptyHint: string;
+    /**
+     * 보드 열기 동작(046) — 전달 시 보드 페이지로 이동하는 대신 이 콜백으로 연다(집필 화면 인라인 오버레이).
+     * 미전달 시 기존대로 `/boards/{id}` 로 이동(라이브러리 시리즈 보드 섹션 등). 생성 성공 시에도 동일 적용.
+     */
+    onOpenBoard?: (boardId: number) => void;
 }
 
-/** 컨테이너 — owner 스코프 목록·생성·열기 배선. 생성 성공 시 그 보드로 이동. */
-export function InlineBoardList({ ownerType, ownerId, emptyHint }: InlineBoardListProps) {
+/** 컨테이너 — owner 스코프 목록·생성·열기 배선. 생성 성공 시 그 보드로 이동(또는 onOpenBoard). */
+export function InlineBoardList({ ownerType, ownerId, emptyHint, onOpenBoard }: InlineBoardListProps) {
     const router = useRouter();
     const boards = useBoardList({ ownerType, ownerId });
     const createBoard = useCreateBoard();
 
+    const openBoard = (boardId: number) => {
+        if (onOpenBoard) onOpenBoard(boardId);
+        else router.push(`/boards/${boardId}`);
+    };
+
     const handleCreate = (name: string) => {
         if (createBoard.isPending) return;
-        createBoard.mutate(
-            { name, ownerType, ownerId },
-            { onSuccess: (board) => router.push(`/boards/${board.id}`) },
-        );
+        createBoard.mutate({ name, ownerType, ownerId }, { onSuccess: (board) => openBoard(board.id) });
     };
 
     return (
@@ -176,7 +183,7 @@ export function InlineBoardList({ ownerType, ownerId, emptyHint }: InlineBoardLi
             isError={boards.isError}
             emptyHint={emptyHint}
             creating={createBoard.isPending}
-            onOpen={(boardId) => router.push(`/boards/${boardId}`)}
+            onOpen={openBoard}
             onCreate={handleCreate}
             onRetry={() => boards.refetch()}
         />

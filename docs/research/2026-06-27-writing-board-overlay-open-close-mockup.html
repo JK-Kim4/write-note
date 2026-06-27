@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>집필 화면 보드 오버레이 — 열고/닫기 인터랙션 (A안 다듬기)</title>
+<style>
+  :root{
+    --terra-50:#fbf3ee; --terra-100:#f6e3d6; --terra-200:#ecc7ad; --terra-400:#d48d62; --terra-500:#c77a4f; --terra-600:#a8542e; --terra-700:#8a4325;
+    --teal-50:#ecf5f8; --teal-100:#cfe6ed; --teal-200:#a3cdd9; --teal-400:#3d8aa3; --teal-700:#0a5c79;
+    --emer-50:#ecfdf5; --emer-200:#a7f3d0; --emer-700:#047857;
+    --viol-50:#f5f3ff; --viol-200:#ddd6fe; --viol-700:#6d28d9;
+    --slate-50:#f8fafc; --slate-100:#f1f5f9; --slate-200:#e2e8f0; --slate-300:#cbd5e1; --slate-400:#94a3b8; --slate-500:#64748b; --slate-700:#334155;
+    --ink:#26211c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",system-ui,sans-serif;background:#efece6;color:#2a2620;line-height:1.5;padding:26px 24px 70px}
+  h1{font-size:21px;margin:0 0 4px}
+  .sub{color:#6b6358;font-size:13.5px;margin:0 0 4px;max-width:980px}
+  .try{display:inline-block;background:var(--terra-600);color:#fff;font-size:12.5px;font-weight:600;border-radius:8px;padding:6px 12px;margin:10px 0 16px}
+  .try b{font-weight:800}
+
+  /* ── 집필 화면 프레임 ── */
+  .app{position:relative;width:960px;max-width:100%;height:560px;border:1px solid #d8d2c6;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 8px 28px rgba(0,0,0,.12)}
+  .topbar{display:flex;align-items:center;gap:8px;background:#faf8f4;border-bottom:1px solid #e7e1d5;padding:8px 12px}
+  .topbar .brand{font-size:13px;font-weight:700;color:var(--terra-700)}
+  .topbar .doc{font-size:12px;color:#8a8175;margin-right:auto}
+  .tbtn{font-size:12px;border:1px solid var(--slate-200);background:#fff;border-radius:8px;padding:5px 12px;color:#555;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+  .tbtn:hover{background:#f3efe7}
+  .tbtn.on{background:var(--terra-600);border-color:var(--terra-600);color:#fff;font-weight:700}
+  .tbtn .dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.0;transition:opacity .15s}
+  .tbtn.on .dot{opacity:1}
+
+  .stage{position:relative;display:flex;height:calc(100% - 45px)}
+  /* 목차 */
+  .toc{width:150px;flex:0 0 150px;border-right:1px solid #eee7da;background:#fbf9f4;padding:12px 12px}
+  .toc h4{font-size:11px;color:#a99;margin:0 0 10px;font-weight:700;letter-spacing:.02em}
+  .toc .row{height:9px;border-radius:4px;background:var(--slate-200);margin-bottom:9px}
+  .toc .row.s{width:78%} .toc .row.m{width:58%} .toc .row.a{background:var(--terra-200)}
+  /* 원고 */
+  .ms{flex:1;min-width:0;display:flex;justify-content:center;padding:20px 16px;background:#f3efe7;overflow:hidden}
+  .sheet{width:100%;max-width:380px;background:#fff;border:1px solid #e7e1d5;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.06);padding:22px 26px}
+  .sheet .h{height:11px;width:46%;border-radius:3px;background:#d9d3c7;margin-bottom:14px}
+  .sheet .line{height:8px;border-radius:3px;background:#ebe6dc;margin-bottom:9px}
+  .sheet .line.s{width:62%}
+  /* 우측 보드 목록 패널 */
+  .sidep{width:172px;flex:0 0 172px;border-left:1px solid #eee7da;background:#fbf9f4;padding:12px 12px}
+  .sidep h4{font-size:11px;color:var(--terra-700);font-weight:800;margin:0 0 10px}
+  .blist .b{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:11.5px;border:1px solid var(--slate-200);border-radius:8px;background:#fff;padding:7px 9px;margin-bottom:7px;cursor:pointer;transition:all .15s}
+  .blist .b:hover{border-color:var(--terra-400);background:var(--terra-50)}
+  .blist .b .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#3a352e}
+  .blist .b .go{font-size:10px;color:var(--terra-600);font-weight:700;flex:0 0 auto}
+  .sidep .newb{width:100%;margin-top:4px;font-size:11.5px;border:1px dashed var(--slate-300);border-radius:8px;background:#fff;padding:7px;color:#777;cursor:pointer}
+
+  /* ── 바깥클릭 닫기용 투명 캐처(원고 안 어두워짐) ── */
+  .catcher{position:absolute;inset:0;background:transparent;z-index:20;display:none}
+  .catcher.show{display:block}
+
+  /* ── 보드 오버레이(우측 슬라이드오버) ── */
+  .panel{position:absolute;top:0;right:0;bottom:0;width:60%;background:#fff;border-left:1px solid #d8d2c6;box-shadow:-10px 0 28px rgba(0,0,0,.14);
+    z-index:30;display:flex;flex-direction:column;transform:translateX(100%);opacity:0;pointer-events:none;transition:transform .28s cubic-bezier(.4,0,.2,1),opacity .28s}
+  .panel.open{transform:translateX(0);opacity:1;pointer-events:auto}
+  .panel.full{width:100%}
+  .phead{display:flex;align-items:center;gap:8px;border-bottom:1px solid #eee7da;background:#faf8f4;padding:8px 12px}
+  .phead .t{font-size:13px;font-weight:800;color:#3a352e}
+  .phead select{font-size:12px;border:1px solid var(--slate-300);border-radius:7px;padding:2px 6px;color:#444;background:#fff;max-width:150px}
+  .phead .spacer{margin-left:auto}
+  .phead .lk{font-size:11.5px;color:var(--terra-600);font-weight:700;border:1px solid var(--terra-200);border-radius:7px;padding:3px 8px;background:#fff;cursor:pointer}
+  .phead .lk:hover{background:var(--terra-50)}
+  .phead .x{font-size:16px;color:#999;border:none;background:none;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1}
+  .phead .x:hover{background:#eee;color:#555}
+  .pbody{position:relative;flex:1;min-height:0;background:#fff;background-image:radial-gradient(#dcd6ca 1px,transparent 1px);background-size:18px 18px;overflow:hidden}
+  .editbar{position:absolute;top:10px;left:12px;z-index:2;font-size:11px;border:1px solid var(--slate-200);background:rgba(255,255,255,.9);border-radius:8px;padding:4px 9px;color:#666}
+  .cc{position:absolute;width:104px;border-radius:9px;border:1px solid;padding:7px 9px;font-size:11px;box-shadow:0 1px 3px rgba(0,0,0,.07);background:#fff}
+  .cc .bd{display:inline-block;border-radius:999px;padding:0 7px;font-size:9px;font-weight:700;margin-bottom:3px}
+  .k-char{background:var(--teal-50);border-color:var(--teal-200)} .k-char .bd{background:var(--teal-100);color:var(--teal-700)}
+  .k-event{background:var(--terra-50);border-color:var(--terra-200)} .k-event .bd{background:var(--terra-100);color:var(--terra-700)}
+  .k-place{background:var(--emer-50);border-color:var(--emer-200)} .k-place .bd{background:#d1fae5;color:var(--emer-700)}
+  .k-theme{background:var(--viol-50);border-color:var(--viol-200)} .k-theme .bd{background:#ede9fe;color:var(--viol-700)}
+  .edge{position:absolute;height:2px;background:var(--slate-300);transform-origin:left center}
+
+  .legend{margin-top:18px;background:#fff;border:1px solid #e2ddd3;border-radius:12px;padding:14px 18px;max-width:980px}
+  .legend h3{margin:0 0 8px;font-size:13.5px}
+  .legend ul{margin:0;padding-left:18px;font-size:12.5px;color:#3f3a33}
+  .legend li{margin:3px 0}
+  .legend b{color:var(--terra-700)}
+  kbd{background:#f1ece3;border:1px solid #ddd4c4;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:11px}
+</style>
+</head>
+<body>
+  <h1>집필 화면 보드 오버레이 — 열고/닫기 (A안, 다듬은 버전)</h1>
+  <p class="sub">아래는 <b>실제로 동작하는</b> 목업입니다. 직접 열고 닫아 보세요. (세부 동작은 제가 합리적 기본값으로 판단해 넣었습니다 — 어색하면 말씀해 주세요.)</p>
+  <div class="try">▶ 해보기: <b>우측 보드 목록의 보드를 클릭</b>하거나 상단 <b>‘보드’ 버튼</b>을 누르세요. 닫기 = <b>✕</b> · <kbd>ESC</kbd> · <b>원고(왼쪽) 클릭</b>.</div>
+
+  <div class="app" id="app">
+    <div class="topbar">
+      <span class="brand">소설비</span>
+      <span class="doc">집필 — 〈재회〉</span>
+      <button class="tbtn" id="boardBtn"><span class="dot"></span>보드</button>
+      <button class="tbtn">내보내기</button>
+    </div>
+
+    <div class="stage">
+      <div class="toc">
+        <h4>목차</h4>
+        <div class="row a s"></div><div class="row"></div><div class="row m"></div><div class="row s"></div><div class="row"></div>
+      </div>
+
+      <div class="ms" id="msArea">
+        <div class="sheet">
+          <div class="h"></div>
+          <div class="line"></div><div class="line"></div><div class="line s"></div>
+          <div class="line"></div><div class="line"></div><div class="line"></div><div class="line s"></div>
+          <div class="line"></div><div class="line"></div><div class="line s"></div>
+        </div>
+      </div>
+
+      <div class="sidep">
+        <h4>이 작품 보드</h4>
+        <div class="blist" id="blist">
+          <div class="b" data-name="1부 사건 흐름"><span class="nm">1부 사건 흐름</span><span class="go">열기</span></div>
+          <div class="b" data-name="인물 관계도"><span class="nm">인물 관계도</span><span class="go">열기</span></div>
+          <div class="b" data-name="세계관 메모"><span class="nm">세계관 메모</span><span class="go">열기</span></div>
+        </div>
+        <button class="newb">+ 새 보드</button>
+      </div>
+
+      <!-- 바깥클릭 닫기 캐처(투명 — 원고 안 어두워짐) -->
+      <div class="catcher" id="catcher"></div>
+
+      <!-- 보드 오버레이 -->
+      <div class="panel" id="panel">
+        <div class="phead">
+          <span class="t">보드</span>
+          <select id="boardSel">
+            <option>1부 사건 흐름 · 작품</option>
+            <option>인물 관계도 · 작품</option>
+            <option>세계관 메모 · 시리즈</option>
+          </select>
+          <span class="spacer"></span>
+          <button class="lk" id="fullBtn" title="이 보드를 전체 화면으로">⤢ 넓게</button>
+          <button class="lk" title="보드 페이지로 이동">↗ 전체 화면</button>
+          <button class="x" id="closeBtn" title="닫기 (ESC)">✕</button>
+        </div>
+        <div class="pbody">
+          <div class="editbar">＋ 카드 · 끌어서 잇기 · 종류 — 여기서 바로 편집</div>
+          <div class="cc k-event" style="top:42px;left:40px"><span class="bd">사건</span>발단 — 편지</div>
+          <div class="cc k-char" style="top:120px;left:200px"><span class="bd">인물</span>주인공 서윤</div>
+          <div class="cc k-place" style="top:210px;left:70px"><span class="bd">장소</span>항구 마을</div>
+          <div class="cc k-theme" style="top:240px;left:250px"><span class="bd">테마</span>상실과 재회</div>
+          <div class="edge" style="top:64px;left:140px;width:78px;transform:rotate(30deg)"></div>
+          <div class="edge" style="top:150px;left:150px;width:96px;transform:rotate(46deg)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <h3>이 목업에 넣은 다듬기 (제 판단 — 어색하면 알려주세요)</h3>
+    <ul>
+      <li><b>진입 통일·인라인</b>: 보드 목록 ‘열기’가 <b>완전 이탈 대신 인라인 오버레이</b>로(그 보드 preselect). 상단 ‘보드’ 버튼도 같은 오버레이.</li>
+      <li><b>토글 + 상태표시</b>: ‘보드’ 버튼이 열림이면 강조(주황·점) + 다시 누르면 닫힘.</li>
+      <li><b>슬라이드 인/아웃</b>: 우측에서 부드럽게(0.28s) 미끄러져 들어오고 나감.</li>
+      <li><b>닫기 3경로</b>: <b>✕</b> · <kbd>ESC</kbd> · <b>원고(바깥) 클릭</b>. 바깥클릭은 <b>투명 캐처</b>라 원고가 어두워지지 않음(집필 곁눈질 유지).</li>
+      <li><b>편집 가능</b>: 오버레이 안이 보드 페이지와 같은 캔버스 — 카드 생성·잇기·종류·삭제 그대로.</li>
+      <li><b>⤢ 넓게</b>(오버레이 폭↑) + <b>↗ 전체 화면</b>(보드 페이지로 진짜 이동) 보조 액션.</li>
+    </ul>
+  </div>
+
+<script>
+  (function(){
+    const panel = document.getElementById('panel');
+    const btn = document.getElementById('boardBtn');
+    const catcher = document.getElementById('catcher');
+    const closeBtn = document.getElementById('closeBtn');
+    const fullBtn = document.getElementById('fullBtn');
+    const sel = document.getElementById('boardSel');
+    function open(name){
+      if(name){ for(const o of sel.options){ if(o.text.startsWith(name)){ sel.value=o.value; break; } } }
+      panel.classList.add('open');
+      btn.classList.add('on');
+      catcher.classList.add('show');
+    }
+    function close(){
+      panel.classList.remove('open','full');
+      btn.classList.remove('on');
+      catcher.classList.remove('show');
+      fullBtn.textContent='⤢ 넓게';
+    }
+    btn.addEventListener('click', ()=> panel.classList.contains('open') ? close() : open());
+    document.querySelectorAll('#blist .b').forEach(b=>{
+      b.addEventListener('click', ()=> open(b.dataset.name));
+    });
+    closeBtn.addEventListener('click', close);
+    catcher.addEventListener('click', close);
+    fullBtn.addEventListener('click', ()=>{
+      const full = panel.classList.toggle('full');
+      fullBtn.textContent = full ? '⤢ 좁게' : '⤢ 넓게';
+    });
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape') close(); });
+  })();
+</script>
+</body>
+</html>
