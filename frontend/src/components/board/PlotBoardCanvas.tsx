@@ -43,7 +43,7 @@ import { CardNode, type CardNodeData } from "./CardNode";
 import { LinkEdge } from "./LinkEdge";
 import { BoardActionsContext } from "./boardActions";
 import { BoardEmptyGuide } from "./BoardEmptyGuide";
-import { isPaneHit } from "./boardCanvasHelpers";
+import { isNotFoundError, isPaneHit } from "./boardCanvasHelpers";
 import { canLink, incidentLinkIds, nearestHandlePair, neighborCardIds, toRFEdge } from "./linkGraph";
 
 /**
@@ -291,7 +291,8 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
             setEdges((es) => es.filter((e) => e.id !== linkId));
             if (isTempLink(linkId)) return;
             deleteLinkMut.mutate(Number(linkId), {
-                onError: () => {
+                onError: (err) => {
+                    if (isNotFoundError(err)) return; // 이미 끊긴 링크(카드 삭제 cascade 등) = 목표 상태 달성, 무시
                     setError("연결 끊기에 실패했습니다.");
                     reseedFromServer();
                 },
@@ -306,7 +307,10 @@ function CanvasInner({ boardId, detail }: { boardId: number; detail: BoardDetail
             deleted.forEach((e) => {
                 if (isTempLink(e.id)) return;
                 deleteLinkMut.mutate(Number(e.id), {
-                    onError: () => {
+                    onError: (err) => {
+                        // 카드 삭제 시 RF 가 연결 엣지의 onEdgesDelete 도 발화 → 백엔드 cascade 로 이미 사라진
+                        // 링크를 중복 삭제해 404. 이미 끊긴 상태 = 목표 달성이므로 거짓 에러로 알리지 않는다(044).
+                        if (isNotFoundError(err)) return;
                         setError("연결 끊기에 실패했습니다.");
                         reseedFromServer();
                     },
