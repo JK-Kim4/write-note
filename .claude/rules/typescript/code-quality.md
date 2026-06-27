@@ -128,6 +128,16 @@
 - 해결: `flushNow(): Promise<void>`(공용 client 경유, 응답으로 캐시 version 전진)를 만들어 **버튼 이탈은 await-후-네비**, **뒤로가기는 언마운트 best-effort + 거짓충돌 백스톱**(서버 currentBody === 내 본문이면 조용히 채택)으로 수렴. dogfooding 5/5(세 이탈 경로 글자수 즉시 동기 + 재진입 충돌 없음).
 - 회피 가능했던 시점: 1차 설계 시 "이탈 저장이 캐시/토큰을 함께 전진시키는가 / await 불가 경로의 자가충돌을 멱등 백스톱으로 닫았는가" 점검. 회고: `~/obsidian/write-note/retrospectives/2026-06-23-autosave-exit-flush-resolution.md`.
 
+### 서버 cascade가 정리하는 자식 행을 프론트가 중복 삭제 금지 (HARD-GATE)
+
+부모 삭제 시 백엔드가 자식 행을 **cascade 정리**(DB FK `ON DELETE CASCADE` 등)한다면, 프론트는 그 자식의 삭제 요청을 **중복으로 보내지 않는다**. 부모 삭제와 자식 삭제가 동시에 발화하면 **racy** — 보통 자식은 이미 사라져 404가 오고 멱등 처리로 가려지나, 드물게 동시삭제 타이밍이 **비-404 transient**를 만들어 거짓 에러를 표면화한다. 자식 삭제는 백엔드 cascade에만 위임하고, 프론트는 로컬 상태만 정리한다(독립적인 자식 단독 삭제 경로는 그대로 삭제 요청).
+
+#### 회귀 사례 — 2026-06-27 046 연결카드 삭제 거짓 토스트
+
+- 보드 카드 삭제 시 React Flow 가 `onNodesDelete`(deleteCard)+`onEdgesDelete`(deleteLink)를 동시 발화. 백엔드는 카드 삭제 시 FK CASCADE 로 연결선을 이미 정리하므로 프론트 deleteLink 는 중복·racy → 보통 404(044 `isNotFoundError` 억제)지만 드물게 비-404 transient 로 거짓 "연결 끊기 실패" 토스트(실제 삭제는 정상, reseed 가 화면 복원). 메인 페이지 미재현·간헐.
+- fix: 삭제 중 카드 id ref 기록 + `onEdgesDelete` 마이크로태스크 지연으로 cascade 연결선의 deleteLink 생략(콜백 순서 무관, 백엔드 cascade 에만 위임). `03-ISSUES` ISSUE-052.
+- 회피 가능 시점: 낙관 삭제 + 서버 cascade 결합부 설계 시 "프론트가 cascade 자식을 중복 삭제하는가" 점검.
+
 ## 도구 / 검증
 
 - ESLint (룰) + Prettier (포매팅), `eslint-config-prettier` extends 마지막
