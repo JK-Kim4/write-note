@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>집필 화면에서 보드 보고·수정 — 레이아웃 방법 목업 (A 오버레이 / B 분할 / C 넓은 오버레이)</title>
+<style>
+  :root{
+    --terra-50:#fbf3ee; --terra-100:#f6e3d6; --terra-200:#ecc7ad; --terra-500:#c77a4f; --terra-600:#a8542e; --terra-700:#8a4325;
+    --teal-50:#ecf5f8; --teal-200:#a3cdd9; --teal-500:#1c7791; --teal-700:#0a5c79;
+    --emer-50:#ecfdf5; --emer-200:#a7f3d0; --emer-700:#047857;
+    --viol-50:#f5f3ff; --viol-200:#ddd6fe; --viol-700:#6d28d9;
+    --slate-50:#f8fafc; --slate-100:#f1f5f9; --slate-200:#e2e8f0; --slate-300:#cbd5e1; --slate-400:#94a3b8; --slate-500:#64748b; --slate-700:#334155;
+    --ink:#26211c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",system-ui,sans-serif;background:#efece6;color:#2a2620;line-height:1.5;padding:30px 24px 90px}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:#6b6358;font-size:13.5px;margin:0 0 6px;max-width:1000px}
+  .legend{color:#8a8175;font-size:12.5px;margin:0 0 6px;max-width:1000px}
+  h2{font-size:16px;margin:34px 0 3px}
+  .pick{display:inline-block;font-size:11px;font-weight:700;color:#fff;background:var(--terra-600);border-radius:6px;padding:1px 8px;margin-left:6px;vertical-align:middle}
+  .note{color:#6b6358;font-size:12.5px;margin:0 0 12px;max-width:560px}
+  .ok{color:var(--emer-700)} .warn{color:#b5651d}
+  .grid{display:flex;gap:30px;flex-wrap:wrap;align-items:flex-start}
+  .card-col{flex:0 0 auto}
+
+  /* 집필 화면 프레임 */
+  .app{width:520px;border:1px solid #d8d2c6;border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+  .toolbar{display:flex;align-items:center;gap:6px;background:#faf8f4;border-bottom:1px solid #e7e1d5;padding:6px 8px}
+  .toolbar .ttl{font-size:11px;color:#8a8175;margin-right:auto}
+  .tbtn{font-size:10.5px;border:1px solid var(--slate-200);background:#fff;border-radius:6px;padding:2px 8px;color:#555}
+  .tbtn.on{background:var(--terra-600);border-color:var(--terra-600);color:#fff;font-weight:700}
+  .body{position:relative;display:flex;height:300px;background:#fff}
+  /* 목차 컬럼 */
+  .toc{width:78px;flex:0 0 78px;border-right:1px solid #eee7da;background:#fbf9f4;padding:8px 7px}
+  .toc .h{font-size:9px;color:#a99;margin-bottom:6px}
+  .toc .row{height:7px;border-radius:3px;background:var(--slate-200);margin-bottom:6px}
+  .toc .row.s{width:80%} .toc .row.m{width:60%}
+  /* 원고 */
+  .ms{flex:1;min-width:0;display:flex;justify-content:center;padding:12px 10px;background:#f3efe7;overflow:hidden}
+  .sheet{width:100%;max-width:230px;background:#fff;border:1px solid #e7e1d5;border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.05);padding:12px 14px}
+  .sheet .line{height:6px;border-radius:2px;background:#e9e4da;margin-bottom:7px}
+  .sheet .line.s{width:55%}
+  /* 우측 보드 목록 패널(평상시) */
+  .sidep{width:96px;flex:0 0 96px;border-left:1px solid #eee7da;background:#fbf9f4;padding:8px 7px}
+  .sidep .h{font-size:9px;color:var(--terra-700);font-weight:700;margin-bottom:6px}
+  .sidep .b{font-size:9px;border:1px solid var(--slate-200);border-radius:5px;background:#fff;padding:4px 6px;margin-bottom:5px;color:#555;display:flex;justify-content:space-between;align-items:center}
+  .sidep .b .o{color:var(--terra-600);font-weight:700}
+
+  /* 보드 캔버스(미니) */
+  .board{position:relative;background:#fff;background-image:radial-gradient(#dcd6ca 1px,transparent 1px);background-size:14px 14px}
+  .bhead{display:flex;align-items:center;gap:6px;border-bottom:1px solid #eee7da;background:#faf8f4;padding:5px 8px}
+  .bhead .t{font-size:10.5px;font-weight:700;color:#3a352e}
+  .bhead .sel{font-size:9px;border:1px solid var(--slate-300);border-radius:5px;padding:1px 6px;color:#555;background:#fff}
+  .bhead .x{margin-left:auto;font-size:11px;color:#999}
+  .bhead .exp{font-size:9px;border:1px solid var(--slate-300);border-radius:5px;padding:1px 6px;color:#555;background:#fff}
+  .canvas{position:relative;height:100%;padding:10px}
+  .cc{position:absolute;width:62px;border-radius:6px;border:1px solid;padding:4px 6px;font-size:8.5px;box-shadow:0 1px 2px rgba(0,0,0,.06);background:#fff}
+  .cc .bd{display:inline-block;border-radius:999px;padding:0 5px;font-size:7px;font-weight:700;margin-bottom:2px}
+  .k-char{background:var(--teal-50);border-color:var(--teal-200)} .k-char .bd{background:#cfe6ed;color:var(--teal-700)}
+  .k-event{background:var(--terra-50);border-color:var(--terra-200)} .k-event .bd{background:var(--terra-100);color:var(--terra-700)}
+  .k-place{background:var(--emer-50);border-color:var(--emer-200)} .k-place .bd{background:#d1fae5;color:var(--emer-700)}
+  .k-theme{background:var(--viol-50);border-color:var(--viol-200)} .k-theme .bd{background:#ede9fe;color:var(--viol-700)}
+  .edge{position:absolute;height:2px;background:var(--slate-300);transform-origin:left center}
+
+  /* A: 오버레이 슬라이드오버 */
+  .overlay{position:absolute;top:0;right:0;bottom:0;border-left:1px solid #d8d2c6;box-shadow:-8px 0 20px rgba(0,0,0,.13);display:flex;flex-direction:column}
+  .dimback{position:absolute;inset:0;background:rgba(20,16,12,.04)}
+</style>
+</head>
+<body>
+  <h1>집필 화면에서 보드 보고·수정 — 레이아웃 방법</h1>
+  <p class="sub">현재: 집필 화면 우측 <b>보드 목록의 "열기"</b>를 누르면 <b>보드 페이지로 완전 이탈</b>(돌아오려면 집필 메뉴→작품 재진입). 셋 다 <b>"열기"를 인라인으로 돌려</b> 집필 화면을 유지하는 게 공통이고, <b>보드를 어느 정도 넓이로 펼치느냐</b>만 다릅니다. 셋 다 보드는 <b>편집 가능</b>(카드 생성·잇기·종류·삭제 = 보드 페이지와 동일 캔버스).</p>
+  <p class="legend">※ 인라인 편집 패널 자체는 이미 있음(상단 "보드 참조" 버튼 → 043 슬라이드오버). 차이는 폭/배치뿐. 마음에 드는 안을 골라 주세요.</p>
+
+  <div class="grid">
+    <!-- A -->
+    <div class="card-col">
+      <h2>A · 오버레이(우측 슬라이드오버) <span class="pick">A</span></h2>
+      <p class="note"><b>지금 자산 그대로.</b> 보드 클릭 → 우측 ~40%로 보드가 덮여 펼쳐짐(편집). ✕/ESC로 닫으면 원고 그대로. <span class="ok">변경 가장 작음</span> · <span class="warn">보드 열면 원고 옆 보기는 좁음</span></p>
+      <div class="app">
+        <div class="toolbar"><span class="ttl">집필 — 〈재회〉</span><span class="tbtn on">보드 참조</span><span class="tbtn">내보내기</span></div>
+        <div class="body">
+          <div class="toc"><div class="h">목차</div><div class="row s"></div><div class="row m"></div><div class="row s"></div></div>
+          <div class="ms"><div class="sheet"><div class="line"></div><div class="line s"></div><div class="line"></div><div class="line"></div><div class="line s"></div></div></div>
+          <div class="dimback"></div>
+          <div class="overlay board" style="width:58%">
+            <div class="bhead"><span class="t">보드</span><span class="sel">1부 사건 흐름 ▾</span><span class="x">✕</span></div>
+            <div class="canvas">
+              <div class="cc k-event" style="top:8px;left:14px"><span class="bd">사건</span>발단</div>
+              <div class="cc k-char" style="top:60px;left:96px"><span class="bd">인물</span>서윤</div>
+              <div class="cc k-place" style="top:120px;left:24px"><span class="bd">장소</span>항구</div>
+              <div class="edge" style="top:30px;left:76px;width:34px;transform:rotate(28deg)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B -->
+    <div class="card-col">
+      <h2>B · 분할(원고 ┃ 보드 나란히) <span class="pick">B</span></h2>
+      <p class="note">원고와 보드를 <b>동시에 나란히</b> — 보드 보며 글쓰기 가능. <span class="ok">곁눈질+편집 둘 다 좋음</span> · <span class="warn">원고 폭이 줄고 집필 레이아웃 변경 = 회귀 위험 ↑</span></p>
+      <div class="app">
+        <div class="toolbar"><span class="ttl">집필 — 〈재회〉</span><span class="tbtn on">보드 ┃ 분할</span><span class="tbtn">내보내기</span></div>
+        <div class="body">
+          <div class="toc"><div class="h">목차</div><div class="row s"></div><div class="row m"></div></div>
+          <div class="ms" style="flex:0 0 44%"><div class="sheet" style="max-width:160px"><div class="line"></div><div class="line s"></div><div class="line"></div><div class="line s"></div></div></div>
+          <div class="board" style="flex:1;border-left:1px solid #d8d2c6">
+            <div class="bhead"><span class="t">보드</span><span class="sel">1부 사건 흐름 ▾</span></div>
+            <div class="canvas">
+              <div class="cc k-event" style="top:8px;left:10px"><span class="bd">사건</span>발단</div>
+              <div class="cc k-char" style="top:58px;left:86px"><span class="bd">인물</span>서윤</div>
+              <div class="cc k-theme" style="top:120px;left:20px"><span class="bd">테마</span>상실</div>
+              <div class="edge" style="top:28px;left:70px;width:30px;transform:rotate(30deg)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C -->
+    <div class="card-col">
+      <h2>C · 넓은 오버레이 + 전체화면 토글 <span class="pick">C</span></h2>
+      <p class="note">A와 같되 보드를 <b>더 넓게(~65%)</b> + <b>⤢ 전체화면</b> 토글(진지한 편집 시 화면 꽉). 닫으면 원고 그대로. <span class="ok">편집 공간 넉넉</span> · 변경 중간</p>
+      <div class="app">
+        <div class="toolbar"><span class="ttl">집필 — 〈재회〉</span><span class="tbtn on">보드 참조</span><span class="tbtn">내보내기</span></div>
+        <div class="body">
+          <div class="toc"><div class="h">목차</div><div class="row s"></div></div>
+          <div class="ms"><div class="sheet" style="max-width:120px"><div class="line"></div><div class="line s"></div><div class="line"></div></div></div>
+          <div class="dimback"></div>
+          <div class="overlay board" style="width:72%">
+            <div class="bhead"><span class="t">보드</span><span class="sel">1부 사건 흐름 ▾</span><span class="exp">⤢ 전체화면</span><span class="x">✕</span></div>
+            <div class="canvas">
+              <div class="cc k-event" style="top:8px;left:18px"><span class="bd">사건</span>발단</div>
+              <div class="cc k-char" style="top:46px;left:120px"><span class="bd">인물</span>서윤</div>
+              <div class="cc k-place" style="top:110px;left:30px"><span class="bd">장소</span>항구</div>
+              <div class="cc k-theme" style="top:128px;left:150px"><span class="bd">테마</span>상실</div>
+              <div class="edge" style="top:26px;left:84px;width:44px;transform:rotate(18deg)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:34px;background:#fff;border:1px solid #e2ddd3;border-radius:12px;padding:16px 18px;max-width:1000px">
+    <h3 style="margin:0 0 8px;font-size:14px">공통(셋 다)</h3>
+    <ul style="margin:0;padding-left:18px;font-size:13px;color:#3f3a33">
+      <li>집필 화면 우측 <b>보드 목록 "열기" → 완전 이탈 대신 인라인으로</b>(그 보드 preselect). 집필 화면 유지.</li>
+      <li>인라인 보드 = <b>편집 가능</b>(카드 생성·잇기·종류·삭제·드래그 = 보드 페이지와 동일 캔버스).</li>
+      <li>보드 페이지로 진짜 이동이 필요하면 작은 "↗ 전체 화면/보드 페이지" 액션은 남김.</li>
+      <li>FE 중심(BE 변경 0 — 기존 reference 패널·캔버스 재사용).</li>
+    </ul>
+  </div>
+</body>
+</html>

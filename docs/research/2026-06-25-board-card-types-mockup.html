@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>트랙 D — 카드 종류 4종 정합 + 종류 선택 칩 UI 목업</title>
+<style>
+  :root{
+    /* 트랙 B 에서 확정된 팔레트(globals.css 토큰 그대로) */
+    --terra-50:#fbf3ee; --terra-100:#f6e3d6; --terra-200:#ecc7ad; --terra-400:#d48d62; --terra-500:#c77a4f; --terra-700:#8a4325;
+    --teal-50:#ecf5f8; --teal-100:#cfe6ed; --teal-200:#a3cdd9; --teal-400:#3d8aa3; --teal-500:#1c7791; --teal-700:#0a5c79;
+    --emer-50:#ecfdf5; --emer-100:#d1fae5; --emer-200:#a7f3d0; --emer-400:#34d399; --emer-500:#10b981; --emer-700:#047857;
+    --viol-50:#f5f3ff; --viol-100:#ede9fe; --viol-200:#ddd6fe; --viol-400:#a78bfa; --viol-500:#8b5cf6; --viol-700:#6d28d9;
+    --slate-50:#f8fafc; --slate-100:#f1f5f9; --slate-200:#e2e8f0; --slate-300:#cbd5e1; --slate-400:#94a3b8; --slate-500:#64748b; --slate-700:#334155;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",system-ui,sans-serif;background:#efece6;color:#2a2620;line-height:1.5;padding:32px 24px 80px}
+  h1{font-size:22px;margin:0 0 4px}
+  h2{font-size:16px;margin:40px 0 6px;padding-top:18px;border-top:1px solid #ddd6cc}
+  .sub{color:#6b6358;font-size:13px;margin:0 0 18px;max-width:880px}
+  .meta{color:#8a8175;font-size:12.5px;margin:0 0 16px;max-width:900px}
+  .row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+  .col{flex:1 1 270px;min-width:260px}
+  .col h3{font-size:13.5px;margin:0 0 2px;color:#3a352e}
+  .col .note{font-size:12px;color:#8a8175;margin:0 0 12px;min-height:32px}
+  /* dotted 캔버스 (React Flow 흉내) */
+  .canvas{position:relative;border:1px solid #e2ddd3;border-radius:12px;background:#ffffff;
+    background-image:radial-gradient(#d9d3c7 1px,transparent 1px);background-size:18px 18px;
+    padding:30px 24px;min-height:200px;display:flex;justify-content:center;align-items:center}
+  .canvas.tall{min-height:260px;align-items:flex-start;padding-top:40px}
+  /* 카드 */
+  .card{position:relative;width:184px;border-radius:9px;border:1px solid;padding:8px 12px;box-shadow:0 1px 2px rgba(0,0,0,.06);background:#fff}
+  .card .badge{display:inline-block;border-radius:999px;padding:1px 7px;font-size:10px;font-weight:600;margin-bottom:5px}
+  .card .body{font-size:13px;color:#3f3a33;white-space:pre-wrap}
+  .card .body.empty{color:#b9b2a6}
+  /* 핸들 점 */
+  .h{position:absolute;width:9px;height:9px;border-radius:50%;border:2px solid #fff}
+  .h.t{top:-5px;left:50%;transform:translateX(-50%)} .h.r{right:-5px;top:50%;transform:translateY(-50%)}
+  .h.b{bottom:-5px;left:50%;transform:translateX(-50%)} .h.l{left:-5px;top:50%;transform:translateY(-50%)}
+  /* 종류별 색 매핑 (bg=-50, border=-200, badge bg=-100/text=-700, handle=-400) */
+  .k-event{background:var(--terra-50);border-color:var(--terra-200)} .k-event .badge{background:var(--terra-100);color:var(--terra-700)} .k-event .h{background:var(--terra-400)}
+  .k-char{background:var(--teal-50);border-color:var(--teal-200)} .k-char .badge{background:var(--teal-100);color:var(--teal-700)} .k-char .h{background:var(--teal-400)}
+  .k-place{background:var(--emer-50);border-color:var(--emer-200)} .k-place .badge{background:var(--emer-100);color:var(--emer-700)} .k-place .h{background:var(--emer-400)}
+  .k-theme{background:var(--viol-50);border-color:var(--viol-200)} .k-theme .badge{background:var(--viol-100);color:var(--viol-700)} .k-theme .h{background:var(--viol-400)}
+  /* 선택 링(종류색 -500 테두리 + -200 ring) */
+  .sel.k-event{border-color:var(--terra-500);box-shadow:0 0 0 3px var(--terra-200)}
+  .sel.k-char{border-color:var(--teal-500);box-shadow:0 0 0 3px var(--teal-200)}
+  .sel.k-untyped-a{border-color:var(--slate-500);box-shadow:0 0 0 3px var(--slate-200)}
+  /* 무지정 외관 3안 */
+  .k-untyped-a{background:var(--slate-50);border-color:var(--slate-200)} .k-untyped-a .h{background:var(--slate-400)}
+  .k-untyped-b{background:#fff;border-color:var(--slate-300);border-style:dashed} .k-untyped-b .h{background:var(--slate-400)}
+  .k-untyped-c{background:#fff;border-color:var(--slate-200)} .k-untyped-c .h{background:var(--slate-400)}
+  .badge-none{display:inline-block;border-radius:999px;padding:1px 7px;font-size:10px;font-weight:600;margin-bottom:5px;background:var(--slate-100);color:var(--slate-500)}
+  /* 종류 선택 칩 트레이 ("이건 뭔가요?") */
+  .tray{background:#fff;border:1px solid #e6e1d6;border-radius:11px;box-shadow:0 4px 14px rgba(0,0,0,.10);padding:9px 11px}
+  .tray .q{font-size:11.5px;color:#6b6358;font-weight:600;margin-bottom:7px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .sc{border:1px solid;border-radius:999px;padding:3px 11px;font-size:12px;font-weight:600;cursor:default;background:#fff}
+  .sc.event{border-color:var(--terra-200);color:var(--terra-700)} .sc.char{border-color:var(--teal-200);color:var(--teal-700)}
+  .sc.place{border-color:var(--emer-200);color:var(--emer-700)} .sc.theme{border-color:var(--viol-200);color:var(--viol-700)}
+  .sc.on.event{background:var(--terra-100)} /* 선택된 칩(채움) */
+  .link-btn{display:inline-block;margin-top:8px;border:1px dashed rgba(199,122,79,.5);border-radius:999px;padding:3px 12px;font-size:11px;font-weight:600;color:var(--terra-700);background:rgba(255,255,255,.7)}
+  .stack{display:flex;flex-direction:column;align-items:center;gap:0}
+  .cap{font-size:12px;color:#5b554c;margin-top:10px;background:#faf8f3;border:1px solid #e9e3d7;border-radius:8px;padding:9px 12px;max-width:300px}
+  .cap b{color:#2a2620}
+  .reco{display:inline-block;font-size:10.5px;font-weight:700;color:#fff;background:var(--terra-500);border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+  .legend{font-size:12px;color:#6b6358;margin:6px 0 0}
+  code{background:#efe9dd;border-radius:4px;padding:1px 5px;font-size:12px}
+</style>
+</head>
+<body>
+
+<h1>트랙 D — 카드 종류 4종 정합 + 종류 선택 칩 UI</h1>
+<p class="sub">확정된 결정: <b>종류 4종(인물·장소·사건·테마)</b> · <b>기본 무지정(종류 없음)</b> · <b>생성 후 칩으로 부여·재탭 해제</b>. 색은 트랙 B 에서 채택한 저채도 팔레트(−50 틴트) 그대로. 보드는 <code>colorMode=light</code> 고정.<br>
+이 목업에서 고를 것 = <b>① 무지정 카드의 외관</b>, <b>② 종류 선택 칩("이건 뭔가요?")의 위치</b>.</p>
+
+<!-- ============ 섹션 1 : 4종 색 확인 ============ -->
+<h2>① 4종 종류 색 (확정 제안 — 새 색 추가 0)</h2>
+<p class="meta">인물=teal · 장소=emerald · 사건=terracotta · 테마=violet. <b>'사건'은 폐기되는 'plot'의 terracotta를 그대로 승계</b>(plot≒event 의미 동일). 'note(메모)'의 slate 회색은 아래 ②의 <b>무지정 카드</b> 전용으로 옮긴다. 즉 가짓수만 5→4, 새 색은 안 만든다.</p>
+<div class="canvas" style="gap:18px;flex-wrap:wrap">
+  <div class="card k-char"><span class="badge">인물</span><div class="body">김도윤 — 주인공, 26세 형사</div><i class="h t"></i><i class="h r"></i><i class="h b"></i><i class="h l"></i></div>
+  <div class="card k-place"><span class="badge">장소</span><div class="body">옛 등대 — 3장 결말 무대</div><i class="h t"></i><i class="h r"></i><i class="h b"></i><i class="h l"></i></div>
+  <div class="card k-event"><span class="badge">사건</span><div class="body">등대 살인 — 1부 발단</div><i class="h t"></i><i class="h r"></i><i class="h b"></i><i class="h l"></i></div>
+  <div class="card k-theme"><span class="badge">테마</span><div class="body">죄책감과 구원</div><i class="h t"></i><i class="h r"></i><i class="h b"></i><i class="h l"></i></div>
+</div>
+
+<!-- ============ 섹션 2 : 무지정 카드 외관 3안 ============ -->
+<h2>② 무지정 카드(종류 없음)의 외관 — A / B / C</h2>
+<p class="meta">생성 직후 기본값 = 종류 없음. "아직 종류를 안 정한 카드"를 어떻게 보일지. 4종 틴트와 구분되면서, 종류를 강요하지 않는 "중립" 느낌이 목표.</p>
+<div class="row">
+  <div class="col">
+    <h3>A. 중립 회색 채움 <span class="reco">추천</span></h3>
+    <p class="note">4종과 같은 "옅은 틴트" 문법을 유지하되 회색(slate-50). 종류 배지 자리에 옅은 "종류 없음".</p>
+    <div class="canvas">
+      <div class="card k-untyped-a"><span class="badge-none">종류 없음</span><div class="body">갑자기 떠오른 반전 아이디어</div><i class="h t"></i><i class="h r"></i><i class="h b"></i><i class="h l"></i></div>
+    </div>
+    <div class="cap"><b>일관성 최고.</b> 4종이 전부 "옅은 틴트 카드"라 무지정도 같은 문법(회색 틴트). 회색 = 중립의 자연스러운 신호.</div>
+  </div>
+  <div class="col">
+    <h3>B. 흰 배경 + 회색 점선</h3>
+    <p class="note">점선 테두리로 "미정" 상태를 적극 암시. 배지 없음.</p>
+    <div class="canvas">
+      <div class="card k-untyped-b"><div class="body">갑자기 떠오른 반전 아이디어</div><i class="h t"></i><i class="h r"></i><i class="h b"></i><i class="h l"></i></div>
+    </div>
+    <div class="cap">"아직 안 정함"이 가장 또렷. 다만 점선은 "임시/미완"으로도 읽혀, 끝까지 무지정으로 쓸 메모 카드엔 과한 신호일 수 있음.</div>
+  </div>
+  <div class="col">
+    <h3>C. 흰 배경 + 옅은 실선</h3>
+    <p class="note">가장 미니멀. 평범한 흰 카드.</p>
+    <div class="canvas">
+      <div class="card k-untyped-c"><div class="body">갑자기 떠오른 반전 아이디어</div><i class="h t"></i><i class="h r"></i><i class="h b"></i><i class="h l"></i></div>
+    </div>
+    <div class="cap">깔끔하지만 캔버스 배경(흰색)과 대비가 약해 카드 경계가 흐릿. 4종 틴트 카드들 사이에서 "비어 보임".</div>
+  </div>
+</div>
+
+<!-- ============ 섹션 3 : 종류 선택 칩 위치 3안 ============ -->
+<h2>③ 종류 선택 칩("이건 뭔가요?")의 위치 — A / B / C</h2>
+<p class="meta">카드를 <b>선택</b>하면(클릭) 종류 선택 칩 4개가 나타난다. 한 칩 탭 = 색/배지 즉시, 같은 칩 재탭 = 무지정 해제. 이미 카드 선택 시 하단에 <code>↗ 연결할 카드 고르기</code>(잇기) 버튼이 있어 <b>둘의 공존</b>이 관건.</p>
+<div class="row">
+  <div class="col">
+    <h3>A. 카드 아래 분리 트레이 <span class="reco">추천</span></h3>
+    <p class="note">선택 시 카드 아래에 둥근 트레이로 "이건 뭔가요?" + 4칩, 그 아래 잇기 버튼. 현재 잇기 버튼 패턴의 확장.</p>
+    <div class="canvas tall">
+      <div class="stack">
+        <div class="card sel k-untyped-a" style="z-index:2"><span class="badge-none">종류 없음</span><div class="body">갑자기 떠오른 반전 아이디어</div><i class="h t"></i><i class="h r"></i><i class="h b"></i><i class="h l"></i></div>
+        <div class="tray" style="margin-top:10px;width:184px">
+          <div class="q">이건 뭔가요?</div>
+          <div class="chips">
+            <span class="sc char">인물</span><span class="sc place">장소</span><span class="sc event">사건</span><span class="sc theme">테마</span>
+          </div>
+        </div>
+        <span class="link-btn">↗ 연결할 카드 고르기</span>
+      </div>
+    </div>
+    <div class="cap"><b>카드 본문을 안 가림</b>(아래로 펼침). 칩·잇기가 세로로 쌓여 시선 흐름 단순. 캔버스 좁으면 트레이가 아래 카드와 겹칠 수 있어 위치 보정 필요.</div>
+  </div>
+  <div class="col">
+    <h3>B. 카드 내부 하단 인라인</h3>
+    <p class="note">선택 시 카드 자체가 아래로 늘어나며 본문 밑에 칩 줄을 품음.</p>
+    <div class="canvas tall">
+      <div class="stack">
+        <div class="card sel k-untyped-a" style="width:184px">
+          <span class="badge-none">종류 없음</span><div class="body" style="margin-bottom:8px">갑자기 떠오른 반전 아이디어</div>
+          <div class="q" style="font-size:11px;color:#8a8175;margin-bottom:5px">이건 뭔가요?</div>
+          <div class="chips"><span class="sc char">인물</span><span class="sc place">장소</span><span class="sc event">사건</span><span class="sc theme">테마</span></div>
+          <i class="h t"></i><i class="h r"></i><i class="h b"></i><i class="h l"></i>
+        </div>
+        <span class="link-btn">↗ 연결할 카드 고르기</span>
+      </div>
+    </div>
+    <div class="cap">칩이 카드의 일부라 "이 카드의 종류"임이 명확. 다만 선택 시 카드 높이가 출렁여(레이아웃 점프) 주변 카드와 겹침이 늘 수 있음.</div>
+  </div>
+  <div class="col">
+    <h3>C. 카드 우측 세로 플로팅</h3>
+    <p class="note">카드 오른쪽에 세로 칩 바. 잇기는 기존대로 아래.</p>
+    <div class="canvas tall">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div class="stack">
+          <div class="card sel k-untyped-a"><span class="badge-none">종류 없음</span><div class="body">갑자기 떠오른 반전 아이디어</div><i class="h t"></i><i class="h r"></i><i class="h b"></i><i class="h l"></i></div>
+          <span class="link-btn">↗ 연결할 카드 고르기</span>
+        </div>
+        <div class="tray" style="padding:8px 9px">
+          <div class="q" style="margin-bottom:6px">종류</div>
+          <div class="chips" style="flex-direction:column"><span class="sc char">인물</span><span class="sc place">장소</span><span class="sc event">사건</span><span class="sc theme">테마</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="cap">본문·잇기와 안 겹침. 다만 카드 오른쪽 공간을 점유 → 오른쪽에 다른 카드/연결선이 있으면 가림. 우측 핸들(연결점)과도 충돌.</div>
+  </div>
+</div>
+
+<!-- ============ 종류 부여 후 ============ -->
+<h2>참고 — 칩 탭 후 (무지정 → '사건' 부여)</h2>
+<p class="meta">'사건' 칩을 탭하면 카드가 즉시 terracotta 틴트 + "사건" 배지로 바뀌고, 선택 트레이의 '사건' 칩은 채워진 상태(재탭하면 다시 무지정).</p>
+<div class="canvas tall">
+  <div class="stack">
+    <div class="card sel k-event"><span class="badge">사건</span><div class="body">갑자기 떠오른 반전 아이디어</div><i class="h t"></i><i class="h r"></i><i class="h b"></i><i class="h l"></i></div>
+    <div class="tray" style="margin-top:10px;width:184px">
+      <div class="q">이건 뭔가요?</div>
+      <div class="chips"><span class="sc char">인물</span><span class="sc place">장소</span><span class="sc on event">사건</span><span class="sc theme">테마</span></div>
+    </div>
+    <span class="link-btn">↗ 연결할 카드 고르기</span>
+  </div>
+</div>
+
+<h2>다음 단계</h2>
+<p class="legend">② 무지정 외관(A/B/C)과 ③ 칩 위치(A/B/C)에서 각각 하나(또는 "A인데 ○○만 조정")를 골라주면, 그 값으로 <code>cardKinds.ts</code>(4종+무지정 토큰)·<code>CardNode.tsx</code>(배지/칩 트레이)·<code>PlotBoardCanvas.tsx</code>(+카드 단일버튼·드롭다운 제거)를 구현한다. 안전망(한눈에 보기 버튼·미니맵 토글)은 별도 시각결정 없이 진행.</p>
+
+</body>
+</html>

@@ -56,6 +56,7 @@
 - 데이터 fetching 은 container / page 레벨, 표시 컴포넌트는 props 만
 - Server state = React Query, Local UI = Zustand / `useState` (docs/plan §2-1)
 - `react-hooks/exhaustive-deps` 활성
+- **빈 상태(empty-state) 안내는 화면 컨텍스트 유지 + 오버레이가 default** — 빈 리스트/캔버스/보드의 안내는 그 화면의 컨텍스트(격자·툴바·헤더 등)를 **유지한 채 위에 얹는다**(`pointer-events-none` 컨테이너 + 액션 버튼만 `pointer-events-auto`). "빈 화면 노출 금지" 류 요구를 "화면 전체를 흰 화면으로 가린다"로 해석 금지 — **전체 화면 takeover(별도 페이지처럼 덮기)는 사용자가 명시 요청할 때만**. 회귀: 2026-06-27 044 보드 빈 보드 안내를 1차로 `bg-white inset-0` 전체 takeover 로 만들어 "별도 흰 페이지"가 됨 → 사용자 2회 멈춤("보드 위 안내여야지 새 페이지가 아니다") → 투명 비차단 오버레이로 정정.
 - **커스텀 훅 반환 객체/함수를 `useCallback`/`useEffect` deps 에 직접 넣지 말 것** — 커스텀 훅(예: `useDocumentSession`)이 매 렌더 새 인스턴스를 반환하면, 그것을 deps 로 잡은 `useCallback`/effect 가 매 렌더 새로 생성·실행된다. 반환 함수가 미안정이면 **ref 로 안정화**(`const xRef = useRef(x); useEffect(() => { xRef.current = x; })` 후 `xRef.current` 참조)하거나, 훅이 반환 함수를 `useCallback` 으로 안정화한다. **effect 가 부모 setState 를 호출하는 경우 deps 불안정 = 무한 렌더 → JavaScript heap OOM** 으로 직결된다.
 
 #### 회귀 사례 — 2026-06-14 022 챕터 BChapterEditor 무한루프 OOM
@@ -126,6 +127,16 @@
 - 1차 시도(전량 롤백): 이탈 시 **세션 밖 raw keepalive PUT** → (a) CSRF 헤더 누락 403, (b) 헤더 추가 후엔 서버 version 만 전진하고 React Query 캐시(staleTime:Infinity)는 미갱신 → 재진입이 stale version 로드 → 다음 저장 **자가 409 충돌**. 같은 증상을 다른 가설로 반복 수정하다 롤백.
 - 해결: `flushNow(): Promise<void>`(공용 client 경유, 응답으로 캐시 version 전진)를 만들어 **버튼 이탈은 await-후-네비**, **뒤로가기는 언마운트 best-effort + 거짓충돌 백스톱**(서버 currentBody === 내 본문이면 조용히 채택)으로 수렴. dogfooding 5/5(세 이탈 경로 글자수 즉시 동기 + 재진입 충돌 없음).
 - 회피 가능했던 시점: 1차 설계 시 "이탈 저장이 캐시/토큰을 함께 전진시키는가 / await 불가 경로의 자가충돌을 멱등 백스톱으로 닫았는가" 점검. 회고: `~/obsidian/write-note/retrospectives/2026-06-23-autosave-exit-flush-resolution.md`.
+
+### 서버 cascade가 정리하는 자식 행을 프론트가 중복 삭제 금지 (HARD-GATE)
+
+부모 삭제 시 백엔드가 자식 행을 **cascade 정리**(DB FK `ON DELETE CASCADE` 등)한다면, 프론트는 그 자식의 삭제 요청을 **중복으로 보내지 않는다**. 부모 삭제와 자식 삭제가 동시에 발화하면 **racy** — 보통 자식은 이미 사라져 404가 오고 멱등 처리로 가려지나, 드물게 동시삭제 타이밍이 **비-404 transient**를 만들어 거짓 에러를 표면화한다. 자식 삭제는 백엔드 cascade에만 위임하고, 프론트는 로컬 상태만 정리한다(독립적인 자식 단독 삭제 경로는 그대로 삭제 요청).
+
+#### 회귀 사례 — 2026-06-27 046 연결카드 삭제 거짓 토스트
+
+- 보드 카드 삭제 시 React Flow 가 `onNodesDelete`(deleteCard)+`onEdgesDelete`(deleteLink)를 동시 발화. 백엔드는 카드 삭제 시 FK CASCADE 로 연결선을 이미 정리하므로 프론트 deleteLink 는 중복·racy → 보통 404(044 `isNotFoundError` 억제)지만 드물게 비-404 transient 로 거짓 "연결 끊기 실패" 토스트(실제 삭제는 정상, reseed 가 화면 복원). 메인 페이지 미재현·간헐.
+- fix: 삭제 중 카드 id ref 기록 + `onEdgesDelete` 마이크로태스크 지연으로 cascade 연결선의 deleteLink 생략(콜백 순서 무관, 백엔드 cascade 에만 위임). `03-ISSUES` ISSUE-052.
+- 회피 가능 시점: 낙관 삭제 + 서버 cascade 결합부 설계 시 "프론트가 cascade 자식을 중복 삭제하는가" 점검.
 
 ## 도구 / 검증
 

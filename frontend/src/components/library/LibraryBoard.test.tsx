@@ -75,6 +75,8 @@ function setup(categories: CategoryResponse[], cards: ProjectCard[]) {
     client.setQueryData(categoryKeys.list(), categories);
     // mutation invalidate 후 useCategories 재조회 대비 기본 핸들러
     server.use(http.get(`${ORIGIN}/api/categories`, () => HttpResponse.json({ success: true, data: categories, error: null })));
+    // 042 — 시리즈 드릴인의 "시리즈 보드" 섹션이 owner 필터 목록을 조회한다(빈 목록 기본).
+    server.use(http.get(`${ORIGIN}/api/boards`, () => HttpResponse.json({ success: true, data: [], error: null })));
     const noop = () => {};
     const onNewWork = vi.fn();
     render(

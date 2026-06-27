@@ -1,241 +1,42 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
 import { keepEditorFocus } from "@/lib/keepEditorFocus";
-import { genderLabel } from "@/lib/api/characters";
-import { useCreateCharacter, useProjectCharacters } from "@/lib/query/useCharacters";
-import { useCaptureMemo, useProjectMemos, useRemoveLinkMemo, useSetPinMemo } from "@/lib/query/useMemos";
 import { goalProgress } from "@/lib/goalGauge";
+import { InlineBoardList } from "@/components/board/InlineBoardList";
 
 /**
- * B타입 집필 보조 패널 — fable-test WorkSidePanel 이식 (w-80, 메모/인물 탭, ◀▶ 접이식).
- * 메모 탭 = 이 작품에 연결된 메모(고정 우선) + 인라인 캡처. 인물 탭 = 목록 + 빠른 추가.
- * 공백 최소화: 목록·입력을 패널 전체 높이에 채우고 빈 상태에도 바로 쓸 수 있는 입력을 둔다.
+ * B타입 집필 보조 패널 — 044 보드 중심 전환으로 메모·인물 탭 폐기, **보드 패널만** 남김.
+ * 이 작품에 매달린 플롯 보드 목록 + 이름만 생성 + 열기(내부 탭, PRD §5.4 ②). ◀▶ 접이식 + 분량 푸터.
+ * 메모·인물은 보드 카드로 통합(데이터·iOS 캡처는 BE 보존, 후속 "가져오기"로 카드화).
  */
-
-type Tab = "memos" | "characters";
-
-function MemosTab({ projectId }: { projectId: number }) {
-    const memosQuery = useProjectMemos(projectId);
-    const captureMemo = useCaptureMemo();
-    const setPinMemo = useSetPinMemo();
-    const removeLinkMemo = useRemoveLinkMemo();
-    const [body, setBody] = useState("");
-
-    const handleCapture = async (e: FormEvent) => {
-        e.preventDefault();
-        const trimmed = body.trim();
-        if (!trimmed || captureMemo.isPending) return;
-        await captureMemo.mutateAsync({ body: trimmed, linkProjectId: projectId });
-        setBody("");
-    };
-
-    const memos = memosQuery.data ?? [];
-    const actionFailed = setPinMemo.isError || removeLinkMemo.isError;
-
-    return (
-        <div className="flex h-full flex-col">
-            <form onSubmit={handleCapture} className="border-b border-border p-3">
-                <textarea
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                    placeholder="이 작품에 메모 남기기…"
-                    rows={2}
-                    className="w-full resize-none rounded-md border border-border-strong px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
-                />
-                <button
-                    type="submit"
-                    onMouseDown={keepEditorFocus}
-                    disabled={body.trim().length === 0 || captureMemo.isPending}
-                    className="mt-1.5 w-full rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink hover:bg-terracotta-700 disabled:opacity-50"
-                >
-                    붙이기
-                </button>
-            </form>
-            <div className="flex-1 space-y-2 overflow-y-auto p-3">
-                {actionFailed && (
-                    <p className="rounded-md bg-red-50 px-2 py-1.5 text-xs text-red-600">
-                        메모 작업에 실패했습니다. 다시 시도해 주세요.
-                    </p>
-                )}
-                {memosQuery.isLoading ? (
-                    <p className="text-xs text-faint">불러오는 중…</p>
-                ) : memosQuery.isError ? (
-                    <div>
-                        <p className="text-xs text-muted">메모를 불러오지 못했습니다.</p>
-                        <button
-                            type="button"
-                            onMouseDown={keepEditorFocus}
-                            onClick={() => memosQuery.refetch()}
-                            className="mt-1.5 rounded-md border border-border-strong px-2 py-1 text-xs text-muted-strong hover:bg-surface-2"
-                        >
-                            다시 시도
-                        </button>
-                    </div>
-                ) : memos.length === 0 ? (
-                    <p className="text-xs text-faint">아직 연결된 메모가 없습니다.</p>
-                ) : (
-                    memos.map((memo) => (
-                        <div key={memo.id} className="rounded-md border border-border bg-surface p-2.5">
-                            <p className="text-sm whitespace-pre-wrap text-ink-2">{memo.body}</p>
-                            <div className="mt-1.5 flex items-center gap-1.5">
-                                <button
-                                    type="button"
-                                    onMouseDown={keepEditorFocus}
-                                    disabled={setPinMemo.isPending}
-                                    onClick={() =>
-                                        setPinMemo.mutate({ memoId: memo.id, projectId, pinned: !memo.pinned })
-                                    }
-                                    className={
-                                        memo.pinned
-                                            ? "rounded-full bg-accent-soft px-2 py-0.5 text-xs font-medium text-accent-text disabled:opacity-50"
-                                            : "rounded-full px-2 py-0.5 text-xs text-faint hover:bg-surface-3 hover:text-muted-strong disabled:opacity-50"
-                                    }
-                                >
-                                    {memo.pinned ? "고정됨" : "고정"}
-                                </button>
-                                <button
-                                    type="button"
-                                    onMouseDown={keepEditorFocus}
-                                    disabled={removeLinkMemo.isPending}
-                                    onClick={() => removeLinkMemo.mutate({ memoId: memo.id, projectId })}
-                                    className="rounded-full px-2 py-0.5 text-xs text-faint hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                                >
-                                    연결 해제
-                                </button>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-        </div>
-    );
-}
-
-function CharactersTab({ projectId }: { projectId: number }) {
-    const charactersQuery = useProjectCharacters(projectId);
-    const createCharacter = useCreateCharacter();
-    const [name, setName] = useState("");
-    const [shortDescription, setShortDescription] = useState("");
-
-    const handleAdd = async (e: FormEvent) => {
-        e.preventDefault();
-        const trimmed = name.trim();
-        if (!trimmed || createCharacter.isPending) return;
-        try {
-            await createCharacter.mutateAsync({
-                projectId,
-                input: { name: trimmed, shortDescription: shortDescription.trim() || null },
-            });
-            setName("");
-            setShortDescription("");
-        } catch {
-            // 실패 — 입력 유지. createCharacter.isError 로 폼 하단에 에러를 표시한다.
-        }
-    };
-
-    const characters = charactersQuery.data ?? [];
-
-    return (
-        <div className="flex h-full flex-col">
-            <form onSubmit={handleAdd} className="space-y-1.5 border-b border-border p-3">
-                <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="인물 이름"
-                    className="w-full rounded-md border border-border-strong px-3 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
-                />
-                <input
-                    value={shortDescription}
-                    onChange={(e) => setShortDescription(e.target.value)}
-                    placeholder="한 줄 소개 (선택)"
-                    className="w-full rounded-md border border-border-strong px-3 py-1.5 text-sm focus:border-terracotta-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-1"
-                />
-                <button
-                    type="submit"
-                    onMouseDown={keepEditorFocus}
-                    disabled={name.trim().length === 0 || createCharacter.isPending}
-                    className="w-full rounded-md border border-dashed border-border-strong px-3 py-1.5 text-sm text-muted hover:border-terracotta-400 hover:text-accent-text disabled:opacity-50"
-                >
-                    + 인물 추가
-                </button>
-                {createCharacter.isError && (
-                    <p className="text-xs text-red-600">인물 추가에 실패했습니다. 다시 시도해 주세요.</p>
-                )}
-            </form>
-            <div className="flex-1 space-y-2 overflow-y-auto p-3">
-                {charactersQuery.isLoading ? (
-                    <p className="text-xs text-faint">불러오는 중…</p>
-                ) : charactersQuery.isError ? (
-                    <div>
-                        <p className="text-xs text-muted">인물을 불러오지 못했습니다.</p>
-                        <button
-                            type="button"
-                            onMouseDown={keepEditorFocus}
-                            onClick={() => charactersQuery.refetch()}
-                            className="mt-1.5 rounded-md border border-border-strong px-2 py-1 text-xs text-muted-strong hover:bg-surface-2"
-                        >
-                            다시 시도
-                        </button>
-                    </div>
-                ) : characters.length === 0 ? (
-                    <p className="text-xs text-faint">아직 등록된 인물이 없습니다.</p>
-                ) : (
-                    characters.map((character) => {
-                        const meta = [character.age, genderLabel(character.gender)].filter(Boolean).join(" · ");
-                        return (
-                            <div key={character.id} className="rounded-md border border-border bg-surface p-2.5">
-                                <div className="flex items-baseline justify-between gap-2">
-                                    <p className="text-sm font-semibold text-ink">{character.name}</p>
-                                    {meta && <span className="text-xs text-faint">{meta}</span>}
-                                </div>
-                                {character.shortDescription && (
-                                    <p className="mt-0.5 text-xs text-muted-strong">{character.shortDescription}</p>
-                                )}
-                                {character.traits && (
-                                    <p className="mt-1 text-xs text-faint">{character.traits}</p>
-                                )}
-                            </div>
-                        );
-                    })
-                )}
-            </div>
-        </div>
-    );
-}
 
 type SidePanelProps = {
     projectId: number;
-    /** controlled 접기·탭 상태 — 두 인스턴스(inline·drawer)가 부모 state 를 공유해 일관 유지. 미전달 시 비제어(로컬 state). */
+    /** controlled 접기 상태 — 두 인스턴스(inline·drawer)가 부모 state 를 공유. 미전달 시 비제어(로컬 state). */
     isOpen?: boolean;
     onOpenChange?: (open: boolean) => void;
-    tab?: Tab;
-    onTabChange?: (tab: Tab) => void;
-    /** 접기 토글(▶) 노출 여부. drawer 인스턴스(false)는 항상 펼친 상태 — 좁은 폭에서 8px strip 잔존 방지. */
+    /** 접기 토글(▶) 노출 여부. drawer 인스턴스(false)는 항상 펼친 상태. */
     collapsible?: boolean;
     /** 분량 지표(031) — 작품 전체 글자수(실시간) · 목표 분량 진행률. 패널 하단 고정 카드. */
     wordCount?: number;
     targetLength?: number | null;
+    /** 보드 열기(046) — 전달 시 보드 페이지 이동 대신 집필 화면 인라인 오버레이로 연다. */
+    onOpenBoard?: (boardId: number) => void;
 };
 
 export function BWorkSidePanel({
     projectId,
     isOpen: isOpenProp,
     onOpenChange,
-    tab: tabProp,
-    onTabChange,
     collapsible = true,
     wordCount,
     targetLength,
+    onOpenBoard,
 }: SidePanelProps) {
     const goal = wordCount != null && targetLength != null ? goalProgress(wordCount, targetLength) : null;
-    const [isOpenLocal, setIsOpenLocal] = useState(true);
-    const [tabLocal, setTabLocal] = useState<Tab>("memos");
-    // collapsible=false 면 공유 panelOpen 무시하고 항상 펼침(drawer 는 자체 ✕ 로만 닫는다).
-    const isOpen = collapsible ? (isOpenProp ?? isOpenLocal) : true;
-    const setIsOpen = (open: boolean) => (onOpenChange ? onOpenChange(open) : setIsOpenLocal(open));
-    const tab = tabProp ?? tabLocal;
-    const setTab = (next: Tab) => (onTabChange ? onTabChange(next) : setTabLocal(next));
+    // collapsible=false 면 항상 펼침(drawer 는 자체 ✕ 로만 닫는다).
+    const isOpen = collapsible ? (isOpenProp ?? true) : true;
+    const setIsOpen = (open: boolean) => onOpenChange?.(open);
 
     if (!isOpen) {
         return (
@@ -255,45 +56,27 @@ export function BWorkSidePanel({
 
     return (
         <div className="flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-surface-2">
-            <div className="flex items-center border-b border-border">
-                <button
-                    type="button"
-                    onMouseDown={keepEditorFocus}
-                    onClick={() => setTab("memos")}
-                    className={
-                        tab === "memos"
-                            ? "flex-1 bg-accent-soft px-3 py-2 text-sm font-medium text-accent-text"
-                            : "flex-1 px-3 py-2 text-sm text-muted hover:bg-surface-3"
-                    }
-                >
-                    메모
-                </button>
-                <button
-                    type="button"
-                    onMouseDown={keepEditorFocus}
-                    onClick={() => setTab("characters")}
-                    className={
-                        tab === "characters"
-                            ? "flex-1 bg-accent-soft px-3 py-2 text-sm font-medium text-accent-text"
-                            : "flex-1 px-3 py-2 text-sm text-muted hover:bg-surface-3"
-                    }
-                >
-                    인물
-                </button>
+            <div className="flex items-center justify-between border-b border-border px-3 py-2">
+                <span className="text-sm font-medium text-terracotta-700">보드</span>
                 {collapsible && (
                     <button
                         type="button"
                         onMouseDown={keepEditorFocus}
                         aria-label="보조 패널 접기"
                         onClick={() => setIsOpen(false)}
-                        className="px-2 py-2 text-sm text-faint hover:text-muted-strong"
+                        className="px-1 py-1 text-sm text-faint hover:text-muted-strong"
                     >
                         ▶
                     </button>
                 )}
             </div>
-            <div className="min-h-0 flex-1">
-                {tab === "memos" ? <MemosTab projectId={projectId} /> : <CharactersTab projectId={projectId} />}
+            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                <InlineBoardList
+                    ownerType="project"
+                    ownerId={projectId}
+                    emptyHint="아직 이 작품 보드가 없어요."
+                    onOpenBoard={onOpenBoard}
+                />
             </div>
             {wordCount != null && (
                 <div className="border-t border-border bg-surface px-3 py-2.5">

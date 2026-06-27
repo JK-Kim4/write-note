@@ -10,6 +10,7 @@ import com.writenote.mapper.ProjectMapper
 import com.writenote.model.request.CreateProjectRequest
 import com.writenote.model.request.UpdateProjectRequest
 import com.writenote.model.response.ProjectResponse
+import com.writenote.repository.BoardRepository
 import com.writenote.repository.CategoryRepository
 import com.writenote.repository.DocumentRepository
 import com.writenote.repository.ProjectRepository
@@ -35,6 +36,7 @@ class ProjectServiceTest {
     private lateinit var workSessionRepository: WorkSessionRepository
     private lateinit var categoryRepository: CategoryRepository
     private lateinit var bodyCipherService: BodyCipherService
+    private lateinit var boardRepository: BoardRepository
     private lateinit var service: ProjectService
 
     @BeforeEach
@@ -46,6 +48,7 @@ class ProjectServiceTest {
         workSessionRepository = mockk()
         categoryRepository = mockk()
         bodyCipherService = mockk()
+        boardRepository = mockk()
         // 기본 stub: decryptToPlain은 저장된 body 그대로 반환(복호 우회)
         every { bodyCipherService.decryptToPlain(any(), any()) } answers { secondArg() }
         service =
@@ -57,6 +60,7 @@ class ProjectServiceTest {
                 workSessionRepository,
                 categoryRepository,
                 bodyCipherService,
+                boardRepository,
             )
     }
 
@@ -232,8 +236,8 @@ class ProjectServiceTest {
     }
 
     @Test
-    @DisplayName("deleteProject — Repository.delete 호출 후 DB FK CASCADE 위임")
-    fun `deleteProject delegates to repository delete`() {
+    @DisplayName("deleteProject — 보드 owner 강등(보드 보존, 041) 후 repository.delete 위임")
+    fun `deleteProject clears board owner then deletes`() {
         val project =
             Project(
                 id = 13L,
@@ -243,10 +247,13 @@ class ProjectServiceTest {
                 updatedAt = Instant.now(),
             )
         every { projectRepository.findByIdAndUserId(eq(13L), eq(4L)) } returns Optional.of(project)
+        every { boardRepository.clearOwner(eq("project"), eq(13L)) } returns 1
         every { projectRepository.delete(eq(project)) } returns Unit
 
         service.deleteProject(4L, 13L)
 
+        // 작품 삭제 전 그 작품 소속 보드를 아이디어로 강등(보드 보존) — 다형이라 앱 처리
+        verify(exactly = 1) { boardRepository.clearOwner(eq("project"), eq(13L)) }
         verify(exactly = 1) { projectRepository.delete(eq(project)) }
     }
 

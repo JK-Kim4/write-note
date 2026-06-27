@@ -21,8 +21,8 @@ import { OnboardingCelebration } from "./OnboardingCelebration";
  *
  * 단계:
  *   - 인트로 카드 3장(element 없음 = 화면 중앙 popover) — 시리즈/작품/내보내기 소개
- *   - 메뉴 스포트라이트 3개(작품→메모→인물)
- *   - 마지막 step(인물)에 분기 2지선다:
+ *   - 메뉴 스포트라이트 2개(작품→보드) — 044 보드 중심 전환(메모·인물 메뉴 폐기)
+ *   - 마지막 step(보드)에 분기 2지선다:
  *       "바로 시작" → 완료 저장 + 투어 종료 + 축하 애니메이션
  *       "더 보기"   → 완료 저장 + sessionStorage 핸드오프 set + /library 이동
  *
@@ -76,7 +76,7 @@ export function OnboardingTour() {
             if (cancelled) return;
 
             // HOME_TOUR_STEPS 는 readonly — 드라이버에 전달할 mutable 복사본 생성.
-            // 마지막 step(인물)에 분기 콜백 주입.
+            // 마지막 step(보드)에 분기 콜백 주입.
             const steps = HOME_TOUR_STEPS.map((step, idx) => {
                 if (idx !== HOME_TOUR_STEPS.length - 1) return { ...step };
                 // step 6: 분기 popover — 명시적 2지선다 버튼.

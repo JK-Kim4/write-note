@@ -15,6 +15,7 @@ import { formatStopwatch } from "@/lib/formatStopwatch";
 import { rememberLastProject } from "@/lib/lastProject";
 import type { OutlineItem } from "@/lib/editor/outline";
 import { BWorkSidePanel } from "@/components/b/BWorkSidePanel";
+import { BoardReferencePanel } from "@/components/b/BoardReferencePanel";
 import { ExportDialog } from "@/components/export/ExportDialog";
 import { PrintOverlay } from "@/components/export/PrintOverlay";
 import { usePdfExport } from "@/lib/export/usePdfExport";
@@ -115,11 +116,18 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
     const rightDrawerRef = useRef<HTMLDivElement>(null);
     const conflictModalRef = useRef<HTMLDivElement>(null);
     const endWorkModalRef = useRef<HTMLDivElement>(null);
-    // 보조 패널 접기·탭 상태
+    // 보조 패널 접기 상태(044 — 보드 단일 패널, 탭 제거)
     const [panelOpen, setPanelOpen] = useState(true);
-    const [panelTab, setPanelTab] = useState<"memos" | "characters">("memos");
     // 내보내기 다이얼로그(023 Round 3 진입점).
     const [exportOpen, setExportOpen] = useState(false);
+    // 집필 중 보드 참조(043) — 우측 슬라이드오버. 기본 닫힘.
+    const [boardRefOpen, setBoardRefOpen] = useState(false);
+    // 046: 사이드 목록 클릭으로 특정 보드를 인라인 오버레이로 열 때 preselect 할 id(툴바 버튼은 null=마지막 본 보드).
+    const [boardRefInitialId, setBoardRefInitialId] = useState<number | null>(null);
+    const openBoardRef = (id: number) => {
+        setBoardRefInitialId(id);
+        setBoardRefOpen(true);
+    };
     const { printModels, exportPdf, clearPrint } = usePdfExport();
 
     // 에디터 코어로부터 받은 저장 상태 / 충돌 핸들러
@@ -318,15 +326,36 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                     </select>
                 </div>
             </div>
-            {/* 내보내기 */}
-            <div className="border-b border-border px-3 py-2">
+            {/* 보드 참조(043) + 내보내기 */}
+            <div className="flex gap-2 border-b border-border px-3 py-2">
+                <button
+                    type="button"
+                    onClick={() => {
+                        // 046: 토글 — 열려 있으면 닫고, 닫혀 있으면 마지막 본 보드(null)로 연다.
+                        if (boardRefOpen) {
+                            setBoardRefOpen(false);
+                            return;
+                        }
+                        setBoardRefInitialId(null);
+                        setBoardRefOpen(true);
+                        setLeftDrawerOpen(false);
+                    }}
+                    aria-pressed={boardRefOpen}
+                    className={`flex-1 rounded-md border px-3 py-1.5 text-sm ${
+                        boardRefOpen
+                            ? "border-terracotta-600 bg-terracotta-600 font-semibold text-white"
+                            : "border-border-strong text-muted-strong hover:bg-surface-2"
+                    }`}
+                >
+                    보드 참조
+                </button>
                 <button
                     type="button"
                     onClick={() => {
                         setExportOpen(true);
                         setLeftDrawerOpen(false);
                     }}
-                    className="w-full rounded-md border border-border-strong px-3 py-1.5 text-sm text-muted-strong hover:bg-surface-2"
+                    className="flex-1 rounded-md border border-border-strong px-3 py-1.5 text-sm text-muted-strong hover:bg-surface-2"
                 >
                     내보내기
                 </button>
@@ -401,11 +430,11 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                 </button>
                 <button
                     type="button"
-                    aria-label="쪽지·인물 패널 열기"
+                    aria-label="보드 패널 열기"
                     onClick={() => setRightDrawerOpen(true)}
                     className="pointer-events-auto rounded-md border border-border bg-surface px-3 py-1.5 text-xs text-muted-strong shadow-sm hover:bg-surface-2"
                 >
-                    쪽지·인물
+                    보드
                 </button>
             </div>
 
@@ -455,17 +484,17 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                 ref={rightDrawerRef}
                 role="dialog"
                 aria-modal="true"
-                aria-label="쪽지·인물"
+                aria-label="보드"
                 inert={!rightDrawerOpen || undefined}
                 className={`fixed inset-y-0 right-0 z-30 flex w-80 flex-col overflow-hidden bg-surface-2 shadow-xl transition-transform duration-200 min-[880px]:hidden ${
                     rightDrawerOpen ? "translate-x-0" : "translate-x-full"
                 }`}
             >
                 <div className="flex items-center justify-between border-b border-border bg-surface px-3 py-2">
-                    <span className="text-sm font-medium text-ink-2">쪽지·인물</span>
+                    <span className="text-sm font-medium text-ink-2">보드</span>
                     <button
                         type="button"
-                        aria-label="쪽지·인물 패널 닫기"
+                        aria-label="보드 패널 닫기"
                         onClick={() => setRightDrawerOpen(false)}
                         className="rounded-md px-2 py-1 text-sm text-faint hover:bg-surface-3 hover:text-muted-strong"
                     >
@@ -486,10 +515,9 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                     <BWorkSidePanel
                         projectId={projectId}
                         collapsible={false}
-                        tab={panelTab}
-                        onTabChange={setPanelTab}
                         wordCount={totalWordCount}
                         targetLength={targetLength}
+                        onOpenBoard={openBoardRef}
                     />
                 </div>
             </div>
@@ -554,10 +582,9 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                     projectId={projectId}
                     isOpen={panelOpen}
                     onOpenChange={setPanelOpen}
-                    tab={panelTab}
-                    onTabChange={setPanelTab}
                     wordCount={totalWordCount}
                     targetLength={targetLength}
+                    onOpenBoard={openBoardRef}
                 />
             </div>
 
@@ -574,6 +601,16 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
             )}
 
             {printModels && <PrintOverlay models={printModels} paperSize={paperSize} onDone={clearPrint} />}
+
+            {/* 집필 중 보드 참조(043) — 우측 슬라이드오버. 작품 보드 + 상위 시리즈 보드 곁눈질. */}
+            {!Number.isNaN(projectId) && (
+                <BoardReferencePanel
+                    projectId={projectId}
+                    open={boardRefOpen}
+                    onClose={() => setBoardRefOpen(false)}
+                    initialBoardId={boardRefInitialId}
+                />
+            )}
 
             {/* 충돌 다이얼로그 — 에디터 슬롯이 콜백으로 올린 conflict / 해결 핸들러 사용 */}
             {conflictHandlers.conflict != null && (
