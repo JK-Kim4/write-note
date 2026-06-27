@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Handle, Position, useReactFlow, type Node, type NodeProps } from "@xyflow/react";
+import { hasSeenLinkHint, markLinkHintSeen } from "@/lib/boardCoachmark";
 import { useBoardActions } from "./boardActions";
 import { CARD_KINDS, kindOf } from "./cardKinds";
+import { linkHintPlacement, type HandleAnchor } from "./linkHintPlacement";
 
 // 커스텀 노드(React Flow). data 변이(contravariance) 때문에 nodeTypes 할당이 까다로워 NodeProps 는
 // 느슨하게 받고 data 를 CardNodeData 로 캐스트한다(런타임은 항상 CardNodeData).
@@ -38,6 +40,14 @@ const HANDLE_DEFS = [
     { id: "left", position: Position.Left },
 ] as const;
 
+// "끌어서 잇기" 코치마크(045) 캐럿 — 카드(연결점)를 지목하는 삼각형. 리터럴(JIT 안전).
+const CARET_CLASS: Record<"up" | "down" | "left" | "right", string> = {
+    down: "absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900",
+    up: "absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-gray-900",
+    left: "absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900",
+    right: "absolute left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-gray-900",
+};
+
 export function CardNode({ id, data, selected }: NodeProps) {
     const body = (data as CardNodeData).body;
     const dimmed = (data as CardNodeData).dimmed ?? false;
@@ -50,6 +60,10 @@ export function CardNode({ id, data, selected }: NodeProps) {
     const [text, setText] = useState(body);
     // 종류 트레이: 무지정 카드는 선택 시 자동, 종류 지정 카드는 배지를 눌러 열었을 때만(trayOpen).
     const [trayOpen, setTrayOpen] = useState(false);
+    // 첫-진입 "끌어서 잇기" 코치마크(045) — 커서가 올라간 연결점(hoveredHandle)에서 1회.
+    // hover 시점에 hasSeenLinkHint() 를 확인해, 여러 카드가 떠 있어도 전역 1회만 노출.
+    const [hoveredHandle, setHoveredHandle] = useState<HandleAnchor | null>(null);
+    const [hintActive, setHintActive] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     // 외부(서버/RF) 본문 변경 시 비편집 상태면 동기화.
@@ -98,6 +112,8 @@ export function CardNode({ id, data, selected }: NodeProps) {
     const borderClass = selected ? kind.selected : kind.border;
     // 핸들 노출: 평상시 숨김, hover(group-hover)/선택 시만. DOM 에는 항상 존재(연결 동작 위해 display:none 금지).
     const handleVisibility = selected ? "opacity-100" : "opacity-0 group-hover:opacity-100";
+    // "끌어서 잇기" 코치마크 위치 — 커서 올라간 연결점에서 바깥으로(편집 중엔 미노출).
+    const hintPlacement = hintActive && hoveredHandle && !editing ? linkHintPlacement(hoveredHandle) : null;
 
     return (
         <div
@@ -111,9 +127,31 @@ export function CardNode({ id, data, selected }: NodeProps) {
                     // 무방향(Loose) — 형식상 source 로 두지만 어느 핸들에서나 시작·종료 가능. id=앵커.
                     type="source"
                     position={position}
+                    // 045: 커서가 이 연결점에 올라가면 첫 1회 "끌어서 잇기" 노출(전역 1회성, hover 시점 확인).
+                    onMouseEnter={() => {
+                        setHoveredHandle(handleId);
+                        if (!hasSeenLinkHint()) {
+                            markLinkHintSeen();
+                            setHintActive(true);
+                        }
+                    }}
+                    onMouseLeave={() => {
+                        setHoveredHandle(null);
+                        setHintActive(false);
+                    }}
                     className={`!h-3 !w-3 !border-2 !border-white ${kind.handle} transition-opacity ${handleVisibility}`}
                 />
             ))}
+
+            {/* 첫-진입 코치마크(045) — 커서가 올라간 연결점에서 "끌어서 잇기" 1회. 비차단 오버레이. */}
+            {hintPlacement && (
+                <div className={`pointer-events-none absolute z-10 ${hintPlacement.positionClass}`}>
+                    <div className="relative rounded-lg bg-gray-900 px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-white shadow-lg">
+                        끌어서 잇기
+                        <span className={CARET_CLASS[hintPlacement.caret]} aria-hidden="true" />
+                    </div>
+                </div>
+            )}
 
             {isUntyped ? (
                 <span className={`mb-1 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium ${kind.chip}`}>
