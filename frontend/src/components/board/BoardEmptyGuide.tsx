@@ -1,9 +1,10 @@
 "use client";
 
 /**
- * 빈 보드 안내(044, board-ux-worksheet TASK-1 ②) — 카드 0개 보드에서 빈 격자 캔버스 대신
- * 중앙 단일 진입점을 노출한다(빈 캔버스 절대 노출 금지). 캔버스 위 불투명 오버레이로 격자를 덮는다.
- * 버튼은 캔버스의 카드 생성(중앙)을 호출 → 생성 직후 자동 본문 편집(autoEdit). 보드 colorMode=light 고정.
+ * 빈 보드 안내(044, board-ux-worksheet TASK-1 ②) — 카드 0개 보드에서 캔버스(격자·툴바·줌 컨트롤)는
+ * 그대로 둔 채 중앙에 "첫 카드 만들기" 안내만 얹는다. 보드를 통째로 가리는 별도 페이지가 아니라
+ * 보드 위의 안내여야 한다(사용자 요청 2026-06-27). 컨테이너는 pointer-events-none 으로 캔버스 팬/빈 곳
+ * 더블클릭을 막지 않고, 버튼만 클릭 가능(pointer-events-auto). 보드 colorMode=light 고정.
  */
 
 // COPY = board-ux-worksheet.md §5 상수(card.emptyBoard / card.emptyBoardButton).
@@ -12,12 +13,12 @@ const EMPTY_BOARD_BUTTON = "+ 카드 만들기";
 
 export function BoardEmptyGuide({ onCreate }: { onCreate: () => void }) {
     return (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-xl bg-white text-center">
+        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 text-center">
             <p className="text-base text-gray-500">{EMPTY_BOARD_TEXT}</p>
             <button
                 type="button"
                 onClick={onCreate}
-                className="rounded-md bg-terracotta-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-terracotta-600"
+                className="pointer-events-auto rounded-md bg-terracotta-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-terracotta-600"
             >
                 {EMPTY_BOARD_BUTTON}
             </button>
