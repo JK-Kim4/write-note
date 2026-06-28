@@ -50,17 +50,13 @@ export function DraggableWorkCard({ card, onDelete, onEdit, onArchive, shareLink
     // 카드 전체(가장자리·여백 포함)를 진입 클릭 영역으로 — 모든 이벤트가 모이는 카드 div 에서 처리.
     // 드래그 시 dnd-kit 이 click 을 document 캡처 단계에서 막으므로 오진입 없음. 링크/버튼 클릭은 각자 처리.
     const handleCardClick = (e: React.MouseEvent) => {
-        if ((e.target as HTMLElement).closest("a, button")) return;
+        // 카드 위에 뜬 공유 팝오버·모달 내부 클릭은 작품 진입으로 보지 않는다(SharePopover=role=dialog, 이벤트 누수 가드).
+        if ((e.target as HTMLElement).closest("a, button, input, textarea, select, [role=dialog], [role=menu]")) return;
         router.push(`/works/${card.id}`);
     };
 
     const body = (
         <>
-            {activeCount > 0 ? (
-                <span className="mb-1.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-teal-600">
-                    <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-teal-600" /> 공유 중 · {activeCount}
-                </span>
-            ) : null}
             <h2 className="text-lg font-bold text-ink">{card.title}</h2>
             <div className="mt-3 flex items-center gap-3 text-xs text-faint">
                 <span>{card.wordCount.toLocaleString()}자</span>
@@ -76,8 +72,8 @@ export function DraggableWorkCard({ card, onDelete, onEdit, onArchive, shareLink
             {...(overlay ? {} : attributes)}
             onClick={overlay ? undefined : handleCardClick}
             className={`group relative cursor-pointer select-none rounded-xl border border-border bg-surface p-5 transition-shadow hover:shadow-md ${
-                overlay ? "rotate-[-2deg] shadow-xl" : ""
-            } ${isDragging ? "opacity-40" : ""}`}
+                shareOpen ? "z-30" : ""
+            } ${overlay ? "rotate-[-2deg] shadow-xl" : ""} ${isDragging ? "opacity-40" : ""}`}
         >
             {overlay ? <div className="block">{body}</div> : (
                 // 텍스트 영역은 링크로(키보드 Enter·새 탭 열기 보존), 가장자리·여백은 위 카드 div onClick 이 처리.
@@ -85,6 +81,13 @@ export function DraggableWorkCard({ card, onDelete, onEdit, onArchive, shareLink
                     {body}
                 </Link>
             )}
+
+            {!overlay && activeCount > 0 ? (
+                // flow 밖 absolute — 배지 유무로 제목 위치가 밀리지 않게(레이아웃 일치). 우상단.
+                <span className="absolute right-3 top-3 z-[5] inline-flex items-center gap-1.5 rounded-full bg-surface/90 px-2 py-0.5 text-[11px] font-semibold text-teal-600 shadow-sm">
+                    <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-teal-600" /> 공유 중 · {activeCount}
+                </span>
+            ) : null}
 
             {!overlay && (
                 <div

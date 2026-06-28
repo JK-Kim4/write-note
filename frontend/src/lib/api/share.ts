@@ -15,6 +15,9 @@ import { apiFetch } from "./client";
 /** 공유 대상 종류 — "work"=작품(즉시 스냅샷 동결), "series"=시리즈(공개 작품은 PUT 으로 선택). */
 export type ShareTargetType = "work" | "series";
 
+/** 작품/시리즈당 공유 링크 생성 한도(047, 백엔드 ShareService.MAX_LINKS_PER_TARGET 동기). 끄진 것 포함 총합. */
+export const MAX_SHARE_LINKS_PER_TARGET = 5;
+
 /** 공유 작품 메타(목록용 — 본문 미포함). work 링크=단일, series 링크=공개 작품 목록. */
 export interface SharedWorkMeta {
     projectId: number;
@@ -72,6 +75,11 @@ export function setShareLinkActive(id: number, isActive: boolean): Promise<Share
         method: "PATCH",
         body: JSON.stringify({ isActive }),
     });
+}
+
+/** 공유 링크 영구 삭제(047) — 링크+스냅샷+받은 피드백 함께 제거(CASCADE). 본인 링크만, 한도 슬롯 회수용. */
+export function deleteShareLink(id: number): Promise<{ deleted: boolean }> {
+    return apiFetch<{ deleted: boolean }>(`/api/share-links/${id}`, { method: "DELETE" });
 }
 
 /** 시리즈 공개 작품 선택(series 전용) — 추가분 스냅샷 동결, 제거분 스냅샷 삭제. 빈 목록=전체 비공개. */

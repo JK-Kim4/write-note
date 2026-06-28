@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useAuthorComments, useMarkCommentsRead } from "@/lib/query/useShareComments";
 import { formatCommentAnchor } from "@/lib/share/commentLocation";
@@ -46,7 +47,8 @@ export function AuthorCommentInbox({ projectId, projectTitle, onClose, onNavigat
         router.push(`/works/${comment.projectId}`);
     };
 
-    return (
+    if (typeof document === "undefined") return null;
+    return createPortal(
         <div role="dialog" aria-label={`${projectTitle} 받은 피드백`} className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
             <div className="w-[32rem] max-w-[94vw] rounded-2xl bg-surface p-5 shadow-xl">
                 <div className="flex items-start justify-between gap-2">
@@ -114,6 +116,7 @@ export function AuthorCommentInbox({ projectId, projectTitle, onClose, onNavigat
                     </ul>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }

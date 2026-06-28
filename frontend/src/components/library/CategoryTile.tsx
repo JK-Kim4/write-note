@@ -118,7 +118,12 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, shar
             role="button"
             tabIndex={0}
             aria-label={`${category.name} 열기`}
-            onClick={() => { if (!editing) onOpen(category.id); }}
+            onClick={(e) => {
+                if (editing) return;
+                // 타일 위에 뜬 메뉴·공유 팝오버·모달 내부 클릭은 드릴인(열기)으로 보지 않는다(이벤트 누수 가드).
+                if ((e.target as HTMLElement).closest("button, a, input, textarea, select, [role=dialog], [role=menu]")) return;
+                onOpen(category.id);
+            }}
             onKeyDown={(e) => {
                 if ((e.key === "Enter" || e.key === " ") && !editing && e.target === e.currentTarget) {
                     e.preventDefault();
@@ -127,8 +132,8 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, shar
             }}
             style={{ transform: absorbing ? "scale(1.04)" : undefined }}
             className={`relative flex min-h-[150px] cursor-pointer flex-col rounded-2xl border bg-surface p-3.5 transition-[transform,box-shadow,border-color] duration-300 ${
-                isOver ? "border-terracotta-600 ring-2 ring-terracotta-300" : "border-border hover:shadow-md"
-            }`}
+                shareOpen || menuOpen ? "z-30" : ""
+            } ${isOver ? "border-terracotta-600 ring-2 ring-terracotta-300" : "border-border hover:shadow-md"}`}
         >
             {/* 책등 스택 */}
             <div className="flex h-16 items-end gap-1 px-0.5">
@@ -154,7 +159,8 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, shar
             </div>
 
             {!editing && activeCount > 0 ? (
-                <span className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-teal-600">
+                // flow 밖 absolute — 배지 유무로 제목 위치가 밀리지 않게(레이아웃 일치). ⋯ 버튼 왼쪽.
+                <span className="absolute right-10 top-2.5 z-[5] inline-flex items-center gap-1.5 rounded-full bg-surface/90 px-2 py-0.5 text-[11px] font-semibold text-teal-600 shadow-sm">
                     <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-teal-600" /> 공유 중 · {activeCount}
                 </span>
             ) : null}
@@ -251,7 +257,7 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, shar
                     e.stopPropagation();
                     setMenuOpen((v) => !v);
                 }}
-                className="absolute top-2 right-2 z-10 rounded-md bg-surface/70 px-1.5 py-0.5 text-faint hover:bg-accent-soft hover:text-accent-text"
+                className="absolute top-2 right-2 z-10 rounded-md border border-border bg-surface px-1.5 py-0.5 text-base leading-none text-muted-strong shadow-sm hover:border-accent-soft hover:bg-accent-soft hover:text-accent-text"
             >
                 ⋯
             </button>

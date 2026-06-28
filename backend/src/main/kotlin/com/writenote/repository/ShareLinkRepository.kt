@@ -20,6 +20,13 @@ interface ShareLinkRepository : JpaRepository<ShareLink, Long> {
     /** 내 링크 목록 — 최근순. */
     fun findByOwnerIdOrderByCreatedAtDesc(ownerId: Long): List<ShareLink>
 
+    /** 작품/시리즈당 공유 링크 개수(생성 제한용, 047) — 활성+비활성 총합. */
+    fun countByOwnerIdAndTargetTypeAndTargetId(
+        ownerId: Long,
+        targetType: String,
+        targetId: Long,
+    ): Long
+
     /**
      * 대상 hard delete 시 그 대상의 활성 공유 링크를 비활성(보존, 046 R-5/FR-025).
      * 스냅샷·댓글은 삭제하지 않음(피드백 이력 유지) — 공개 read 만 비활성으로 차단.

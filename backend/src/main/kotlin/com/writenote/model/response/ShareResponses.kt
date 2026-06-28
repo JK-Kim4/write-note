@@ -87,3 +87,8 @@ data class DeleteCommentResponse(
 data class MarkCommentsReadResponse(
     val markedRead: Int,
 )
+
+/** 공유 링크 삭제 결과(047) — 링크+스냅샷+받은 피드백 영구 삭제(CASCADE). */
+data class DeleteShareLinkResponse(
+    val deleted: Boolean,
+)

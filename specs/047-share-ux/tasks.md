@@ -85,8 +85,8 @@ TDD(룰 §5): BE 집계·bulk read·소유검증 + FE 순수 헬퍼(shareGroupin
 
 ## Phase 6: Polish & 배포
 
-- [ ] T027 통합 회귀 dogfooding(quickstart §통합 회귀) — 046 공개 열람(비로그인) 무회귀(read_at 미노출)·대상 삭제 보존·기존 링크/피드백 손실 0(기존 댓글 안 읽음 시작).
-- [ ] T028 서브에이전트 코드 리뷰(BE additive·FE 경계·보안: 읽음 endpoint 소유 검증·read_at 공개 미노출).
+- [x] T027 통합 회귀 dogfooding(quickstart §통합 회귀) — 046 공개 열람(비로그인) 무회귀(read_at 미노출)·대상 삭제 보존·기존 링크/피드백 손실 0(기존 댓글 안 읽음 시작).
+- [x] T028 서브에이전트 코드 리뷰(BE additive·FE 경계·보안: 읽음 endpoint 소유 검증·read_at 공개 미노출).
 - [ ] T029 배포 — BE 선행(OCI blue-green, V29 Flyway 자동) → FE 후행(Vercel). 사용자 컨펌 시(external-infra-safety §1). authed dogfooding(로그인 뒤·시각, §19).
 
 ---

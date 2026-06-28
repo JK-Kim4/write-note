@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiError } from "@/lib/api/client";
-import { useCreateShareLink, useMyShareLinks, useSetShareLinkActive } from "@/lib/query/useShares";
+import { useCreateShareLink, useDeleteShareLink, useMyShareLinks, useSetShareLinkActive } from "@/lib/query/useShares";
 import { linksForTarget } from "@/lib/share/shareGrouping";
 import { PublicWorkPicker } from "./PublicWorkPicker";
 import { AuthorCommentInbox } from "./AuthorCommentInbox";
+import { MAX_SHARE_LINKS_PER_TARGET } from "@/lib/api/share";
 import type { ShareLinkResponse, ShareTargetType } from "@/lib/api/share";
 
 /**
@@ -22,6 +23,7 @@ const SHARE_ERROR_MESSAGES: Record<string, string> = {
     SHARE_TARGET_NOT_FOUND: "공유 대상을 찾을 수 없어요.",
     SHARE_FORBIDDEN: "이 대상을 공유할 권한이 없어요.",
     SHARE_LINK_NOT_FOUND: "이미 사라진 링크예요.",
+    SHARE_LINK_LIMIT_EXCEEDED: "공유 링크는 작품·시리즈당 5개까지예요. 기존 링크를 삭제하고 만들어 주세요.",
 };
 
 function messageFor(e: unknown): string {
@@ -49,6 +51,7 @@ export function SharePopover({ targetType, targetId, title, onClose, positionCla
     const linksQuery = useMyShareLinks();
     const createMutation = useCreateShareLink();
     const setActiveMutation = useSetShareLinkActive();
+    const deleteMutation = useDeleteShareLink();
 
     const links = useMemo(
         () => linksForTarget(linksQuery.data ?? [], targetType, targetId),
@@ -57,6 +60,7 @@ export function SharePopover({ targetType, targetId, title, onClose, positionCla
 
     const [error, setError] = useState<string | null>(null);
     const [copiedId, setCopiedId] = useState<number | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [pickerLink, setPickerLink] = useState<ShareLinkResponse | null>(null);
     const [inboxProject, setInboxProject] = useState<{ id: number; title: string } | null>(null);
 
@@ -123,6 +127,14 @@ export function SharePopover({ targetType, targetId, title, onClose, positionCla
             { id: link.id, isActive: !link.isActive },
             { onError: (e: unknown) => setError(messageFor(e)) },
         );
+    };
+
+    const handleDelete = (link: ShareLinkResponse) => {
+        setError(null);
+        deleteMutation.mutate(link.id, {
+            onSuccess: () => setConfirmDeleteId(null),
+            onError: (e: unknown) => setError(messageFor(e)),
+        });
     };
 
     const stop = { onClick: (e: React.MouseEvent) => e.stopPropagation(), onPointerDown: (e: React.PointerEvent) => e.stopPropagation() };
@@ -231,6 +243,39 @@ export function SharePopover({ targetType, targetId, title, onClose, positionCla
                         </div>
                     </div>
                 )}
+
+                {confirmDeleteId === link.id ? (
+                    <div className="mt-2.5 rounded-md border border-red-200 bg-red-50 p-2">
+                        <p className="text-[11px] leading-relaxed text-red-600">삭제하면 받은 피드백도 함께 사라져요. 되돌릴 수 없어요.</p>
+                        <div className="mt-1.5 flex justify-end gap-1.5">
+                            <button
+                                type="button"
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="rounded-md border border-border px-2 py-1 text-[11px] text-muted-strong hover:bg-surface-2"
+                            >
+                                취소
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleDelete(link)}
+                                disabled={deleteMutation.isPending}
+                                className="rounded-md bg-red-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                            >
+                                삭제
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="mt-2 text-right">
+                        <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(link.id)}
+                            className="text-[11px] text-faint hover:text-red-600"
+                        >
+                            삭제
+                        </button>
+                    </div>
+                )}
             </div>
         );
     };
@@ -283,14 +328,20 @@ export function SharePopover({ targetType, targetId, title, onClose, positionCla
                         <button
                             type="button"
                             onClick={handleCreate}
-                            disabled={createMutation.isPending}
+                            disabled={createMutation.isPending || links.length >= MAX_SHARE_LINKS_PER_TARGET}
                             className="mt-1 w-full rounded-lg border border-dashed border-border-strong py-2 text-[12.5px] font-semibold text-accent-text hover:bg-accent-soft disabled:opacity-50"
                         >
                             {createMutation.isPending ? "만드는 중…" : "+ 새 공유 링크 만들기"}
                         </button>
-                        <p className="mt-1.5 px-0.5 text-[11px] leading-relaxed text-faint">
-                            새 링크는 <b>지금 시점</b>의 내용으로 고정돼요. 끄면 그 링크는 더 이상 열람할 수 없어요.
-                        </p>
+                        {links.length >= MAX_SHARE_LINKS_PER_TARGET ? (
+                            <p className="mt-1.5 px-0.5 text-[11px] font-medium text-accent-text">
+                                작품·시리즈당 {MAX_SHARE_LINKS_PER_TARGET}개까지예요. 기존 링크를 삭제하면 더 만들 수 있어요.
+                            </p>
+                        ) : (
+                            <p className="mt-1.5 px-0.5 text-[11px] leading-relaxed text-faint">
+                                새 링크는 <b>지금 시점</b>의 내용으로 고정돼요. 끄면 그 링크는 더 이상 열람할 수 없어요.
+                            </p>
+                        )}
                     </>
                 )}
 
@@ -301,24 +352,21 @@ export function SharePopover({ targetType, targetId, title, onClose, positionCla
                 ) : null}
             </div>
 
-            {modalOpen ? (
-                <div {...stop}>
-                    {pickerLink ? (
-                        <PublicWorkPicker
-                            linkId={pickerLink.id}
-                            categoryId={pickerLink.targetId}
-                            currentProjectIds={pickerLink.snapshots.map((s) => s.projectId)}
-                            onClose={() => setPickerLink(null)}
-                        />
-                    ) : null}
-                    {inboxProject ? (
-                        <AuthorCommentInbox
-                            projectId={inboxProject.id}
-                            projectTitle={inboxProject.title}
-                            onClose={() => setInboxProject(null)}
-                        />
-                    ) : null}
-                </div>
+            {/* 모달은 PublicWorkPicker·AuthorCommentInbox 가 자체적으로 body 포털 렌더(부모 카드/타일 stacking·이벤트 탈출). */}
+            {pickerLink ? (
+                <PublicWorkPicker
+                    linkId={pickerLink.id}
+                    categoryId={pickerLink.targetId}
+                    currentProjectIds={pickerLink.snapshots.map((s) => s.projectId)}
+                    onClose={() => setPickerLink(null)}
+                />
+            ) : null}
+            {inboxProject ? (
+                <AuthorCommentInbox
+                    projectId={inboxProject.id}
+                    projectTitle={inboxProject.title}
+                    onClose={() => setInboxProject(null)}
+                />
             ) : null}
         </>
     );
