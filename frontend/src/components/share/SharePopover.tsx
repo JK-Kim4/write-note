@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ApiError } from "@/lib/api/client";
 import { useCreateShareLink, useDeleteShareLink, useMyShareLinks, useSetShareLinkActive } from "@/lib/query/useShares";
 import { linksForTarget } from "@/lib/share/shareGrouping";
@@ -43,11 +44,11 @@ type Props = {
     /** 표시용 — 작품 제목 또는 시리즈 이름. */
     title: string;
     onClose: () => void;
-    /** 앵커 위치 클래스(카드=우하단 위, 타일=우상단 아래). */
-    positionClassName?: string;
+    /** 팝오버를 띄울 기준 요소(공유 트리거 버튼). 카드/타일 자손 stacking·이벤트 얽힘 탈출 위해 body 포털 + 이 위치 기준 fixed. */
+    anchorRef: React.RefObject<HTMLElement | null>;
 };
 
-export function SharePopover({ targetType, targetId, title, onClose, positionClassName }: Props) {
+export function SharePopover({ targetType, targetId, title, onClose, anchorRef }: Props) {
     const linksQuery = useMyShareLinks();
     const createMutation = useCreateShareLink();
     const setActiveMutation = useSetShareLinkActive();
@@ -66,6 +67,22 @@ export function SharePopover({ targetType, targetId, title, onClose, positionCla
 
     const popRef = useRef<HTMLDivElement>(null);
     const modalOpen = inboxProject != null || pickerLink != null;
+
+    // body 포털 — 카드/타일 자손으로 렌더되면 클릭이 카드 진입·드래그와 얽혀 팝오버가 흔들리고 ✕ 가 빗나가던
+    // 회귀(047) 근본 해결. 트리거(공유 버튼) 위치 기준 fixed 배치(아래 공간 충분하면 아래, 아니면 위).
+    const [coords, setCoords] = useState<React.CSSProperties>({ position: "fixed", visibility: "hidden" });
+    useLayoutEffect(() => {
+        const a = anchorRef.current;
+        if (!a) return;
+        const r = a.getBoundingClientRect();
+        const left = Math.max(8, Math.min(r.right - 336, window.innerWidth - 344));
+        const spaceBelow = window.innerHeight - r.bottom;
+        setCoords(
+            spaceBelow > 460
+                ? { position: "fixed", top: r.bottom + 4, left }
+                : { position: "fixed", bottom: window.innerHeight - r.top + 4, left },
+        );
+    }, [anchorRef]);
 
     // 바깥 클릭/ESC 닫기 — 자식 모달(인박스·공개작품선택)이 열려 있으면 모달부터.
     useEffect(() => {
@@ -280,14 +297,16 @@ export function SharePopover({ targetType, targetId, title, onClose, positionCla
         );
     };
 
-    return (
+    if (typeof document === "undefined") return null;
+    return createPortal(
         <>
             <div
                 ref={popRef}
                 role="dialog"
                 aria-label={`${title} 공유`}
                 {...stop}
-                className={`absolute z-40 max-h-[440px] w-[336px] overflow-auto rounded-2xl border border-border bg-surface p-4 shadow-2xl ${positionClassName ?? "right-3 bottom-12"}`}
+                style={coords}
+                className="z-50 max-h-[440px] w-[336px] overflow-auto rounded-2xl border border-border bg-surface p-4 shadow-2xl"
             >
                 <div className="flex items-start justify-between gap-2">
                     <h3 className="min-w-0 truncate text-sm font-semibold text-ink">
@@ -368,6 +387,7 @@ export function SharePopover({ targetType, targetId, title, onClose, positionCla
                     onClose={() => setInboxProject(null)}
                 />
             ) : null}
-        </>
+        </>,
+        document.body,
     );
 }

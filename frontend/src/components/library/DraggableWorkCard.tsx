@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDraggable } from "@dnd-kit/core";
@@ -37,6 +37,7 @@ type DraggableWorkCardProps = {
 export function DraggableWorkCard({ card, onDelete, onEdit, onArchive, shareLinks, overlay }: DraggableWorkCardProps) {
     const router = useRouter();
     const [shareOpen, setShareOpen] = useState(false);
+    const shareBtnRef = useRef<HTMLButtonElement>(null);
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: workDragId(card.id),
         disabled: overlay,
@@ -100,6 +101,7 @@ export function DraggableWorkCard({ card, onDelete, onEdit, onArchive, shareLink
             {!overlay && (
                 <div className="absolute right-3 bottom-3 z-10 flex gap-1">
                     <button
+                        ref={shareBtnRef}
                         type="button"
                         data-share-trigger
                         aria-label={`${card.title} 공유`}
@@ -162,7 +164,7 @@ export function DraggableWorkCard({ card, onDelete, onEdit, onArchive, shareLink
                     targetId={card.id}
                     title={card.title}
                     onClose={() => setShareOpen(false)}
-                    positionClassName="right-3 bottom-12"
+                    anchorRef={shareBtnRef}
                 />
             )}
         </div>
