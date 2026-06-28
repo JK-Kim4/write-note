@@ -18,6 +18,7 @@ import {
     useMoveProjectCategory,
     useRenameCategory,
 } from "@/lib/query/useCategories";
+import { useMyShareLinks } from "@/lib/query/useShares";
 import { DraggableWorkCard, workDragId } from "./DraggableWorkCard";
 import { CategoryTile, categoryDropId, type CategoryUpdateInput } from "./CategoryTile";
 import { InlineBoardList } from "@/components/board/InlineBoardList";
@@ -134,6 +135,8 @@ type LibraryBoardProps = {
  */
 export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArchiveWork }: LibraryBoardProps) {
     const { data: categories } = useCategories();
+    // 공유 진입점(047) — 작품 카드·시리즈 타일의 "공유 중 · N" 배지·공유 버튼용. 호스트에서 1회 조회(SharePopover 와 같은 쿼리 → dedup).
+    const { data: shareLinks } = useMyShareLinks();
     const createCategory = useCreateCategory();
     const renameCategory = useRenameCategory();
     const deleteCategory = useDeleteCategory();
@@ -275,6 +278,7 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
             onDelete={() => onDeleteWork(card)}
             onEdit={onEditWork}
             onArchive={onArchiveWork}
+            shareLinks={shareLinks ?? []}
         />
     );
 
@@ -294,6 +298,7 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                                     onOpen={navigateFolder}
                                     onUpdate={handleUpdateCat}
                                     onDelete={setDeleteCatTarget}
+                                    shareLinks={shareLinks ?? []}
                                     absorbing={absorbId === categoryDropId(c.id)}
                                 />
                             ))}

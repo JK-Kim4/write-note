@@ -106,6 +106,12 @@ class GlobalExceptionHandler {
             .status(exception.errorCode.httpStatus)
             .body(Result.failure(exception.errorCode, exception.message))
 
+    @ExceptionHandler(ShareException::class)
+    fun handleShare(exception: ShareException): ResponseEntity<Result<Nothing>> =
+        ResponseEntity
+            .status(exception.errorCode.httpStatus)
+            .body(Result.failure(exception.errorCode, exception.message))
+
     @ExceptionHandler(Exception::class)
     fun handleUnexpected(exception: Exception): ResponseEntity<Result<Nothing>> =
         errorResponse(

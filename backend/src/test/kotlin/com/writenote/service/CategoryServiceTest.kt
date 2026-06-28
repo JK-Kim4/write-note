@@ -12,6 +12,7 @@ import com.writenote.repository.CategoryProjectCount
 import com.writenote.repository.CategoryRepository
 import com.writenote.repository.CategoryWordCount
 import com.writenote.repository.ProjectRepository
+import com.writenote.repository.ShareLinkRepository
 import com.writenote.repository.UserRepository
 import io.mockk.every
 import io.mockk.mockk
@@ -31,6 +32,7 @@ class CategoryServiceTest {
     private lateinit var userRepository: UserRepository
     private lateinit var categoryMapper: CategoryMapper
     private lateinit var boardRepository: BoardRepository
+    private lateinit var shareLinkRepository: ShareLinkRepository
     private lateinit var service: CategoryService
 
     @BeforeEach
@@ -40,7 +42,16 @@ class CategoryServiceTest {
         userRepository = mockk()
         categoryMapper = CategoryMapper()
         boardRepository = mockk()
-        service = CategoryService(categoryRepository, projectRepository, userRepository, categoryMapper, boardRepository)
+        shareLinkRepository = mockk()
+        service =
+            CategoryService(
+                categoryRepository,
+                projectRepository,
+                userRepository,
+                categoryMapper,
+                boardRepository,
+                shareLinkRepository,
+            )
     }
 
     private fun count(
@@ -411,11 +422,13 @@ class CategoryServiceTest {
             Category(id = 8L, userId = 1L, name = "삭제대상", createdAt = Instant.now(), updatedAt = Instant.now())
         every { categoryRepository.findByIdAndUserId(eq(8L), eq(1L)) } returns Optional.of(category)
         every { boardRepository.clearOwner(eq("category"), eq(8L)) } returns 1
+        every { shareLinkRepository.deactivateByTarget(eq("series"), eq(8L)) } returns 1
         every { categoryRepository.delete(eq(category)) } returns Unit
 
         service.delete(1L, 8L)
 
         verify(exactly = 1) { boardRepository.clearOwner(eq("category"), eq(8L)) }
+        verify(exactly = 1) { shareLinkRepository.deactivateByTarget(eq("series"), eq(8L)) }
         verify(exactly = 1) { categoryRepository.delete(eq(category)) }
     }
 

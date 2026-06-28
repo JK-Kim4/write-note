@@ -15,6 +15,7 @@ const SECTIONS: Section[] = [
     { href: "/mypage/profile", label: "프로필" },
     { href: "/mypage/settings", label: "환경설정" },
     { href: "/mypage/connections", label: "계정 연결" },
+    // 047 — "공유 관리"는 헤더 최상위 "공유"(/shares)로 승격(마이페이지에서 제거).
     { href: "/contact", label: "문의·도움말", external: true },
 ];
 

@@ -109,7 +109,7 @@ spacing:
   stack-lg: 48px
 ---
 
-> **결정본 (2026-06-08):** 본 시안 = 소설비(Soseolbi) 프로토타입 디자인 결정본. 로고(펜촉+날개)는 `Gemini_Generated_Image_4czvzi4czvzi4czv.png`(원본) → `soseolbi-mark-mask.png`(테마 마스크)·`soseolbi-icon-1024.png`(앱 아이콘)로 추출. 앱 적용: 배경 = 평평한 양피지(나무 책상·텍스처 제거), 보조 액센트 = 잉크블루 단일(골드/오렌지 미도입), 폰트 = 한글 우선(Gowun Batang / Noto Sans KR — 아래 라틴 폰트는 영문 워드마크 참고용). 실시간 토큰 SoT = `desktop/src/styles/app.css`, 비주얼 시스템 서술 = `docs/DESIGN.md`.
+> **결정본 (2026-06-08):** 본 시안 = 소설비(Soseolbi) 프로토타입 디자인 결정본. 로고(펜촉+날개)는 `Gemini_Generated_Image_4czvzi4czvzi4czv.png`(원본) → `soseolbi-mark-mask.png`(테마 마스크)·`soseolbi-icon-1024.png`(앱 아이콘)로 추출. 앱 적용: 배경 = 평평한 양피지(나무 책상·텍스처 제거), 보조 액센트 = 잉크블루 단일(골드/오렌지 미도입), 폰트 = 한글 우선(Gowun Batang / Noto Sans KR — 아래 라틴 폰트는 영문 워드마크 참고용). 실시간 토큰 SoT = `frontend/src/styles/tokens.css`, 비주얼 시스템 서술 = `docs/DESIGN.md`.
 
 ## Brand & Style
 The brand personality is rooted in the concept of a "digital sanctuary" for the creative mind. It evokes the feeling of a quiet, sun-drenched writing studio—minimalist, inspiring, and profoundly warm. The design system prioritizes focus by eliminating peripheral noise, allowing the user's thoughts to take center stage.

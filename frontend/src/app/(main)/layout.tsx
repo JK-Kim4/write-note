@@ -3,7 +3,7 @@
 import "./b.css";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Clock, Home, Megaphone, Network } from "lucide-react";
+import { BookOpen, Clock, Home, Megaphone, Network, Share2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
@@ -23,6 +23,8 @@ const NAV_ITEMS = [
     { href: "/library", label: "작품", exact: false, dataTour: "nav-works", Icon: BookOpen },
     { href: "/boards", label: "보드", exact: false, dataTour: "nav-boards", Icon: Network },
     { href: "/logs", label: "기록", exact: false, Icon: Clock },
+    // 047 — 공유를 마이페이지 하위에서 헤더 최상위로(접근성). 핵심 기능이라 부차적인 공지보다 앞(사용자 승인 트레이드오프).
+    { href: "/shares", label: "공유", exact: false, Icon: Share2 },
     { href: "/notice", label: "공지", exact: false, Icon: Megaphone },
 ] as const;
 

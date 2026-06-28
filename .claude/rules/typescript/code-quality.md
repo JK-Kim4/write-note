@@ -57,6 +57,12 @@
 - Server state = React Query, Local UI = Zustand / `useState` (docs/plan §2-1)
 - `react-hooks/exhaustive-deps` 활성
 - **빈 상태(empty-state) 안내는 화면 컨텍스트 유지 + 오버레이가 default** — 빈 리스트/캔버스/보드의 안내는 그 화면의 컨텍스트(격자·툴바·헤더 등)를 **유지한 채 위에 얹는다**(`pointer-events-none` 컨테이너 + 액션 버튼만 `pointer-events-auto`). "빈 화면 노출 금지" 류 요구를 "화면 전체를 흰 화면으로 가린다"로 해석 금지 — **전체 화면 takeover(별도 페이지처럼 덮기)는 사용자가 명시 요청할 때만**. 회귀: 2026-06-27 044 보드 빈 보드 안내를 1차로 `bg-white inset-0` 전체 takeover 로 만들어 "별도 흰 페이지"가 됨 → 사용자 2회 멈춤("보드 위 안내여야지 새 페이지가 아니다") → 투명 비차단 오버레이로 정정.
+- **화면을 덮는 모달/오버레이는 stacking 부모의 자손이 아닌 portal(`createPortal(document.body)`)로 분리** — 모달/시트/풀스크린 오버레이(`fixed inset-0` 등)를 카드·리스트 아이템·`relative`+`z-*`·`transform` 등 stacking context 를 만드는 부모의 자손으로 렌더하면 (a) 자식 `z-index` 가 부모 내부 stacking 에서만 유효해 **형제 요소가 모달을 덮어 클릭이 그 형제로 샌다**(시각상 모달이 위여도), (b) 부모 `transform` 조상이 `fixed` 를 viewport 기준에서 가둔다. 모달 컴포넌트 **자체에 portal 을 내장**해 여러 호출처를 일괄 안전화한다. 클릭이 의도한 요소가 아닌 형제/뒤 요소로 새는 버그는 `stopPropagation` 가드로 1차 시도하되, **재현이 지속되면 stopPropagation 이전에 stacking context(시각상 위여도 형제에 덮였는지)를 관찰로 확인**한다(systematic-debugging — 2회 헛수정 시 추측 중단·관찰).
+
+#### 회귀 사례 — 2026-06-28 047 공유 모달 stacking 누수
+
+- `SharePopover`(작품 카드·시리즈 타일의 자손)가 `PublicWorkPicker`·`AuthorCommentInbox`(`fixed inset-0` 모달)를 자기 JSX 안에 렌더 → 형제 타일이 팝오버 버튼을 덮어 "새 공유 링크 만들기" 클릭이 뒤 카드로 새고(드릴인), 작품 선택 모달 체크박스 토글이 무력화. closest 가드·z-index 로 **2회 헛수정** 후 영상 프레임 관찰로 형제 stacking 확정 → `createPortal(document.body)` 일원화로 근본 해결.
+- 회피 가능 시점: 카드/타일 위 풀스크린 모달 설계 시 처음부터 portal. 또는 1차 수정 재현 직후 stacking 관찰(2회 헛수정 정지 신호).
 - **커스텀 훅 반환 객체/함수를 `useCallback`/`useEffect` deps 에 직접 넣지 말 것** — 커스텀 훅(예: `useDocumentSession`)이 매 렌더 새 인스턴스를 반환하면, 그것을 deps 로 잡은 `useCallback`/effect 가 매 렌더 새로 생성·실행된다. 반환 함수가 미안정이면 **ref 로 안정화**(`const xRef = useRef(x); useEffect(() => { xRef.current = x; })` 후 `xRef.current` 참조)하거나, 훅이 반환 함수를 `useCallback` 으로 안정화한다. **effect 가 부모 setState 를 호출하는 경우 deps 불안정 = 무한 렌더 → JavaScript heap OOM** 으로 직결된다.
 
 #### 회귀 사례 — 2026-06-14 022 챕터 BChapterEditor 무한루프 OOM

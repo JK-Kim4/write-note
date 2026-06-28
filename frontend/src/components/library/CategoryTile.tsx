@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SeriesPublishFields } from "./SeriesPublishFields";
 import { formatDurationKo } from "@/lib/formatDuration";
+import { SharePopover } from "@/components/share/SharePopover";
+import { activeLinkCount, linksForTarget } from "@/lib/share/shareGrouping";
+import type { ShareLinkResponse } from "@/lib/api/share";
 import type { CategoryResponse, LayoutMode } from "@/types/api";
 import type { PaperSize } from "@/components/editor/pageLayout";
 import type { ProjectCard } from "@/lib/types/domain";
@@ -38,14 +41,17 @@ type CategoryTileProps = {
     onOpen: (id: number) => void;
     onUpdate: (id: number, input: CategoryUpdateInput) => void;
     onDelete: (category: CategoryResponse) => void;
+    /** 내 공유 링크 전체(047) — 이 시리즈의 활성 링크 수·공유 진입점용. 호스트에서 1회 조회해 내림. */
+    shareLinks?: ShareLinkResponse[];
     /** 드롭 직후 흡수 펄스 */
     absorbing?: boolean;
 };
 
-/** 시리즈 타일 — 책등 스택 미리보기 + droppable(작품 드롭으로 분류). 단일 클릭=열기, ⋯/이름 클릭=편집(이름·판형·출판방식)·삭제. */
-export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, absorbing }: CategoryTileProps) {
+/** 시리즈 타일 — 책등 스택 미리보기 + droppable(작품 드롭으로 분류). 단일 클릭=열기, ⋯/이름 클릭=편집(이름·판형·출판방식)·공유·삭제. */
+export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, shareLinks, absorbing }: CategoryTileProps) {
     const { setNodeRef, isOver } = useDroppable({ id: categoryDropId(category.id) });
     const [menuOpen, setMenuOpen] = useState(false);
+    const [shareOpen, setShareOpen] = useState(false);
     const [editing, setEditing] = useState(false);
     const [name, setName] = useState(category.name);
     const [genre, setGenre] = useState(category.genre ?? "");
@@ -54,6 +60,9 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
     const [layoutMode, setLayoutMode] = useState<LayoutMode | null>(category.layoutMode);
     const [targetLength, setTargetLength] = useState<number | null>(category.targetLength);
     const menuRef = useRef<HTMLDivElement>(null);
+
+    const myLinks = shareLinks ? linksForTarget(shareLinks, "series", category.id) : [];
+    const activeCount = activeLinkCount(myLinks);
 
     useEffect(() => {
         if (!menuOpen) return;
@@ -109,7 +118,12 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
             role="button"
             tabIndex={0}
             aria-label={`${category.name} 열기`}
-            onClick={() => { if (!editing) onOpen(category.id); }}
+            onClick={(e) => {
+                if (editing) return;
+                // 타일 위에 뜬 메뉴·공유 팝오버·모달 내부 클릭은 드릴인(열기)으로 보지 않는다(이벤트 누수 가드).
+                if ((e.target as HTMLElement).closest("button, a, input, textarea, select, [role=dialog], [role=menu]")) return;
+                onOpen(category.id);
+            }}
             onKeyDown={(e) => {
                 if ((e.key === "Enter" || e.key === " ") && !editing && e.target === e.currentTarget) {
                     e.preventDefault();
@@ -118,8 +132,8 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
             }}
             style={{ transform: absorbing ? "scale(1.04)" : undefined }}
             className={`relative flex min-h-[150px] cursor-pointer flex-col rounded-2xl border bg-surface p-3.5 transition-[transform,box-shadow,border-color] duration-300 ${
-                isOver ? "border-terracotta-600 ring-2 ring-terracotta-300" : "border-border hover:shadow-md"
-            }`}
+                shareOpen || menuOpen ? "z-30" : ""
+            } ${isOver ? "border-terracotta-600 ring-2 ring-terracotta-300" : "border-border hover:shadow-md"}`}
         >
             {/* 책등 스택 */}
             <div className="flex h-16 items-end gap-1 px-0.5">
@@ -143,6 +157,13 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
                     </>
                 )}
             </div>
+
+            {!editing && activeCount > 0 ? (
+                // flow 밖 absolute — 배지 유무로 제목 위치가 밀리지 않게(레이아웃 일치). ⋯ 버튼 왼쪽.
+                <span className="absolute right-10 top-2.5 z-[5] inline-flex items-center gap-1.5 rounded-full bg-surface/90 px-2 py-0.5 text-[11px] font-semibold text-teal-600 shadow-sm">
+                    <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-teal-600" /> 공유 중 · {activeCount}
+                </span>
+            ) : null}
 
             {/* 이름 + 출판 메타(033 R2) */}
             {editing ? (
@@ -236,7 +257,7 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
                     e.stopPropagation();
                     setMenuOpen((v) => !v);
                 }}
-                className="absolute top-2 right-2 z-10 rounded-md bg-surface/70 px-1.5 py-0.5 text-faint hover:bg-accent-soft hover:text-accent-text"
+                className="absolute top-2 right-2 z-10 rounded-md border border-border bg-surface px-1.5 py-0.5 text-base leading-none text-muted-strong shadow-sm hover:border-accent-soft hover:bg-accent-soft hover:text-accent-text"
             >
                 ⋯
             </button>
@@ -257,6 +278,18 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
                         type="button"
                         role="menuitem"
                         onClick={() => {
+                            setShareOpen(true);
+                            setMenuOpen(false);
+                        }}
+                        className="block w-full rounded-md px-2 py-1.5 text-left text-sm font-semibold text-accent-text hover:bg-accent-soft"
+                    >
+                        공유{myLinks.length > 0 ? ` ${myLinks.length}` : ""}
+                    </button>
+                    <div className="my-1 border-t border-border" />
+                    <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
                             onDelete(category);
                             setMenuOpen(false);
                         }}
@@ -265,6 +298,16 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, abso
                         삭제
                     </button>
                 </div>
+            )}
+
+            {shareOpen && (
+                <SharePopover
+                    targetType="series"
+                    targetId={category.id}
+                    title={category.name}
+                    onClose={() => setShareOpen(false)}
+                    positionClassName="right-2 top-9"
+                />
             )}
         </div>
     );

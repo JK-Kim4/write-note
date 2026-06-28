@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>공유 사용성 개선 — 진입점 + 관리 메뉴 목업 (2026-06-28)</title>
+<style>
+  :root{
+    --canvas:#fffdf8; --surface:#fff; --surface-2:#f9fafb; --surface-3:#f3f4f6;
+    --ink:#2a2620; --ink-2:#374151; --muted-strong:#4b5563; --muted:#6b7280; --faint:#9ca3af;
+    --border:#e5e7eb; --border-strong:#d1d5db;
+    --accent:#a8542e; --accent-soft:#fbf3ee; --accent-text:#8a4325; --accent-ink:#fff; --terra-700:#8a4325;
+    --teal-50:#f0fdfa; --teal-600:#0d9488; --teal-800:#115e59;
+    --red-200:#fecaca; --red-600:#dc2626; --red-50:#fef2f2;
+    --shadow-md:0 4px 6px -1px rgba(0,0,0,.07),0 2px 4px -2px rgba(0,0,0,.05);
+    --shadow-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.08);
+    --shadow-pop:0 12px 28px -6px rgba(0,0,0,.18),0 4px 10px -4px rgba(0,0,0,.12);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--surface-2);color:var(--ink);
+    font-family:"SF Pro Text",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif;
+    font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .note{max-width:1120px;margin:0 auto;padding:16px 20px 0}
+  .note h1{font-size:18px;margin:8px 0 2px}
+  .note p.sub{color:var(--muted);font-size:13px;margin:0 0 14px}
+
+  .tabs{display:flex;gap:6px;margin:0 0 16px;flex-wrap:wrap}
+  .tab{border:1px solid var(--border);background:var(--surface);border-radius:9px;
+    padding:8px 14px;font-size:13px;color:var(--muted-strong);cursor:pointer}
+  .tab[aria-selected="true"]{background:var(--accent-soft);color:var(--accent-text);
+    border-color:var(--accent-soft);font-weight:600}
+  .panel{display:none}
+  .panel.active{display:block}
+
+  .frame{max-width:1120px;margin:0 auto 28px;border:1px solid var(--border);border-radius:14px;
+    overflow:hidden;box-shadow:var(--shadow-md);background:var(--canvas)}
+  header.app{position:sticky;top:0;z-index:5;border-bottom:1px solid var(--border);background:var(--surface)}
+  .hwrap{display:flex;height:56px;align-items:center;gap:22px;padding:0 18px;max-width:1080px;margin:0 auto}
+  .brand{font-weight:700;font-size:15px;color:var(--ink);letter-spacing:-.2px}
+  .nav{display:flex;gap:4px;align-items:center}
+  .chip{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:6px 12px;
+    font-size:13.5px;color:var(--muted-strong);text-decoration:none;white-space:nowrap}
+  .chip:hover{background:#f0fdfa;color:var(--teal-800)}
+  .chip.active{background:var(--accent-soft);color:var(--accent-text);font-weight:600}
+  .chip.new{outline:2px dashed #d9a98e;outline-offset:2px}
+  .spacer{flex:1}
+  .avatar{width:30px;height:30px;border-radius:9999px;background:var(--surface-3);
+    display:inline-flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted)}
+
+  .body{padding:22px 26px 30px;max-width:1080px;margin:0 auto}
+  .libhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .libhead h2{font-size:20px;margin:0}
+  .toolbar{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)}
+  .seg{display:inline-flex;gap:2px;background:var(--surface-2);border-radius:9px;padding:3px}
+  .seg button{border:0;background:transparent;border-radius:7px;padding:5px 10px;font-size:12px;
+    color:var(--muted-strong);cursor:pointer}
+  .seg button[aria-pressed="true"]{background:var(--surface);color:var(--accent-text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:16px}
+
+  .tile{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    padding:18px 16px;min-height:128px;cursor:pointer}
+  .tile h3{margin:2px 0 2px;font-size:16px}
+  .tile .meta{font-size:12px;color:var(--muted)}
+  .tile .bar{margin-top:7px;height:6px;border-radius:9999px;background:var(--surface-3);overflow:hidden}
+  .tile .bar>i{display:block;height:100%;background:#c2613a;border-radius:9999px}
+  .tile .time{margin-top:6px;font-size:11px;color:var(--accent-text)}
+  .tile .sstatus{display:inline-flex;align-items:center;gap:5px;
+    font-size:11px;color:var(--teal-600);font-weight:600;margin-bottom:4px}
+  .tile .sstatus i{width:7px;height:7px;border-radius:9999px;background:var(--teal-600);display:inline-block}
+  .dots{position:absolute;top:8px;right:8px;border:0;background:rgba(255,255,255,.7);border-radius:7px;
+    padding:2px 7px;color:var(--faint);cursor:pointer;font-size:15px;line-height:1}
+  .dots:hover{background:var(--accent-soft);color:var(--accent-text)}
+
+  .card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    padding:18px 18px 16px;min-height:128px;transition:box-shadow .15s}
+  .card:hover{box-shadow:var(--shadow-md)}
+  .card h3{margin:0;font-size:17px;font-weight:700}
+  .card .cmeta{margin-top:10px;display:flex;gap:12px;font-size:12px;color:var(--faint)}
+  .card .actions{position:absolute;right:12px;bottom:12px;display:flex;gap:5px;align-items:center}
+  .statusdot{display:inline-flex;align-items:center;gap:5px;
+    font-size:11px;color:var(--teal-600);font-weight:600;margin-bottom:7px}
+  .statusdot i{width:7px;height:7px;border-radius:9999px;background:var(--teal-600);display:inline-block}
+
+  .btn{border:1px solid var(--border);background:var(--surface);border-radius:7px;padding:4px 9px;
+    font-size:12px;color:var(--muted-strong);cursor:pointer;white-space:nowrap}
+  .btn:hover{background:var(--surface-2)}
+  .btn.danger{border-color:var(--red-200);color:var(--red-600)}
+  .btn.danger:hover{background:var(--red-50)}
+  .btn.share{border-color:var(--accent-soft);background:var(--accent-soft);color:var(--accent-text);font-weight:600}
+  .btn.share:hover{background:#f6e7dd}
+  .btn.icon{padding:4px 8px;font-size:14px;line-height:1}
+
+  .menu{position:absolute;z-index:30;min-width:148px;background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:5px;box-shadow:var(--shadow-lg)}
+  .menu button{display:block;width:100%;text-align:left;border:0;background:transparent;border-radius:7px;
+    padding:7px 9px;font-size:13px;color:var(--ink-2);cursor:pointer}
+  .menu button:hover{background:var(--accent-soft);color:var(--accent-text)}
+  .menu button.share{color:var(--accent-text);font-weight:600}
+  .menu button.danger{color:var(--red-600)}
+  .menu button.danger:hover{background:var(--red-50)}
+  .menu hr{border:0;border-top:1px solid var(--border);margin:4px 2px}
+
+  /* 공유 팝오버 */
+  .pop{position:absolute;z-index:40;width:366px;max-height:440px;overflow:auto;background:var(--surface);
+    border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-pop);padding:16px}
+  .pop h4{margin:0;font-size:14.5px}
+  .pop .desc{font-size:12px;color:var(--muted);margin:8px 0 12px;line-height:1.5}
+  .pop .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .pop .closex{border:0;background:transparent;color:var(--faint);font-size:16px;cursor:pointer;line-height:1}
+  .pop .count{font-size:11px;color:var(--muted);font-weight:500}
+  .pop .primary{width:100%;border:0;background:var(--accent);color:var(--accent-ink);border-radius:9px;
+    padding:10px;font-size:13.5px;font-weight:600;cursor:pointer}
+  .pop .primary:hover{background:var(--terra-700)}
+  .pop .addnew{width:100%;border:1px dashed var(--border-strong);background:var(--surface);color:var(--accent-text);
+    border-radius:9px;padding:9px;font-size:12.5px;font-weight:600;cursor:pointer;margin-top:4px}
+  .pop .addnew:hover{background:var(--accent-soft)}
+  /* 팝오버 안 개별 링크 */
+  .lnk{border:1px solid var(--border);border-radius:11px;padding:11px;margin-bottom:9px;background:var(--surface)}
+  .lnk .lhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .lnk .ldate{font-size:12px;color:var(--ink-2);font-weight:600}
+  .lnk .pill{display:inline-flex;align-items:center;gap:4px;background:var(--teal-50);color:var(--teal-600);
+    border-radius:9999px;padding:2px 8px;font-size:10.5px;font-weight:600}
+  .lnk .pill.off{background:var(--surface-2);color:var(--faint)}
+  .lnk .row{display:flex;gap:6px;align-items:center}
+  .lnk input.url{flex:1;min-width:0;border:1px solid var(--border);background:var(--surface-2);
+    border-radius:7px;padding:6px 8px;font-size:11.5px;color:var(--muted)}
+  .lnk .ghost{border:1px solid var(--border-strong);background:var(--surface);border-radius:7px;
+    padding:6px 9px;font-size:11.5px;color:var(--muted-strong);cursor:pointer;white-space:nowrap}
+  .lnk .ghost:hover{background:var(--surface-2)}
+  .lnk .lfoot{display:flex;align-items:center;justify-content:space-between;margin-top:9px;
+    border-top:1px solid var(--border);padding-top:9px}
+  .lnk .fb-btn{display:inline-flex;align-items:center;gap:6px;border:0;background:var(--accent-soft);
+    color:var(--accent-text);border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:600;cursor:pointer}
+  .lnk .fb-btn:hover{background:#f6e7dd}
+  .lnk .fb-btn.muted{background:var(--surface-2);color:var(--faint)}
+  .badge{background:var(--accent);color:#fff;border-radius:9999px;min-width:17px;height:17px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:10.5px;padding:0 5px}
+  .lnk .off-btn{border:1px solid var(--border);background:var(--surface);border-radius:7px;
+    padding:5px 9px;font-size:11px;color:var(--muted-strong);cursor:pointer}
+  .lnk .off-btn:hover{background:var(--surface-2)}
+  .pop .frozen{font-size:11px;color:var(--faint);line-height:1.5;margin:6px 2px 0}
+
+  /* 관리 화면 */
+  .mgr{max-width:780px;margin:0 auto}
+  .mgr h2{font-size:22px;margin:0}
+  .mgr .hint{font-size:12.5px;color:var(--muted);margin:4px 0 16px}
+  .section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px}
+  .section h3{font-size:14.5px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  .fb-line{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:11px;margin-top:11px}
+  .fb-line:first-of-type{border-top:0;padding-top:0;margin-top:0}
+  .fb-line .who{font-size:13px;color:var(--ink-2)}
+  .fb-line.read{opacity:.5}
+  /* 작품/시리즈별 그룹 */
+  .grp{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}
+  .grp:last-child{margin-bottom:0}
+  .grp .ghead{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+  .grp .gtitle{font-size:14px;font-weight:700}
+  .tag{border-radius:9999px;padding:2px 9px;font-size:11px;background:var(--surface-2);color:var(--muted)}
+  .gcount{font-size:11.5px;color:var(--muted);margin-left:auto}
+  .sublink{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:11px;margin-bottom:8px}
+  .sublink:last-of-type{margin-bottom:10px}
+  .sl-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .sl-date{font-size:12px;color:var(--ink-2);font-weight:600}
+  .pill{display:inline-flex;align-items:center;gap:4px;border-radius:9999px;padding:2px 8px;font-size:10.5px;font-weight:600}
+  .pill.on{background:var(--teal-50);color:var(--teal-600)}
+  .pill.off{background:var(--surface-2);color:var(--faint)}
+  .sl-row{display:flex;gap:6px;align-items:center}
+  .sl-row input{flex:1;min-width:0;border:1px solid var(--border);background:var(--surface);border-radius:7px;padding:6px 8px;font-size:11.5px;color:var(--muted)}
+  .sl-foot{display:flex;align-items:center;justify-content:space-between;margin-top:9px}
+  .addgrp{width:100%;border:1px dashed var(--border-strong);background:var(--surface);color:var(--accent-text);
+    border-radius:9px;padding:8px;font-size:12px;font-weight:600;cursor:pointer}
+  .addgrp:hover{background:var(--accent-soft)}
+
+  .legend{max-width:1120px;margin:0 auto 40px;font-size:12.5px;color:var(--muted);
+    background:#fff8f3;border:1px solid #f0ddcf;border-radius:12px;padding:14px 16px}
+  .legend b{color:var(--accent-text)}
+  .hintbar{max-width:1080px;margin:0 auto 10px;font-size:12.5px;color:var(--muted-strong);
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 13px}
+  .hintbar b{color:var(--accent-text)}
+</style>
+</head>
+<body>
+
+<div class="note">
+  <h1>공유 사용성 개선 — 진입점 + 관리 메뉴 (1:N)</h1>
+  <p class="sub">한 작품/시리즈에 공유 링크 여러 개 · 실제 앱 색·치수 · 클릭해서 만져보세요 · 2026-06-28</p>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-tab="lib">① 작품/시리즈 화면 — 공유 진입점</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="mgr">② 헤더 “공유” 관리 화면</button>
+  </div>
+</div>
+
+<!-- ============ 탭 ① 라이브러리 ============ -->
+<div class="panel active" id="panel-lib">
+  <div class="hintbar">
+    카드의 <b>🔗 공유</b>를 눌러보세요. 링크가 <b>없으면</b> “공유 링크 만들기”, <b>있으면</b> 그 작품의
+    <b>링크 목록</b>(각각 주소·복사·받은 피드백·끄기) + 맨 아래 <b>새 공유 링크 만들기</b>. 한 작품에 여러 링크가 쌓입니다.
+  </div>
+
+  <div class="frame">
+    <header class="app">
+      <div class="hwrap">
+        <span class="brand">소설비</span>
+        <nav class="nav">
+          <a class="chip">홈</a>
+          <a class="chip active">작품</a>
+          <a class="chip">보드</a>
+          <a class="chip">기록</a>
+          <a class="chip">공지</a>
+          <a class="chip new" title="새 최상위 메뉴">🔗 공유</a>
+        </nav>
+        <span class="spacer"></span>
+        <span class="avatar">나</span>
+      </div>
+    </header>
+
+    <div class="body">
+      <div class="libhead">
+        <h2>작품</h2>
+        <div class="toolbar">
+          <span>진입점 형태</span>
+          <div class="seg" id="entryToggle">
+            <button data-mode="button" aria-pressed="true">공유 버튼 노출</button>
+            <button data-mode="menu" aria-pressed="false">⋯ 메뉴로 정리</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid" id="libGrid">
+        <div class="tile" id="seriesTile" data-target="여름의 끝">
+          <button class="dots" id="seriesDots" title="시리즈 메뉴">⋯</button>
+          <span class="sstatus"><i></i> 공유 중 · 1</span>
+          <h3>여름의 끝</h3>
+          <div class="meta">작품 3편</div>
+          <div class="bar"><i style="width:62%"></i></div>
+          <div class="time">⏱ 총 집필 시간 12시간</div>
+        </div>
+
+        <div class="card" data-card="a" data-title="첫 번째 밤">
+          <h3>첫 번째 밤</h3>
+          <div class="cmeta"><span>8,240자</span><span>마지막 저장 2026.06.27</span></div>
+          <div class="actions" data-actions></div>
+        </div>
+
+        <div class="card" data-card="b" data-title="물의 기억">
+          <h3>물의 기억</h3>
+          <div class="cmeta"><span>15,902자</span><span>마지막 저장 2026.06.25</span></div>
+          <div class="actions" data-actions></div>
+        </div>
+
+        <div class="card" data-card="c" data-title="모래의 도시">
+          <h3>모래의 도시</h3>
+          <div class="cmeta"><span>3,110자</span><span>마지막 저장 2026.06.20</span></div>
+          <div class="actions" data-actions></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <b>이 화면에서 정할 것</b> — (1) <b>진입점 형태</b>: 작품 카드에 공유 버튼 직접 노출 vs ⋯ 메뉴로 정리.
+    (2) <b>1:N 진입 흐름</b>: 링크 0개면 “공유 링크 만들기”, 1개+면 그 작품의 링크들을 목록으로 + “새 공유 링크 만들기”.
+    공유 링크가 1개+인 작품/시리즈는 좌상단 <span style="color:var(--teal-600);font-weight:600">● 공유 중 · N</span> 표시.
+    각 링크는 만든 시점(예: “2026.06.25 공유”)으로 구분합니다.
+  </div>
+</div>
+
+<!-- ============ 탭 ② 관리 화면 ============ -->
+<div class="panel" id="panel-mgr">
+  <div class="hintbar">
+    헤더 <b>🔗 공유</b> 전용 관리 화면. 생성 폼은 빠지고(작품/시리즈 화면이 담당) —
+    <b>받은 피드백</b>을 맨 위로, 그 아래 <b>작품/시리즈별로 묶은 링크 목록</b>(1:N).
+  </div>
+
+  <div class="frame">
+    <header class="app">
+      <div class="hwrap">
+        <span class="brand">소설비</span>
+        <nav class="nav">
+          <a class="chip">홈</a><a class="chip">작품</a><a class="chip">보드</a>
+          <a class="chip">기록</a><a class="chip">공지</a>
+          <a class="chip active new">🔗 공유</a>
+        </nav>
+        <span class="spacer"></span>
+        <span class="avatar">나</span>
+      </div>
+    </header>
+
+    <div class="body">
+      <div class="mgr">
+        <h2>공유</h2>
+        <p class="hint">작품·시리즈 화면에서 만든 공유 링크와, 독자가 남긴 피드백을 한곳에서 봅니다.</p>
+
+        <div class="section">
+          <h3>받은 피드백 <span class="badge" id="fbBadge">4</span></h3>
+          <div id="fbList">
+            <div class="fb-line" data-new="3">
+              <span class="who"><b>물의 기억</b> · 2026.06.25 링크 · 3개의 새 피드백</span>
+              <button class="btn share" data-fbsee>피드백 보기</button>
+            </div>
+            <div class="fb-line" data-new="1">
+              <span class="who"><b>여름의 끝</b> 시리즈 · 1개의 새 피드백</span>
+              <button class="btn share" data-fbsee>피드백 보기</button>
+            </div>
+          </div>
+          <p id="fbEmpty" style="display:none;margin:8px 2px 0;font-size:12.5px;color:var(--muted)">확인할 새 피드백이 없어요. 전체 피드백은 아래 링크에서 다시 볼 수 있어요.</p>
+        </div>
+
+        <div class="section">
+          <h3>내 공유 링크</h3>
+
+          <!-- 그룹: 물의 기억(작품) — 링크 2개 -->
+          <div class="grp">
+            <div class="ghead">
+              <span class="gtitle">물의 기억</span>
+              <span class="tag">작품</span>
+              <span class="gcount">공유 링크 2</span>
+            </div>
+            <div class="sublink">
+              <div class="sl-top"><span class="sl-date">2026.06.25 공유</span><span class="pill on">● 공유 중</span></div>
+              <div class="sl-row"><input readonly value="https://soseolbi.com/shared/8kQ2…"><button class="btn">복사</button></div>
+              <div class="sl-foot"><button class="btn share">받은 피드백 3</button><button class="btn">끄기</button></div>
+            </div>
+            <div class="sublink">
+              <div class="sl-top"><span class="sl-date">2026.06.20 공유</span><span class="pill on">● 공유 중</span></div>
+              <div class="sl-row"><input readonly value="https://soseolbi.com/shared/9wRt…"><button class="btn">복사</button></div>
+              <div class="sl-foot"><button class="btn" style="color:var(--faint)">받은 피드백 0</button><button class="btn">끄기</button></div>
+            </div>
+            <button class="addgrp">+ 이 작품 새 공유 링크</button>
+          </div>
+
+          <!-- 그룹: 여름의 끝(시리즈) — 링크 1개 -->
+          <div class="grp">
+            <div class="ghead">
+              <span class="gtitle">여름의 끝</span>
+              <span class="tag">시리즈</span>
+              <span class="gcount">공유 링크 1 · 공개 작품 2편</span>
+            </div>
+            <div class="sublink">
+              <div class="sl-top"><span class="sl-date">2026.06.22 공유</span><span class="pill on">● 공유 중</span></div>
+              <div class="sl-row"><input readonly value="https://soseolbi.com/shared/v7Lm…"><button class="btn">복사</button></div>
+              <div class="sl-foot">
+                <div style="display:flex;gap:6px"><button class="btn">공개 작품 선택</button><button class="btn share">받은 피드백 1</button></div>
+                <button class="btn">끄기</button>
+              </div>
+            </div>
+            <button class="addgrp">+ 이 시리즈 새 공유 링크</button>
+          </div>
+
+          <!-- 그룹: 첫 번째 밤(작품) — 꺼진 링크 -->
+          <div class="grp">
+            <div class="ghead">
+              <span class="gtitle">첫 번째 밤</span>
+              <span class="tag">작품</span>
+              <span class="gcount">공유 링크 1</span>
+            </div>
+            <div class="sublink">
+              <div class="sl-top"><span class="sl-date">2026.06.10 공유</span><span class="pill off">꺼짐</span></div>
+              <div class="sl-row"><input readonly value="https://soseolbi.com/shared/3pXc…"><button class="btn">복사</button></div>
+              <div class="sl-foot"><button class="btn" style="color:var(--faint)">받은 피드백 0</button><button class="btn">다시 켜기</button></div>
+            </div>
+            <button class="addgrp">+ 이 작품 새 공유 링크</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <b>이 화면에서 정할 것</b> — <b>받은 피드백을 맨 위</b>(서비스 특징 전면), 그 아래 <b>작품/시리즈별 그룹</b> 안에 1:N 링크.
+    각 그룹에 “이 작품 새 공유 링크”로 같은 자리에서 링크를 더 만듭니다. 생성 폼 제거(진입은 작품/시리즈 화면).
+  </div>
+</div>
+
+<script>
+  // ── 1:N mock 상태 ──
+  // 각 작품/시리즈의 공유 링크 배열. date=만든 시점, fb=받은 피드백 수.
+  var cardLinks = {
+    a: [],
+    b: [
+      { date:'2026.06.25', short:'8kQ2…', fb:3 },
+      { date:'2026.06.20', short:'9wRt…', fb:0 }
+    ],
+    c: []
+  };
+  var seriesLinks = [ { date:'2026.06.22', short:'v7Lm…', fb:1, works:2 } ];
+
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      document.querySelectorAll('.tab').forEach(function(x){x.setAttribute('aria-selected', x===t ? 'true':'false');});
+      document.getElementById('panel-lib').classList.toggle('active', t.dataset.tab==='lib');
+      document.getElementById('panel-mgr').classList.toggle('active', t.dataset.tab==='mgr');
+      closeAllPops();
+    });
+  });
+
+  var entryMode = 'button';
+
+  function renderStatus(card){
+    var id=card.dataset.card; var n=cardLinks[id].length;
+    var ex=card.querySelector('.statusdot'); if(ex) ex.remove();
+    if(n>0){
+      var s=document.createElement('span'); s.className='statusdot';
+      s.innerHTML='<i></i> 공유 중 · '+n;
+      card.insertBefore(s, card.firstChild);
+    }
+  }
+  function actionsHtml(card){
+    var n=cardLinks[card.dataset.card].length;
+    var label = n>0 ? '🔗 공유 '+n : '🔗 공유';
+    var shareBtn='<button class="btn share" data-share>'+label+'</button>';
+    if(entryMode==='button'){
+      return shareBtn+'<button class="btn">편집</button><button class="btn">보관</button><button class="btn danger">삭제</button>';
+    }
+    return shareBtn+'<button class="btn icon" data-cardmenu>⋯</button>';
+  }
+  function renderCard(card){
+    card.querySelector('[data-actions]').innerHTML=actionsHtml(card);
+    renderStatus(card);
+  }
+  function renderAll(){ document.querySelectorAll('.card').forEach(renderCard); }
+  renderAll();
+
+  document.querySelectorAll('#entryToggle button').forEach(function(b){
+    b.addEventListener('click', function(){
+      entryMode=b.dataset.mode;
+      document.querySelectorAll('#entryToggle button').forEach(function(x){x.setAttribute('aria-pressed', x===b?'true':'false');});
+      closeAllPops(); renderAll();
+    });
+  });
+
+  function closeAllPops(){ document.querySelectorAll('.pop,.menu').forEach(function(n){n.remove();}); }
+
+  function linkItemHtml(title, lk){
+    var fbBtn = lk.fb>0
+      ? '<button class="fb-btn" data-fb>받은 피드백 <span class="badge">'+lk.fb+'</span></button>'
+      : '<button class="fb-btn muted" data-fb>받은 피드백 0</button>';
+    return '<div class="lnk">'+
+      '<div class="lhead"><span class="ldate">'+lk.date+' 공유</span><span class="pill">● 공유 중</span></div>'+
+      '<div class="row"><input class="url" readonly value="https://soseolbi.com/shared/'+lk.short+'"><button class="ghost" data-copy>복사</button></div>'+
+      '<div class="lfoot">'+fbBtn+'<button class="off-btn" data-off>끄기</button></div>'+
+      '</div>';
+  }
+
+  function openSharePop(card){
+    closeAllPops();
+    var id=card.dataset.card; var title=card.dataset.title; var links=cardLinks[id];
+    var pop=document.createElement('div'); pop.className='pop';
+    if(links.length===0){
+      pop.innerHTML=
+        '<div class="topbar"><h4>이 작품 공유하기</h4><button class="closex" data-close>✕</button></div>'+
+        '<p class="desc">공유 링크를 만들면 링크를 받은 누구나 읽을 수 있어요. 공유한 <b>그 시점의 내용으로 고정</b>되고, 이후 수정은 반영되지 않아요.</p>'+
+        '<button class="primary" data-add>🔗 공유 링크 만들기</button>';
+    } else {
+      var list=links.map(function(lk){return linkItemHtml(title, lk);}).join('');
+      pop.innerHTML=
+        '<div class="topbar"><h4>'+title+'</h4><button class="closex" data-close>✕</button></div>'+
+        '<div class="count" style="margin-bottom:10px">공유 링크 '+links.length+'개 · 각 링크는 만든 시점 내용으로 고정</div>'+
+        list+
+        '<button class="addnew" data-add>+ 새 공유 링크 만들기</button>'+
+        '<p class="frozen">새 링크는 <b>지금 시점</b>의 내용으로 고정돼요. 끄면 그 링크는 더 이상 열람할 수 없어요.</p>';
+    }
+    card.appendChild(pop);
+    pop.style.right='12px'; pop.style.bottom='52px';
+    wirePop(pop, card);
+  }
+
+  function wirePop(pop, card){
+    var id=card.dataset.card;
+    var close=pop.querySelector('[data-close]'); if(close) close.addEventListener('click', closeAllPops);
+    var add=pop.querySelector('[data-add]');
+    if(add) add.addEventListener('click', function(){
+      var today=new Date().toISOString().slice(0,10).replace(/-/g,'.');
+      cardLinks[id].unshift({ date:today, short:Math.random().toString(36).slice(2,6), fb:0 });
+      renderCard(card); openSharePop(card);
+    });
+    pop.querySelectorAll('[data-copy]').forEach(function(b){
+      b.addEventListener('click', function(){ b.textContent='복사됨'; setTimeout(function(){b.textContent='복사';},1300); });
+    });
+    pop.querySelectorAll('[data-off]').forEach(function(b,i){
+      b.addEventListener('click', function(){ cardLinks[id].splice(i,1); renderCard(card); openSharePop(card); });
+    });
+  }
+
+  function openCardMenu(card){
+    closeAllPops();
+    var m=document.createElement('div'); m.className='menu';
+    m.innerHTML='<button>편집</button><button>보관</button><hr><button class="danger">삭제</button>';
+    card.appendChild(m); m.style.right='12px'; m.style.bottom='48px';
+  }
+
+  document.getElementById('seriesDots').addEventListener('click', function(e){
+    e.stopPropagation(); closeAllPops();
+    var tile=document.getElementById('seriesTile');
+    var m=document.createElement('div'); m.className='menu';
+    m.innerHTML='<button>편집</button><button class="share" data-seriesshare>🔗 공유</button><hr><button class="danger">삭제</button>';
+    tile.appendChild(m); m.style.right='8px'; m.style.top='36px';
+    m.querySelector('[data-seriesshare]').addEventListener('click', function(ev){ ev.stopPropagation(); openSeriesPop(tile); });
+  });
+
+  function openSeriesPop(tile){
+    closeAllPops();
+    var pop=document.createElement('div'); pop.className='pop';
+    if(seriesLinks.length===0){
+      pop.innerHTML='<div class="topbar"><h4>시리즈 공유하기</h4><button class="closex" data-close>✕</button></div>'+
+        '<p class="desc">시리즈 링크를 만들고 <b>공개할 작품을 직접 골라</b> 내보냅니다.</p>'+
+        '<button class="primary" data-sadd>🔗 공유 링크 만들고 공개 작품 고르기</button>';
+    } else {
+      var list=seriesLinks.map(function(lk){
+        var fbBtn = lk.fb>0 ? '<button class="fb-btn" data-fb>받은 피드백 <span class="badge">'+lk.fb+'</span></button>' : '<button class="fb-btn muted">받은 피드백 0</button>';
+        return '<div class="lnk"><div class="lhead"><span class="ldate">'+lk.date+' 공유</span><span class="pill">● 공유 중</span></div>'+
+          '<div class="row"><input class="url" readonly value="https://soseolbi.com/shared/'+lk.short+'"><button class="ghost" data-copy>복사</button></div>'+
+          '<div class="lfoot" style="gap:6px"><button class="ghost">공개 작품 '+lk.works+'편</button>'+fbBtn+'<button class="off-btn" data-off>끄기</button></div></div>';
+      }).join('');
+      pop.innerHTML='<div class="topbar"><h4>여름의 끝</h4><button class="closex" data-close>✕</button></div>'+
+        '<div class="count" style="margin-bottom:10px">시리즈 공유 링크 '+seriesLinks.length+'개</div>'+list+
+        '<button class="addnew" data-sadd>+ 새 공유 링크 만들기</button>';
+    }
+    tile.appendChild(pop); pop.style.right='8px'; pop.style.top='36px';
+    var c=pop.querySelector('[data-close]'); if(c) c.addEventListener('click', closeAllPops);
+    var sa=pop.querySelector('[data-sadd]');
+    if(sa) sa.addEventListener('click', function(){
+      var today=new Date().toISOString().slice(0,10).replace(/-/g,'.');
+      seriesLinks.unshift({date:today, short:Math.random().toString(36).slice(2,6), fb:0, works:0});
+      openSeriesPop(tile);
+    });
+    pop.querySelectorAll('[data-copy]').forEach(function(b){b.addEventListener('click', function(){b.textContent='복사됨';setTimeout(function(){b.textContent='복사';},1300);});});
+    pop.querySelectorAll('[data-off]').forEach(function(b,i){b.addEventListener('click', function(){seriesLinks.splice(i,1);openSeriesPop(tile);});});
+  }
+
+  document.getElementById('libGrid').addEventListener('click', function(e){
+    var s=e.target.closest('[data-share]'); var m=e.target.closest('[data-cardmenu]');
+    if(s){ e.stopPropagation(); openSharePop(s.closest('.card')); return; }
+    if(m){ e.stopPropagation(); openCardMenu(m.closest('.card')); return; }
+  });
+  document.addEventListener('click', function(e){
+    if(e.target.closest('.pop')||e.target.closest('.menu')||e.target.closest('[data-share]')||e.target.closest('[data-cardmenu]')||e.target.closest('#seriesDots')) return;
+    closeAllPops();
+  });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAllPops(); });
+
+  // ② 받은 피드백 — "열면 그 묶음 전체 읽음": 보면 새 피드백에서 빠지고 배지 감소
+  (function(){
+    var badge=document.getElementById('fbBadge');
+    if(!badge) return;
+    function recount(){
+      var total=0;
+      document.querySelectorAll('#fbList .fb-line:not(.read)').forEach(function(l){ total+=parseInt(l.dataset.new||'0',10); });
+      badge.textContent=total;
+      var anyUnread=document.querySelector('#fbList .fb-line:not(.read)');
+      document.getElementById('fbEmpty').style.display = anyUnread ? 'none' : 'block';
+    }
+    document.querySelectorAll('#fbList [data-fbsee]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var line=b.closest('.fb-line'); line.classList.add('read');
+        var who=line.querySelector('.who');
+        who.innerHTML=who.innerHTML.replace(/· \d+개의 새 피드백/, '· 확인함');
+        b.textContent='피드백 다시 보기'; b.classList.remove('share');
+        recount();
+      });
+    });
+  })();
+</script>
+</body>
+</html>

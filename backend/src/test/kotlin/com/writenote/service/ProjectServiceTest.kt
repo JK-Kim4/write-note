@@ -14,6 +14,7 @@ import com.writenote.repository.BoardRepository
 import com.writenote.repository.CategoryRepository
 import com.writenote.repository.DocumentRepository
 import com.writenote.repository.ProjectRepository
+import com.writenote.repository.ShareLinkRepository
 import com.writenote.repository.UserRepository
 import com.writenote.repository.WorkSessionRepository
 import io.mockk.every
@@ -37,6 +38,7 @@ class ProjectServiceTest {
     private lateinit var categoryRepository: CategoryRepository
     private lateinit var bodyCipherService: BodyCipherService
     private lateinit var boardRepository: BoardRepository
+    private lateinit var shareLinkRepository: ShareLinkRepository
     private lateinit var service: ProjectService
 
     @BeforeEach
@@ -49,6 +51,7 @@ class ProjectServiceTest {
         categoryRepository = mockk()
         bodyCipherService = mockk()
         boardRepository = mockk()
+        shareLinkRepository = mockk()
         // 기본 stub: decryptToPlain은 저장된 body 그대로 반환(복호 우회)
         every { bodyCipherService.decryptToPlain(any(), any()) } answers { secondArg() }
         service =
@@ -61,6 +64,7 @@ class ProjectServiceTest {
                 categoryRepository,
                 bodyCipherService,
                 boardRepository,
+                shareLinkRepository,
             )
     }
 
@@ -248,12 +252,15 @@ class ProjectServiceTest {
             )
         every { projectRepository.findByIdAndUserId(eq(13L), eq(4L)) } returns Optional.of(project)
         every { boardRepository.clearOwner(eq("project"), eq(13L)) } returns 1
+        every { shareLinkRepository.deactivateByTarget(eq("work"), eq(13L)) } returns 1
         every { projectRepository.delete(eq(project)) } returns Unit
 
         service.deleteProject(4L, 13L)
 
         // 작품 삭제 전 그 작품 소속 보드를 아이디어로 강등(보드 보존) — 다형이라 앱 처리
         verify(exactly = 1) { boardRepository.clearOwner(eq("project"), eq(13L)) }
+        // 그 작품의 공유 링크는 비활성(스냅샷·댓글 보존, 046 R-5)
+        verify(exactly = 1) { shareLinkRepository.deactivateByTarget(eq("work"), eq(13L)) }
         verify(exactly = 1) { projectRepository.delete(eq(project)) }
     }
 

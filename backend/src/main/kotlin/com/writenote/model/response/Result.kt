@@ -2,6 +2,7 @@ package com.writenote.model.response
 
 import com.writenote.enums.AuthErrorCode
 import com.writenote.error.ErrorCode
+import com.writenote.error.ShareErrorCode
 
 data class Result<T>(
     val success: Boolean,
@@ -28,6 +29,16 @@ data class Result<T>(
 
         fun failure(
             code: AuthErrorCode,
+            message: String,
+        ): Result<Nothing> =
+            Result(
+                success = false,
+                data = null,
+                error = ErrorInfo(code = code.name, message = message),
+            )
+
+        fun failure(
+            code: ShareErrorCode,
             message: String,
         ): Result<Nothing> =
             Result(
