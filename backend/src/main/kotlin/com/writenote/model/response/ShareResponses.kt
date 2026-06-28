@@ -4,10 +4,14 @@ import java.time.Instant
 
 // 공유하기(046) 응답 DTO 모음.
 
-/** 공유 작품 메타(목록용 — 본문 미포함). work 링크=단일, series 링크=공개 작품 목록. */
+/**
+ * 공유 작품 메타(목록용 — 본문 미포함). work 링크=단일, series 링크=공개 작품 목록.
+ * [unreadCommentCount] = 그 작품(projectId)의 안 읽은 피드백 수(047). 작가 listMine 에서만 실제 값(공개 열람은 0).
+ */
 data class SharedWorkMeta(
     val projectId: Long,
     val title: String,
+    val unreadCommentCount: Int = 0,
 )
 
 /**
@@ -71,9 +75,15 @@ data class AuthorCommentResponse(
     val content: String,
     val authorNickname: String,
     val createdAt: Instant,
+    val readAt: Instant? = null,
 )
 
 /** 댓글 삭제 결과(046 R2). */
 data class DeleteCommentResponse(
     val deleted: Boolean,
+)
+
+/** 작품 단위 받은 피드백 읽음 처리 결과(047). [markedRead] = 이번에 안 읽음→읽음으로 바뀐 댓글 수. */
+data class MarkCommentsReadResponse(
+    val markedRead: Int,
 )

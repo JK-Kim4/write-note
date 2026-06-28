@@ -195,4 +195,56 @@ class ShareCommentServiceTest {
             .extracting("errorCode")
             .isEqualTo(ShareErrorCode.COMMENT_FORBIDDEN)
     }
+
+    @Test
+    @DisplayName("받은 피드백 읽음 처리 — 그 작품 안 읽은 댓글 전체 read_at 채우고 안 읽은 수 0, 재처리는 0건")
+    fun `mark read fills unread comments for project`() {
+        val (owner, token, projectId) = sharedWork()
+        val memberA = createUser()
+        val memberB = createUser()
+        shareCommentService.create(memberA.id!!, token, projectId, CreateCommentRequest(0, 0, 5, "A의 댓글"))
+        shareCommentService.create(memberB.id!!, token, projectId, CreateCommentRequest(0, 5, 5, "B의 댓글"))
+
+        // 읽기 전: listMine 안 읽은 수 = 2, 인박스 readAt 모두 null
+        val before = shareService.listMine(owner).first { it.token == token }
+        assertThat(before.snapshots.first { it.projectId == projectId }.unreadCommentCount).isEqualTo(2)
+        assertThat(shareCommentService.listForAuthor(owner, projectId).map { it.readAt }).containsOnlyNulls()
+
+        // 읽음 처리: 2건 갱신
+        assertThat(shareCommentService.markReadForProject(owner, projectId).markedRead).isEqualTo(2)
+
+        // 읽은 후: 안 읽은 수 = 0, 인박스 readAt 모두 non-null
+        val after = shareService.listMine(owner).first { it.token == token }
+        assertThat(after.snapshots.first { it.projectId == projectId }.unreadCommentCount).isEqualTo(0)
+        assertThat(shareCommentService.listForAuthor(owner, projectId).map { it.readAt }).doesNotContainNull()
+
+        // 다시 읽음 처리: 새로 바뀐 것 없음
+        assertThat(shareCommentService.markReadForProject(owner, projectId).markedRead).isEqualTo(0)
+    }
+
+    @Test
+    @DisplayName("타인 작품 읽음 처리는 COMMENT_FORBIDDEN")
+    fun `mark read enforces ownership`() {
+        val (_, _, projectId) = sharedWork()
+        val stranger = createUser()
+        assertThatThrownBy { shareCommentService.markReadForProject(stranger.id!!, projectId) }
+            .isInstanceOf(ShareException::class.java)
+            .extracting("errorCode")
+            .isEqualTo(ShareErrorCode.COMMENT_FORBIDDEN)
+    }
+
+    @Test
+    @DisplayName("읽은 뒤 새 댓글이 오면 다시 안 읽은 수에 집계된다")
+    fun `new comment after read counts as unread again`() {
+        val (owner, token, projectId) = sharedWork()
+        val member = createUser()
+        shareCommentService.create(member.id!!, token, projectId, CreateCommentRequest(0, 0, 5, "첫 댓글"))
+        shareCommentService.markReadForProject(owner, projectId)
+
+        // 읽은 후 새 댓글 도착
+        shareCommentService.create(member.id!!, token, projectId, CreateCommentRequest(0, 5, 5, "둘째 댓글"))
+
+        val link = shareService.listMine(owner).first { it.token == token }
+        assertThat(link.snapshots.first { it.projectId == projectId }.unreadCommentCount).isEqualTo(1)
+    }
 }

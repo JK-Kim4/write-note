@@ -8,6 +8,7 @@ import com.writenote.error.ShareException
 import com.writenote.model.request.CreateCommentRequest
 import com.writenote.model.response.AuthorCommentResponse
 import com.writenote.model.response.CommentResponse
+import com.writenote.model.response.MarkCommentsReadResponse
 import com.writenote.repository.ProjectRepository
 import com.writenote.repository.ShareCommentRepository
 import com.writenote.repository.ShareLinkRepository
@@ -15,6 +16,7 @@ import com.writenote.repository.ShareSnapshotRepository
 import com.writenote.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 /**
  * 공유 댓글(046 R2) 유스케이스 — 회원 텍스트 구간 댓글(작가 전용 비공개) + optional auth 회원 식별 + 작가 인박스.
@@ -127,8 +129,25 @@ class ShareCommentService(
                 content = comment.content,
                 authorNickname = nicknamesById[comment.authorId] ?: "",
                 createdAt = requireNotNull(comment.createdAt),
+                readAt = comment.readAt,
             )
         }
+    }
+
+    /**
+     * 작품 단위 받은 피드백 읽음 처리(047) — 작가가 그 작품 '피드백 보기'를 열 때 호출.
+     * 소유 검증(타 작품/미소유 → COMMENT_FORBIDDEN) 후 그 작품의 안 읽은 댓글 전체 read_at 채움(bulk).
+     */
+    @Transactional(rollbackFor = [Exception::class])
+    fun markReadForProject(
+        userId: Long,
+        projectId: Long,
+    ): MarkCommentsReadResponse {
+        projectRepository
+            .findByIdAndUserId(projectId, userId)
+            .orElseThrow { ShareException(ShareErrorCode.COMMENT_FORBIDDEN) }
+        val marked = shareCommentRepository.markReadByProjectId(projectId, Instant.now())
+        return MarkCommentsReadResponse(markedRead = marked)
     }
 
     // ── 내부 헬퍼 ──────────────────────────────────────────────────────────────

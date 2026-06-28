@@ -12,7 +12,7 @@ TDD(룰 §5): BE 집계·bulk read·소유검증 + FE 순수 헬퍼(shareGroupin
 
 ## Phase 1: Setup
 
-- [ ] T001 브랜치 `047-share-ux` 베이스 정합 확인 — `git log --oneline HEAD..origin/develop` 로 누락 커밋(보안·공개경로) 점검(룰 §18). 없으면 진행.
+- [x] T001 브랜치 `047-share-ux` 베이스 정합 확인 — `git log --oneline HEAD..origin/develop` 로 누락 커밋(보안·공개경로) 점검(룰 §18). 없으면 진행.
 
 ---
 
@@ -20,16 +20,16 @@ TDD(룰 §5): BE 집계·bulk read·소유검증 + FE 순수 헬퍼(shareGroupin
 
 읽음 컬럼·집계·읽음 endpoint. US1(공유중·unread 표시)·US2(받은 피드백)·US3(읽음) 모두 이 BE additive 위에서 동작.
 
-- [ ] T002 V29 마이그레이션 작성 `backend/src/main/resources/db/migration/V29__add_share_comment_read_at.sql` — `read_at TIMESTAMPTZ NULL` 추가 + 부분 인덱스 `idx_share_comment_unread (project_id) WHERE read_at IS NULL`(data-model.md 기준). 로컬 dev DB 미적용(Testcontainers IT 한정).
-- [ ] T003 [P] `ShareComment` 엔티티에 `readAt: Instant?`(`@Column(name="read_at")`) 추가 `backend/src/main/kotlin/com/writenote/entity/ShareComment.kt`. `@PrePersist` 무변경.
-- [ ] T004 [P] DTO additive `backend/src/main/kotlin/com/writenote/model/response/ShareResponses.kt` — `SharedWorkMeta.unreadCommentCount: Int = 0`, `AuthorCommentResponse.readAt: Instant? = null`, 신규 `MarkCommentsReadResponse(markedRead: Int)`.
-- [ ] T005 `ShareCommentRepository` 확장 `backend/src/main/kotlin/com/writenote/repository/ShareCommentRepository.kt` — `UnreadCountRow` projection + `countUnreadByProjectIds(projectIds)` group-by + `@Modifying markReadByProjectId(projectId, now): Int`(data-model.md 쿼리).
-- [ ] T006 [US3] BE 테스트(먼저) `backend/src/test/.../ShareCommentServiceTest`(또는 IT) — `markReadForProject` 안읽은 행만 read_at 채움·이미 읽은 건 무변경·반환 수 정확 / 타 작품 → `COMMENT_FORBIDDEN` / `countUnreadByProjectIds` 작품별 정확·읽음 후 0. RED 확인.
-- [ ] T007 [US3] `ShareCommentService.markReadForProject(userId, projectId)` 구현 `backend/src/main/kotlin/com/writenote/service/ShareCommentService.kt` — `projectRepository.findByIdAndUserId` 소유 검증(실패 `COMMENT_FORBIDDEN`) → `markReadByProjectId(projectId, Instant.now())` → `MarkCommentsReadResponse(markedRead)`. `listForAuthor` 매핑에 `readAt = comment.readAt` 동봉. T006 GREEN.
-- [ ] T008 BE 테스트(먼저) `listMine` unread 집계 — 같은 작품 여러 링크면 각 SharedWorkMeta 동일 값·댓글 0이면 0. RED 확인.
-- [ ] T009 `ShareService.listMine` 에 unread 집계 주입 `backend/src/main/kotlin/com/writenote/service/ShareService.kt` — 스냅샷 projectId 들 모아 `countUnreadByProjectIds` 1쿼리 → `SharedWorkMeta.unreadCommentCount` 채움(N+1 회피). T008 GREEN.
-- [ ] T010 [US3] `ShareCommentController` 에 `POST /api/projects/{projectId}/comments/read` 추가 `backend/src/main/kotlin/com/writenote/controller/ShareCommentController.kt` — `@AuthenticationPrincipal` 작가, `Result.success(markReadForProject(...))`. (contracts §1)
-- [ ] T011 046 공유/댓글 기존 IT 무회귀 확인 + BE 게이트 — `cd backend && ./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` GREEN.
+- [x] T002 V29 마이그레이션 작성 `backend/src/main/resources/db/migration/V29__add_share_comment_read_at.sql` — `read_at TIMESTAMPTZ NULL` 추가 + 부분 인덱스 `idx_share_comment_unread (project_id) WHERE read_at IS NULL`(data-model.md 기준). 로컬 dev DB 미적용(Testcontainers IT 한정).
+- [x] T003 [P] `ShareComment` 엔티티에 `readAt: Instant?`(`@Column(name="read_at")`) 추가 `backend/src/main/kotlin/com/writenote/entity/ShareComment.kt`. `@PrePersist` 무변경.
+- [x] T004 [P] DTO additive `backend/src/main/kotlin/com/writenote/model/response/ShareResponses.kt` — `SharedWorkMeta.unreadCommentCount: Int = 0`, `AuthorCommentResponse.readAt: Instant? = null`, 신규 `MarkCommentsReadResponse(markedRead: Int)`.
+- [x] T005 `ShareCommentRepository` 확장 `backend/src/main/kotlin/com/writenote/repository/ShareCommentRepository.kt` — `UnreadCountRow` projection + `countUnreadByProjectIds(projectIds)` group-by + `@Modifying markReadByProjectId(projectId, now): Int`(data-model.md 쿼리).
+- [x] T006 [US3] BE 테스트(먼저) `backend/src/test/.../ShareCommentServiceTest`(또는 IT) — `markReadForProject` 안읽은 행만 read_at 채움·이미 읽은 건 무변경·반환 수 정확 / 타 작품 → `COMMENT_FORBIDDEN` / `countUnreadByProjectIds` 작품별 정확·읽음 후 0. RED 확인.
+- [x] T007 [US3] `ShareCommentService.markReadForProject(userId, projectId)` 구현 `backend/src/main/kotlin/com/writenote/service/ShareCommentService.kt` — `projectRepository.findByIdAndUserId` 소유 검증(실패 `COMMENT_FORBIDDEN`) → `markReadByProjectId(projectId, Instant.now())` → `MarkCommentsReadResponse(markedRead)`. `listForAuthor` 매핑에 `readAt = comment.readAt` 동봉. T006 GREEN.
+- [x] T008 BE 테스트(먼저) `listMine` unread 집계 — 같은 작품 여러 링크면 각 SharedWorkMeta 동일 값·댓글 0이면 0. RED 확인.
+- [x] T009 `ShareService.listMine` 에 unread 집계 주입 `backend/src/main/kotlin/com/writenote/service/ShareService.kt` — 스냅샷 projectId 들 모아 `countUnreadByProjectIds` 1쿼리 → `SharedWorkMeta.unreadCommentCount` 채움(N+1 회피). T008 GREEN.
+- [x] T010 [US3] `ShareCommentController` 에 `POST /api/projects/{projectId}/comments/read` 추가 `backend/src/main/kotlin/com/writenote/controller/ShareCommentController.kt` — `@AuthenticationPrincipal` 작가, `Result.success(markReadForProject(...))`. (contracts §1)
+- [x] T011 046 공유/댓글 기존 IT 무회귀 확인 + BE 게이트 — `cd backend && ./gradlew ktlintMainSourceSetCheck ktlintTestSourceSetCheck checkstyleMain test build` GREEN.
 
 **Checkpoint**: BE additive 완료 — FE 라운드 진입 가능. (배포는 Polish 단계에서 BE 선행)
 

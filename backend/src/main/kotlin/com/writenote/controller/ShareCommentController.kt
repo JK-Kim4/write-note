@@ -7,6 +7,7 @@ import com.writenote.model.request.CreateCommentRequest
 import com.writenote.model.response.AuthorCommentResponse
 import com.writenote.model.response.CommentResponse
 import com.writenote.model.response.DeleteCommentResponse
+import com.writenote.model.response.MarkCommentsReadResponse
 import com.writenote.model.response.Result
 import com.writenote.service.ShareCommentService
 import io.swagger.v3.oas.annotations.Operation
@@ -59,4 +60,11 @@ class ShareCommentController(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
         @PathVariable projectId: Long,
     ): Result<List<AuthorCommentResponse>> = Result.success(shareCommentService.listForAuthor(principal.userId, projectId))
+
+    @PostMapping("/api/projects/{projectId}/comments/read")
+    @Operation(summary = "받은 피드백 읽음 처리", description = "작품 단위 — 그 작품의 안 읽은 댓글 전체 읽음(047). 타 작품 403")
+    fun markCommentsRead(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @PathVariable projectId: Long,
+    ): Result<MarkCommentsReadResponse> = Result.success(shareCommentService.markReadForProject(principal.userId, projectId))
 }
