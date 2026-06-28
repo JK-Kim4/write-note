@@ -18,6 +18,7 @@ import com.writenote.repository.BoardRepository
 import com.writenote.repository.CategoryRepository
 import com.writenote.repository.DocumentRepository
 import com.writenote.repository.ProjectRepository
+import com.writenote.repository.ShareLinkRepository
 import com.writenote.repository.UserRepository
 import com.writenote.repository.WorkSessionRepository
 import org.springframework.data.domain.PageRequest
@@ -35,6 +36,7 @@ class ProjectService(
     private val categoryRepository: CategoryRepository,
     private val bodyCipherService: BodyCipherService,
     private val boardRepository: BoardRepository,
+    private val shareLinkRepository: ShareLinkRepository,
 ) {
     @Transactional(rollbackFor = [Exception::class])
     fun createProject(
@@ -243,6 +245,8 @@ class ProjectService(
         val project = requireOwnedProject(userId, projectId)
         // 이 작품에 소속된 플롯 보드(041)는 아이디어 보드로 강등(보드 보존). 다형이라 DB FK SET NULL 불가 → 앱 처리.
         boardRepository.clearOwner("project", projectId)
+        // 이 작품의 공유 링크(046)는 비활성(스냅샷·댓글은 보존 — 피드백 이력 유지, R-5/FR-025).
+        shareLinkRepository.deactivateByTarget("work", projectId)
         projectRepository.delete(project)
     }
 
