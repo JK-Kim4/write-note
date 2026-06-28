@@ -359,6 +359,39 @@ class ShareServiceTest {
     }
 
     @Test
+    @DisplayName("작품 삭제 후 보존된 피드백은 listMine 안 읽은 수 집계에서 제외된다(stuck 배지 방지, M2)")
+    fun `deleted project preserved comments are excluded from listMine unread count`() {
+        val owner = createUser()
+        val projectId = createWorkWithBody(owner, "삭제될작품", "원고내용")
+        val link = shareService.createShareLink(owner, CreateShareLinkRequest("work", projectId))
+        val member = createUser()
+        shareCommentService.create(
+            member,
+            link.token,
+            projectId,
+            CreateCommentRequest(anchorBlockIndex = 0, anchorStart = 0, anchorLength = 2, content = "피드백"),
+        )
+
+        // 삭제 전 — 안 읽은 피드백 1 집계
+        val before = shareService.listMine(owner)
+        assertThat(
+            before
+                .first()
+                .snapshots
+                .first { it.projectId == projectId }
+                .unreadCommentCount,
+        ).isEqualTo(1)
+
+        // 작품 삭제(링크 비활성·댓글 보존)
+        projectService.deleteProject(owner, projectId)
+
+        // 삭제 후 — 보존 댓글이 남아 있어도 배지(unread)는 0(작가가 열람·읽음처리 불가하므로)
+        val after = shareService.listMine(owner)
+        val snap = after.first().snapshots.first { it.projectId == projectId }
+        assertThat(snap.unreadCommentCount).isEqualTo(0)
+    }
+
+    @Test
     @DisplayName("시리즈 삭제 시 그 시리즈의 공유 링크는 비활성화되고 스냅샷은 보존된다")
     fun `deleting a series deactivates its share link and preserves snapshots`() {
         val owner = createUser()

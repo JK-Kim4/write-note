@@ -60,6 +60,7 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, shar
     const [layoutMode, setLayoutMode] = useState<LayoutMode | null>(category.layoutMode);
     const [targetLength, setTargetLength] = useState<number | null>(category.targetLength);
     const menuRef = useRef<HTMLDivElement>(null);
+    const menuBtnRef = useRef<HTMLButtonElement>(null);
 
     const myLinks = shareLinks ? linksForTarget(shareLinks, "series", category.id) : [];
     const activeCount = activeLinkCount(myLinks);
@@ -251,6 +252,7 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, shar
             )}
 
             <button
+                ref={menuBtnRef}
                 type="button"
                 aria-label={`${category.name} 메뉴`}
                 onClick={(e) => {
@@ -306,7 +308,7 @@ export function CategoryTile({ category, works, onOpen, onUpdate, onDelete, shar
                     targetId={category.id}
                     title={category.name}
                     onClose={() => setShareOpen(false)}
-                    positionClassName="right-2 top-9"
+                    anchorRef={menuBtnRef}
                 />
             )}
         </div>

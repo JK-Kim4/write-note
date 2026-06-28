@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { ApiError } from "@/lib/api/client";
 import { useProjectCards } from "@/lib/query/useProjects";
 import { useSetPublicWorks } from "@/lib/query/useShares";
+import { removedWorkIds } from "@/lib/share/publicWorkSelection";
 
 /**
  * 시리즈 공개 작품 선택(046 R4 / US3) — 시리즈 공유 링크에서 공개할 작품을 직접 고른다.
@@ -26,11 +27,16 @@ export function PublicWorkPicker({ linkId, categoryId, currentProjectIds, onClos
     const setPublicWorks = useSetPublicWorks();
     const [checked, setChecked] = useState<Set<number>>(() => new Set(currentProjectIds));
     const [error, setError] = useState<string | null>(null);
+    // 공개 해제 작품의 받은 피드백 동반 삭제 경고를 한 번 거쳤는지(ISSUE-055 M1).
+    const [confirmingRemove, setConfirmingRemove] = useState(false);
 
     // 시리즈 소속 활성 작품만(미분류·타 시리즈·보관 제외).
     const works = (cards ?? []).filter((c) => c.categoryId === categoryId && c.archivedAt == null);
+    // 공개에서 빠지는 작품(=스냅샷·받은 피드백 영구 삭제 대상).
+    const removed = removedWorkIds(currentProjectIds, checked);
 
     const toggle = (id: number) => {
+        setConfirmingRemove(false); // 선택을 바꾸면 경고를 다시 평가.
         setChecked((prev) => {
             const next = new Set(prev);
             if (next.has(id)) next.delete(id);
@@ -41,6 +47,11 @@ export function PublicWorkPicker({ linkId, categoryId, currentProjectIds, onClos
 
     const handleSave = () => {
         setError(null);
+        // 공개 해제 작품이 있으면 받은 피드백 동반 삭제를 한 번 확인받는다(되돌릴 수 없음).
+        if (removed.length > 0 && !confirmingRemove) {
+            setConfirmingRemove(true);
+            return;
+        }
         setPublicWorks.mutate(
             { id: linkId, projectIds: [...checked] },
             {
@@ -82,6 +93,16 @@ export function PublicWorkPicker({ linkId, categoryId, currentProjectIds, onClos
                     </ul>
                 )}
 
+                {confirmingRemove ? (
+                    <div
+                        role="alert"
+                        className="mt-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                    >
+                        공개에서 빼는 작품 {removed.length}개에 받은 피드백(독자 댓글)이 있다면 함께 <strong>영구 삭제</strong>되며 되돌릴 수
+                        없습니다. 계속하시겠어요?
+                    </div>
+                ) : null}
+
                 {error ? (
                     <p role="alert" className="mt-3 text-xs text-red-500">
                         {error}
@@ -89,16 +110,24 @@ export function PublicWorkPicker({ linkId, categoryId, currentProjectIds, onClos
                 ) : null}
 
                 <div className="mt-4 flex justify-end gap-2">
-                    <button type="button" onClick={onClose} className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-strong">
-                        취소
+                    <button
+                        type="button"
+                        onClick={confirmingRemove ? () => setConfirmingRemove(false) : onClose}
+                        className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-strong"
+                    >
+                        {confirmingRemove ? "돌아가기" : "취소"}
                     </button>
                     <button
                         type="button"
                         onClick={handleSave}
                         disabled={setPublicWorks.isPending}
-                        className="rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink disabled:opacity-50"
+                        className={
+                            confirmingRemove
+                                ? "rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
+                                : "rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink disabled:opacity-50"
+                        }
                     >
-                        {setPublicWorks.isPending ? "저장 중…" : "저장"}
+                        {setPublicWorks.isPending ? "저장 중…" : confirmingRemove ? "받은 피드백 포함 삭제하고 저장" : "저장"}
                     </button>
                 </div>
             </div>
