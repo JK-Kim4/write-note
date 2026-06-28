@@ -40,6 +40,8 @@ class ShareComment(
     var createdAt: Instant? = null,
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant? = null,
+    @Column(name = "read_at")
+    var readAt: Instant? = null,
 ) {
     @PrePersist
     fun prePersist() {

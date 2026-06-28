@@ -15,10 +15,15 @@ import { apiFetch } from "./client";
 /** 공유 대상 종류 — "work"=작품(즉시 스냅샷 동결), "series"=시리즈(공개 작품은 PUT 으로 선택). */
 export type ShareTargetType = "work" | "series";
 
+/** 작품/시리즈당 공유 링크 생성 한도(047, 백엔드 ShareService.MAX_LINKS_PER_TARGET 동기). 끄진 것 포함 총합. */
+export const MAX_SHARE_LINKS_PER_TARGET = 5;
+
 /** 공유 작품 메타(목록용 — 본문 미포함). work 링크=단일, series 링크=공개 작품 목록. */
 export interface SharedWorkMeta {
     projectId: number;
     title: string;
+    /** 그 작품(projectId)의 안 읽은 피드백 수(047). 작가 listMine 에서만 실제 값(공개 열람은 0). */
+    unreadCommentCount: number;
 }
 
 /** 공유 링크(작가). shareUrl=파생(`{base}/shared/{token}`). snapshots=동결된 공개 작품 메타. */
@@ -47,6 +52,8 @@ export interface AuthorCommentResponse {
     content: string;
     authorNickname: string;
     createdAt: string;
+    /** 작가 확인 시각(047). null=안 읽음(인박스 강조용). */
+    readAt: string | null;
 }
 
 /** 내 공유 링크 목록(최근순, 스냅샷 메타 동봉). */
@@ -62,12 +69,17 @@ export function createShareLink(targetType: ShareTargetType, targetId: number): 
     });
 }
 
-/** 공유 링크 끄기(revoke) — isActive=false. 본인 링크만. */
-export function revokeShareLink(id: number): Promise<ShareLinkResponse> {
+/** 공유 링크 상태 변경 — isActive=false(끄기)/true(다시 켜기). 본인 링크만. */
+export function setShareLinkActive(id: number, isActive: boolean): Promise<ShareLinkResponse> {
     return apiFetch<ShareLinkResponse>(`/api/share-links/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ isActive: false }),
+        body: JSON.stringify({ isActive }),
     });
+}
+
+/** 공유 링크 영구 삭제(047) — 링크+스냅샷+받은 피드백 함께 제거(CASCADE). 본인 링크만, 한도 슬롯 회수용. */
+export function deleteShareLink(id: number): Promise<{ deleted: boolean }> {
+    return apiFetch<{ deleted: boolean }>(`/api/share-links/${id}`, { method: "DELETE" });
 }
 
 /** 시리즈 공개 작품 선택(series 전용) — 추가분 스냅샷 동결, 제거분 스냅샷 삭제. 빈 목록=전체 비공개. */
@@ -86,6 +98,11 @@ export function authorComments(projectId: number): Promise<AuthorCommentResponse
 /** 댓글 삭제 — 작성자 본인만(타인 댓글 403). 200 + { deleted: true }. */
 export function deleteComment(id: number): Promise<{ deleted: boolean }> {
     return apiFetch<{ deleted: boolean }>(`/api/share-comments/${id}`, { method: "DELETE" });
+}
+
+/** 작품 단위 받은 피드백 읽음 처리(047) — 그 작품의 안 읽은 피드백 전체 read_at 채움. 소유 작가만(타 작품 403). */
+export function markCommentsRead(projectId: number): Promise<{ markedRead: number }> {
+    return apiFetch<{ markedRead: number }>(`/api/projects/${projectId}/comments/read`, { method: "POST" });
 }
 
 // ─── 공개 열람 (R5, permitAll — 비로그인 200) ────────────────────────────────

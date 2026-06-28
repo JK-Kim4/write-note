@@ -4,6 +4,7 @@ import com.writenote.auth.AuthenticatedPrincipal
 import com.writenote.model.request.CreateShareLinkRequest
 import com.writenote.model.request.SetPublicWorksRequest
 import com.writenote.model.request.UpdateShareLinkRequest
+import com.writenote.model.response.DeleteShareLinkResponse
 import com.writenote.model.response.Result
 import com.writenote.model.response.ShareLinkResponse
 import com.writenote.model.response.SharedViewResponse
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -66,6 +68,16 @@ class ShareController(
     fun listMyShareLinks(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal,
     ): Result<List<ShareLinkResponse>> = Result.success(shareService.listMine(principal.userId))
+
+    @DeleteMapping("/api/share-links/{id}")
+    @Operation(summary = "공유 링크 삭제", description = "본인 링크만. 링크+스냅샷+받은 피드백 영구 삭제(CASCADE). 없는 링크 404")
+    fun deleteShareLink(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @PathVariable id: Long,
+    ): Result<DeleteShareLinkResponse> {
+        shareService.deleteShareLink(principal.userId, id)
+        return Result.success(DeleteShareLinkResponse(deleted = true))
+    }
 
     // ── 공개 — 열람 (permitAll, nullable principal) ──────────────────────────────
 

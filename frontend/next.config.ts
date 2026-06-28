@@ -41,6 +41,8 @@ const nextConfig: NextConfig = {
       // 044 보드 중심 전환: 메모·인물 페이지 폐기 → 보드로(끊긴 링크·북마크 방지). permanent:false(가져오기 후속 여지).
       { source: "/memos", destination: "/boards", permanent: false },
       { source: "/characters", destination: "/boards", permanent: false },
+      // 047 공유를 헤더 최상위로: 마이페이지 하위 경로 → /shares(끊긴 링크·북마크 방지). permanent:false.
+      { source: "/mypage/shares", destination: "/shares", permanent: false },
       {
         source: "/:path*",
         has: [{ type: "host", value: "harubuild.xyz" }],

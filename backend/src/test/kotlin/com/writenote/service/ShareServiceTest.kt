@@ -373,4 +373,66 @@ class ShareServiceTest {
         assertThat(shareLinkRepository.findByToken(link.token)!!.isActive).isFalse()
         assertThat(shareSnapshotRepository.findById(snapshotId)).isPresent()
     }
+
+    // ── 047: 개수 제한 + 삭제 ────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("작품당 공유 링크는 5개까지만 만들 수 있고 6번째는 SHARE_LINK_LIMIT_EXCEEDED")
+    fun `share link creation is capped per work`() {
+        val userId = createUser()
+        val projectId = createWorkWithBody(userId, "인기작", "본문")
+        repeat(5) { shareService.createShareLink(userId, CreateShareLinkRequest("work", projectId)) }
+
+        assertThatThrownBy { shareService.createShareLink(userId, CreateShareLinkRequest("work", projectId)) }
+            .isInstanceOf(ShareException::class.java)
+            .extracting("errorCode")
+            .isEqualTo(ShareErrorCode.SHARE_LINK_LIMIT_EXCEEDED)
+    }
+
+    @Test
+    @DisplayName("공유 링크 삭제는 스냅샷·받은 피드백을 함께 제거하고(CASCADE) 슬롯을 회수해 다시 만들 수 있다")
+    fun `deleting a share link cascades and frees a slot`() {
+        val owner = createUser()
+        val projectId = createWorkWithBody(owner, "정리작", "원고내용")
+        val links = (1..5).map { shareService.createShareLink(owner, CreateShareLinkRequest("work", projectId)) }
+        val target = links.first()
+        val snapshotId = shareSnapshotRepository.findByShareLinkIdAndProjectId(target.id, projectId)!!.id!!
+        val member = createUser()
+        val comment =
+            shareCommentService.create(
+                member,
+                target.token,
+                projectId,
+                CreateCommentRequest(anchorBlockIndex = 0, anchorStart = 0, anchorLength = 2, content = "피드백"),
+            )
+
+        // 한도 도달 — 생성 막힘
+        assertThatThrownBy { shareService.createShareLink(owner, CreateShareLinkRequest("work", projectId)) }
+            .extracting("errorCode")
+            .isEqualTo(ShareErrorCode.SHARE_LINK_LIMIT_EXCEEDED)
+
+        // 삭제 → 링크·스냅샷·댓글 모두 제거(CASCADE)
+        shareService.deleteShareLink(owner, target.id)
+        assertThat(shareLinkRepository.findById(target.id)).isEmpty()
+        assertThat(shareSnapshotRepository.findById(snapshotId)).isEmpty()
+        assertThat(shareCommentRepository.findById(comment.id)).isEmpty()
+
+        // 슬롯 회수 → 다시 생성 가능
+        val created = shareService.createShareLink(owner, CreateShareLinkRequest("work", projectId))
+        assertThat(created.id).isNotNull()
+    }
+
+    @Test
+    @DisplayName("타인 공유 링크 삭제는 SHARE_LINK_NOT_FOUND(소유 비노출)")
+    fun `deleting another users share link is not found`() {
+        val owner = createUser()
+        val projectId = createWorkWithBody(owner, "내작품", "본문")
+        val link = shareService.createShareLink(owner, CreateShareLinkRequest("work", projectId))
+        val stranger = createUser()
+
+        assertThatThrownBy { shareService.deleteShareLink(stranger, link.id) }
+            .isInstanceOf(ShareException::class.java)
+            .extracting("errorCode")
+            .isEqualTo(ShareErrorCode.SHARE_LINK_NOT_FOUND)
+    }
 }

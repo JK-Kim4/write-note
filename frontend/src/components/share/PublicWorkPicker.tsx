@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { ApiError } from "@/lib/api/client";
 import { useProjectCards } from "@/lib/query/useProjects";
 import { useSetPublicWorks } from "@/lib/query/useShares";
@@ -50,7 +51,8 @@ export function PublicWorkPicker({ linkId, categoryId, currentProjectIds, onClos
         );
     };
 
-    return (
+    if (typeof document === "undefined") return null;
+    return createPortal(
         <div role="dialog" aria-label="공개 작품 선택" className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
             <div className="w-[28rem] max-w-[92vw] rounded-2xl bg-surface p-5 shadow-xl">
                 <h2 className="text-base font-bold text-ink">공개할 작품 선택</h2>
@@ -100,6 +102,7 @@ export function PublicWorkPicker({ linkId, categoryId, currentProjectIds, onClos
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }

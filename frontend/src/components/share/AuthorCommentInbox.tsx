@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { useAuthorComments } from "@/lib/query/useShareComments";
+import { useAuthorComments, useMarkCommentsRead } from "@/lib/query/useShareComments";
 import { formatCommentAnchor } from "@/lib/share/commentLocation";
 import { formatRelativeDay } from "@/lib/relativeDate";
 import type { AuthorCommentResponse } from "@/lib/api/share";
@@ -24,6 +26,18 @@ type Props = {
 export function AuthorCommentInbox({ projectId, projectTitle, onClose, onNavigate }: Props) {
     const router = useRouter();
     const { data: comments, isPending, isError, refetch, isFetching } = useAuthorComments(projectId);
+    const markRead = useMarkCommentsRead();
+    const markMutate = markRead.mutate;
+
+    // "열면 그 묶음 전체 읽음"(047 US3) — 첫 로드에서 안 읽은 댓글이 있으면 1회 읽음 처리.
+    // shareKeys.mine 만 무효화하므로(인박스 author 쿼리는 보존) 보는 동안 readAt==null 강조는 유지되고,
+    // 받은 피드백 배지·집계는 즉시 감소한다. 다시 열면 refetchOnMount 가 읽음 상태를 새로 받아 강조가 사라진다.
+    const didMarkRef = useRef(false);
+    useEffect(() => {
+        if (!comments || didMarkRef.current) return;
+        didMarkRef.current = true;
+        if (comments.some((c) => c.readAt == null)) markMutate(projectId);
+    }, [comments, projectId, markMutate]);
 
     const handleSelect = (comment: AuthorCommentResponse) => {
         if (onNavigate) {
@@ -33,7 +47,8 @@ export function AuthorCommentInbox({ projectId, projectTitle, onClose, onNavigat
         router.push(`/works/${comment.projectId}`);
     };
 
-    return (
+    if (typeof document === "undefined") return null;
+    return createPortal(
         <div role="dialog" aria-label={`${projectTitle} 받은 피드백`} className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
             <div className="w-[32rem] max-w-[94vw] rounded-2xl bg-surface p-5 shadow-xl">
                 <div className="flex items-start justify-between gap-2">
@@ -71,15 +86,23 @@ export function AuthorCommentInbox({ projectId, projectTitle, onClose, onNavigat
                     </p>
                 ) : (
                     <ul className="mt-3 max-h-[60vh] space-y-2 overflow-auto">
-                        {comments.map((comment) => (
+                        {comments.map((comment) => {
+                            const isUnread = comment.readAt == null;
+                            return (
                             <li key={comment.id}>
                                 <button
                                     type="button"
                                     onClick={() => handleSelect(comment)}
-                                    className="block w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-left hover:border-border-strong hover:bg-surface-2"
+                                    className={`block w-full rounded-lg border px-3 py-2.5 text-left hover:border-border-strong hover:bg-surface-2 ${
+                                        isUnread ? "border-terracotta-300 bg-accent-soft" : "border-border bg-surface"
+                                    }`}
                                 >
                                     <div className="flex items-center justify-between gap-2 text-xs">
-                                        <span className="font-medium text-ink-2">{comment.authorNickname}</span>
+                                        <span className="flex items-center gap-1.5 font-medium text-ink-2">
+                                            {isUnread ? <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-accent" /> : null}
+                                            {comment.authorNickname}
+                                            {isUnread ? <span className="sr-only">(새 피드백)</span> : null}
+                                        </span>
                                         <span className="shrink-0 text-faint">{formatRelativeDay(comment.createdAt, new Date())}</span>
                                     </div>
                                     <p className="mt-1 line-clamp-3 whitespace-pre-wrap break-words text-sm text-ink">{comment.content}</p>
@@ -88,10 +111,12 @@ export function AuthorCommentInbox({ projectId, projectTitle, onClose, onNavigat
                                     </p>
                                 </button>
                             </li>
-                        ))}
+                            );
+                        })}
                     </ul>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }

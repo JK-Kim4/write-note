@@ -15,6 +15,7 @@ import com.writenote.model.response.SharedWorkResponse
 import com.writenote.repository.CategoryRepository
 import com.writenote.repository.DocumentRepository
 import com.writenote.repository.ProjectRepository
+import com.writenote.repository.ShareCommentRepository
 import com.writenote.repository.ShareLinkRepository
 import com.writenote.repository.ShareSnapshotRepository
 import org.springframework.beans.factory.annotation.Value
@@ -32,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional
 class ShareService(
     private val shareLinkRepository: ShareLinkRepository,
     private val shareSnapshotRepository: ShareSnapshotRepository,
+    private val shareCommentRepository: ShareCommentRepository,
     private val shareTokenGenerator: ShareTokenGenerator,
     private val projectRepository: ProjectRepository,
     private val categoryRepository: CategoryRepository,
@@ -57,6 +59,7 @@ class ShareService(
         projectId: Long,
     ): ShareLinkResponse {
         val project = requireSharableWork(userId, projectId)
+        requireUnderLimit(userId, TARGET_WORK, projectId)
         val link =
             shareLinkRepository.save(
                 ShareLink(
@@ -77,6 +80,7 @@ class ShareService(
         categoryId: Long,
     ): ShareLinkResponse {
         requireSharableSeries(userId, categoryId)
+        requireUnderLimit(userId, TARGET_SERIES, categoryId)
         val link =
             shareLinkRepository.save(
                 ShareLink(
@@ -143,7 +147,20 @@ class ShareService(
         return toResponse(link, shareSnapshotRepository.findByShareLinkId(linkId))
     }
 
-    /** 내 공유 링크 목록(최근순) — 스냅샷 일괄 조회(N+1 회피). */
+    /** 공유 링크 영구 삭제(047) — 본인 소유만. 스냅샷·댓글 CASCADE 동반 삭제(받은 피드백 포함, 되돌릴 수 없음). */
+    @Transactional(rollbackFor = [Exception::class])
+    fun deleteShareLink(
+        userId: Long,
+        linkId: Long,
+    ) {
+        val link =
+            shareLinkRepository
+                .findByIdAndOwnerId(linkId, userId)
+                .orElseThrow { ShareException(ShareErrorCode.SHARE_LINK_NOT_FOUND) }
+        shareLinkRepository.delete(link)
+    }
+
+    /** 내 공유 링크 목록(최근순) — 스냅샷 + 작품별 안 읽은 피드백 수 일괄 조회(N+1 회피, 047). */
     @Transactional(readOnly = true)
     fun listMine(userId: Long): List<ShareLinkResponse> {
         val links = shareLinkRepository.findByOwnerIdOrderByCreatedAtDesc(userId)
@@ -154,7 +171,20 @@ class ShareService(
             shareSnapshotRepository
                 .findByShareLinkIdIn(links.mapNotNull { it.id })
                 .groupBy { it.shareLinkId }
-        return links.map { toResponse(it, snapshotsByLink[it.id] ?: emptyList()) }
+        val projectIds =
+            snapshotsByLink.values
+                .flatten()
+                .map { it.projectId }
+                .distinct()
+        val unreadByProject =
+            if (projectIds.isEmpty()) {
+                emptyMap()
+            } else {
+                shareCommentRepository
+                    .countUnreadByProjectIds(projectIds)
+                    .associate { it.projectId to it.unreadCount.toInt() }
+            }
+        return links.map { toResponse(it, snapshotsByLink[it.id] ?: emptyList(), unreadByProject) }
     }
 
     /** 공개 열람 진입(목록) — 활성 링크만. work=단일, series=공개 작품 목록(R3). */
@@ -195,6 +225,18 @@ class ShareService(
     }
 
     // ── 내부 헬퍼 ──────────────────────────────────────────────────────────────
+
+    /** 작품/시리즈당 공유 링크 개수 제한(047) — 한도(MAX_LINKS_PER_TARGET) 도달 시 SHARE_LINK_LIMIT_EXCEEDED(끄진 것 포함 총합). */
+    private fun requireUnderLimit(
+        userId: Long,
+        targetType: String,
+        targetId: Long,
+    ) {
+        val count = shareLinkRepository.countByOwnerIdAndTargetTypeAndTargetId(userId, targetType, targetId)
+        if (count >= MAX_LINKS_PER_TARGET) {
+            throw ShareException(ShareErrorCode.SHARE_LINK_LIMIT_EXCEEDED)
+        }
+    }
 
     /** 미존재 작품 → 404, 타인 작품 → 403. */
     private fun requireSharableWork(
@@ -272,6 +314,7 @@ class ShareService(
     private fun toResponse(
         link: ShareLink,
         snapshots: List<ShareSnapshot>,
+        unreadByProject: Map<Long, Int> = emptyMap(),
     ): ShareLinkResponse =
         ShareLinkResponse(
             id = requireNotNull(link.id),
@@ -281,11 +324,15 @@ class ShareService(
             isActive = link.isActive,
             shareUrl = "$frontendBaseUrl/shared/${link.token}",
             createdAt = requireNotNull(link.createdAt),
-            snapshots = snapshots.map { SharedWorkMeta(it.projectId, it.titleSnapshot) },
+            snapshots =
+                snapshots.map {
+                    SharedWorkMeta(it.projectId, it.titleSnapshot, unreadByProject[it.projectId] ?: 0)
+                },
         )
 
     private companion object {
         const val TARGET_WORK = "work"
         const val TARGET_SERIES = "series"
+        const val MAX_LINKS_PER_TARGET = 5
     }
 }

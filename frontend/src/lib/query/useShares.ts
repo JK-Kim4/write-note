@@ -8,11 +8,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     createShareLink,
+    deleteShareLink,
     getSharedView,
     getSharedWork,
     listMyShareLinks,
-    revokeShareLink,
     setPublicWorks,
+    setShareLinkActive,
 } from "@/lib/api/share";
 import type { ShareTargetType } from "@/lib/api/share";
 
@@ -46,10 +47,20 @@ export function useCreateShareLink() {
     });
 }
 
-export function useRevokeShareLink() {
+/** 공유 링크 끄기/다시 켜기 — 성공 시 목록 무효화(공유 중 상태·개수 갱신). */
+export function useSetShareLinkActive() {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (id: number) => revokeShareLink(id),
+        mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) => setShareLinkActive(id, isActive),
+        onSuccess: () => qc.invalidateQueries({ queryKey: shareKeys.all }),
+    });
+}
+
+/** 공유 링크 영구 삭제(047) — 성공 시 목록 무효화(개수·슬롯 회수 갱신). */
+export function useDeleteShareLink() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id: number) => deleteShareLink(id),
         onSuccess: () => qc.invalidateQueries({ queryKey: shareKeys.all }),
     });
 }
