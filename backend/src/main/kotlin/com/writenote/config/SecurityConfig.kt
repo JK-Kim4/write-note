@@ -77,6 +77,12 @@ class SecurityConfig {
                     // 공개 공지 조회 (030 운영 툴) — 비인증 허용, 공개 공지만 노출
                     .requestMatchers(HttpMethod.GET, "/api/announcements", "/api/announcements/*")
                     .permitAll()
+                    // 공개 공유 열람 (046) — 비로그인 허용, optional auth(JwtAuthenticationFilter pass-through).
+                    // /api/share-links/** 는 보호(anyRequest authenticated). 댓글 POST(R2)는 컨트롤러가 회원 검증(nullable principal).
+                    .requestMatchers(HttpMethod.GET, "/api/shared/**")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/shared/**")
+                    .permitAll()
                     // 운영 툴 어드민 (030) — 단일 관리자(app.admin.email)만
                     .requestMatchers("/api/admin/**")
                     .access(adminAuthorizationManager)

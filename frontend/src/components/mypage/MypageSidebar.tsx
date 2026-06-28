@@ -15,6 +15,7 @@ const SECTIONS: Section[] = [
     { href: "/mypage/profile", label: "프로필" },
     { href: "/mypage/settings", label: "환경설정" },
     { href: "/mypage/connections", label: "계정 연결" },
+    { href: "/mypage/shares", label: "공유 관리" },
     { href: "/contact", label: "문의·도움말", external: true },
 ];
 

@@ -10,6 +10,7 @@ import com.writenote.model.response.CategoryResponse
 import com.writenote.repository.BoardRepository
 import com.writenote.repository.CategoryRepository
 import com.writenote.repository.ProjectRepository
+import com.writenote.repository.ShareLinkRepository
 import com.writenote.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -27,6 +28,7 @@ class CategoryService(
     private val userRepository: UserRepository,
     private val categoryMapper: CategoryMapper,
     private val boardRepository: BoardRepository,
+    private val shareLinkRepository: ShareLinkRepository,
 ) {
     @Transactional(rollbackFor = [Exception::class])
     fun create(
@@ -142,6 +144,8 @@ class CategoryService(
         // 소속 작품은 DB FK ON DELETE SET NULL 로 미분류 전환(작품 무손실, FR-007)
         // 이 시리즈에 소속된 플롯 보드(041)는 아이디어 보드로 강등(보드 보존). 다형이라 DB FK 불가 → 앱 처리.
         boardRepository.clearOwner("category", categoryId)
+        // 이 시리즈의 공유 링크(046)는 비활성(스냅샷·댓글은 보존 — 피드백 이력 유지, R-5/FR-025).
+        shareLinkRepository.deactivateByTarget("series", categoryId)
         categoryRepository.delete(category)
     }
 
