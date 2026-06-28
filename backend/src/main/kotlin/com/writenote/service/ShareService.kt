@@ -176,12 +176,14 @@ class ShareService(
                 .flatten()
                 .map { it.projectId }
                 .distinct()
+        // 삭제된 작품(projects 부재)은 작가가 열람·읽음처리 불가 → unread 배지에서 제외(stuck 방지, M2/ISSUE-055)
+        val livingProjectIds = projectRepository.findAllById(projectIds).mapNotNull { it.id }
         val unreadByProject =
-            if (projectIds.isEmpty()) {
+            if (livingProjectIds.isEmpty()) {
                 emptyMap()
             } else {
                 shareCommentRepository
-                    .countUnreadByProjectIds(projectIds)
+                    .countUnreadByProjectIds(livingProjectIds)
                     .associate { it.projectId to it.unreadCount.toInt() }
             }
         return links.map { toResponse(it, snapshotsByLink[it.id] ?: emptyList(), unreadByProject) }
