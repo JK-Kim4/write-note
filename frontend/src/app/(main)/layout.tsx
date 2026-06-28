@@ -3,7 +3,7 @@
 import "./b.css";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Clock, Home, Megaphone, Network } from "lucide-react";
+import { BookOpen, Clock, Home, Megaphone, Network, Share2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthGuard } from "@/lib/auth/guard";
@@ -24,6 +24,8 @@ const NAV_ITEMS = [
     { href: "/boards", label: "보드", exact: false, dataTour: "nav-boards", Icon: Network },
     { href: "/logs", label: "기록", exact: false, Icon: Clock },
     { href: "/notice", label: "공지", exact: false, Icon: Megaphone },
+    // 047 — 공유를 마이페이지 하위에서 헤더 최상위로(접근성). 6번째 최상위 메뉴(사용자 승인 트레이드오프).
+    { href: "/shares", label: "공유", exact: false, Icon: Share2 },
 ] as const;
 
 // 메뉴 칩 — 단색 라인 아이콘(lucide) + 라벨. 평상시 회색, 선택은 테라코타(주 액센트),

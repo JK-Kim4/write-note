@@ -11,8 +11,8 @@ import {
     getSharedView,
     getSharedWork,
     listMyShareLinks,
-    revokeShareLink,
     setPublicWorks,
+    setShareLinkActive,
 } from "@/lib/api/share";
 import type { ShareTargetType } from "@/lib/api/share";
 
@@ -46,10 +46,11 @@ export function useCreateShareLink() {
     });
 }
 
-export function useRevokeShareLink() {
+/** 공유 링크 끄기/다시 켜기 — 성공 시 목록 무효화(공유 중 상태·개수 갱신). */
+export function useSetShareLinkActive() {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (id: number) => revokeShareLink(id),
+        mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) => setShareLinkActive(id, isActive),
         onSuccess: () => qc.invalidateQueries({ queryKey: shareKeys.all }),
     });
 }

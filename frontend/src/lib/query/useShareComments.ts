@@ -7,9 +7,9 @@
  * useDeleteComment = 작성자 본인 댓글 삭제(타인 403). 공개 열람 댓글 레이어(R5)에서 소비.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { authorComments, createComment, deleteComment } from "@/lib/api/share";
+import { authorComments, createComment, deleteComment, markCommentsRead } from "@/lib/api/share";
 import type { CommentResponse, CreateCommentInput, SharedWorkResponse } from "@/lib/api/share";
-import { publicShareKeys } from "@/lib/query/useShares";
+import { publicShareKeys, shareKeys } from "@/lib/query/useShares";
 
 export const shareCommentKeys = {
     all: ["shareComments"] as const,
@@ -35,6 +35,21 @@ export function useDeleteComment() {
             qc.invalidateQueries({ queryKey: shareCommentKeys.all });
             qc.invalidateQueries({ queryKey: publicShareKeys.all });
         },
+    });
+}
+
+/**
+ * 받은 피드백 읽음 처리(047 US3) — 작가가 그 작품 인박스를 열면 안 읽은 피드백 전체 read_at 채움.
+ *
+ * 성공 시 share-links/mine(unread 집계·받은 피드백 배지)만 무효화한다. 인박스(author) 쿼리는 일부러
+ * 무효화하지 않아, 열려 있는 인박스의 "안 읽음 강조"(readAt==null)가 보는 동안 유지된다. 다시 열면
+ * refetchOnMount:"always" 가 최신(읽음) 상태를 다시 받아 강조가 사라진다.
+ */
+export function useMarkCommentsRead() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (projectId: number) => markCommentsRead(projectId),
+        onSuccess: () => qc.invalidateQueries({ queryKey: shareKeys.all }),
     });
 }
 
