@@ -39,7 +39,7 @@ class OAuth2SuccessHandlerTest {
         )
 
     @Test
-    fun `OAuth 성공 시 JWT 발급 + REFRESH AuthToken INSERT + 세션 쿠키 발급 + 홈 redirect`() {
+    fun `OAuth 성공 시 JWT 발급 + REFRESH AuthToken INSERT + 세션 쿠키 발급 + entering redirect`() {
         val oauth2User =
             mockk<OAuth2User>().also {
                 every { it.attributes } returns
@@ -85,8 +85,8 @@ class OAuth2SuccessHandlerTest {
             it.startsWith("refresh_token=plain-refresh-token") && it.contains("SameSite=Lax")
         }
 
-        // fragment 없는 홈 redirect
-        assertThat(redirectedUrl.captured).isEqualTo("http://localhost:3000/")
+        // fragment 없는 /entering redirect (로그인 중 트랜지션 → 홈)
+        assertThat(redirectedUrl.captured).isEqualTo("http://localhost:3000/entering")
 
         verify(exactly = 1) { authTokenRepository.save(any<AuthToken>()) }
         verify(exactly = 1) { response.sendRedirect(any()) }

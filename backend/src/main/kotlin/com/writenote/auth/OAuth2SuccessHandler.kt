@@ -17,9 +17,9 @@ import org.springframework.stereotype.Component
 import java.time.Instant
 
 /**
- * 카카오 OAuth2 로그인 성공 시 JWT access + refresh 발급 + httpOnly 쿠키로 내린 뒤 프론트 홈으로 redirect.
+ * 카카오 OAuth2 로그인 성공 시 JWT access + refresh 발급 + httpOnly 쿠키로 내린 뒤 "로그인 중" 트랜지션(`/entering`)으로 redirect.
  *
- * 응답: `302 Found` — `Set-Cookie: access_token`/`refresh_token` (httpOnly+SameSite=Lax) + Location `{frontend}/`.
+ * 응답: `302 Found` — `Set-Cookie: access_token`/`refresh_token` (httpOnly+SameSite=Lax) + Location `{frontend}/entering`(0.5초 효과 뒤 홈, 이메일 로그인과 동선 통일).
  * link flow(`linkUserId`) 는 토큰 발급 없이 `{frontend}/auth/link-success` redirect.
  *
  * 쿠키 사용 — 이메일 로그인(AuthController)과 동일 인증 매체로 통일 (005 R-5, 헤더/fragment 폐기).
@@ -74,6 +74,7 @@ class OAuth2SuccessHandler(
             HttpHeaders.SET_COOKIE,
             authCookieFactory.refreshTokenCookie(refreshPair.plaintext).toString(),
         )
-        response.sendRedirect("$frontendBaseUrl/")
+        // 로그인 성공 → "로그인 중" 트랜지션(/entering)으로 보내 0.5초 효과 뒤 홈. 이메일 로그인(LoginForm)과 동선 통일.
+        response.sendRedirect("$frontendBaseUrl/entering")
     }
 }
