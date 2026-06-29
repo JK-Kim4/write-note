@@ -23,7 +23,7 @@ export function LandingPreview() {
                         <div className="landing-ln" style={{ width: "90%" }} />
                     </div>
                     <div className="landing-st-side">
-                        <div className="landing-st-label">곁쪽지</div>
+                        <div className="landing-st-label">보드</div>
                         <div className="landing-memo">주인공은 비 오는 날을 싫어함 — 3장 복선</div>
                         <div className="landing-memo">카페 이름 정하기</div>
                     </div>
