@@ -32,7 +32,7 @@ const nanumMyeongjo = Nanum_Myeongjo({
 
 export const metadata: Metadata = {
     title: "소설비",
-    description: "컨텍스트가 안 죽는 작가용 작업공간",
+    description: "흩어진 아이디어를 한 편의 작품으로 — 작가를 위한 창작 작업실",
 };
 
 // 핀치 줌 아웃(축소) 차단 — 고정 높이 앱 셸(min-h-screen + 집필실 calc(100vh))은 핀치 줌 아웃 시
