@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { BrandLoader } from "@/components/ui/BrandLoader";
 
 /**
@@ -20,16 +21,20 @@ const FADE_MS = 220;
 
 export default function EnteringPage() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const [leaving, setLeaving] = useState(false);
 
     useEffect(() => {
+        // 로그인 직후 도착 — me 캐시를 갱신해 홈(/)의 requireAuth 가드가 200 을 보게 한다.
+        // LoginForm 은 requireAnon 가드가 /entering 진입을 replace("/")로 덮지 않도록 invalidate 를 여기로 미뤘다.
+        queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
         const fade = setTimeout(() => setLeaving(true), HOLD_MS);
         const go = setTimeout(() => router.replace("/"), HOLD_MS + FADE_MS);
         return () => {
             clearTimeout(fade);
             clearTimeout(go);
         };
-    }, [router]);
+    }, [router, queryClient]);
 
     return (
         <div style={{ opacity: leaving ? 0 : 1, transition: `opacity ${FADE_MS}ms ease` }}>
