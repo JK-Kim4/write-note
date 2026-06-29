@@ -99,7 +99,7 @@ export default function BDashboardPage() {
                 <section className="mt-8 rounded-xl border border-border bg-surface p-8 text-center">
                     <h2 className="text-lg font-bold text-ink">작업실이 준비됐습니다</h2>
                     <p className="mt-2 text-sm text-muted-strong">
-                        작품과 보드, 지난 세션의 마지막 한 줄까지 한자리에.
+                        구상부터 완성까지, 한 작품을 여기서 이어가세요.
                     </p>
                     <button
                         type="button"

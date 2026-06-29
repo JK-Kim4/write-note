@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { login, resendVerification } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { resolveErrorMessage } from "@/lib/api/errors";
@@ -17,7 +17,7 @@ const REMEMBERED_EMAIL_KEY = "writenote.rememberedEmail.v1";
 /**
  * LoginForm — 이메일 로그인 폼 (US1, contracts/screen-data-flow.md §5).
  *
- * 성공: 쿠키 발급 → `['auth','me']` 무효화 → 앱 홈(/) 이동.
+ * 성공: 쿠키 발급 → `/entering` 트랜지션 이동(`['auth','me']` 무효화는 entering 이 수행 — requireAnon 가드 우회).
  * 실패: 401 code(EMAIL_NOT_VERIFIED / LOGIN_FAILED / LOGIN_LOCKED) → 한국어 메시지.
  *
  * `state` prop 은 데모 라우트(login-loading)용 외관 제어. 실제 진행 상태는 mutation.isPending.
@@ -29,7 +29,6 @@ interface LoginFormProps {
 
 export function LoginForm({ state = "default" }: LoginFormProps) {
     const router = useRouter();
-    const queryClient = useQueryClient();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [remember, setRemember] = useState(false);
@@ -44,11 +43,13 @@ export function LoginForm({ state = "default" }: LoginFormProps) {
 
     const loginMutation = useMutation({
         mutationFn: () => login({ email, password }),
-        onSuccess: async () => {
+        onSuccess: () => {
             if (remember) localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
             else localStorage.removeItem(REMEMBERED_EMAIL_KEY);
-            await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-            router.push("/");
+            // me 무효화는 /entering 도착 후 수행([entering/page.tsx]). 여기서 invalidate 하면 auth/layout 의
+            // requireAnon 가드가 me 200 을 보고 replace("/") 로 /entering 진입을 덮어써 트랜지션이 우회된다.
+            // 로그인 성공 → "로그인 중"(/entering) 0.5초 후 홈. 카카오는 OAuth2SuccessHandler 가 동일 redirect.
+            router.push("/entering");
         },
     });
 

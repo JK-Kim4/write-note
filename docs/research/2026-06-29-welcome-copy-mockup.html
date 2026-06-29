@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>소설비 welcome 카피 목업 — 클릭해서 수정</title>
+<!-- 실제 앱은 next/font Nanum Myeongjo 를 subsets:["latin"]·weight 400/700 로만 로드 → 한글 글리프가 없어
+     한글은 시스템 serif(명조)로 fallback 된다. 목업도 똑같이 보이도록 웹폰트를 일부러 로드하지 않음. -->
+<style>
+  /* ===== 실제 landing.css 그대로 차용 (frontend/src/styles/landing.css) ===== */
+  .landing {
+    --lp-cream: #F4EFE5; --lp-cream2: #FBF8F1; --lp-paper: #FFFFFF;
+    --lp-ink: #2B2722; --lp-muted: #736A5C; --lp-faint: #9A9082;
+    --lp-terra: #B17455; --lp-terra-d: #97603F; --lp-sage-d: #6f7d4f;
+    --lp-line: #E7DFD0;
+    /* 실제 앱과 동일: 한글은 나눔명조 글리프가 없어 landing.css 의 `, serif` 로 fallback(시스템 명조). 존재하지 않는 이름으로 둬 serif 로 귀결시킨다. */
+    --font-nanum-myeongjo: '__app_fallback_serif__';
+    background: var(--lp-cream); color: var(--lp-ink);
+    font-family: system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+    line-height: 1.6; min-height: 100vh;
+  }
+  .landing-wrap { max-width: 1040px; margin: 0 auto; padding: 0 28px; }
+  .landing a { color: inherit; text-decoration: none; }
+  .landing-header { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(10px);
+    background: rgba(244,239,229,.82); border-bottom: 1px solid rgba(231,223,208,.7); }
+  .landing-nav { display: flex; align-items: center; justify-content: space-between; height: 66px; }
+  .landing-logo { display: flex; align-items: baseline; gap: 7px; font-weight: 800; font-size: 23px; color: var(--lp-ink);
+    font-family: var(--font-nanum-myeongjo), serif; }
+  .landing-logo small { font-size: 11px; color: var(--lp-faint); font-weight: 400; font-family: system-ui; }
+  .landing-nav-right { display: flex; align-items: center; gap: 20px; }
+  .landing-navlink { font-size: 14.5px; color: var(--lp-muted); font-weight: 500; }
+  .landing-btn { display: inline-flex; align-items: center; justify-content: center; font-weight: 600;
+    border-radius: 10px; cursor: pointer; border: none; transition: background .15s; }
+  .landing .landing-btn--primary { background: var(--lp-terra); color: #fff; padding: 11px 20px; font-size: 14.5px; }
+  .landing .landing-btn--primary:hover { background: var(--lp-terra-d); }
+  .landing .landing-btn--ghost { background: transparent; color: var(--lp-ink); border: 1px solid var(--lp-line); padding: 11px 20px; font-size: 14.5px; }
+  .landing-btn--lg { padding: 15px 30px; font-size: 16px; border-radius: 12px; }
+  .landing-hero { text-align: center; padding: 80px 0 52px; }
+  .landing-eyebrow { display: inline-block; font-size: 13px; font-weight: 600; letter-spacing: .04em;
+    color: var(--lp-terra-d); background: #F0E2D6; padding: 6px 14px; border-radius: 999px; margin-bottom: 24px; }
+  .landing-hero h1 { font-family: var(--font-nanum-myeongjo), serif; font-weight: 800; font-size: 54px;
+    line-height: 1.24; letter-spacing: -.01em; }
+  .landing-hero h1 .lp-accent { color: var(--lp-terra); }
+  .landing-hero .landing-sub { font-size: 17.5px; color: var(--lp-muted); margin: 22px auto 0; max-width: 28em; line-height: 1.8; }
+  .landing-cta { display: flex; gap: 12px; justify-content: center; margin-top: 34px; }
+  .landing-preview { margin: 58px auto 0; max-width: 900px; }
+  .landing-browser { background: var(--lp-paper); border: 1px solid var(--lp-line); border-radius: 16px;
+    box-shadow: 0 30px 60px -30px rgba(60,45,30,.35); overflow: hidden; }
+  .landing-browserbar { display: flex; gap: 7px; padding: 13px 16px; border-bottom: 1px solid var(--lp-line); background: var(--lp-cream2); }
+  .landing-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .landing-studio { display: grid; grid-template-columns: 160px 1fr 190px; min-height: 300px; }
+  .landing-st-rail { border-right: 1px solid var(--lp-line); padding: 16px 13px; background: var(--lp-cream2); }
+  .landing-st-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--lp-faint); text-transform: uppercase; margin-bottom: 11px; }
+  .landing-chap { font-size: 13px; color: var(--lp-muted); padding: 7px 10px; border-radius: 7px; margin-bottom: 4px; }
+  .landing-chap--on { background: #F0E2D6; color: var(--lp-terra-d); font-weight: 600; }
+  .landing-st-paper { padding: 30px 36px; font-family: var(--font-nanum-myeongjo), serif; }
+  .landing-st-paper h4 { font-size: 16px; margin-bottom: 14px; }
+  .landing-ln { height: 11px; border-radius: 4px; background: #EDE7DB; margin: 10px 0; }
+  .landing-st-side { border-left: 1px solid var(--lp-line); padding: 16px 13px; background: var(--lp-cream2); }
+  .landing-memo { background: #FBF3D9; border: 1px solid #EBDFB4; border-radius: 8px; padding: 9px 11px;
+    font-size: 11.5px; color: #6b5f3a; margin-bottom: 9px; line-height: 1.5; }
+  .landing-features { padding: 24px 0 86px; }
+  .landing-fgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .landing-fcard { background: var(--lp-paper); border: 1px solid var(--lp-line); border-radius: 14px; padding: 28px 24px; }
+  .landing-ficon { width: 42px; height: 42px; border-radius: 11px; background: #F0E2D6;
+    display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 16px; }
+  .landing-fcard h3 { font-family: var(--font-nanum-myeongjo), serif; font-weight: 700; font-size: 19px; margin-bottom: 9px; }
+  .landing-fcard p { font-size: 14.5px; color: var(--lp-muted); line-height: 1.7; }
+  .landing-footer { padding: 48px 0 38px; background: #2B2722; color: #C9C0B2; }
+  .landing-ftop { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 22px; }
+  .landing-fmark { font-family: var(--font-nanum-myeongjo), serif; font-weight: 800; font-size: 19px; color: #efe7da; margin-bottom: 8px; }
+  .landing-ftag { font-family: var(--font-nanum-myeongjo), serif; font-size: 14px; color: #9a9081; }
+  .landing-flinks { display: flex; gap: 26px; font-size: 14px; }
+  .landing-flinks a:hover { color: #fff; }
+  .landing-notice { font-size: 13.5px; color: #a89e8d; margin-top: 20px; line-height: 1.7; }
+  .landing-notice .landing-ask { color: #E0A074; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+  .landing-fcopy { font-size: 12.5px; color: #8a8276; border-top: 1px solid #3d382f; padding-top: 16px; margin-top: 22px; }
+  @media (max-width: 820px) {
+    .landing-hero h1 { font-size: 38px; }
+    .landing-studio { grid-template-columns: 1fr; }
+    .landing-st-rail, .landing-st-side { display: none; }
+    .landing-fgrid { grid-template-columns: 1fr; gap: 14px; }
+    .landing-ftop { flex-direction: column; }
+  }
+
+  /* ===== 목업 전용: 편집 가능 표시 + 안내 바 (실제 랜딩엔 없음) ===== */
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .mock-bar { position: sticky; top: 0; z-index: 50; background: #2B2722; color: #F4EFE5;
+    font: 13.5px/1.5 system-ui, sans-serif; padding: 11px 20px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .mock-bar b { color: #E0A074; }
+  .mock-bar button { background: #B17455; color: #fff; border: none; border-radius: 7px; padding: 6px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .mock-bar button:hover { background: #97603F; }
+  [data-edit] { cursor: text; border-radius: 4px; transition: background .12s, box-shadow .12s; outline: none;
+    border-bottom: 1.5px dashed rgba(177,116,85,.32); }
+  [data-edit]:hover { background: rgba(177,116,85,.09); }
+  [data-edit]:focus { background: rgba(177,116,85,.14); box-shadow: 0 0 0 2px rgba(177,116,85,.4); border-bottom-color: transparent; }
+  .landing-footer [data-edit] { border-bottom-color: rgba(224,160,116,.4); }
+  .landing-footer [data-edit]:hover { background: rgba(224,160,116,.12); }
+</style>
+</head>
+<body>
+<div class="mock-bar">
+  ✏️ <b>점선 친 문구를 클릭해 직접 고쳐 보세요.</b>
+  마음에 드는 버전이 나오면 알려주시면 실제 코드에 반영합니다.
+  <button onclick="location.reload()">처음으로 되돌리기</button>
+</div>
+
+<div class="landing">
+  <!-- header -->
+  <header class="landing-header">
+    <div class="landing-wrap landing-nav">
+      <span class="landing-logo">📖 소설비 <small>일상에 이야기를 그리다</small></span>
+      <div class="landing-nav-right">
+        <a class="landing-navlink" href="#">로그인</a>
+        <a class="landing-btn landing-btn--primary" href="#">무료로 시작하기</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- hero -->
+    <section class="landing-wrap landing-hero">
+      <span class="landing-eyebrow" data-edit contenteditable="true">작가를 위한 창작 작업실</span>
+      <h1>
+        <span data-edit contenteditable="true">흩어진 아이디어가,</span>
+        <br />
+        <span class="lp-accent" data-edit contenteditable="true">한 편의 작품이 되기까지.</span>
+      </h1>
+      <p class="landing-sub" data-edit contenteditable="true">아이디어를 모으고, 플롯을 세우고, 초고를 쓰고, 다듬어 내보내기까지. 한 작품을 완성하는 모든 과정을 한 작업실에서 잇습니다.</p>
+      <div class="landing-cta">
+        <a class="landing-btn landing-btn--primary landing-btn--lg" href="#">무료로 시작하기</a>
+        <a class="landing-btn landing-btn--ghost landing-btn--lg" href="#">로그인</a>
+      </div>
+    </section>
+
+    <!-- product preview -->
+    <div class="landing-wrap landing-preview">
+      <div class="landing-browser">
+        <div class="landing-browserbar">
+          <span class="landing-dot" style="background:#e6928a"></span>
+          <span class="landing-dot" style="background:#e6c98a"></span>
+          <span class="landing-dot" style="background:#a7c08a"></span>
+        </div>
+        <div class="landing-studio">
+          <div class="landing-st-rail">
+            <div class="landing-st-label">목차</div>
+            <div class="landing-chap landing-chap--on">1. 첫 만남</div>
+            <div class="landing-chap">2. 균열</div>
+            <div class="landing-chap">3. 떠나는 날</div>
+          </div>
+          <div class="landing-st-paper">
+            <h4>1. 첫 만남</h4>
+            <div class="landing-ln" style="width:96%"></div>
+            <div class="landing-ln" style="width:88%"></div>
+            <div class="landing-ln" style="width:92%"></div>
+            <div class="landing-ln" style="width:70%"></div>
+            <div class="landing-ln" style="width:90%"></div>
+          </div>
+          <div class="landing-st-side">
+            <div class="landing-st-label" data-edit contenteditable="true">보드</div>
+            <div class="landing-memo">주인공은 비 오는 날을 싫어함 — 3장 복선</div>
+            <div class="landing-memo">카페 이름 정하기</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- features -->
+    <section class="landing-wrap landing-features">
+      <div class="landing-fgrid">
+        <div class="landing-fcard">
+          <div class="landing-ficon">🗺️</div>
+          <h3 data-edit contenteditable="true">구상을 한눈에 — 플롯 보드</h3>
+          <p data-edit contenteditable="true">인물·사건·복선을 카드로 펼쳐 선으로 잇습니다. 머릿속에만 있던 이야기 구조를 캔버스 위에 설계하세요.</p>
+        </div>
+        <div class="landing-fcard">
+          <div class="landing-ficon">✍️</div>
+          <h3 data-edit contenteditable="true">종이처럼 쓰는 집필실</h3>
+          <p data-edit contenteditable="true">쓰는 순간부터 한 권의 책처럼. 실제 출판 판형으로 페이지가 넘어가고, 초고가 그대로 내 책이 됩니다.</p>
+        </div>
+        <div class="landing-fcard">
+          <div class="landing-ficon">📤</div>
+          <h3 data-edit contenteditable="true">보여주고, 피드백 받고, 내보내기</h3>
+          <p data-edit contenteditable="true">공유 링크로 초고를 보여주고 문장 단위 피드백을 받습니다. 작품을 시리즈로 묶어 PDF·한글(HWPX)·워드(DOCX)로 내보내고요.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- footer -->
+  <footer class="landing-footer">
+    <div class="landing-wrap">
+      <div class="landing-ftop">
+        <div>
+          <div class="landing-fmark">소설비</div>
+          <div class="landing-ftag" data-edit contenteditable="true">소설에 기대어 쉬어가는 곳</div>
+        </div>
+        <div class="landing-flinks">
+          <a href="#">로그인</a>
+          <a href="#">개인정보처리방침</a>
+        </div>
+      </div>
+      <p class="landing-notice" data-edit contenteditable="true">아직 베타 테스트 중인 1인 개발 작업실이에요. 불편하거나 바라는 점이 있으면 언제든 문의해 주세요.</p>
+      <div class="landing-fcopy">© 2026 소설비</div>
+    </div>
+  </footer>
+</div>
+</body>
+</html>

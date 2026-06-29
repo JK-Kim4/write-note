@@ -30,7 +30,7 @@ afterEach(() => {
 });
 
 describe("LoginForm", () => {
-    it("로그인 성공 시 앱 홈(/)으로 이동한다", async () => {
+    it("로그인 성공 시 로그인 중 화면(/entering)으로 이동한다", async () => {
         server.use(
             http.post(`${ORIGIN}/api/auth/login`, () =>
                 HttpResponse.json({ success: true, data: { accessToken: "x" }, error: null }),
@@ -42,7 +42,7 @@ describe("LoginForm", () => {
         await userEvent.type(screen.getByLabelText("비밀번호"), "Strong!Pass123");
         await userEvent.click(screen.getByRole("button", { name: "로그인" }));
 
-        await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/"));
+        await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/entering"));
     });
 
     it("LOGIN_FAILED 응답 시 한국어 에러 메시지를 표시한다", async () => {
@@ -124,7 +124,7 @@ describe("LoginForm", () => {
         await userEvent.type(screen.getByLabelText("비밀번호"), "Strong!Pass123");
         await userEvent.click(screen.getByRole("button", { name: "로그인" }));
 
-        await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/"));
+        await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/entering"));
         expect(localStorage.getItem("writenote.rememberedEmail.v1")).toBeNull();
     });
 

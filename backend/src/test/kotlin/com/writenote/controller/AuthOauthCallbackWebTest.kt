@@ -103,7 +103,7 @@ class AuthOauthCallbackWebTest
         }
 
         @Test
-        fun `콜백 happy — JWT 발급 + access_token·refresh_token 쿠키 + 홈 redirect`() {
+        fun `콜백 happy — JWT 발급 + access_token·refresh_token 쿠키 + entering redirect`() {
             val user =
                 userRepository.save(
                     User(
@@ -134,7 +134,7 @@ class AuthOauthCallbackWebTest
                         .param(OAuth2ParameterNames.STATE, savedState)
                         .session(savedSession),
                 ).andExpect(status().is3xxRedirection)
-                .andExpect(header().string("Location", "http://localhost:3000/"))
+                .andExpect(header().string("Location", "http://localhost:3000/entering"))
                 .andExpect(cookie().exists("access_token"))
                 .andExpect(cookie().httpOnly("access_token", true))
                 .andExpect(cookie().exists("refresh_token"))
