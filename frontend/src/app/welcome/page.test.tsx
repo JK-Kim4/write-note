@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({
 describe("공개 랜딩 콘텐츠", () => {
     it("히어로 헤드라인과 CTA 2개(가입·로그인)를 보여준다", () => {
         render(<LandingContent />);
-        expect(screen.getByRole("heading", { name: /이야기는 그 자리에/ })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: /한 편의 작품이 되기까지/ })).toBeInTheDocument();
         const signupLinks = screen.getAllByRole("link", { name: "무료로 시작하기" });
         expect(signupLinks.length).toBeGreaterThan(0);
         signupLinks.forEach((link) => expect(link).toHaveAttribute("href", "/auth/signup"));
@@ -21,9 +21,9 @@ describe("공개 랜딩 콘텐츠", () => {
 
     it("기능 3개 제목을 보여준다", () => {
         render(<LandingContent />);
-        expect(screen.getByText("맥락이 죽지 않아요")).toBeInTheDocument();
-        expect(screen.getByText("메모와 집필이 한곳에")).toBeInTheDocument();
-        expect(screen.getByText("시리즈로 묶어 내보내기")).toBeInTheDocument();
+        expect(screen.getByText("구상을 한눈에 — 플롯 보드")).toBeInTheDocument();
+        expect(screen.getByText("종이처럼 쓰는 집필실")).toBeInTheDocument();
+        expect(screen.getByText("보여주고, 피드백 받고, 내보내기")).toBeInTheDocument();
     });
 
     it("푸터 문의하기가 /contact 로 연결된다", () => {
