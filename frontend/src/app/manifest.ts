@@ -11,7 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     return {
         name: "소설비",
         short_name: "소설비",
-        description: "컨텍스트가 안 죽는 작가용 작업공간",
+        description: "흩어진 아이디어를 한 편의 작품으로 — 작가를 위한 창작 작업실",
         start_url: "/",
         display: "standalone",
         background_color: "#ffffff",
