@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>로그인 재진입 트랜지션 목업 — 소설비</title>
+<style>
+  :root{
+    --w-canvas:#fffdf8; --w-parchment:#f3ede1; --w-ink:#2a2620;
+    --w-accent:#a8542e; --w-hairline:#e7ddcc; --w-muted:#6b7280; --w-accent-text:#8a4325;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+       background:#e9e2d4;color:var(--w-ink);padding:28px;line-height:1.5}
+  h1{font-size:19px;margin:0 0 4px}
+  .sub{color:var(--w-muted);font-size:13px;margin:0 0 20px}
+  .panel{background:var(--w-canvas);border:1px solid var(--w-hairline);border-radius:14px;
+         padding:18px 20px;max-width:920px;margin:0 auto 18px}
+  .controls{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-end}
+  .group{display:flex;flex-direction:column;gap:7px}
+  .group > span.lbl{font-size:12px;font-weight:600;color:var(--w-accent-text);text-transform:uppercase;letter-spacing:.06em}
+  .opts{display:flex;gap:6px}
+  .opt{border:1px solid var(--w-hairline);background:var(--w-canvas);color:var(--w-ink);
+       padding:7px 12px;border-radius:9px;font-size:13px;cursor:pointer;transition:all .12s}
+  .opt:hover{border-color:var(--w-accent)}
+  .opt.active{background:var(--w-accent);border-color:var(--w-accent);color:#fff}
+  .play{margin-left:auto;background:var(--w-ink);color:var(--w-canvas);border:none;
+        padding:11px 22px;border-radius:999px;font-size:14px;font-weight:600;cursor:pointer}
+  .play:active{transform:translateY(1px)}
+  .hint{font-size:12px;color:var(--w-muted);margin-top:12px}
+  .hint b{color:var(--w-ink)}
+
+  /* ── 재생 스테이지: 실제 화면 비율 프레임 ── */
+  .stage{position:relative;max-width:920px;margin:0 auto;height:520px;border-radius:14px;
+         overflow:hidden;border:1px solid var(--w-hairline);box-shadow:0 8px 30px rgba(0,0,0,.10)}
+  .screen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column}
+
+  /* 홈(도착지) 목업 */
+  .home{background:var(--w-parchment);opacity:0;transition:opacity .28s ease}
+  .home.show{opacity:1}
+  .home-hd{position:absolute;top:0;left:0;right:0;height:52px;background:var(--w-canvas);
+           border-bottom:1px solid var(--w-hairline);display:flex;align-items:center;padding:0 22px;gap:10px}
+  .home-logo{width:96px;height:34px;background:url('file:///Users/jongwan-air/Desktop/workspaces/write-note/frontend/public/soseolbi-logo.png') center/contain no-repeat}
+  .home-nav{margin-left:18px;display:flex;gap:16px;font-size:13px;color:var(--w-muted)}
+  .home-body{text-align:center}
+  .home-body h2{font-size:26px;margin:0 0 6px;color:var(--w-ink)}
+  .home-body p{color:var(--w-muted);margin:0}
+
+  /* 로그인 중 인터스티셜 */
+  .inter{background:var(--w-parchment);opacity:0;transition:opacity .26s ease;z-index:2}
+  .inter.show{opacity:1}
+  .mark{width:72px;height:72px;background:url('file:///Users/jongwan-air/Desktop/workspaces/write-note/frontend/public/soseolbi-mark.png') center/contain no-repeat}
+  .spinner{width:30px;height:30px;border:3px solid color-mix(in srgb,var(--w-accent) 22%,transparent);
+           border-top-color:var(--w-accent);border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .msg{font-size:15px;color:var(--w-ink);font-weight:500}
+  .msg.muted{color:var(--w-muted);font-size:14px}
+  /* C안 펄스 */
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:.55}50%{transform:scale(1.08);opacity:1}}
+  .mark.pulse{animation:pulse 1s ease-in-out infinite}
+  .dots{display:flex;gap:6px}
+  .dots i{width:7px;height:7px;border-radius:50%;background:var(--w-accent);opacity:.4;animation:bdot 1s infinite}
+  .dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+  @keyframes bdot{0%,100%{opacity:.35;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+
+  .idle{background:var(--w-parchment);color:var(--w-muted);font-size:14px}
+</style>
+</head>
+<body>
+  <h1>로그인 재진입 트랜지션 — 어떤 "로그인 중" 효과로 할까요?</h1>
+  <p class="sub">이미 로그인된 채 <code>/auth/login</code> 재진입 시: <b>폼은 안 보이고</b> → "로그인 중" 화면 (지속시간) → 작업실(홈)로 페이드. 아래에서 스타일·시간을 고르고 <b>▶ 진입 재생</b>을 눌러 실제 느낌을 보세요.</p>
+
+  <div class="panel">
+    <div class="controls">
+      <div class="group">
+        <span class="lbl">스타일</span>
+        <div class="opts" id="styleOpts">
+          <button class="opt active" data-style="A">A · 로고+스피너+"로그인 중…"</button>
+          <button class="opt" data-style="B">B · 스피너+"작업실로 이동 중…"</button>
+          <button class="opt" data-style="C">C · 로고 펄스 (미니멀)</button>
+        </div>
+      </div>
+      <div class="group">
+        <span class="lbl">지속시간</span>
+        <div class="opts" id="durOpts">
+          <button class="opt active" data-dur="300">0.3초</button>
+          <button class="opt" data-dur="500">0.5초</button>
+          <button class="opt" data-dur="800">0.8초</button>
+        </div>
+      </div>
+      <button class="play" id="playBtn">▶ 진입 재생</button>
+    </div>
+    <p class="hint">실제 동작 = 미들웨어가 <b>폼을 건너뛰고</b> 곧장 이 "로그인 중" 화면으로 보냄 → 선택한 시간 뒤 작업실(홈)로 <b>페이드 전환</b>(히스토리에 안 남아 뒤로가기로 로그인 화면 안 돌아옴).</p>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="screen idle" id="idleScreen">여기서 ▶ 진입 재생을 누르면 트랜지션이 보입니다</div>
+
+    <div class="screen inter" id="interScreen">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:18px" id="interInner"></div>
+    </div>
+
+    <div class="screen home" id="homeScreen">
+      <div class="home-hd">
+        <div class="home-logo"></div>
+        <div class="home-nav"><span>홈</span><span>작품</span><span>보드</span><span>기록</span><span>공유</span></div>
+      </div>
+      <div class="home-body">
+        <h2>안녕하세요.</h2>
+        <p>이어서 쓰던 이야기가 그 자리에 있습니다.</p>
+      </div>
+    </div>
+  </div>
+
+<script>
+  let style='A', dur=300;
+  const idle=document.getElementById('idleScreen');
+  const inter=document.getElementById('interScreen');
+  const interInner=document.getElementById('interInner');
+  const home=document.getElementById('homeScreen');
+
+  document.getElementById('styleOpts').addEventListener('click',e=>{
+    const b=e.target.closest('.opt'); if(!b)return;
+    [...e.currentTarget.children].forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); style=b.dataset.style;
+  });
+  document.getElementById('durOpts').addEventListener('click',e=>{
+    const b=e.target.closest('.opt'); if(!b)return;
+    [...e.currentTarget.children].forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); dur=+b.dataset.dur;
+  });
+
+  function renderInter(){
+    if(style==='A'){
+      interInner.innerHTML='<div class="mark"></div><div class="spinner"></div><div class="msg">로그인 중…</div>';
+    }else if(style==='B'){
+      interInner.innerHTML='<div class="spinner"></div><div class="msg muted">작업실로 이동 중…</div>';
+    }else{
+      interInner.innerHTML='<div class="mark pulse"></div><div class="dots"><i></i><i></i><i></i></div>';
+    }
+  }
+
+  document.getElementById('playBtn').addEventListener('click',()=>{
+    // 초기화
+    home.classList.remove('show'); inter.classList.remove('show'); idle.style.opacity='0';
+    renderInter();
+    // 1) 로그인 중 화면 즉시 등장 (폼은 건너뜀)
+    requestAnimationFrame(()=>{ inter.classList.add('show'); });
+    // 2) 지속시간 뒤 홈으로 페이드
+    setTimeout(()=>{
+      home.classList.add('show');     // 홈 페이드인
+      inter.classList.remove('show'); // 로그인중 페이드아웃
+    }, dur);
+    // 3) 잠시 뒤 idle 복귀 (반복 재생용)
+    setTimeout(()=>{ idle.style.opacity='1'; home.classList.remove('show'); }, dur+2600);
+  });
+</script>
+</body>
+</html>
