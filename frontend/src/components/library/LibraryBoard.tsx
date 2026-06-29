@@ -312,7 +312,8 @@ export function LibraryBoard({ cards, onNewWork, onEditWork, onDeleteWork, onArc
                                         value={newCatName}
                                         onChange={(e) => setNewCatName(e.target.value)}
                                         onKeyDown={(e) => {
-                                            if (e.key === "Enter") submitNewCat();
+                                            // 한글 IME 조합 중 Enter 이중 발화로 시리즈가 중복 생성되는 것 방지(조합 중이면 무시).
+                                            if (e.key === "Enter" && !e.nativeEvent.isComposing) submitNewCat();
                                             if (e.key === "Escape") resetNewCat();
                                         }}
                                         placeholder="시리즈 이름"

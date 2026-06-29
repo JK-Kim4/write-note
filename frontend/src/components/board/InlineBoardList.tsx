@@ -103,7 +103,8 @@ export function InlineBoardListView({
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
                         onKeyDown={(e) => {
-                            if (e.key === "Enter") submit();
+                            // 한글 IME 조합 중 Enter 이중 발화로 보드가 중복 생성되는 것 방지(조합 중이면 무시).
+                            if (e.key === "Enter" && !e.nativeEvent.isComposing) submit();
                             if (e.key === "Escape") {
                                 setDraft("");
                                 setAdding(false);

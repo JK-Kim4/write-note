@@ -153,7 +153,9 @@ export function BoardOwnerPicker({
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         onKeyDown={(e) => {
-                            if (e.key === "Enter") handleConfirm();
+                            // 한글 IME 조합 중 Enter 는 조합 확정 + 실제 Enter 로 keydown 이 이중 발화 →
+                            // 가드 없으면 handleConfirm 이 2번 호출돼 보드가 중복 생성된다. 조합 중(isComposing)이면 무시.
+                            if (e.key === "Enter" && !e.nativeEvent.isComposing) handleConfirm();
                         }}
                         placeholder={COPY.namePlaceholder}
                         className="mt-3 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-terracotta-500 focus:outline-none"
