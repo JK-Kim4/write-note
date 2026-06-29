@@ -70,6 +70,13 @@
 - `BChapterEditor` 의 `handleReload`/`handleOverwrite` `useCallback` deps 에 `session`(`useDocumentSession` 반환, 매 렌더 새 객체)을 넣음 → 그 핸들러가 매 렌더 새 함수 → `onConflict` effect(deps `[session.conflict, handleReload, handleOverwrite]`)가 매 렌더 실행 → page `setConflictHandlers`(매번 새 객체) 무한 → 재렌더 무한 → 전체 vitest 가 `ERR_IPC_CHANNEL_CLOSED`/heap OOM 으로 죽음. (A형 `ChapterEditor` 는 conflict 를 내부 렌더라 무한 없음.)
 - 해결: `session` 을 ref 로 안정화하고 두 핸들러의 deps 에서 제거 → `onConflict` effect 가 `session.conflict` 변경 시에만 실행. 회피 가능 시점: 컴포넌트 작성 시 훅 반환값의 deps 안정성 점검(특히 effect 가 부모 setState 를 호출할 때).
 
+- **멱등이 아닌 생성(create) 동작을 Enter 로 제출하는 입력은 IME 조합 가드(`!e.nativeEvent.isComposing`) 의무** — 한글 등 조합형 입력은 조합 중 Enter 시 keydown 이 **조합 확정 + 실제 Enter 로 이중 발화**해 핸들러가 2번 호출된다. `isPending` 등 React 상태 가드는 첫 호출 후 리렌더 전이라 **동기 연속 2번째를 못 막는다**(상태는 다음 렌더에 반영). rename/edit 처럼 멱등인 동작은 무해하나, INSERT 성 생성은 중복 레코드를 만든다.
+
+#### 회귀 사례 — 2026-06-30 보드 생성 한글 IME 조합 Enter 중복
+
+- 보드 생성 picker(`BoardOwnerPicker`) 이름 input 의 `onKeyDown` 이 `if (e.key === "Enter") handleConfirm()` 만 두고 `isComposing` 가드 부재 → 한글 이름 조합 중 Enter 제출 시 `handleConfirm` 2회 → `createBoard.mutate` 2회 → 보드 2개 INSERT. 운영 DB `created_at` 1.6ms 차이(동시 2 POST) + 같은 사용자 `"123"`(숫자) 1개 vs `"단독시리즈"`(한글) 2개 자연 실험으로 확정. `isPending` 가드(`page.tsx`)는 첫 mutate 후 리렌더 전이라 무력. 생성 폼 3곳(`BoardOwnerPicker`·`InlineBoardList`·`LibraryBoard`)에 `!e.nativeEvent.isComposing` 가드로 해결.
+- 회피 가능 시점: 생성 폼 Enter 핸들러 작성 시 IME 조합 가드 active recall(한국어 우선 프로젝트 — 본 문서 §한국어 영역 검증 cadence).
+
 ### Next.js 16 App Router server/client component 경계 (HARD-GATE)
 
 - **이벤트 핸들러 prop 을 가진 컴포넌트는 `'use client'` 의무** — `onClick`, `onSubmit`, `onChange`, `onInput`, `onBlur`, `onFocus` 등. server component 가 client component 로 이벤트 핸들러를 prop 으로 직접 전달 시 build fail (`Event handlers cannot be passed to Client Component props`)
