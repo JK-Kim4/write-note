@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useBoardDetail, useReferenceBoards } from "@/lib/query/useBoards";
 import { getLastViewedBoard, rememberLastViewedBoard } from "@/lib/lastViewedBoard";
+import { WritingCardView } from "@/components/b/WritingCardView";
+import { WritingCardDetail } from "@/components/b/WritingCardDetail";
+import type { CardItem } from "@/lib/api/cards";
 
 /**
  * 집필 중 보드 참조 패널(043 → 046 인라인 편집 다듬기, PRD §5.4 ③·§9) — 우측 슬라이드오버.
@@ -19,12 +22,20 @@ import { getLastViewedBoard, rememberLastViewedBoard } from "@/lib/lastViewedBoa
  *  - 닫기 3경로: ✕ · ESC · 원고(바깥) 클릭(투명 캐처 — 원고 안 어두워짐)
  *  - initialBoardId 로 특정 보드 preselect(사이드 목록 클릭 진입)
  *  - ⤢ 넓게(폭 토글) · ↗ 전체 화면(보드 페이지로 진짜 이동)
+ *
+ * 048 US6: 헤더에 [보드 | 카드] 토글을 더한다. [카드] 뷰(WritingCardView)는 그 작품 관련 보드 카드 + 독립 카드를
+ * 3단 그룹으로 모아 읽기 전용으로 참조(WritingCardDetail). 관리(생성·재배정·삭제)는 /boards 카드 탭의 몫.
  */
 
 const PlotBoardCanvas = dynamic(() => import("@/components/board/PlotBoardCanvas"), {
     ssr: false,
     loading: () => <p className="py-12 text-center text-sm text-gray-400">캔버스를 불러오는 중…</p>,
 });
+
+const REF_VIEWS = [
+    { key: "board", label: "보드" },
+    { key: "card", label: "카드" },
+] as const satisfies ReadonlyArray<{ key: "board" | "card"; label: string }>;
 
 interface BoardReferencePanelProps {
     projectId: number;
@@ -74,6 +85,14 @@ export function BoardReferencePanel({ projectId, open, onClose, initialBoardId }
     const [wide, setWide] = useState(false);
     // 슬라이드-아웃 동안 콘텐츠를 잠깐 유지(빈 패널이 미끄러지는 것 방지).
     const [mounted, setMounted] = useState(open);
+    // 048 US6: [보드 | 카드] 뷰 토글 + 읽기 전용 카드 상세.
+    const [view, setView] = useState<"board" | "card">("board");
+    const [detailCard, setDetailCard] = useState<CardItem | null>(null);
+    // 카드 상세가 열려 있으면 패널 ESC 는 양보(상세만 닫힘) — deps 안정 위해 ref 로 읽는다.
+    const detailOpenRef = useRef(false);
+    useEffect(() => {
+        detailOpenRef.current = detailCard != null;
+    }, [detailCard]);
 
     const effectiveId = useMemo(() => {
         if (candidates.length === 0) return null;
@@ -89,14 +108,18 @@ export function BoardReferencePanel({ projectId, open, onClose, initialBoardId }
         if (open && initialBoardId != null) setSelectedId(initialBoardId);
     }, [open, initialBoardId]);
 
-    // 슬라이드-아웃 후 콘텐츠 언마운트 + 폭 초기화.
+    // 슬라이드-아웃 후 콘텐츠 언마운트 + 폭·뷰·상세 초기화.
     useEffect(() => {
         if (open) {
             setMounted(true);
             return;
         }
         setWide(false);
-        const t = window.setTimeout(() => setMounted(false), 300);
+        setDetailCard(null);
+        const t = window.setTimeout(() => {
+            setMounted(false);
+            setView("board");
+        }, 300);
         return () => window.clearTimeout(t);
     }, [open]);
 
@@ -109,7 +132,8 @@ export function BoardReferencePanel({ projectId, open, onClose, initialBoardId }
     useEffect(() => {
         if (!open) return;
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === "Escape") onClose();
+            // 카드 상세가 열려 있으면 상세의 ESC 핸들러에 양보(패널은 안 닫힘).
+            if (e.key === "Escape" && !detailOpenRef.current) onClose();
         };
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
@@ -132,12 +156,33 @@ export function BoardReferencePanel({ projectId, open, onClose, initialBoardId }
                     <>
                         <div className="flex items-center justify-between gap-2 border-b border-gray-200 px-4 py-2.5">
                             <div className="flex min-w-0 items-center gap-2">
-                                <span className="shrink-0 text-sm font-semibold text-gray-800">보드</span>
-                                {candidates.length > 1 && effectiveId != null && (
+                                <div
+                                    role="tablist"
+                                    aria-label="참조 뷰"
+                                    className="inline-flex shrink-0 overflow-hidden rounded-lg border border-gray-300"
+                                >
+                                    {REF_VIEWS.map((v) => (
+                                        <button
+                                            key={v.key}
+                                            type="button"
+                                            role="tab"
+                                            aria-selected={view === v.key}
+                                            onClick={() => setView(v.key)}
+                                            className={`px-3.5 py-1.5 text-[13px] font-semibold ${
+                                                view === v.key
+                                                    ? "bg-terracotta-600 text-white"
+                                                    : "bg-white text-gray-500 hover:bg-gray-50"
+                                            }`}
+                                        >
+                                            {v.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                {view === "board" && candidates.length > 1 && effectiveId != null && (
                                     <select
                                         value={effectiveId}
                                         onChange={(e) => setSelectedId(Number(e.target.value))}
-                                        className="min-w-0 max-w-[14rem] truncate rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-terracotta-500 focus:outline-none"
+                                        className="min-w-0 max-w-[12rem] truncate rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-terracotta-500 focus:outline-none"
                                         aria-label="참조할 보드 선택"
                                     >
                                         {candidates.map((b) => (
@@ -157,7 +202,7 @@ export function BoardReferencePanel({ projectId, open, onClose, initialBoardId }
                                 >
                                     {wide ? "⤢ 좁게" : "⤢ 넓게"}
                                 </button>
-                                {effectiveId != null && (
+                                {view === "board" && effectiveId != null && (
                                     <button
                                         type="button"
                                         onClick={() => router.push(`/boards/${effectiveId}`)}
@@ -180,7 +225,14 @@ export function BoardReferencePanel({ projectId, open, onClose, initialBoardId }
                         </div>
 
                         <div className="min-h-0 flex-1 overflow-auto p-3">
-                            {boards.isLoading ? (
+                            {view === "card" ? (
+                                <WritingCardView
+                                    referenceBoards={candidates}
+                                    boardsLoading={boards.isLoading}
+                                    active={open && view === "card"}
+                                    onOpenCard={setDetailCard}
+                                />
+                            ) : boards.isLoading ? (
                                 <p className="py-12 text-center text-sm text-gray-400">불러오는 중…</p>
                             ) : boards.isError ? (
                                 <div className="py-12 text-center">
@@ -215,6 +267,9 @@ export function BoardReferencePanel({ projectId, open, onClose, initialBoardId }
                     </>
                 )}
             </aside>
+
+            {/* 048 US6: 카드 뷰에서 카드 열기 — 읽기 전용 중앙 상세(portal, 패널 위). */}
+            <WritingCardDetail card={detailCard} onClose={() => setDetailCard(null)} />
         </>
     );
 }

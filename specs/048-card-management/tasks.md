@@ -17,7 +17,7 @@ description: "Task list — 048 카드 관리 (Card Management)"
 ## 진행 현황 (2026-07-01 · 체크포인트 — 새 세션 인계)
 
 - **US1~US5(카드 관리 탭) 완료 · 게이트 GREEN · dogfooding 확정.** BE: V30 로컬 적용(Flyway 30)·`/api/cards` 6엔드포인트·CardControllerIT 7 + **전체 110 클래스 GREEN**. FE: `/boards` [보드|카드] 탭·그리드·검색/필터(소속·종류 라벨)·상세/수정·재배정 잠금·삭제경고·**작품/시리즈 owner 칩**·**785 테스트**·build GREEN. dogfooding 사용자 승인(필터 두 축 라벨 + owner 칩 반영 후).
-- **다음 = US6(집필 화면 카드 뷰, T045~T047) + 마무리(T050 dogfooding·T051 배포·T052 surfacing).** 인계 문서 = `docs/handoff/2026-07-01-048-card-management-us6-kickoff.md`.
+- **US6(집필 화면 카드 뷰, T045~T047) 구현 완료 · FE 게이트 GREEN**(typecheck·lint 0err·**790 테스트**(+5)·build). 신규 `components/b/{writingCardGroups.ts+test, WritingCardView.tsx, WritingCardDetail.tsx}` + `BoardReferencePanel` [보드|카드] 토글 + `useCardList(enabled)` 지연조회. 신규 BE 0(GET /api/cards + GET /boards/reference 재사용). **다음 = 마무리(T050 dogfooding·T051 배포·T052 surfacing).** 인계 문서 = `docs/handoff/2026-07-01-048-card-management-us6-kickoff.md`.
 - **테스트 DB = 로컬 공유 Postgres**(Testcontainers 아님). V30 이미 로컬 적용, 신규 마이그레이션 0. DTO 이름 충돌 회피: `CreateStandaloneCardRequest`/`EditCardRequest`/`SetCardBoardRequest`, 응답 `CardItemResponse.kt`. 커밋됨(체크포인트).
 
 ## Format: `[ID] [P?] [Story] Description`
@@ -178,12 +178,12 @@ description: "Task list — 048 카드 관리 (Card Management)"
 
 ### Tests (write-first)
 
-- [ ] T045 [P] [US6] (FE 순수) 3단 그룹핑 헬퍼 테스트: `components/b/writingCardGroups.test.ts` — 참조 보드 id 집합(workBoards/seriesBoards) + 독립 → work/series/solo 그룹 분류, 각 그룹 created_at desc, 무관 작품 카드 제외
+- [X] T045 [P] [US6] (FE 순수) 3단 그룹핑 헬퍼 테스트: `components/b/writingCardGroups.test.ts` — 참조 보드 id 집합(workBoards/seriesBoards) + 독립 → work/series/solo 그룹 분류, 각 그룹 created_at desc, 무관 작품 카드 제외
 
 ### Implementation (신규 BE 0 — 기존 계약 재사용)
 
-- [ ] T046 [US6] 그룹핑 순수 헬퍼: `components/b/writingCardGroups.ts` (T045 GREEN) — `GET /api/cards`(전량) + `GET /boards/reference`(그 작품 보드 id) 결합·필터
-- [ ] T047 [US6] `BoardReferencePanel` 에 [보드 | 카드] 토글 + 카드 뷰 그룹 렌더(CardTile 재사용) + 카드 열기(상세 슬라이드오버 재사용) + 빈 상태: `components/b/BoardReferencePanel.tsx` (기존 보드 참조 뷰 보존)
+- [X] T046 [US6] 그룹핑 순수 헬퍼: `components/b/writingCardGroups.ts` (T045 GREEN) — `GET /api/cards`(전량) + `GET /boards/reference`(그 작품 보드 id) 결합·필터
+- [X] T047 [US6] `BoardReferencePanel` 에 [보드 | 카드] 토글 + 카드 뷰 그룹 렌더(CardTile 재사용) + 카드 열기(**읽기 전용** 중앙 상세 `WritingCardDetail` — 목업/research D9 정합, rule-28 화해: "슬라이드오버 재사용"의 literal=편집 시트 마운트는 목업의 읽기 전용 의도와 모순이라 열람 전용 뷰어로 화해) + 빈 상태: `components/b/BoardReferencePanel.tsx`·`WritingCardView.tsx`·`WritingCardDetail.tsx` (기존 보드 참조 뷰 보존, 카드 뷰는 최상위 분기라 참조 보드 0+독립 카드 N 도달 가능)
 
 **Checkpoint**: 집필 카드 뷰 독립 동작.
 
@@ -195,7 +195,7 @@ description: "Task list — 048 카드 관리 (Card Management)"
 - [X] T049 [P] FE 게이트: `cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build` + 회귀 grep(기존 보드 카드 생성·편집·연결·삭제 / 보드 참조 무변경)
 - [ ] T050 dogfooding 게이트(quickstart 전항): 로컬 BE+DB+FE 3개 기동 → R1~R4 체크리스트 전항 사용자 확인 후 통과 단정(rule 14/25) — 그리드·검색·필터·슬라이드오버·IME·삭제경고·재배정·집필 3단 그룹·라이트/다크·한국어
 - [ ] T051 배포: BE 선행(V30 + 신규 계약) → FE 후행. 배포 전 베이스 정합(`git log HEAD..origin/develop`, rule 18) + 운영 Flyway 버전 확인(rule 22)
-- [ ] T052 [P] 범위 밖 잔여 surfacing: 고아 memo FE 코드(`lib/api/memo.ts`·`lib/query/useMemos.ts`·`lib/memoView.ts`·`lib/electron-api/memos.ts`) 정리를 `~/obsidian/write-note/03-ISSUES.md` 후보로 등재(회수는 후속, rule 28)
+- [ ] T052 [P] 범위 밖 잔여 surfacing: `~/obsidian/write-note/03-ISSUES.md` 후보로 등재(회수는 후속, rule 28) — (a) 고아 memo FE 코드(`lib/api/memo.ts`·`lib/query/useMemos.ts`·`lib/memoView.ts`·`lib/electron-api/memos.ts`) 정리, (b) **집필 카드 뷰 전량 로드 후 클라 필터**(`WritingCardView`+`writingCardGroups`) — 현재 MVP 의도(research D9, `GET /api/cards` 유저 스코프라 현 교차노출 0)이나 카드 급증·향후 공유/읽기전용 집필 화면 재사용 시 `GET /api/cards?projectId=` 서버 필터 도입 검토(코드리뷰 P3, 2026-07-01)
 
 ---
 

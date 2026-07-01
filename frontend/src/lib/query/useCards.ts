@@ -16,11 +16,15 @@ export const cardKeys = {
     list: () => [...cardKeys.all, "list"] as const,
 };
 
-/** 카드 관리 목록(US1) — 본인 카드 전량, 생성일 내림차순. 상세는 목록 항목을 그대로 재사용(별도 fetch 없음). */
-export function useCardList() {
+/**
+ * 카드 관리 목록(US1) — 본인 카드 전량, 생성일 내림차순. 상세는 목록 항목을 그대로 재사용(별도 fetch 없음).
+ * [enabled] 로 지연 조회 — 집필 참조 패널(US6)은 [카드] 뷰를 켤 때만 전량 로드(보드 뷰만 쓰면 fetch 안 함).
+ */
+export function useCardList(enabled = true) {
     return useQuery({
         queryKey: cardKeys.list(),
         queryFn: () => webElectronApi.cards.list(),
+        enabled,
         refetchOnMount: "always",
     });
 }
