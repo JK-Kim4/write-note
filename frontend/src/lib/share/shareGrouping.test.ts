@@ -62,15 +62,15 @@ describe("activeLinkCount", () => {
 });
 
 describe("unreadProjects", () => {
-    it("안 읽은 피드백이 있는 작품만, projectId 로 dedup(작품 단위 동일 값)", () => {
+    it("안 읽은 피드백이 있는 작품만, projectId 로 묶어 스냅샷별 unread 를 합산", () => {
         const links = [
-            // 같은 작품(7)이 두 링크에 — 작품 단위 집계라 unread 값 동일, 한 번만 집계
+            // 같은 작품(7)이 두 링크에 — 스냅샷 단위 값이라 링크별로 다르며 합산된다(3+2=5).
             link(1, "work", 7, true, [snap(7, "물의 기억", 3)]),
-            link(2, "work", 7, false, [snap(7, "물의 기억", 3)]),
+            link(2, "work", 7, false, [snap(7, "물의 기억", 2)]),
             link(3, "work", 8, true, [snap(8, "첫 번째 밤", 0)]), // unread 0 → 제외
         ];
         const got = unreadProjects(links);
-        expect(got).toEqual([{ projectId: 7, title: "물의 기억", unread: 3 }]);
+        expect(got).toEqual([{ projectId: 7, title: "물의 기억", unread: 5 }]);
     });
 
     it("시리즈 링크의 여러 공개 작품도 각 projectId 단위로 합산되어 안 읽은 수가 큰 순으로", () => {
