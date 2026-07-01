@@ -12,6 +12,7 @@ import {
 } from "@/lib/query/useBoards";
 import type { BoardSummary } from "@/lib/api/boards";
 import { BoardOwnerPicker, type BoardOwnerResult } from "@/components/board/BoardOwnerPicker";
+import { CardManager } from "@/components/cards/CardManager";
 
 const COPY = {
     newButton: "+ 새 보드",
@@ -35,6 +36,7 @@ export default function BoardsPage() {
     const deleteBoard = useDeleteBoard();
     const patchOwner = usePatchBoardOwner();
 
+    const [tab, setTab] = useState<"boards" | "cards">("boards");
     const [picker, setPicker] = useState<Picker>(null);
     const [query, setQuery] = useState("");
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -81,6 +83,27 @@ export default function BoardsPage() {
 
     return (
         <div>
+            <div className="mb-5 flex gap-5 border-b border-gray-200">
+                {(["boards", "cards"] as const).map((t) => (
+                    <button
+                        key={t}
+                        type="button"
+                        onClick={() => setTab(t)}
+                        className={`-mb-px border-b-2 px-1 py-2.5 text-[15px] font-semibold ${
+                            tab === t
+                                ? "border-terracotta-500 text-terracotta-700"
+                                : "border-transparent text-gray-500 hover:text-gray-700"
+                        }`}
+                    >
+                        {t === "boards" ? "보드" : "카드"}
+                    </button>
+                ))}
+            </div>
+
+            {tab === "cards" && <CardManager />}
+
+            {tab === "boards" && (
+                <>
             <div className="mb-4 flex items-center justify-between gap-3">
                 <h1 className="text-xl font-bold">플롯 보드</h1>
                 <button
@@ -235,6 +258,8 @@ export default function BoardsPage() {
                     onConfirm={(result) => handleSetOwner(picker.board.id, result)}
                     onCancel={() => setPicker(null)}
                 />
+            )}
+                </>
             )}
         </div>
     );
