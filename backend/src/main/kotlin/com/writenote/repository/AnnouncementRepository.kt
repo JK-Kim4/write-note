@@ -13,8 +13,8 @@ interface AnnouncementRepository : JpaRepository<Announcement, Long> {
     /** 공개 상세 — 비공개/미존재는 빈 Optional. */
     fun findByIdAndIsPublishedTrue(id: Long): Optional<Announcement>
 
-    /** 배너 — 공개 공지 중 고정 우선, 그다음 최신 공개일 1건. */
-    fun findFirstByIsPublishedTrueOrderByIsPinnedDescPublishedAtDesc(): Optional<Announcement>
+    /** 홈 고정 슬롯 — 공개+고정 중 공개일 최신 1건. */
+    fun findFirstByIsPublishedTrueAndIsPinnedTrueOrderByPublishedAtDesc(): Optional<Announcement>
 
     /** 어드민 전체 목록 — 공개/비공개 모두, 최신 생성 순. */
     fun findAllByOrderByCreatedAtDesc(pageable: Pageable): Page<Announcement>

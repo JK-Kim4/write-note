@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>공지 고정·최신 슬롯 목업 — 049 (teal + coral)</title>
+<style>
+  .app {
+    --canvas: #fffdf8; --surface: #ffffff; --hairline: #e7ddcc;
+    --ink: #2a2620; --ink-2: #374151; --muted: #6b7280; --faint: #9ca3af;
+    /* teal (최신 = 운영 유지) */
+    --teal-50:#f0fdfa; --teal-200:#99f6e4; --teal-700:#0f766e; --teal-800:#115e59; --teal-900:#134e4a;
+  }
+  .app.dark {
+    --canvas:#211d18; --surface:#2a251f; --hairline:#332e26;
+    --ink:#f2ece1; --ink-2:#d9d1c4; --muted:#9a9183; --faint:#82796b;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#e9e4d8; font-family:"SF Pro Text",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif; color:#2a2620; padding:28px 20px 80px; }
+  .controls { max-width:940px; margin:0 auto 20px; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; display:flex; flex-wrap:wrap; gap:18px; align-items:center; }
+  .ctl-group { display:flex; flex-direction:column; gap:6px; }
+  .ctl-group > span { font-size:11px; font-weight:700; color:#9ca3af; letter-spacing:.02em; text-transform:uppercase; }
+  .btns { display:flex; gap:6px; flex-wrap:wrap; }
+  .btns button { font:inherit; font-size:13px; padding:6px 12px; border-radius:8px; cursor:pointer; border:1px solid #d1d5db; background:#fff; color:#374151; transition:all .12s; }
+  .btns button:hover { background:#f9fafb; }
+  .btns button.on { background:#0f766e; border-color:#0f766e; color:#fff; }
+  .stage { max-width:940px; margin:0 auto; }
+  .caption { max-width:940px; margin:14px auto 0; font-size:13px; color:#6b7280; line-height:1.7; }
+  .caption b { color:#2a2620; } .caption code { background:#f3f4f6; padding:1px 5px; border-radius:4px; font-size:12px; }
+
+  .home { background:var(--canvas); border:1px solid var(--hairline); border-radius:16px; padding:28px 32px 40px; color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.04); }
+  .home .greet { font-size:20px; font-weight:800; margin:0; }
+  .home .greet i { font-style:italic; } .home .greet .by { margin-left:8px; font-size:14px; font-weight:400; color:var(--faint); font-style:normal; }
+  .home .subtitle { margin:5px 0 0; font-size:14px; color:var(--muted); }
+  .slots { margin-top:4px; display:flex; flex-direction:column; gap:8px; }
+  .below-note { margin-top:18px; height:70px; border-radius:12px; border:1px dashed #e5e7eb; display:flex; align-items:center; justify-content:center; color:var(--faint); font-size:13px; }
+
+  .banner { display:flex; align-items:center; gap:10px; border-radius:10px; text-decoration:none; cursor:pointer; transition:background .12s; width:100%; }
+  .banner .ttl { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .badge { flex-shrink:0; display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; padding:2px 9px; border-radius:9999px; }
+  .ic { flex-shrink:0; width:16px; height:16px; }
+
+  /* 최신 = 운영 teal pill (고정 유지) */
+  .b-latest { padding:10px 14px; background:var(--teal-50); border:1px solid var(--teal-200); font-size:14px; color:var(--teal-900); }
+  .b-latest .lbl { flex-shrink:0; font-weight:600; color:var(--teal-800); }
+  .b-latest .ttl { color:var(--teal-800); }
+  .b-latest .ic { color:var(--teal-700); width:16px; height:16px; }
+
+  /* 고정 = 강조. 색은 토글(coral/amber) */
+  .b-pinned { position:relative; padding:13px 15px 13px 18px; overflow:hidden; font-size:15px; border-radius:10px; }
+  .b-pinned::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; }
+  .b-pinned .ttl { font-weight:700; }  /* 색은 아래 팔레트별 고정값(테마 무관 가독) */
+  .b-pinned .badge { color:#fff; }
+
+  /* coral (대안) */
+  .coral .b-pinned { background:#fff1ed; border:1px solid #ffb9ab; }
+  .coral .b-pinned::before { background:#ff6f61; }
+  .coral .b-pinned:hover { background:#ffe8e1; }
+  .coral .b-pinned .badge { background:#ef5b47; }
+  .coral .b-pinned .ttl { color:#7a2618; }
+  /* amber (권장) */
+  .amber .b-pinned { background:#fef6e7; border:1px solid #f2d391; }
+  .amber .b-pinned .ttl { color:#78350f; }
+  .amber .b-pinned::before { background:#e0a53b; }
+  .amber .b-pinned:hover { background:#fdeecd; }
+  .amber .b-pinned .badge { background:#b7791f; }
+  .amber .b-pinned .date { color:#9a6512; }
+</style>
+</head>
+<body>
+<div class="controls">
+  <div class="ctl-group"><span>고정 슬롯 색 (최신=teal 고정)</span>
+    <div class="btns" id="colorBtns">
+      <button data-color="amber" class="on">앰버/골드 (선택)</button>
+      <button data-color="coral">코랄</button>
+    </div>
+  </div>
+  <div class="ctl-group"><span>데이터 상태</span>
+    <div class="btns" id="stateBtns">
+      <button data-state="both" class="on">둘 다</button>
+      <button data-state="pinnedOnly">고정만</button>
+      <button data-state="latestOnly">최신만</button>
+    </div>
+  </div>
+  <div class="ctl-group"><span>테마</span>
+    <div class="btns" id="themeBtns">
+      <button data-theme="light" class="on">라이트</button>
+      <button data-theme="dark">다크</button>
+    </div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="app amber" id="app">
+    <div class="home">
+      <h1 class="greet"><i>“하루하루가 모여 한 권이 된다.”</i><span class="by">— 무명</span></h1>
+      <p class="subtitle">2026년 7월 1일 수요일</p>
+      <div class="slots" id="slots"></div>
+      <div class="below-note">↑ 공지 슬롯 · 아래는 실제 홈 대시보드</div>
+    </div>
+  </div>
+</div>
+<div class="caption" id="caption"></div>
+
+<script>
+  const PIN = { title:"[중요] 개인정보처리방침 개정 안내" };
+  const LAT = { title:"7월 정기 점검 안내 — 7/5 02:00~04:00" };
+  const pinIcon='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>';
+  const megaIcon='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>';
+  let cur={ color:"amber", state:"both", theme:"light" };
+  const pinnedBanner=()=>`<a class="banner b-pinned"><span class="badge">${pinIcon}고정</span><span class="ttl">${PIN.title}</span></a>`;
+  const latestBanner=()=>`<a class="banner b-latest">${megaIcon}<span class="lbl">공지</span><span class="ttl">${LAT.title}</span></a>`;
+  function render(){
+    document.getElementById("app").className="app "+cur.color+(cur.theme==="dark"?" dark":"");
+    let html=""; if(cur.state==="both")html=pinnedBanner()+latestBanner(); else if(cur.state==="pinnedOnly")html=pinnedBanner(); else html=latestBanner();
+    document.getElementById("slots").innerHTML=html;
+    const c=cur.color==="coral"
+      ? "<b>코랄 (권장)</b> — teal 의 따뜻한 보색. 청록 최신과 대비되어 고정이 확 뜬다. 갈색(테라코타)·순빨강 아님. <code>#ff6f61</code> 바·<code>#ef5b47</code> 배지·<code>#fff1ed</code> 채움."
+      : "<b>앰버/골드</b> — 따뜻한 금빛 강조. teal 과 우아한 대비(검색: gold/brass 악센트). <code>#e0a53b</code> 바·<code>#b7791f</code> 배지·<code>#fef6e7</code> 채움.";
+    document.getElementById("caption").innerHTML = c + "<br><br>최신 슬롯은 <b>운영 청록 pill 그대로</b>(색 유지). 근거: teal+coral 은 디자인·패션에서 검증된 보색 조합, 웜 크림 뉴트럴 배경에서 효과적.";
+  }
+  function wire(id,key){ document.getElementById(id).addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;cur[key]=b.dataset[key];[...document.getElementById(id).children].forEach(c=>c.classList.toggle("on",c===b));render();}); }
+  wire("colorBtns","color"); wire("stateBtns","state"); wire("themeBtns","theme"); render();
+</script>
+</body>
+</html>

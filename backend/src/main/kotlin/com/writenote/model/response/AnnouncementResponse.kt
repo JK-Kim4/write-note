@@ -17,6 +17,12 @@ data class AnnouncementDetailResponse(
     val publishedAt: Instant?,
 )
 
+/** 홈 공지 두 슬롯 — 고정/최신 각각 요약(없으면 null). */
+data class HomeAnnouncementsResponse(
+    val pinned: AnnouncementSummaryResponse?,
+    val latest: AnnouncementSummaryResponse?,
+)
+
 /** 어드민 공지 — 공개/고정 상태 등 전체 필드. */
 data class AdminAnnouncementResponse(
     val id: Long,
