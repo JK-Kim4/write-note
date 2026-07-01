@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>048 집필 카드 뷰 — 가시성 개선안 비교</title>
+<style>
+  :root{
+    /* 실제 앱 토큰 (tokens.css / globals.css / cardKinds.ts) */
+    --canvas:#fffdf8; --parchment:#f3ede1; --hairline:#e7ddcc;
+    --ink:#111827; --ink2:#374151; --muted:#6b7280; --faint:#9ca3af;
+    --border:#e5e7eb; --border-strong:#d1d5db;
+    --font-ui:"SF Pro Text",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif;
+    --font-prose:"Apple SD Gothic Neo","Noto Serif KR",serif;
+
+    /* 종류색 (cardKinds.ts / Tailwind) */
+    --char-50:#f0fdfa; --char-200:#99f6e4; --char-chipbg:#ccfbf1; --char-chip:#0f766e; --char-dot:#14b8a6; --char-500:#14b8a6;
+    --place-50:#ecfdf5; --place-200:#a7f3d0; --place-chipbg:#d1fae5; --place-chip:#047857; --place-dot:#10b981; --place-500:#10b981;
+    --event-50:#fbf3ee; --event-200:#ecc7ad; --event-chipbg:#f6e3d6; --event-chip:#8a4325; --event-dot:#c77a4f; --event-500:#c77a4f;
+    --theme-50:#f5f3ff; --theme-200:#ddd6fe; --theme-chipbg:#ede9fe; --theme-chip:#6d28d9; --theme-dot:#8b5cf6; --theme-500:#8b5cf6;
+    --none-50:#f8fafc; --none-200:#e2e8f0; --none-chipbg:#f1f5f9; --none-chip:#64748b; --none-dot:#94a3b8; --none-500:#94a3b8;
+    --terra-50:#fbf3ee; --terra-700:#8a4325;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#d9d3c6;font-family:var(--font-ui);color:var(--ink);-webkit-font-smoothing:antialiased;padding:24px}
+  .note{max-width:1120px;margin:0 auto 16px;font-size:13px;color:#6b5f4f;line-height:1.6}
+  .note b{color:var(--terra-700)}
+  .cols{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+
+  /* 집필 보드참조 패널 컨텍스트 (크림 배경) */
+  .panel{background:var(--canvas);border:1px solid var(--hairline);border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10)}
+  .panel-head{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--hairline);background:#fff}
+  .badge{font-size:11px;font-weight:800;padding:3px 9px;border-radius:9999px}
+  .badge.now{background:#f3f4f6;color:#6b7280}
+  .badge.a{background:#dcfce7;color:#15803d}
+  .badge.b{background:#e0e7ff;color:#4338ca}
+  .panel-title{font-size:13px;font-weight:700;color:var(--ink2)}
+  .panel-body{padding:16px}
+
+  /* 그룹 헤더 */
+  .grp{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .grp .gt{font-size:12.5px;font-weight:800;color:var(--ink2)}
+  .grp .gc{font-size:11px;font-weight:800;color:var(--muted);background:#eef0f2;border-radius:9999px;padding:2px 8px}
+  .grp .gl{flex:1;height:1px;background:#e7ddcc}
+  .grid{display:flex;flex-direction:column;gap:11px}
+
+  /* ── 공통 카드 뼈대 ── */
+  .card{border-radius:12px;padding:12px 13px 11px;min-height:96px;display:flex;flex-direction:column;cursor:pointer}
+  .ctext{font-family:var(--font-prose);font-size:14px;line-height:1.5;color:var(--ink);flex:1;
+         display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .ctext.empty{color:var(--faint)}
+  .cfoot{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:9999px}
+  .dot{width:6px;height:6px;border-radius:50%}
+  .owner{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:9999px;background:var(--char-chipbg);color:var(--char-chip)}
+  .bname{font-size:10.5px}
+
+  /* ══ 현재 (as-is) — 연한 틴트 배경 + 흐린 보드명 ══ */
+  .now .card{background:var(--k-50);border:1px solid var(--k-200);box-shadow:none}
+  .now .bname{color:var(--faint)}
+
+  /* ══ 개선 A — 흰 카드 + 좌측 종류색 액센트 바 + 강한 테두리 + 그림자 ══ */
+  .optA .card{background:#fff;border:1px solid var(--border-strong);border-left:4px solid var(--k-500);
+              box-shadow:0 1px 3px rgba(0,0,0,.09);transition:box-shadow .12s,transform .12s}
+  .optA .card:hover{box-shadow:0 5px 14px rgba(0,0,0,.12);transform:translateY(-1px)}
+  .optA .bname{color:var(--muted)}
+
+  /* ══ 개선 B — 틴트 강화(테두리 진하게 + 그림자 + 보드명 진하게) ══ */
+  .optB .card{background:var(--k-50);border:1.5px solid var(--k-500);box-shadow:0 2px 6px rgba(0,0,0,.07);
+              transition:box-shadow .12s,transform .12s}
+  .optB .card:hover{box-shadow:0 5px 14px rgba(0,0,0,.12);transform:translateY(-1px)}
+  .optB .bname{color:var(--muted)}
+
+  /* 종류 팔레트 주입 */
+  .k-char{--k-50:var(--char-50);--k-200:var(--char-200);--k-500:var(--char-500)}
+  .k-char .chip{background:var(--char-chipbg);color:var(--char-chip)} .k-char .dot{background:var(--char-dot)}
+  .k-event{--k-50:var(--event-50);--k-200:var(--event-200);--k-500:var(--event-500)}
+  .k-event .chip{background:var(--event-chipbg);color:var(--event-chip)} .k-event .dot{background:var(--event-dot)}
+  .k-none{--k-50:var(--none-50);--k-200:var(--none-200);--k-500:var(--none-500)}
+  .k-none .chip{background:var(--none-chipbg);color:var(--none-chip)} .k-none .dot{background:var(--none-dot)}
+
+  .cap{margin-top:10px;font-size:11.5px;color:#6b5f4f;line-height:1.5}
+  .cap b{color:var(--terra-700)}
+</style>
+</head>
+<body>
+<div class="note">
+  집필 화면 <b>[카드] 뷰</b>의 카드 타일이 크림색 패널 배경(<b>#fffdf8</b>)에서 <b>잘 안 보이는</b> 문제.
+  아래 3개 패널은 같은 카드를 <b>현재 / 개선 A / 개선 B</b>로 렌더한 것(실제 앱 색·치수). 어느 쪽이 나은지 보고 골라 주세요.
+  <br>※ 공용 <b>CardTile</b>이라 고른 안은 <b>/boards 카드 탭</b>에도 함께 적용됩니다.
+</div>
+
+<div class="cols">
+  <!-- 현재 -->
+  <div class="panel now">
+    <div class="panel-head"><span class="badge now">현재</span><span class="panel-title">지금 모습 (잘 안 보임)</span></div>
+    <div class="panel-body">
+      <div class="grp"><span class="gt">시리즈 보드</span><span class="gc">3</span><span class="gl"></span></div>
+      <div class="grid">
+        <div class="card k-none"><div class="ctext empty">(내용 없음)</div>
+          <div class="cfoot"><span class="chip"><span class="dot"></span>종류 없음</span><span class="owner">시리즈 · 가나나나</span><span class="bname">🕸 ㅅㅅㅅㅅ</span></div></div>
+        <div class="card k-event"><div class="ctext">복선: 다락방에서 발견한 편지. 발신인이 지워져 있다.</div>
+          <div class="cfoot"><span class="chip"><span class="dot"></span>사건</span><span class="bname">🕸 1부 플롯</span></div></div>
+        <div class="card k-char"><div class="ctext">주인공 김서연 — 26세, 냉소적이지만 여린.</div>
+          <div class="cfoot"><span class="chip"><span class="dot"></span>인물</span><span class="bname">🕸 인물 관계도</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 개선 A -->
+  <div class="panel optA">
+    <div class="panel-head"><span class="badge a">개선 A</span><span class="panel-title">흰 카드 + 종류색 액센트</span></div>
+    <div class="panel-body">
+      <div class="grp"><span class="gt">시리즈 보드</span><span class="gc">3</span><span class="gl"></span></div>
+      <div class="grid">
+        <div class="card k-none"><div class="ctext empty">(내용 없음)</div>
+          <div class="cfoot"><span class="chip"><span class="dot"></span>종류 없음</span><span class="owner">시리즈 · 가나나나</span><span class="bname">🕸 ㅅㅅㅅㅅ</span></div></div>
+        <div class="card k-event"><div class="ctext">복선: 다락방에서 발견한 편지. 발신인이 지워져 있다.</div>
+          <div class="cfoot"><span class="chip"><span class="dot"></span>사건</span><span class="bname">🕸 1부 플롯</span></div></div>
+        <div class="card k-char"><div class="ctext">주인공 김서연 — 26세, 냉소적이지만 여린.</div>
+          <div class="cfoot"><span class="chip"><span class="dot"></span>인물</span><span class="bname">🕸 인물 관계도</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 개선 B -->
+  <div class="panel optB">
+    <div class="panel-head"><span class="badge b">개선 B</span><span class="panel-title">틴트 유지 + 대비 강화</span></div>
+    <div class="panel-body">
+      <div class="grp"><span class="gt">시리즈 보드</span><span class="gc">3</span><span class="gl"></span></div>
+      <div class="grid">
+        <div class="card k-none"><div class="ctext empty">(내용 없음)</div>
+          <div class="cfoot"><span class="chip"><span class="dot"></span>종류 없음</span><span class="owner">시리즈 · 가나나나</span><span class="bname">🕸 ㅅㅅㅅㅅ</span></div></div>
+        <div class="card k-event"><div class="ctext">복선: 다락방에서 발견한 편지. 발신인이 지워져 있다.</div>
+          <div class="cfoot"><span class="chip"><span class="dot"></span>사건</span><span class="bname">🕸 1부 플롯</span></div></div>
+        <div class="card k-char"><div class="ctext">주인공 김서연 — 26세, 냉소적이지만 여린.</div>
+          <div class="cfoot"><span class="chip"><span class="dot"></span>인물</span><span class="bname">🕸 인물 관계도</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="max-width:1120px;margin:14px auto 0" class="cap">
+  <b>개선 A</b> = 카드를 <b>흰 배경</b>으로 띄우고 종류색은 <b>왼쪽 4px 세로 바</b>로 남김 + 테두리 진하게(#d1d5db) + 옅은 그림자. 크림 배경과 대비가 커 가장 또렷. 종류색은 액센트로만.<br>
+  <b>개선 B</b> = <b>종류색 배경 유지</b>하되 테두리를 종류색 진한 선(1.5px)으로 + 그림자 + 보드명 글자색 진하게. 색은 살리되 경계를 또렷하게.<br>
+  공통: 흐리던 <b>보드명(🕸)</b>을 회색 진하게(#6b7280), 카드 그림자·hover 부양 추가.
+</div>
+</body>
+</html>

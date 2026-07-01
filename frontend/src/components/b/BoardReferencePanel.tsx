@@ -33,9 +33,9 @@ const PlotBoardCanvas = dynamic(() => import("@/components/board/PlotBoardCanvas
 });
 
 const REF_VIEWS = [
-    { key: "board", label: "보드" },
-    { key: "card", label: "카드" },
-] as const satisfies ReadonlyArray<{ key: "board" | "card"; label: string }>;
+    { key: "board", label: "보드", icon: "🕸" },
+    { key: "card", label: "카드", icon: "🗂" },
+] as const satisfies ReadonlyArray<{ key: "board" | "card"; label: string; icon: string }>;
 
 interface BoardReferencePanelProps {
     projectId: number;
@@ -156,11 +156,7 @@ export function BoardReferencePanel({ projectId, open, onClose, initialBoardId }
                     <>
                         <div className="flex items-center justify-between gap-2 border-b border-gray-200 px-4 py-2.5">
                             <div className="flex min-w-0 items-center gap-2">
-                                <div
-                                    role="tablist"
-                                    aria-label="참조 뷰"
-                                    className="inline-flex shrink-0 overflow-hidden rounded-lg border border-gray-300"
-                                >
+                                <div role="tablist" aria-label="참조 뷰" className="flex shrink-0 items-center gap-4">
                                     {REF_VIEWS.map((v) => (
                                         <button
                                             key={v.key}
@@ -168,12 +164,13 @@ export function BoardReferencePanel({ projectId, open, onClose, initialBoardId }
                                             role="tab"
                                             aria-selected={view === v.key}
                                             onClick={() => setView(v.key)}
-                                            className={`px-3.5 py-1.5 text-[13px] font-semibold ${
+                                            className={`flex items-center gap-1.5 border-b-2 pb-0.5 text-[15px] font-bold transition ${
                                                 view === v.key
-                                                    ? "bg-terracotta-600 text-white"
-                                                    : "bg-white text-gray-500 hover:bg-gray-50"
+                                                    ? "border-terracotta-600 text-terracotta-700"
+                                                    : "border-transparent text-gray-400 hover:text-gray-600"
                                             }`}
                                         >
+                                            <span aria-hidden>{v.icon}</span>
                                             {v.label}
                                         </button>
                                     ))}
@@ -185,11 +182,30 @@ export function BoardReferencePanel({ projectId, open, onClose, initialBoardId }
                                         className="min-w-0 max-w-[12rem] truncate rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-terracotta-500 focus:outline-none"
                                         aria-label="참조할 보드 선택"
                                     >
-                                        {candidates.map((b) => (
-                                            <option key={b.id} value={b.id}>
-                                                {b.name} · {b.ownerLabel}
-                                            </option>
-                                        ))}
+                                        {/* 작품 보드(owner=project) / 시리즈 보드(owner=category) 구분 — 나머지(아이디어 등)는 기타. */}
+                                        {(
+                                            [
+                                                { label: "작품 보드", type: "project" },
+                                                { label: "시리즈 보드", type: "category" },
+                                                { label: "기타 보드", type: null },
+                                            ] as const
+                                        ).map(({ label, type }) => {
+                                            const group = candidates.filter((b) =>
+                                                type === null
+                                                    ? b.ownerType !== "project" && b.ownerType !== "category"
+                                                    : b.ownerType === type,
+                                            );
+                                            if (group.length === 0) return null;
+                                            return (
+                                                <optgroup key={label} label={label}>
+                                                    {group.map((b) => (
+                                                        <option key={b.id} value={b.id}>
+                                                            {b.name} · {b.ownerLabel}
+                                                        </option>
+                                                    ))}
+                                                </optgroup>
+                                            );
+                                        })}
                                     </select>
                                 )}
                             </div>

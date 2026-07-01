@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>048 집필 참조 패널 — [보드|카드] 전환 탭 인지 개선</title>
+<style>
+  :root{
+    --canvas:#fffdf8; --hairline:#e7ddcc;
+    --ink:#111827; --ink2:#374151; --muted:#6b7280; --faint:#9ca3af;
+    --border:#e5e7eb; --border-strong:#d1d5db;
+    --terra-50:#fbf3ee; --terra-100:#f6e3d6; --terra-500:#c77a4f; --terra-600:#a8542e; --terra-700:#8a4325;
+    --font-ui:"SF Pro Text",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif;
+    --font-prose:"Apple SD Gothic Neo","Noto Serif KR",serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#d9d3c6;font-family:var(--font-ui);color:var(--ink);-webkit-font-smoothing:antialiased;padding:24px}
+  .note{max-width:1160px;margin:0 auto 16px;font-size:13px;color:#6b5f4f;line-height:1.65}
+  .note b{color:var(--terra-700)}
+  .cols{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:start}
+
+  .lab{font-size:11px;font-weight:800;padding:3px 9px;border-radius:9999px;display:inline-block;margin-bottom:8px}
+  .lab.now{background:#f3f4f6;color:#6b7280}
+  .lab.a{background:#dcfce7;color:#15803d}
+  .lab.b{background:#e0e7ff;color:#4338ca}
+
+  /* 집필 우측 보드참조 패널 */
+  .panel{background:var(--canvas);border:1px solid var(--hairline);border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+  .phead{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--hairline);background:#fff;min-height:52px}
+  .spacer{flex:1}
+  .ic{border:0;background:transparent;color:var(--faint);font-size:15px;cursor:pointer;padding:5px 6px;border-radius:6px}
+  .ic:hover{background:#f3f4f6;color:var(--muted)}
+  .pbody{padding:14px;height:300px;overflow:auto}
+
+  /* 뷰 콘텐츠 */
+  .board-ph{height:100%;border:1px dashed var(--border-strong);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:12.5px;
+     background:linear-gradient(#f6f5f1 1px,transparent 1px) 0 0/20px 20px,linear-gradient(90deg,#f6f5f1 1px,transparent 1px) 0 0/20px 20px,#fff}
+  .grp{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+  .grp .gt{font-size:12px;font-weight:800;color:var(--ink2)}
+  .grp .gc{font-size:10.5px;font-weight:800;color:var(--muted);background:#eef0f2;border-radius:9999px;padding:2px 7px}
+  .grp .gl{flex:1;height:1px;background:#e7ddcc}
+  .rc{background:#fff;border:1px solid var(--border-strong);border-left:4px solid var(--terra-500);border-radius:10px;padding:10px 11px;margin-bottom:9px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .rc .t{font-family:var(--font-prose);font-size:13px;color:var(--ink);line-height:1.5}
+  .rc .f{margin-top:8px;font-size:10px;font-weight:700;color:var(--terra-700);background:var(--terra-50);display:inline-block;padding:2px 7px;border-radius:9999px}
+  .hide{display:none}
+
+  /* ── 현재: 작은 pill 세그먼트 ── */
+  .seg-now{display:inline-flex;border:1px solid var(--border-strong);border-radius:8px;overflow:hidden}
+  .seg-now button{border:0;background:#fff;color:var(--muted);font:inherit;font-size:13px;font-weight:600;padding:6px 14px;cursor:pointer}
+  .seg-now button.on{background:var(--terra-600);color:#fff}
+
+  /* ── 개선 A: 큰 세그먼트 + 아이콘 + "보기" 라벨 ── */
+  .segA-wrap{display:flex;align-items:center;gap:8px}
+  .segA-lab{font-size:11px;font-weight:700;color:var(--faint)}
+  .segA{display:inline-flex;background:#f1efe9;border:1px solid var(--border-strong);border-radius:10px;padding:3px;gap:3px}
+  .segA button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13.5px;font-weight:700;padding:6px 14px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .segA button.on{background:var(--terra-600);color:#fff;box-shadow:0 1px 4px rgba(168,84,46,.4)}
+
+  /* ── 개선 B: 언더라인 탭 ── */
+  .tabsB{display:flex;gap:20px;align-items:flex-end;height:100%}
+  .tabsB button{border:0;background:transparent;font:inherit;font-size:15px;font-weight:700;color:var(--faint);cursor:pointer;padding:4px 2px 10px;position:relative}
+  .tabsB button.on{color:var(--terra-700)}
+  .tabsB button.on::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2.5px;background:var(--terra-600);border-radius:2px}
+  .tabsB button .ico{margin-right:5px}
+
+  .cap{max-width:1160px;margin:14px auto 0;font-size:12px;color:#6b5f4f;line-height:1.6}
+  .cap b{color:var(--terra-700)}
+  .try{color:var(--terra-700);font-weight:700}
+</style>
+</head>
+<body>
+<div class="note">
+  집필 화면 → <b>보드 참조</b> 패널 안의 <b>[보드 | 카드] 전환 탭</b>이 "여기서 뷰를 바꾼다"가 <b>잘 인지 안 되는</b> 문제.
+  아래 3개 패널의 탭을 <span class="try">직접 클릭</span>해 보세요 — 어느 쪽이 "아, 카드로 바꿀 수 있구나"가 <b>바로 읽히는지</b> 골라 주세요.
+</div>
+
+<div class="cols">
+  <!-- 현재 -->
+  <div>
+    <span class="lab now">현재</span>
+    <div class="panel" data-view="board">
+      <div class="phead">
+        <div class="seg-now">
+          <button data-v="board" class="on" onclick="sw(this)">보드</button>
+          <button data-v="card" onclick="sw(this)">카드</button>
+        </div>
+        <span class="spacer"></span>
+        <button class="ic">⤢</button><button class="ic">↗</button><button class="ic">✕</button>
+      </div>
+      <div class="pbody">
+        <div class="v-board"><div class="board-ph">보드 캔버스</div></div>
+        <div class="v-card hide"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 개선 A -->
+  <div>
+    <span class="lab a">개선 A · 아이콘 세그먼트</span>
+    <div class="panel" data-view="board">
+      <div class="phead">
+        <div class="segA-wrap">
+          <span class="segA-lab">보기</span>
+          <div class="segA">
+            <button data-v="board" class="on" onclick="sw(this)"><span>🕸</span>보드</button>
+            <button data-v="card" onclick="sw(this)"><span>🗂</span>카드</button>
+          </div>
+        </div>
+        <span class="spacer"></span>
+        <button class="ic">⤢</button><button class="ic">✕</button>
+      </div>
+      <div class="pbody">
+        <div class="v-board"><div class="board-ph">보드 캔버스</div></div>
+        <div class="v-card hide"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 개선 B -->
+  <div>
+    <span class="lab b">개선 B · 언더라인 탭</span>
+    <div class="panel" data-view="board">
+      <div class="phead" style="align-items:stretch;padding-bottom:0">
+        <div class="tabsB">
+          <button data-v="board" class="on" onclick="sw(this)"><span class="ico">🕸</span>보드</button>
+          <button data-v="card" onclick="sw(this)"><span class="ico">🗂</span>카드</button>
+        </div>
+        <span class="spacer"></span>
+        <div style="display:flex;align-items:center"><button class="ic">⤢</button><button class="ic">↗</button><button class="ic">✕</button></div>
+      </div>
+      <div class="pbody">
+        <div class="v-board"><div class="board-ph">보드 캔버스</div></div>
+        <div class="v-card hide"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="cap">
+  <b>개선 A</b> = 회색 트랙 위의 <b>아이콘 세그먼트</b>(🕸 보드 / 🗂 카드) + "보기" 라벨. iOS 세그먼트처럼 "둘 중 하나 고르는 스위치"임이 또렷.<br>
+  <b>개선 B</b> = <b>언더라인 탭</b>(브라우저 탭처럼). 밑줄이 "탭을 바꾼다"를 가장 직관적으로 전달. 헤더를 덜 차지.<br>
+  둘 다 아이콘(🕸/🗂) + 현재 위치 강조로 인지도를 올립니다. 카드 뷰 콘텐츠 색은 이번 결정과 별개(원하시면 따로).
+</div>
+
+<script>
+  const CARD_HTML = `
+    <div class="grp"><span class="gt">이 작품 보드</span><span class="gc">2</span><span class="gl"></span></div>
+    <div class="rc"><div class="t">복선: 다락방에서 발견한 편지</div><div class="f">🕸 1부 플롯</div></div>
+    <div class="rc"><div class="t">주인공 김서연 — 냉소적이지만 여린</div><div class="f">🕸 인물 관계도</div></div>
+    <div class="grp"><span class="gt">독립 카드</span><span class="gc">1</span><span class="gl"></span></div>
+    <div class="rc"><div class="t">제목 후보: 「지워진 이름」</div><div class="f">🗂 독립</div></div>`;
+  function sw(btn){
+    const panel = btn.closest(".panel");
+    const v = btn.dataset.v;
+    panel.querySelectorAll(".phead button[data-v]").forEach(b=>b.classList.toggle("on", b.dataset.v===v));
+    const card = panel.querySelector(".v-card"), board = panel.querySelector(".v-board");
+    if(v==="card"){ card.innerHTML = CARD_HTML; card.classList.remove("hide"); board.classList.add("hide"); }
+    else { card.classList.add("hide"); board.classList.remove("hide"); }
+  }
+</script>
+</body>
+</html>
