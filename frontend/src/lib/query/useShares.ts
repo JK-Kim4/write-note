@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     createShareLink,
     deleteShareLink,
+    getAuthorFeedback,
     getSharedView,
     getSharedWork,
     listMyShareLinks,
@@ -20,6 +21,8 @@ import type { ShareTargetType } from "@/lib/api/share";
 export const shareKeys = {
     all: ["shares"] as const,
     mine: () => [...shareKeys.all, "mine"] as const,
+    /** 작가 맥락 뷰(050 US1) — 링크·스냅샷 단위. `mine()` 과 별개 prefix 라 읽음 처리 시 선택적 무효화 가능. */
+    authorFeedback: (linkId: number, projectId: number) => [...shareKeys.all, "authorFeedback", linkId, projectId] as const,
 };
 
 /** 공개 열람(R5) 쿼리 키 — 토큰 단위 진입 목록 + 작품 단위 본문(댓글 동봉). */
@@ -92,6 +95,19 @@ export function useSharedWork(token: string, projectId: number) {
         queryKey: publicShareKeys.work(token, projectId),
         queryFn: () => getSharedWork(token, projectId),
         enabled: token.length > 0 && Number.isFinite(projectId) && projectId > 0,
+        retry: false,
+        refetchOnMount: "always",
+    });
+}
+
+// ─── 작가 맥락 뷰(050 US1) ────────────────────────────────────────────────────
+
+/** 작가 맥락 뷰 — 한 공유 링크(스냅샷)의 전문+전체 피드백+반응 집계. 소유 작가만(타인 403). */
+export function useAuthorFeedback(linkId: number, projectId: number) {
+    return useQuery({
+        queryKey: shareKeys.authorFeedback(linkId, projectId),
+        queryFn: () => getAuthorFeedback(linkId, projectId),
+        enabled: Number.isFinite(linkId) && Number.isFinite(projectId),
         retry: false,
         refetchOnMount: "always",
     });

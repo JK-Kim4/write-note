@@ -24,7 +24,7 @@
 - **Auth**: optional. 비회원(principal null) → **401 COMMENT_UNAUTHENTICATED**.
 - **Body** `CreateReactionRequest`: `{ "anchorBlockIndex": 0, "anchorStart": 3, "anchorLength": 12, "emoji": "❤️" }`
 - **검증**: emoji ∈ 화이트리스트(아니면 **400 REACTION_EMOJI_INVALID**) · 앵커 = AnchorValidator(스냅샷) 실패 시 **400 COMMENT_ANCHOR_INVALID**.
-- **동작**: `(snapshot, anchor, emoji, reactor)` unique — 이미 있으면 멱등(무해). 링크 비활성/없음 → 404 SHARE_LINK_NOT_FOUND.
+- **동작**: `(snapshot, anchor, emoji, reactor)` unique — 이미 있으면 멱등(무해). 링크 비활성/없음 → 404 SHARE_LINK_NOT_FOUND, 그 링크에 해당 작품 스냅샷 없음 → 404 **SHARE_TARGET_NOT_FOUND**(기존 `getSharedWork` 와 동형). (N3 동일)
 - **200** 갱신된 그 구간 `ReactionAggregate`(또는 해당 emoji 집계).
 
 ### N3. DELETE /api/shared/{token}/works/{projectId}/reactions  — 반응 제거(토글 off) (US3)

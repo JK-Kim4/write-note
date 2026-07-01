@@ -7,7 +7,13 @@
  * useDeleteComment = 작성자 본인 댓글 삭제(타인 403). 공개 열람 댓글 레이어(R5)에서 소비.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { authorComments, createComment, deleteComment, markCommentsRead } from "@/lib/api/share";
+import {
+    authorComments,
+    createComment,
+    deleteComment,
+    markCommentsRead,
+    markSnapshotCommentsRead,
+} from "@/lib/api/share";
 import type { CommentResponse, CreateCommentInput, SharedWorkResponse } from "@/lib/api/share";
 import { publicShareKeys, shareKeys } from "@/lib/query/useShares";
 
@@ -53,6 +59,20 @@ export function useMarkCommentsRead() {
     });
 }
 
+/**
+ * 스냅샷 스코프 받은 피드백 읽음 처리(050 US1 — `AuthorFeedbackView` 진입 시 1회). `shareKeys.mine()` 만
+ * 무효화해(안 읽음 배지 갱신) 열려 있는 맥락 뷰 자체(`shareKeys.authorFeedback`)는 새로고침하지 않는다 —
+ * 047 인박스와 같은 이유로, 보는 동안 "안 읽음" 강조가 유지되고 다음 진입(refetchOnMount) 때 사라진다.
+ */
+export function useMarkSnapshotRead() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ linkId, projectId }: { linkId: number; projectId: number }) =>
+            markSnapshotCommentsRead(linkId, projectId),
+        onSuccess: () => qc.invalidateQueries({ queryKey: shareKeys.mine() }),
+    });
+}
+
 /** 임시(낙관) 댓글 id 는 음수 — 서버 응답 전까지 삭제 버튼 숨김 판별에 사용. */
 export const isTempCommentId = (id: number): boolean => id < 0;
 
@@ -72,9 +92,10 @@ export function useCreateComment(token: string, projectId: number) {
             if (previous) {
                 const optimistic: CommentResponse = {
                     id: -Date.now(), // temp 음수 id
-                    anchorBlockIndex: input.anchorBlockIndex,
-                    anchorStart: input.anchorStart,
-                    anchorLength: input.anchorLength,
+                    // 050: 앵커 3필드 optional — 셋 다 생략되면 전체 의견(null), 그 외 구간 댓글.
+                    anchorBlockIndex: input.anchorBlockIndex ?? null,
+                    anchorStart: input.anchorStart ?? null,
+                    anchorLength: input.anchorLength ?? null,
                     content: input.content,
                     authorNickname: "나",
                     createdAt: new Date().toISOString(),

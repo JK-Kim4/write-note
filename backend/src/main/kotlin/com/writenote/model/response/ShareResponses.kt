@@ -39,23 +39,26 @@ data class SharedViewResponse(
 /**
  * 공개 열람 단건(스냅샷 본문). [bodyJson] = owner 키로 복호된 평문 PM JSON.
  * [comments] = 요청자 본인 댓글만(R1 은 항상 빈 배열, R2 에서 채움).
+ * [reactions] = 그 스냅샷의 반응 집계(050 US3, 공개) — 구 FE 는 필드 미사용이라도 무손상(additive).
  */
 data class SharedWorkResponse(
     val projectId: Long,
     val title: String,
     val bodyJson: String,
     val comments: List<CommentResponse>,
+    val reactions: List<ReactionAggregate> = emptyList(),
 )
 
 /**
  * 위치 지정 댓글(046 R2). 공개 read 응답의 [SharedWorkResponse.comments] = 요청자 본인 댓글만(가시성 R-3).
  * [authorNickname] = users.nickname(036) 재사용.
+ * 앵커 3필드는 nullable(050 US3) — 셋 다 null = 구간 미지정 "전체 의견".
  */
 data class CommentResponse(
     val id: Long,
-    val anchorBlockIndex: Int,
-    val anchorStart: Int,
-    val anchorLength: Int,
+    val anchorBlockIndex: Int?,
+    val anchorStart: Int?,
+    val anchorLength: Int?,
     val content: String,
     val authorNickname: String,
     val createdAt: Instant,
@@ -63,19 +66,44 @@ data class CommentResponse(
 
 /**
  * 작가 인박스 댓글(046 R2) — 작가 소유 작품의 전체 댓글(타 열람자 포함). 스냅샷별 그룹핑 가능하도록 [shareSnapshotId] 동봉.
- * [authorNickname] = 댓글 작성자(users.nickname).
+ * [authorNickname] = 댓글 작성자(users.nickname). 앵커 3필드는 nullable(050 US3, 전체 의견).
  */
 data class AuthorCommentResponse(
     val id: Long,
     val shareSnapshotId: Long,
     val projectId: Long,
-    val anchorBlockIndex: Int,
-    val anchorStart: Int,
-    val anchorLength: Int,
+    val anchorBlockIndex: Int?,
+    val anchorStart: Int?,
+    val anchorLength: Int?,
     val content: String,
     val authorNickname: String,
     val createdAt: Instant,
     val readAt: Instant? = null,
+)
+
+/**
+ * 반응 집계(050 US3) — 한 스냅샷의 (anchor, emoji) 그룹별 개수. 공개(열람자 전체가 봄).
+ * [mine] = 요청자(회원)가 그 (anchor, emoji) 에 반응했는지 — 비로그인은 항상 false.
+ */
+data class ReactionAggregate(
+    val anchorBlockIndex: Int,
+    val anchorStart: Int,
+    val anchorLength: Int,
+    val emoji: String,
+    val count: Int,
+    val mine: Boolean,
+)
+
+/**
+ * 작가용 피드백 맥락 뷰(050 US1) — 한 공유 링크(스냅샷)의 본문 전문 + 전체 댓글 + 반응 집계를 한 번에.
+ * [bodyJson] = owner 키로 복호된 평문 PM JSON. 비활성(off) 링크도 조회 가능(작가 소유 검증만).
+ */
+data class AuthorSnapshotFeedbackResponse(
+    val projectId: Long,
+    val title: String,
+    val bodyJson: String,
+    val comments: List<AuthorCommentResponse>,
+    val reactions: List<ReactionAggregate>,
 )
 
 /** 댓글 삭제 결과(046 R2). */
