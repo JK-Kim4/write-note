@@ -9,7 +9,7 @@ export function PrivacyContent() {
         <>
             <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "8px" }}>개인정보처리방침</h1>
             <p style={{ color: "var(--w-ink-faint, #888)", fontSize: "0.875rem", marginBottom: "40px" }}>
-                최종 수정일: 2026년 6월 17일
+                최종 수정일: 2026년 7월 1일
             </p>
 
             <p>
@@ -84,7 +84,23 @@ export function PrivacyContent() {
                 </p>
             </Section>
 
-            <Section title="6. 이용자 및 법정대리인의 권리와 행사 방법">
+            <Section title="6. 개인정보의 안전성 확보조치">
+                <p>
+                    서비스는 개인정보보호법 제29조에 따라 개인정보의 안전성 확보를 위해 다음과 같은 기술적 조치를
+                    취하고 있습니다.
+                </p>
+                <ul>
+                    <li>비밀번호: 복호화가 불가능한 방식으로 암호화하여 저장</li>
+                    <li>
+                        작품 본문: 이용자별로 발급된 암호화 키로 암호화하여 저장하며, 이 키를 해제하는 마스터
+                        키는 데이터베이스와 분리하여 별도로 보관합니다. 데이터베이스(백업 포함)가 유출되더라도
+                        마스터 키 없이는 암호화된 본문을 원문으로 복원할 수 없습니다.
+                    </li>
+                    <li>이용자와 서비스 간 통신 구간에는 HTTPS(전송 구간 암호화)를 적용합니다.</li>
+                </ul>
+            </Section>
+
+            <Section title="7. 이용자 및 법정대리인의 권리와 행사 방법">
                 <p>이용자는 언제든지 다음 권리를 행사할 수 있습니다.</p>
                 <ul>
                     <li>개인정보 열람 요청</li>
@@ -98,7 +114,7 @@ export function PrivacyContent() {
                 </p>
             </Section>
 
-            <Section title="7. 개인정보 보호책임자">
+            <Section title="8. 개인정보 보호책임자">
                 <Table
                     headers={["항목", "내용"]}
                     rows={[
@@ -116,7 +132,7 @@ export function PrivacyContent() {
                 </ul>
             </Section>
 
-            <Section title="8. 개인정보처리방침 변경">
+            <Section title="9. 개인정보처리방침 변경">
                 <p>
                     본 방침은 법령·정책 변경 또는 서비스 변경에 따라 내용이 추가·삭제·수정될 수 있으며, 변경 시
                     서비스 화면을 통해 공지합니다.
