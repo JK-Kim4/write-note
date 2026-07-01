@@ -15,6 +15,15 @@ interface BoardCardCount {
 interface CardRepository : JpaRepository<Card, Long> {
     fun findByBoardIdOrderByIdAsc(boardId: Long): List<Card>
 
+    /** 카드 관리(048) — 본인 소유 카드 전량(보드 소속 + 독립), 생성일 내림차순·동률 id 내림차순(안정 정렬). */
+    fun findByUserIdOrderByCreatedAtDescIdDesc(userId: Long): List<Card>
+
+    /** 카드 관리(048) — 유저 스코프 소유 검증(보드 경유 아님). 독립 카드 포함. */
+    fun findByIdAndUserId(
+        id: Long,
+        userId: Long,
+    ): Optional<Card>
+
     fun findByIdAndBoardId(
         id: Long,
         boardId: Long,

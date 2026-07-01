@@ -116,8 +116,6 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
     const rightDrawerRef = useRef<HTMLDivElement>(null);
     const conflictModalRef = useRef<HTMLDivElement>(null);
     const endWorkModalRef = useRef<HTMLDivElement>(null);
-    // 보조 패널 접기 상태(044 — 보드 단일 패널, 탭 제거)
-    const [panelOpen, setPanelOpen] = useState(true);
     // 내보내기 다이얼로그(023 Round 3 진입점).
     const [exportOpen, setExportOpen] = useState(false);
     // 집필 중 보드 참조(043) — 우측 슬라이드오버. 기본 닫힘.
@@ -580,8 +578,7 @@ export function BStudioShell({ renderEditor, outline, focusEditor }: BStudioShel
                 />
                 <BWorkSidePanel
                     projectId={projectId}
-                    isOpen={panelOpen}
-                    onOpenChange={setPanelOpen}
+                    collapsible={false}
                     wordCount={totalWordCount}
                     targetLength={targetLength}
                     onOpenBoard={openBoardRef}

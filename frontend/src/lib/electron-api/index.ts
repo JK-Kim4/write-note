@@ -16,6 +16,7 @@ import { contact } from "./contact";
 import { shell } from "./shell";
 import { settings } from "./settings";
 import { boards } from "./boards";
+import { cards } from "./cards";
 
 export const webElectronApi = {
     projects,
@@ -28,6 +29,7 @@ export const webElectronApi = {
     shell,
     settings,
     boards,
+    cards,
 };
 
 export type WebElectronApi = typeof webElectronApi;
