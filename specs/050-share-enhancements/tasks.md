@@ -16,7 +16,7 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 베이스 정합 확인 — `git log --oneline HEAD..origin/develop` 비었는지 + 046/047(V27~V29)·V30 포함 확인, 로컬 DB 기동(`docker compose up -d --wait postgres`). 브랜치 `050-share-enhancements` 확인. (룰 §18/§26)
+- [ ] T001 베이스 정합 확인 — `git log --oneline origin/main..origin/develop`(현재 049만) + main=048까지·prod Flyway V30 배포 확인(046/047/048 라이브), 로컬 DB 기동(`docker compose up -d --wait postgres`). 브랜치 `050-share-enhancements` 확인. (룰 §18/§22/§26)
 
 ---
 
@@ -46,15 +46,15 @@
 ### BE
 - [ ] T011 [P] [US1] IT `.../service/AuthorSnapshotFeedbackIT.kt`(Red-first) — 소유자 200(전체 댓글+집계, **비활성 링크도**) / 비소유 403 SHARE_FORBIDDEN / 링크·스냅샷 없음 404 / 전체 의견(null 앵커) 포함.
 - [ ] T012 [P] [US1] IT `.../service/MarkSnapshotReadIT.kt`(Red-first) — 그 스냅샷만 read_at 채움, 같은 작품 다른 링크 unread 유지.
-- [ ] T013 [US1] `service/ShareCommentService.kt`(또는 ShareService) `authorSnapshotFeedback(linkId,projectId,ownerId)` — findByIdAndOwnerId(비소유 403)→BodyCipher 복호+전체 댓글+`ShareReactionService.aggregate` → `AuthorSnapshotFeedbackResponse`. (T011 GREEN)
-- [ ] T014 [US1] `service/ShareCommentService.kt` `markReadBySnapshotId(linkId,projectId,ownerId)` — 소유 검증 후 그 스냅샷 read_at. (T012 GREEN)
+- [ ] T013 [US1] `repository/ShareCommentRepository.kt` **신규 메서드** `findByShareSnapshotIdOrderByCreatedAtDesc`(스냅샷 전체 댓글, authorId 무관 — 현재 repo엔 없음) + `service` `authorSnapshotFeedback(linkId,projectId,ownerId)` — findByIdAndOwnerId(비소유 403)→BodyCipher 복호+전체 댓글+`ShareReactionService.aggregate` → `AuthorSnapshotFeedbackResponse`. (T011 GREEN)
+- [ ] T014 [US1] `repository/ShareCommentRepository.kt` **신규 메서드** `markReadByShareSnapshotId(snapshotId, now)` + `service` `markReadBySnapshotId(linkId,projectId,ownerId)` — 소유 검증 후 그 스냅샷만 read_at(projectId 단위 아님). (T012 GREEN)
 - [ ] T015 [US1] `controller/ShareController.kt` — `GET /api/share-links/{linkId}/works/{projectId}/feedback` + `POST /api/share-links/{linkId}/works/{projectId}/comments/read`. (contracts N1·N4)
 
 ### FE
 - [ ] T016 [P] [US1] `lib/api/share.ts` — `getAuthorFeedback(linkId,projectId)`·`markSnapshotCommentsRead(linkId,projectId)` + 타입 `ReactionAggregate`·`AuthorSnapshotFeedback`.
 - [ ] T017 [P] [US1] `lib/query/useShares.ts`·`useShareComments.ts` — `useAuthorFeedback(linkId,projectId)`·`useMarkSnapshotRead()`.
-- [ ] T018 [US1] `components/share/AuthorFeedbackView.tsx` 신규 — 전문(읽기)+하이라이트 항상 표시 + 우측 패널(닉네임·인용·내용·시각·안읽음) + 항목 클릭 스크롤+반짝. 목업 `2026-07-01-share-author-feedback-view-mockup.html` 안 B.
-- [ ] T019 [US1] `components/share/ShareLinkManager.tsx` — 링크별 "받은 피드백 N"→`AuthorFeedbackView`(스냅샷 단위). 진입 시 `useMarkSnapshotRead`.
+- [ ] T018 [US1] `components/share/AuthorFeedbackView.tsx` 신규 — 전문(읽기)+하이라이트 항상 표시 + 우측 패널(닉네임·인용·내용·시각·안읽음) + 항목 클릭 스크롤+반짝. **전체 의견(앵커 null) 댓글은 하이라이트 계산에서 제외**(buildAnchorRange 앵커 null 스킵) — 별도 "전체 의견" 구획(FR-016은 US3에서 반응 집계와 함께 보강). 목업 `2026-07-01-share-author-feedback-view-mockup.html` 안 B.
+- [ ] T019 [US1] `components/share/ShareLinkManager.tsx` — 링크별 "받은 피드백 N"→`AuthorFeedbackView`(스냅샷 단위, 진입 시 `useMarkSnapshotRead`). **047 `AuthorCommentInbox` 모달 대체·제거**(research D9): `inboxProject` state 제거, 상단 projectId 요약 "피드백 보기"→그 작품 링크 그룹으로 스크롤/강조(모달 오픈 제거).
 - [ ] T020 [US1] dogfooding(quickstart R3) — 하이라이트·패널 이동·1:N 분리·읽음·비소유 차단·종이(US4 후 재확인).
 
 **Checkpoint**: US1 독립 동작 = MVP.
@@ -84,14 +84,14 @@
 - [ ] T027 [P] [US3] IT `.../service/GeneralCommentIT.kt`(Red-first) — 앵커 셋 다 null 저장(작가 전용 노출) / 부분 null 400 / 기존 구간 댓글 회귀 없음 / 공개 열람 응답 reactions embed mine.
 - [ ] T028 [US3] `service/ShareReactionService.kt` add/remove — unique 멱등, `AnchorValidator`(스냅샷) 재사용, emoji 화이트리스트, 비회원 401. (T026 GREEN)
 - [ ] T029 [US3] `service/ShareCommentService.kt` createComment 앵커 null 허용 — 셋다null=전체/셋다값=검증/부분null=400. (T027 GREEN)
-- [ ] T030 [US3] `controller/ShareReactionController.kt` 신규 — `POST`/`DELETE /api/shared/{token}/works/{projectId}/reactions`. `controller/ShareController.kt` getSharedWork 응답에 `reactions`(viewer mine) embed. (contracts N2·N3·C1)
+- [ ] T030 [US3] `controller/ShareReactionController.kt` 신규 — `POST`(body 앵커+emoji)·`DELETE ...?blockIndex=&start=&length=&emoji=`(**쿼리 파라미터, body 없음** — 프록시 스멜 회피) `/api/shared/{token}/works/{projectId}/reactions`. `controller/ShareController.kt` getSharedWork 응답에 `reactions`(viewer mine) embed. (contracts N2·N3·C1)
 - [ ] T031 [US3] `controller/ShareCommentController.kt` — CreateCommentRequest nullable 앵커 수용(전체 의견). (contracts C2)
 
 ### FE
 - [ ] T032 [P] [US3] `lib/api/share.ts` — `addReaction`/`removeReaction`(token,projectId,input) + `createComment` 앵커 optional + 타입.
 - [ ] T033 [P] [US3] vitest `frontend/src/lib/share/reactionAggregate.test.ts`(Red-first) + `lib/share/reactionAggregate.ts` — 낙관적 토글 집계 갱신 순수 헬퍼(mine 반영·count 증감).
 - [ ] T034 [US3] `lib/query/useShareReactions.ts` 신규 — `useAddReaction`/`useRemoveReaction`(낙관적, `useSharedWork` 캐시 집계 갱신).
-- [ ] T035 [US3] `components/share/CommentLayer.tsx` — 구간 선택 이모지 툴바(❤️👍😮😢🔥 토글) + 반응 개수 모든 열람자 표시 + 하단 "작품 전체에 한마디"(앵커 null). 목업 `...comment-enhancements-mockup.html`.
+- [ ] T035 [US3] `components/share/CommentLayer.tsx` — 구간 선택 이모지 툴바(❤️👍😮😢🔥 토글) + 반응 개수 모든 열람자 표시(비로그인 포함) + 하단 "작품 전체에 한마디"(앵커 null). **가드**: (a) 비로그인 반응 클릭 → US2 `saveReturnTo`+로그인 유도(댓글과 동일 경로, US2↔US3 tie) (b) `recomputeHighlights`/`buildAnchorRange`는 **앵커 null(전체 의견) 댓글 스킵**(구간 없는 댓글이 하이라이트 계산에 안 끼게). 목업 `...comment-enhancements-mockup.html`.
 - [ ] T036 [US3] `components/share/AuthorFeedbackView.tsx` — 구간별 반응 집계 표기 + 전체 의견 구획(US1 뷰 확장, FR-016).
 - [ ] T037 [US3] dogfooding(quickstart R4) — 이모지 증감·다른 계정 공개 집계·전체 의견 작가 전용·글댓글 회귀·겹침 표기.
 
@@ -112,7 +112,7 @@
 
 - [ ] T041 회귀 가드(FR-020) — 046/047 무손상: 공유 생성·on/off·삭제·5개 제한·공개 열람 200·작가 전용 텍스트 댓글·읽음·모달 portal. grep: 구 `SharedWorkResponse`/`CreateCommentRequest` 소비처 무손상.
 - [ ] T042 전체 게이트 — BE `ktlint(main+test)·checkstyle·test·build` / FE `lint·typecheck·test·build`. (§작업실행지침 포어그라운드)
-- [ ] T043 배포 순서 문서 확인 — BE 선행(V31·V32)→FE. 배포 시 046/047(V27~V29) 동반 운영 첫 적용, `git log main..develop` 범위 확정(finish-work·별도 요청 시).
+- [ ] T043 배포 순서 문서 확인 — BE 선행(V31·V32)→FE. 046/047(V27~V29)·048(V30) 이미 운영 배포됨 → 050 신규 마이그레이션 V31·V32만 운영 첫 적용. 배포 전 `git log origin/main..origin/develop` 범위 재확정(finish-work·별도 요청 시).
 
 ---
 

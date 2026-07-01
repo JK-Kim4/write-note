@@ -70,7 +70,12 @@ ALTER TABLE share_comment ALTER COLUMN anchor_length      DROP NOT NULL;
 
 ## 5. 서비스 로직 (신규·변경)
 
-- `ShareReactionService`(신규): `toggle`은 두 경로 — `add(token,projectId,req,reactorId)`(회원 필수, unique 멱등, 앵커 검증 AnchorValidator, emoji 화이트리스트) / `remove(token,projectId,anchor,emoji,reactorId)`. `aggregate(snapshotId, viewerId?)`: `share_reaction` group-by (anchor,emoji)→count + `mine`(viewerId 매칭) — **N+1 회피 단일 그룹 쿼리**.
+> **신규 repo 메서드(명시)** — 현재 `ShareCommentRepository`엔 `findByShareSnapshotIdAndAuthorId`·`findByProjectIdInOrderByCreatedAtDesc`·`markReadByProjectId`만 있음(스냅샷 단위 전체 조회·읽음 없음). 아래 2개 **신규 추가**:
+> - `findByShareSnapshotIdOrderByCreatedAtDesc(shareSnapshotId): List<ShareComment>` — 스냅샷 전체 댓글(작가 뷰용, authorId 무관).
+> - `markReadByShareSnapshotId(shareSnapshotId, now): Int` — 스냅샷 스코프 읽음(projectId 단위 아님, D7).
+> `ShareReactionRepository`(신규)엔 집계 group-by·본인 반응 조회·`deleteByShareSnapshotIdAndAnchor...AndEmojiAndReactorId` 포함.
+
+- `ShareReactionService`(신규): 두 경로 — `add(token,projectId,req,reactorId)`(회원 필수, unique 멱등, 앵커 검증 AnchorValidator, emoji 화이트리스트) / `remove(token,projectId,anchor,emoji,reactorId)`(쿼리 파라미터로 받은 앵커+emoji, 본인 것만 삭제). `aggregate(snapshotId, viewerId?)`: `share_reaction` group-by (anchor,emoji)→count + `mine`(viewerId 매칭) — **N+1 회피 단일 그룹 쿼리**.
 - `ShareCommentService.createComment`: 앵커 null 허용(전체 의견) — null이면 AnchorValidator skip, 값이면 검증(부분 null 400).
 - `ShareService`(또는 신규) `authorSnapshotFeedback(linkId, projectId, ownerId)`: `share_link.findByIdAndOwnerId`(비소유 SHARE_FORBIDDEN) → 스냅샷 복호(BodyCipherService) + `findByShareSnapshotIdOrderByCreatedAtDesc`(전체 댓글) + reaction aggregate → `AuthorSnapshotFeedbackResponse`.
 - `markReadBySnapshotId(linkId, projectId, ownerId)`(신규): 소유 검증 후 그 스냅샷 댓글 `read_at` 채움(스냅샷 스코프, D7).
@@ -81,7 +86,7 @@ ALTER TABLE share_comment ALTER COLUMN anchor_length      DROP NOT NULL;
 1. **V31** `create_share_reaction` — 테이블 + unique + idx + FK(share_snapshot_id → share_snapshot ON DELETE CASCADE).
 2. **V32** `share_comment_anchor_nullable` — 앵커 3컬럼 DROP NOT NULL.
 
-배포 = BE 선행(V31·V32 적용) → FE 후행. 046/047(V27~V29) 미배포라 **V27~V32 함께 운영 첫 적용**(배포 전 `git log main..develop` 범위 확정, 룰 §22).
+배포 = BE 선행(V31·V32 적용) → FE 후행. **046/047(V27~V29)·048(V30)은 이미 운영 배포됨**(main `8c56b32`, prod Flyway V30 — 2026-07-01 검증). develop은 049(마이그레이션 0)만 앞섬. 따라서 050 배포 시 **신규 마이그레이션 = V31·V32만** 운영 첫 적용. (배포 전 `git log origin/main..origin/develop` 범위 재확인, 룰 §22.)
 
 ## 7. FE 데이터 계층 (lib/)
 

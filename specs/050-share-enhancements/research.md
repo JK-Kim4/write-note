@@ -16,11 +16,11 @@
 - **Rationale**: 반응은 공개 집계(FR-013)라 모든 열람자가 봐야 하고, 별도 endpoint면 열람마다 추가 round-trip. embed가 최소.
 - **Alternatives rejected**: 별도 `GET .../reactions` — 추가 왕복·캐시 이원화. 기각.
 
-## D3. 반응 토글 — POST 추가 / DELETE 제거(명시)
+## D3. 반응 토글 — POST 추가 / DELETE(쿼리 파라미터) 제거
 
-- **Decision**: `POST .../reactions`(추가, unique로 멱등) · `DELETE .../reactions`(제거). FE가 `mine` 상태로 분기.
-- **Rationale**: REST 의미 명확 + 멱등(중복 POST는 unique로 무해). 낙관적 UI 단순.
-- **Alternatives rejected**: 단일 토글 POST — 서버가 상태 뒤집기라 동시요청 경합·의미 모호. 기각.
+- **Decision**: `POST .../reactions`(추가, unique로 멱등, body=앵커+emoji) · `DELETE .../reactions?blockIndex=&start=&length=&emoji=`(제거, **body 없음**). FE가 `mine` 상태로 분기.
+- **Rationale**: REST 의미 명확 + 멱등(중복 POST는 unique로 무해). **DELETE에 body를 싣지 않음** — 앞단 Caddy/프록시·fetch가 DELETE 바디를 신뢰성 없게 다루는 스멜 회피(리뷰 지적). 앵커 3정수+emoji를 쿼리로.
+- **Alternatives rejected**: 단일 토글 POST — 서버가 상태 뒤집기라 동시요청 경합·의미 모호. 기각. / DELETE-with-body — 프록시 스멜. 기각.
 
 ## D4. 전체 의견(구간 미지정) — share_comment 앵커 nullable화
 
@@ -51,6 +51,13 @@
 - **Decision**: 공유 열람(`SharedWorkView`/`SharedReader`)·작가 뷰를 종이 컨테이너로 감쌈 — 종이 `--w-ms-page`, 바깥 `--w-ms-outer`(집필 화면 동일). `SharedReader`의 하드코딩 색 `#1f2937` → 토큰(`--w-ms-page`/`--w-ink` 계열)로 교체 → 다크 대응.
 - **Rationale**: 집필 화면과 동일 토큰 재사용으로 일관·다크 자동. 좌표/앵커 로직(printLayout·data-block-index) 무변경, 색·래핑만.
 - **Alternatives rejected**: 신규 색 도입 — 집필 화면 불일치 + 다크 재작업. 기각.
+
+## D9. 작가 인박스 공존 — AuthorFeedbackView가 047 AuthorCommentInbox 대체
+
+- **Decision**: 신규 `AuthorFeedbackView`(링크/스냅샷 단위 전문+패널)가 047 `AuthorCommentInbox` 모달을 **대체(retire)**. 관리 화면의 "받은 피드백" 진입은 **링크별 버튼**이 정본 → `AuthorFeedbackView`. 상단 projectId 요약("작품 · N개의 새 피드백")은 그 작품 **링크 그룹으로 스크롤/강조**(모달 오픈 제거) — 다중 링크에서 한 스냅샷으로 못 접는 모호성 회피.
+- **Rationale**: 리뷰 지적(두 피드백 UI 공존 방지). 맥락 뷰가 조각 모달의 상위호환(전문+맥락+반응)이라 모달 유지 이유 없음.
+- **Alternatives rejected**: 모달 존치 + 맥락 뷰 병행 → 같은 "받은 피드백"이 두 화면. 기각. / 상단 요약이 최신 링크 뷰 자동 오픈 → 다중 링크 시 임의 선택. 기각(그룹 강조가 명확).
+- **영향**: `AuthorCommentInbox.tsx` 제거(또는 미사용화), `ShareLinkManager`의 `inboxProject` state·상단 "피드백 보기"→그룹 스크롤로 대체. (US1 범위)
 
 ## 미해결(사용자 결정 완료·구현 세부만 남음)
 

@@ -2,7 +2,7 @@
 
 - 작성일: 2026-07-01
 - 상태: 브레인스토밍 확정(사용자 승인) → speckit-specify 입력 대기
-- 기반: 046 공유하기 + 047 공유 사용성 개선 (둘 다 develop 통합, **운영 미배포** V27~V29)
+- 기반: 046 공유하기 + 047 공유 사용성 개선 (둘 다 048과 함께 **운영 배포 완료** — 2026-07-01, prod Flyway V30 검증)
 - 시각 SoT(승인 목업, 인터랙티브):
   - Topic 1 `docs/research/2026-07-01-share-author-feedback-view-mockup.html` (안 B 확정)
   - Topic 2 `docs/research/2026-07-01-share-guest-login-mockup.html` (안 1 확정)
@@ -115,7 +115,7 @@ BE 변경 **없음**(기존 `/auth/login`·OAuth 흐름 재사용). 복귀는 **
 
 ## 배포 · 순서
 - **BE 선행 → FE 후행**(신규 테이블·조회·반응 계약을 BE가 먼저 받아들인 뒤 FE가 호출).
-- 046/047이 아직 **운영 미배포**(운영 main=보드 V26). 본 작업 배포 시 046/047(V27~V29) + 본 신규 마이그레이션이 **함께 운영 첫 적용**. 배포 전 `git log main..develop`로 범위 확정(룰 §22).
+- **046/047(V27~V29)·048(V30)은 이미 운영 배포됨**(main `8c56b32`, prod Flyway V30 — 2026-07-01 검증). develop은 049(마이그레이션 0)만 앞섬. 따라서 050 배포 시 **신규 마이그레이션 = V31·V32만** 운영 첫 적용(라이브 공유 스택 위 additive). 단 046/047 authed dogfooding 미수행(ISSUE-053)이라 050 로컬 검증이 share 스택 첫 authed 확인 겸함. 배포 전 `git log origin/main..origin/develop` 재확인(룰 §22).
 - 개발은 **046/047 포함 develop 기반** 새 브랜치에서.
 
 ## 제안 라운드 분해 (speckit-plan에서 확정)

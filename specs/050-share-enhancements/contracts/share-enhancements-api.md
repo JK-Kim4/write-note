@@ -29,7 +29,7 @@
 
 ### N3. DELETE /api/shared/{token}/works/{projectId}/reactions  — 반응 제거(토글 off) (US3)
 - **Auth**: optional. 비회원 → 401 COMMENT_UNAUTHENTICATED.
-- **Body**: `{ anchorBlockIndex, anchorStart, anchorLength, emoji }`(제거 대상). 요청자 본인 반응만 삭제.
+- **쿼리 파라미터**(body 없음 — 프록시 스멜 회피, research D3): `?blockIndex={n}&start={n}&length={n}&emoji={urlencoded}`. 요청자 본인 반응만 삭제.
 - **200** 갱신된 `ReactionAggregate`(없으면 count 0).
 
 ### N4. POST /api/share-links/{linkId}/works/{projectId}/comments/read  — 스냅샷 스코프 읽음 (US1, D7)
