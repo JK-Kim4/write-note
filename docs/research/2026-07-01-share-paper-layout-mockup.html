@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>공유 페이지 — "종이 위의 글" 레이아웃 (목업)</title>
+<style>
+  :root{
+    --w-canvas:#fffdf8; --w-surface:#ffffff; --w-surface-2:#f9fafb;
+    --w-ink:#2a2620; --w-muted:#6b7280; --w-faint:#9ca3af; --w-border:#e5e7eb;
+    --w-accent:#a8542e; --w-accent-text:#8a4325;
+    --w-parchment:#f3ede1;
+    --w-ms-page:#ffffff;            /* 집필 화면 종이(흰) */
+    --w-ms-outer:#eceae4;           /* 집필 화면 바깥 배경 */
+    --w-manuscript-cream:#fbf7ee;   /* 원고지 크림 톤 */
+    --w-prose:"Apple SD Gothic Neo","Noto Serif KR",serif;
+    --w-ui:"SF Pro Text",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--w-ui);color:var(--w-ink);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5;background:var(--w-ms-outer)}
+  .mkbar{position:sticky;top:0;z-index:200;background:#241f1a;color:#f2ece1;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px}
+  .mkbar b{color:#fff}
+  .mkbar .seg{display:inline-flex;border:1px solid #4a4238;border-radius:9px;overflow:hidden}
+  .mkbar .seg button{background:transparent;color:#d9cfbe;border:0;padding:6px 12px;font-size:12.5px;cursor:pointer;font-family:inherit}
+  .mkbar .seg button.on{background:var(--w-accent);color:#fff;font-weight:700}
+  .mkhint{background:#2f2820;color:#cdbfa8;font-size:12px;padding:6px 16px}
+  .mkhint b{color:#f0e6d5}
+
+  /* 공개 페이지 헤더 */
+  .pubhead{background:var(--w-canvas);border-bottom:1px solid var(--w-border);display:flex;align-items:center;padding:12px 22px}
+  .pubhead .logo{font-family:var(--w-prose);font-weight:800;font-size:17px;letter-spacing:-.3px}
+  .pubhead .sp{margin-left:auto;font-size:12.5px;color:var(--w-muted)}
+
+  /* 바깥 배경(집필 화면처럼 종이 밖 톤) */
+  .outer{min-height:100vh;padding:38px 20px 90px;transition:background .25s}
+  .outer.mode-now{background:var(--w-parchment)}      /* 현재: 빈 배경 */
+  .outer.mode-white{background:var(--w-ms-outer)}      /* 안1: 집필 화면과 동일한 바깥 */
+  .outer.mode-cream{background:#e9e2d3}                /* 안2: 크림 종이에 어울리는 웜 바깥 */
+
+  .back{max-width:820px;margin:0 auto 14px;color:var(--w-muted);font-size:13px}
+  .back a{color:var(--w-muted);text-decoration:none}
+
+  /* ===== 종이 ===== */
+  .paper{max-width:820px;margin:0 auto;transition:.25s}
+  /* 현재(빈 배경): 종이 없음 — 본문이 배경에 바로 */
+  .mode-now .paper{background:transparent;box-shadow:none;border:0;padding:0 20px}
+  /* 안1: 흰 종이 */
+  .mode-white .paper{background:var(--w-ms-page);border:1px solid #e7e2d7;border-radius:6px;
+    box-shadow:0 1px 2px rgba(40,30,20,.05),0 10px 34px rgba(40,30,20,.10);padding:64px 72px}
+  /* 안2: 크림 원고지 */
+  .mode-cream .paper{background:var(--w-manuscript-cream);border:1px solid #ece2cf;border-radius:6px;
+    box-shadow:0 1px 2px rgba(40,30,20,.06),0 12px 38px rgba(60,45,25,.14);padding:64px 72px}
+
+  .paper h1{font-family:var(--w-prose);font-size:25px;font-weight:800;text-align:center;margin:0 0 34px;color:#28231d}
+  .prose{font-family:var(--w-prose);color:#28231d;font-size:18.5px;line-height:1.98;letter-spacing:.1px;max-width:640px;margin:0 auto}
+  .prose p{margin:0 0 20px}
+  .prose h2{font-size:19px;font-weight:800;margin:30px 0 12px}
+
+  .note{max-width:820px;margin:22px auto 0;font-size:12px;color:var(--w-faint);text-align:center}
+</style>
+</head>
+<body>
+
+<div class="mkbar">
+  <b>목업</b> · 공유 페이지 "종이 위의 글" —
+  <span class="seg">
+    <button id="bNow">현재(빈 배경)</button>
+    <button id="bWhite" class="on">안 1 · 흰 종이</button>
+    <button id="bCream">안 2 · 크림 원고지</button>
+  </span>
+</div>
+<div class="mkhint">
+  집필 화면처럼 <b>바깥은 살짝 어두운 톤, 그 위에 종이(페이지)</b>가 얹히고 글이 종이 위에 놓입니다. 위 토글로
+  <b>현재 ↔ 흰 종이 ↔ 크림 원고지</b>를 비교하세요. (같은 종이 스타일이 작가용 피드백 뷰(topic 1)에도 동일 적용됩니다.)
+</div>
+
+<header class="pubhead">
+  <span class="logo">소설비</span>
+  <span class="sp">비로그인 · 읽는 중</span>
+</header>
+
+<div class="outer mode-white" id="outer">
+  <div class="back"><a href="#">‹ 목록</a></div>
+  <div class="paper">
+    <h1>별빛 연대기 · 2화 — 무너진 탑</h1>
+    <div class="prose">
+      <p>탑은 사흘째 무너지고 있었다. 처음엔 돌 하나가 굴러떨어졌고, 다음 날엔 계단이 통째로 사라졌다.
+      사람들은 그것을 재앙이라 불렀지만, 리안은 그저 오래 참아온 것이 마침내 놓여나는 소리라고 생각했다.</p>
+      <p>그녀는 무너지는 탑의 그림자 아래에서, 어릴 적 아버지가 남긴 편지를 꺼냈다. 잉크는 바랬고 종이는 부스러졌지만,
+      글자는 여전히 또렷했다. "네가 이 편지를 읽을 때쯤이면, 나는 이미 별이 되어 있을 것이다."</p>
+      <h2>2. 재의 정원</h2>
+      <p>정원은 잿빛이었다. 한때 장미가 피었던 자리에는 이제 마른 가시만 남아 바람에 흔들렸다.
+      리안은 그 사이를 천천히 걸으며, 자신이 무엇을 찾고 있는지조차 잊어버린 사람처럼 보였다.</p>
+      <p>탑의 종이 울렸다. 한 번, 두 번, 그리고 세 번째는 울리다 말았다.
+      그 미완의 종소리가, 리안에게는 어떤 대답처럼 들렸다. 그녀는 걸음을 멈추고 하늘을 올려다보았다.</p>
+      <p>멀리서 누군가 그녀의 이름을 불렀다. 익숙한 목소리였다. 하지만 리안은 뒤돌아보지 않았다.
+      돌아본다는 것은, 아직 이곳에 남을 이유가 있다는 뜻이었으니까.</p>
+    </div>
+  </div>
+  <div class="note">※ 다크 모드에선 종이=촛불 아래 원고(어두운 크림), 바깥=가장 어두운 톤으로 토큰 전환됩니다(집필 화면과 동일).</div>
+</div>
+
+<script>
+  const outer=document.getElementById('outer');
+  const bNow=document.getElementById('bNow'),bWhite=document.getElementById('bWhite'),bCream=document.getElementById('bCream');
+  function set(m){
+    outer.classList.remove('mode-now','mode-white','mode-cream');
+    outer.classList.add('mode-'+m);
+    bNow.classList.toggle('on',m==='now');bWhite.classList.toggle('on',m==='white');bCream.classList.toggle('on',m==='cream');
+  }
+  bNow.onclick=()=>set('now');bWhite.onclick=()=>set('white');bCream.onclick=()=>set('cream');
+</script>
+</body>
+</html>
