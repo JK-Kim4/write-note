@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>048 카드 관리 — FE 목업</title>
+<style>
+  :root{
+    --canvas:#fffdf8; --parchment:#f3ede1; --surface:#ffffff; --surface2:#f9fafb; --surface3:#f3f4f6;
+    --ink:#2a2620; --ink2:#374151; --muted:#6b7280; --faint:#9ca3af;
+    --border:#e5e7eb; --border-strong:#d1d5db; --hairline:#e7ddcc;
+    --accent:#a8542e; --accent-soft:#fbf3ee; --accent-text:#8a4325; --accent-ink:#fff;
+    --error:#d70015;
+    --font-ui:"SF Pro Text",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif;
+    --font-prose:"Apple SD Gothic Neo","Noto Serif KR",serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#d9d3c6;font-family:var(--font-ui);color:var(--ink);-webkit-font-smoothing:antialiased;padding:24px;line-height:1.47}
+
+  /* ── 목업 컨트롤 바 (앱 아님, 조작용) ── */
+  .mock-controls{max-width:1160px;margin:0 auto 18px;background:#fff;border:2px dashed var(--accent);border-radius:12px;padding:14px 18px;display:flex;gap:26px;flex-wrap:wrap;align-items:center}
+  .mock-controls .grp{display:flex;gap:8px;align-items:center}
+  .mock-controls .lbl{font-size:12px;font-weight:700;color:var(--accent-text);letter-spacing:.02em}
+  .seg{display:inline-flex;border:1px solid var(--border-strong);border-radius:8px;overflow:hidden}
+  .seg button{border:0;background:#fff;color:var(--muted);font:inherit;font-size:13px;padding:6px 14px;cursor:pointer;font-weight:600}
+  .seg button.on{background:var(--accent);color:#fff}
+  .mock-note{max-width:1160px;margin:0 auto 18px;font-size:12.5px;color:#6b5f4f}
+
+  /* ── 앱 프레임 ── */
+  .app{max-width:1160px;margin:0 auto;background:var(--canvas);border-radius:16px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.16);border:1px solid var(--hairline)}
+
+  /* 헤더 */
+  header.appbar{display:flex;align-items:center;gap:8px;padding:0 20px;height:56px;background:var(--parchment);border-bottom:1px solid var(--hairline)}
+  .brand{font-family:var(--font-prose);font-weight:700;font-size:19px;color:var(--ink);margin-right:18px;letter-spacing:.01em}
+  nav.top{display:flex;gap:2px;flex:1}
+  nav.top a{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:8px;font-size:14.5px;color:var(--muted);text-decoration:none;font-weight:600}
+  nav.top a .ic{width:16px;height:16px;display:inline-block;opacity:.85}
+  nav.top a.active{background:#fff;color:var(--accent-text);box-shadow:inset 0 0 0 1px var(--hairline)}
+  nav.top a.cards-nav{display:none}
+  body[data-entry="A"] nav.top a.cards-nav{display:flex}
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--accent-soft);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;color:var(--accent-text);font-size:13px;font-weight:700}
+
+  /* 페이지 */
+  .page{padding:26px 30px 40px;min-height:560px;position:relative}
+  /* 보드 하위 탭(진입점 B) */
+  .board-tabs{display:none;gap:4px;border-bottom:1px solid var(--hairline);margin-bottom:22px}
+  body[data-entry="B"] .board-tabs{display:flex}
+  .board-tabs button{border:0;background:transparent;font:inherit;font-size:15px;font-weight:600;color:var(--muted);padding:10px 4px;margin-right:20px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .board-tabs button.on{color:var(--accent-text);border-bottom-color:var(--accent)}
+
+  .page-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:6px}
+  .page-title{font-family:var(--font-prose);font-size:26px;font-weight:700}
+  body[data-entry="B"] .page-title.solo{display:none} /* B에선 보드탭이 타이틀 역할 */
+  .page-sub{font-size:13.5px;color:var(--muted);margin-bottom:20px}
+  .btn{border:0;border-radius:8px;font:inherit;font-weight:600;cursor:pointer;font-size:14px;padding:9px 16px}
+  .btn-accent{background:var(--accent);color:#fff}
+  .btn-ghost{background:#fff;color:var(--ink2);box-shadow:inset 0 0 0 1px var(--border-strong)}
+  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:20px}
+  .search{flex:1;max-width:340px;position:relative}
+  .search input{width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 12px 9px 34px;font:inherit;font-size:14px;background:#fff;color:var(--ink)}
+  .search .si{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:14px}
+  .filter-chips{display:flex;gap:6px;margin-left:auto}
+  .fchip{font-size:12.5px;color:var(--muted);background:#fff;border:1px solid var(--border);border-radius:9999px;padding:5px 12px;cursor:pointer;font-weight:600}
+  .fchip.on{background:var(--accent-soft);color:var(--accent-text);border-color:#e8c4a8}
+
+  /* 종류 색 */
+  .k-character{--kbg:#f0fdfa;--kbd:#99f6e4;--kchipbg:#ccfbf1;--kchip:#0f766e;--kdot:#14b8a6}
+  .k-place{--kbg:#ecfdf5;--kbd:#a7f3d0;--kchipbg:#d1fae5;--kchip:#047857;--kdot:#10b981}
+  .k-event{--kbg:#fbf3ee;--kbd:#e8c4a8;--kchipbg:#f5e4d6;--kchip:#8a4325;--kdot:#a8542e}
+  .k-theme{--kbg:#f5f3ff;--kbd:#ddd6fe;--kchipbg:#ede9fe;--kchip:#6d28d9;--kdot:#8b5cf6}
+  .k-none{--kbg:#f8fafc;--kbd:#e2e8f0;--kchipbg:#f1f5f9;--kchip:#64748b;--kdot:#94a3b8}
+  .kind-chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:9999px;background:var(--kchipbg);color:var(--kchip)}
+  .kind-dot{width:7px;height:7px;border-radius:50%;background:var(--kdot)}
+  .board-tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);font-weight:600}
+  .board-tag.none{color:var(--faint);font-style:italic}
+  .board-tag .bi{width:12px;height:12px;opacity:.7}
+  .link-badge{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--accent-text);background:var(--accent-soft);border-radius:9999px;padding:3px 9px;font-weight:700}
+
+  /* ── 목록: 리스트 뷰 ── */
+  .list-view{display:none;flex-direction:column;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff}
+  body[data-layout="list"] .list-view{display:flex}
+  .row{display:flex;align-items:center;gap:16px;padding:14px 18px;border-bottom:1px solid var(--surface3);cursor:pointer;transition:background .12s}
+  .row:last-child{border-bottom:0}
+  .row:hover{background:var(--surface2)}
+  .row .kdotwrap{width:10px;height:10px;border-radius:50%;background:var(--kdot);flex:none}
+  .row .rbody{flex:1;min-width:0}
+  .row .rtext{font-size:15px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;font-weight:500}
+  .row .rmeta{display:flex;gap:14px;align-items:center}
+  .row .rdate{font-size:12px;color:var(--faint);margin-left:auto;white-space:nowrap}
+  .row .rmore{color:var(--faint);font-size:18px;padding:2px 6px;border-radius:6px}
+  .row .rmore:hover{background:var(--surface3);color:var(--muted)}
+
+  /* ── 목록: 그리드 뷰 ── */
+  .grid-view{display:none;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:14px}
+  body[data-layout="grid"] .grid-view{display:grid}
+  .gcard{background:var(--kbg);border:1px solid var(--kbd);border-radius:14px;padding:15px 15px 12px;cursor:pointer;min-height:132px;display:flex;flex-direction:column;transition:box-shadow .12s,transform .12s}
+  .gcard:hover{box-shadow:0 6px 18px rgba(0,0,0,.08);transform:translateY(-1px)}
+  .gcard .gtext{font-family:var(--font-prose);font-size:15px;line-height:1.55;color:var(--ink);flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .gcard .gfoot{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
+
+  .empty{display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:80px 20px;text-align:center;color:var(--muted)}
+  .empty h3{font-family:var(--font-prose);font-size:19px;color:var(--ink2)}
+
+  /* ── 상세 슬라이드오버 ── */
+  .scrim{position:absolute;inset:0;background:rgba(20,16,10,.18);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .sheet{position:absolute;top:0;right:0;bottom:0;width:420px;max-width:90%;background:var(--canvas);border-left:1px solid var(--hairline);box-shadow:-8px 0 30px rgba(0,0,0,.12);transform:translateX(100%);transition:transform .24s cubic-bezier(.4,0,.2,1);z-index:21;display:flex;flex-direction:column}
+  .sheet.open{transform:translateX(0)}
+  .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--hairline)}
+  .sheet-head .st{font-size:13px;font-weight:700;color:var(--muted)}
+  .sheet-head .x{border:0;background:transparent;font-size:20px;color:var(--faint);cursor:pointer;padding:4px 8px;border-radius:6px}
+  .sheet-head .x:hover{background:var(--surface3)}
+  .sheet-body{padding:20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:20px}
+  .field-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:none;margin-bottom:8px;letter-spacing:.02em}
+  .body-edit{width:100%;min-height:130px;border:1px solid var(--border);border-radius:10px;padding:12px 13px;font-family:var(--font-prose);font-size:15.5px;line-height:1.7;color:var(--ink);background:#fff;resize:vertical}
+  .body-edit:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .kind-tray{display:flex;gap:7px;flex-wrap:wrap}
+  .kchip-btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:6px 12px;border-radius:9999px;border:1px solid var(--kbd);background:var(--kbg);color:var(--kchip);cursor:pointer}
+  .kchip-btn .kind-dot{width:8px;height:8px}
+  .kchip-btn.sel{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--kdot)}
+  .kchip-btn.plain{border-color:var(--border);background:#fff;color:var(--muted)}
+  .board-select{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font:inherit;font-size:14px;background:#fff;color:var(--ink)}
+  .reassign-note{font-size:12px;color:var(--faint);margin-top:6px}
+  .reassign-locked{font-size:12.5px;color:var(--accent-text);background:var(--accent-soft);border:1px solid #e8c4a8;border-radius:8px;padding:9px 11px;margin-top:8px;display:flex;gap:8px;align-items:flex-start}
+  .sheet-foot{padding:14px 20px;border-top:1px solid var(--hairline);display:flex;gap:10px;align-items:center}
+  .btn-danger{background:#fff;color:var(--error);box-shadow:inset 0 0 0 1px #f0c2c2}
+  .btn-danger:hover{background:#fdf2f2}
+  .flex-spacer{flex:1}
+
+  /* ── 생성 인라인 폼 ── */
+  .create-inline{display:none;background:#fff;border:1px solid var(--accent);border-radius:12px;padding:14px;margin-bottom:16px;box-shadow:0 4px 16px rgba(168,84,46,.1)}
+  .create-inline.open{display:block}
+  .create-inline textarea{width:100%;min-height:70px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--font-prose);font-size:15px;line-height:1.6;resize:vertical;color:var(--ink)}
+  .create-inline textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .create-inline .cfoot{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .create-inline .chint{font-size:12px;color:var(--faint)}
+
+  /* ── 삭제 경고 다이얼로그 ── */
+  .dlg-scrim{position:absolute;inset:0;background:rgba(20,16,10,.28);opacity:0;pointer-events:none;transition:opacity .18s;z-index:30;display:flex;align-items:center;justify-content:center}
+  .dlg-scrim.open{opacity:1;pointer-events:auto}
+  .dlg{background:#fff;border-radius:14px;width:400px;max-width:90%;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.25);transform:scale(.96);transition:transform .18s}
+  .dlg-scrim.open .dlg{transform:scale(1)}
+  .dlg h3{font-family:var(--font-prose);font-size:19px;margin-bottom:10px}
+  .dlg p{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:4px}
+  .dlg .warn-count{color:var(--error);font-weight:700}
+  .dlg-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:22px}
+  .btn-danger-solid{background:var(--error);color:#fff}
+</style>
+</head>
+<body data-entry="B" data-layout="grid">
+
+<div class="mock-controls">
+  <div class="grp"><span class="lbl">진입점</span>
+    <div class="seg" id="segEntry">
+      <button data-v="A">A · 헤더 최상위 "카드"</button>
+      <button data-v="B" class="on">B · 보드 하위 탭 (확정)</button>
+    </div>
+  </div>
+  <div class="grp"><span class="lbl">목록 레이아웃</span>
+    <div class="seg" id="segLayout">
+      <button data-v="list">리스트</button>
+      <button data-v="grid" class="on">그리드 (확정)</button>
+    </div>
+  </div>
+  <div class="grp"><span class="lbl">상태</span>
+    <div class="seg" id="segState">
+      <button data-v="filled" class="on">카드 있음</button>
+      <button data-v="empty">빈 상태</button>
+    </div>
+  </div>
+</div>
+<div class="mock-note">
+  ↑ 상단 점선 바로 <b>진입점 2안 · 목록 2안 · 빈 상태</b>를 전환하며 비교하세요. 카드를 클릭하면 우측 상세가 열리고,
+  상세에서 종류 변경 · 소속 보드 재배정 · 삭제(연결 있는 카드는 경고)를 실제로 눌러볼 수 있습니다. "+ 새 카드"로 독립 카드 생성도 동작합니다.
+</div>
+
+<div class="app">
+  <header class="appbar">
+    <span class="brand">소설비</span>
+    <nav class="top">
+      <a href="#">🏠 홈</a>
+      <a href="#">📚 작품</a>
+      <a href="#" id="navBoards" class="active">🕸 보드</a>
+      <a href="#" class="cards-nav">🗂 카드</a>
+      <a href="#">🕘 기록</a>
+      <a href="#">🔗 공유</a>
+      <a href="#">📣 공지</a>
+    </nav>
+    <span class="avatar">서</span>
+  </header>
+
+  <div class="page">
+    <!-- 진입점 B: 보드 하위 탭 -->
+    <div class="board-tabs">
+      <button onclick="alert('(목업) 보드 목록 탭')">보드</button>
+      <button class="on">카드</button>
+    </div>
+
+    <div class="page-head">
+      <div>
+        <div class="page-title solo">카드</div>
+        <div class="page-sub" id="pageSub">보드에 흩어진 카드와 따로 적어둔 메모를 한곳에서 관리합니다</div>
+      </div>
+      <button class="btn btn-accent" onclick="toggleCreate()">+ 새 카드</button>
+    </div>
+
+    <!-- 생성 인라인 폼 -->
+    <div class="create-inline" id="createBox">
+      <textarea id="createText" placeholder="새 카드에 적을 내용을 입력하세요…"></textarea>
+      <div class="cfoot">
+        <button class="btn btn-accent" onclick="submitCreate()">저장</button>
+        <button class="btn btn-ghost" onclick="toggleCreate()">취소</button>
+        <span class="chint">보드 없는 독립 카드로 만들어집니다 · 종류는 만든 뒤 지정</span>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="search"><span class="si">🔍</span><input placeholder="카드 내용 · 보드 이름으로 검색" /></div>
+      <div class="filter-chips">
+        <span class="fchip on">전체</span>
+        <span class="fchip">보드 소속</span>
+        <span class="fchip">독립 카드</span>
+      </div>
+    </div>
+
+    <!-- 리스트 뷰 -->
+    <div class="list-view" id="listView"></div>
+    <!-- 그리드 뷰 -->
+    <div class="grid-view" id="gridView"></div>
+
+    <!-- 빈 상태 -->
+    <div class="empty" id="emptyView">
+      <div style="font-size:44px;opacity:.5">🗂</div>
+      <h3>아직 카드가 없어요</h3>
+      <div style="font-size:14px">생각나는 메모를 카드로 적어두거나, 보드에서 카드를 만들어 보세요.</div>
+      <button class="btn btn-accent" onclick="segState('filled')">+ 첫 카드 만들기</button>
+    </div>
+
+    <!-- 상세 슬라이드오버 -->
+    <div class="scrim" id="scrim" onclick="closeSheet()"></div>
+    <aside class="sheet" id="sheet" onclick="event.stopPropagation()">
+      <div class="sheet-head">
+        <span class="st">카드 상세</span>
+        <button class="x" onclick="closeSheet()">✕</button>
+      </div>
+      <div class="sheet-body">
+        <div>
+          <div class="field-label">내용</div>
+          <textarea class="body-edit" id="detailBody"></textarea>
+        </div>
+        <div>
+          <div class="field-label">종류</div>
+          <div class="kind-tray" id="kindTray"></div>
+        </div>
+        <div>
+          <div class="field-label">소속 보드</div>
+          <select class="board-select" id="boardSelect">
+            <option value="">— 속한 보드 없음 (독립) —</option>
+            <option>1부 플롯</option>
+            <option>인물 관계도</option>
+            <option>2부 구상</option>
+          </select>
+          <div class="reassign-note" id="reassignNote">붙이기 · 떼기 · 다른 보드로 옮기기</div>
+          <div class="reassign-locked" id="reassignLocked" style="display:none">
+            <span>🔒</span><span>다른 카드와 연결되어 있어 소속 보드를 바꿀 수 없어요. 보드 화면에서 연결을 정리한 뒤 옮겨주세요.</span>
+          </div>
+        </div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn btn-danger" onclick="tryDelete()">삭제</button>
+        <span class="flex-spacer"></span>
+        <button class="btn btn-ghost" onclick="closeSheet()">닫기</button>
+        <button class="btn btn-accent" onclick="closeSheet()">저장</button>
+      </div>
+    </aside>
+
+    <!-- 삭제 경고 -->
+    <div class="dlg-scrim" id="dlgScrim" onclick="closeDlg()">
+      <div class="dlg" onclick="event.stopPropagation()">
+        <h3>이 카드를 삭제할까요?</h3>
+        <p id="dlgWarn"></p>
+        <p style="color:var(--faint)">이 동작은 되돌릴 수 없습니다.</p>
+        <div class="dlg-foot">
+          <button class="btn btn-ghost" onclick="closeDlg()">취소</button>
+          <button class="btn btn-danger-solid" onclick="confirmDelete()">삭제</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const KINDS = {
+    character:{cls:"k-character",label:"인물"}, place:{cls:"k-place",label:"장소"},
+    event:{cls:"k-event",label:"사건"}, theme:{cls:"k-theme",label:"테마"}, none:{cls:"k-none",label:"종류 없음"}
+  };
+  const CARDS = [
+    {id:1, body:"복선: 다락방에서 발견한 오래된 편지. 발신인이 지워져 있다.", kind:"event", board:"1부 플롯", links:2},
+    {id:2, body:"주인공 김서연 — 26세, 냉소적이지만 여린. 복수를 결심한 계기.", kind:"character", board:"인물 관계도", links:3},
+    {id:3, body:"폐역 정거장 — 1부 클라이맥스 배경. 안개, 녹슨 철로.", kind:"place", board:"1부 플롯", links:1},
+    {id:4, body:"'복수'라는 주제가 결국 자기 파괴로 귀결되는 구조.", kind:"theme", board:"1부 플롯", links:0},
+    {id:5, body:"문득 떠오른 결말 아이디어 — 편지의 발신인이 사실은 본인이었다면?", kind:"none", board:null, links:0},
+    {id:6, body:"제목 후보: 「지워진 이름」 / 「안개 정거장」", kind:"none", board:null, links:0},
+    {id:7, body:"2부 도입: 3년 후, 다른 도시에서 재회.", kind:"event", board:"2부 구상", links:0},
+  ];
+  const fmtDate = ["방금","1시간 전","어제","2일 전","3일 전","6월 28일","6월 24일"];
+
+  function boardTag(b){
+    if(!b) return `<span class="board-tag none">🗂 속한 보드 없음</span>`;
+    return `<span class="board-tag">🕸 ${b}</span>`;
+  }
+  function linkBadge(n){ return n>0 ? `<span class="link-badge">🔗 ${n}</span>` : ""; }
+
+  function renderList(){
+    document.getElementById("listView").innerHTML = CARDS.map((c,i)=>{
+      const k=KINDS[c.kind];
+      return `<div class="row ${k.cls}" onclick="openSheet(${c.id})">
+        <span class="kdotwrap"></span>
+        <div class="rbody">
+          <div class="rtext">${c.body}</div>
+          <div class="rmeta">
+            <span class="kind-chip"><span class="kind-dot"></span>${k.label}</span>
+            ${boardTag(c.board)} ${linkBadge(c.links)}
+          </div>
+        </div>
+        <span class="rdate">${fmtDate[i]}</span>
+        <span class="rmore" onclick="event.stopPropagation();openSheet(${c.id})">⋯</span>
+      </div>`;
+    }).join("");
+  }
+  function renderGrid(){
+    document.getElementById("gridView").innerHTML = CARDS.map((c,i)=>{
+      const k=KINDS[c.kind];
+      return `<div class="gcard ${k.cls}" onclick="openSheet(${c.id})">
+        <div class="gtext">${c.body}</div>
+        <div class="gfoot">
+          <span class="kind-chip"><span class="kind-dot"></span>${k.label}</span>
+          ${linkBadge(c.links)}
+        </div>
+        <div class="gfoot" style="margin-top:8px">${boardTag(c.board)}<span style="margin-left:auto;font-size:11px;color:var(--faint)">${fmtDate[i]}</span></div>
+      </div>`;
+    }).join("");
+  }
+  renderList(); renderGrid();
+
+  // ── 슬라이드오버 ──
+  let current=null;
+  function openSheet(id){
+    current = CARDS.find(c=>c.id===id);
+    document.getElementById("detailBody").value = current.body;
+    document.getElementById("boardSelect").value = current.board || "";
+    // 종류 트레이
+    const tray = document.getElementById("kindTray");
+    const order = ["character","place","event","theme"];
+    tray.innerHTML = order.map(kid=>{
+      const k=KINDS[kid], sel = current.kind===kid ? "sel":"";
+      return `<button class="kchip-btn ${k.cls} ${sel}" onclick="pickKind('${kid}',this)"><span class="kind-dot"></span>${k.label}</button>`;
+    }).join("") + `<button class="kchip-btn plain ${current.kind==='none'?'sel':''}" onclick="pickKind('none',this)">종류 없음</button>`;
+    // 재배정 잠금(연결 있으면)
+    const locked = current.links>0;
+    document.getElementById("boardSelect").disabled = locked;
+    document.getElementById("reassignLocked").style.display = locked ? "flex":"none";
+    document.getElementById("reassignNote").style.display = locked ? "none":"block";
+    document.getElementById("scrim").classList.add("open");
+    document.getElementById("sheet").classList.add("open");
+  }
+  function pickKind(kid,btn){
+    document.querySelectorAll("#kindTray .kchip-btn").forEach(b=>b.classList.remove("sel"));
+    btn.classList.add("sel");
+  }
+  function closeSheet(){
+    document.getElementById("scrim").classList.remove("open");
+    document.getElementById("sheet").classList.remove("open");
+  }
+
+  // ── 삭제 ──
+  function tryDelete(){
+    if(current.links>0){
+      document.getElementById("dlgWarn").innerHTML =
+        `이 카드는 <span class="warn-count">${current.links}개의 다른 카드</span>와 연결되어 있어요. 삭제하면 그 연결도 함께 사라집니다.`;
+    } else {
+      document.getElementById("dlgWarn").textContent = "이 카드를 삭제합니다.";
+    }
+    document.getElementById("dlgScrim").classList.add("open");
+  }
+  function closeDlg(){ document.getElementById("dlgScrim").classList.remove("open"); }
+  function confirmDelete(){ closeDlg(); closeSheet(); alert("(목업) 삭제됨"); }
+
+  // ── 생성 ──
+  function toggleCreate(){
+    const box=document.getElementById("createBox");
+    box.classList.toggle("open");
+    if(box.classList.contains("open")) document.getElementById("createText").focus();
+  }
+  function submitCreate(){
+    const t=document.getElementById("createText").value.trim();
+    if(!t){ alert("(목업) 내용을 입력해 주세요 — 빈 카드는 만들 수 없어요"); return; }
+    toggleCreate(); document.getElementById("createText").value="";
+    alert("(목업) 독립 카드 생성됨 — 목록 맨 위에 추가");
+  }
+
+  // ── 컨트롤 ──
+  function bindSeg(id, attr, cb){
+    document.getElementById(id).addEventListener("click",e=>{
+      const b=e.target.closest("button"); if(!b) return;
+      document.querySelectorAll("#"+id+" button").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on");
+      const v=b.dataset.v;
+      if(attr) document.body.dataset[attr]=v;
+      if(cb) cb(v);
+    });
+  }
+  bindSeg("segEntry","entry",v=>{
+    document.getElementById("navBoards").classList.toggle("active", v==="B");
+  });
+  bindSeg("segLayout","layout");
+  function segState(v){
+    document.querySelectorAll("#segState button").forEach(x=>x.classList.toggle("on",x.dataset.v===v));
+    applyState(v);
+  }
+  function applyState(v){
+    const empty = v==="empty";
+    document.getElementById("emptyView").style.display = empty?"flex":"none";
+    document.getElementById("listView").style.display = empty?"none":"";
+    document.getElementById("gridView").style.display = empty?"none":"";
+    document.querySelector(".toolbar").style.display = empty?"none":"flex";
+  }
+  document.getElementById("segState").addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b) return; segState(b.dataset.v);
+  });
+</script>
+</body>
+</html>

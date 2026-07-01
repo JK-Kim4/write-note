@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>048 집필 화면 카드 뷰 — 목업</title>
+<style>
+  :root{
+    --canvas:#fffdf8; --parchment:#f3ede1; --surface:#ffffff; --surface2:#f9fafb; --surface3:#f3f4f6;
+    --ink:#2a2620; --ink2:#374151; --muted:#6b7280; --faint:#9ca3af;
+    --border:#e5e7eb; --border-strong:#d1d5db; --hairline:#e7ddcc;
+    --accent:#a8542e; --accent-soft:#fbf3ee; --accent-text:#8a4325;
+    --ms-page:#fbf7ee; --ms-outer:#eceae4;
+    --font-ui:"SF Pro Text",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif;
+    --font-prose:"Apple SD Gothic Neo","Noto Serif KR",serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#d9d3c6;font-family:var(--font-ui);color:var(--ink);-webkit-font-smoothing:antialiased;padding:24px}
+
+  .mock-note{max-width:1180px;margin:0 auto 14px;font-size:12.5px;color:#6b5f4f}
+  .mock-note b{color:var(--accent-text)}
+
+  .app{max-width:1180px;margin:0 auto;height:720px;background:var(--ms-outer);border-radius:16px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.16);border:1px solid var(--hairline);position:relative;display:flex;flex-direction:column}
+
+  /* 집필 상단바 (immersive — top nav 없음) */
+  .studio-top{display:flex;align-items:center;gap:12px;padding:0 22px;height:52px;background:var(--parchment);border-bottom:1px solid var(--hairline);flex:none;z-index:5}
+  .studio-top .back{color:var(--muted);font-size:18px;text-decoration:none}
+  .studio-top .wtitle{font-family:var(--font-prose);font-weight:700;font-size:16px}
+  .studio-top .wseries{font-size:12px;color:var(--faint);margin-left:2px}
+  .studio-top .spacer{flex:1}
+  .studio-top .tbtn{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;color:var(--ink2);background:#fff;border:1px solid var(--border-strong);border-radius:8px;padding:7px 12px;cursor:pointer}
+  .studio-top .tbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  /* 집필 본문(원고) */
+  .studio-body{flex:1;display:flex;overflow:hidden;position:relative}
+  .manuscript{flex:1;display:flex;justify-content:center;padding:34px 20px;overflow-y:auto}
+  .ms-page{width:520px;max-width:100%;background:var(--ms-page);border:1px solid var(--hairline);border-radius:4px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:44px 48px;font-family:var(--font-prose);font-size:16px;line-height:1.95;color:#38322a}
+  .ms-page h1{font-size:20px;margin-bottom:20px;font-weight:700}
+  .ms-page p{margin-bottom:14px;text-indent:1em}
+  .ms-page p.dim{color:#b8ab97}
+
+  /* 투명 바깥클릭 캐처 (046 — 원고 안 어두워짐) */
+  .catcher{position:absolute;inset:0;z-index:18;display:none}
+  .catcher.on{display:block}
+
+  /* 보드 참조 슬라이드오버 (043/046) */
+  .refpanel{position:absolute;top:0;right:0;bottom:0;width:468px;max-width:92%;background:var(--canvas);border-left:1px solid var(--hairline);box-shadow:-10px 0 34px rgba(0,0,0,.14);z-index:19;display:flex;flex-direction:column;transition:width .2s}
+  .refpanel.wide{width:640px}
+  .ref-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--hairline);flex:none}
+  .seg{display:inline-flex;border:1px solid var(--border-strong);border-radius:8px;overflow:hidden}
+  .seg button{border:0;background:#fff;color:var(--muted);font:inherit;font-size:13.5px;padding:7px 16px;cursor:pointer;font-weight:600}
+  .seg button.on{background:var(--accent);color:#fff}
+  .ref-head .spacer{flex:1}
+  .ref-head .ic{border:0;background:transparent;color:var(--faint);font-size:16px;cursor:pointer;padding:5px 7px;border-radius:6px}
+  .ref-head .ic:hover{background:var(--surface3);color:var(--muted)}
+
+  .ref-body{flex:1;overflow-y:auto;padding:16px}
+
+  /* 보드 뷰(캔버스 자리표시) */
+  .board-view{display:none;height:100%;flex-direction:column;gap:10px}
+  .board-view.on{display:flex}
+  .board-canvas{flex:1;border:1px dashed var(--border-strong);border-radius:12px;background:
+     linear-gradient(var(--surface2) 1px,transparent 1px) 0 0/22px 22px,
+     linear-gradient(90deg,var(--surface2) 1px,transparent 1px) 0 0/22px 22px, #fff;
+     display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:13px;position:relative}
+  .mini-card{position:absolute;background:var(--kbg,#f0fdfa);border:1px solid var(--kbd,#99f6e4);border-radius:9px;padding:8px 10px;font-family:var(--font-prose);font-size:12px;color:var(--ink);width:130px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+
+  /* 카드 뷰 */
+  .card-view{display:none;flex-direction:column;gap:20px}
+  .card-view.on{display:flex}
+  .grp-head{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+  .grp-head .gt{font-size:12.5px;font-weight:700;color:var(--ink2)}
+  .grp-head .gc{font-size:11px;font-weight:700;color:var(--muted);background:var(--surface3);border-radius:9999px;padding:2px 8px}
+  .grp-head .gline{flex:1;height:1px;background:var(--hairline)}
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(188px,1fr));gap:11px}
+
+  /* 종류 색 */
+  .k-character{--kbg:#f0fdfa;--kbd:#99f6e4;--kchipbg:#ccfbf1;--kchip:#0f766e;--kdot:#14b8a6}
+  .k-place{--kbg:#ecfdf5;--kbd:#a7f3d0;--kchipbg:#d1fae5;--kchip:#047857;--kdot:#10b981}
+  .k-event{--kbg:#fbf3ee;--kbd:#e8c4a8;--kchipbg:#f5e4d6;--kchip:#8a4325;--kdot:#a8542e}
+  .k-theme{--kbg:#f5f3ff;--kbd:#ddd6fe;--kchipbg:#ede9fe;--kchip:#6d28d9;--kdot:#8b5cf6}
+  .k-none{--kbg:#f8fafc;--kbd:#e2e8f0;--kchipbg:#f1f5f9;--kchip:#64748b;--kdot:#94a3b8}
+  .rcard{background:var(--kbg);border:1px solid var(--kbd);border-radius:12px;padding:12px 12px 10px;cursor:pointer;min-height:104px;display:flex;flex-direction:column;transition:box-shadow .12s,transform .12s}
+  .rcard:hover{box-shadow:0 5px 15px rgba(0,0,0,.08);transform:translateY(-1px)}
+  .rcard .rtext{font-family:var(--font-prose);font-size:13.5px;line-height:1.55;color:var(--ink);flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .rcard .rfoot{display:flex;align-items:center;gap:6px;margin-top:9px;flex-wrap:wrap}
+  .kind-chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:9999px;background:var(--kchipbg);color:var(--kchip)}
+  .kind-dot{width:6px;height:6px;border-radius:50%;background:var(--kdot)}
+  .bname{font-size:10.5px;color:var(--muted);font-weight:600}
+  .bname.none{color:var(--faint);font-style:italic}
+  .rdate{font-size:10px;color:var(--faint);margin-left:auto}
+
+  /* 카드 상세 미니 오버레이 */
+  .detail-scrim{position:absolute;inset:0;background:rgba(20,16,10,.22);opacity:0;pointer-events:none;transition:opacity .16s;z-index:25;display:flex;align-items:center;justify-content:center}
+  .detail-scrim.on{opacity:1;pointer-events:auto}
+  .detail-card{background:#fff;border-radius:14px;width:320px;max-width:88%;box-shadow:0 18px 44px rgba(0,0,0,.25);transform:scale(.96);transition:transform .16s;overflow:hidden}
+  .detail-scrim.on .detail-card{transform:scale(1)}
+  .detail-card .dh{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--hairline)}
+  .detail-card .dh .x{border:0;background:transparent;font-size:17px;color:var(--faint);cursor:pointer}
+  .detail-card .dbody{padding:16px 16px 18px}
+  .detail-card .dtext{font-family:var(--font-prose);font-size:15px;line-height:1.7;color:var(--ink);margin-top:10px}
+  .detail-hint{font-size:11px;color:var(--faint);padding:0 16px 14px}
+</style>
+</head>
+<body>
+<div class="mock-note">
+  <b>집필 화면</b>에서 우측 "보드 참조" 패널의 <b>[보드 | 카드]</b> 토글을 눌러보세요. <b>카드</b> 뷰는
+  <b>이 작품 보드 → 시리즈 보드 → 독립</b> 3단(각 그룹 안 생성일 내림차순)으로 그 작품 관련 카드 + 독립 카드만 모읍니다.
+  카드를 누르면 내용·종류를 확인합니다. (원고는 어두워지지 않고 바깥 클릭·✕ 로 닫힘 — 046 패턴)
+</div>
+
+<div class="app">
+  <div class="studio-top">
+    <a href="#" class="back">‹</a>
+    <span class="wtitle">지워진 이름</span>
+    <span class="wseries">· 안개 연작</span>
+    <span class="spacer"></span>
+    <button class="tbtn on" onclick="void 0">🕸 보드 참조</button>
+    <button class="tbtn">⤓ 내보내기</button>
+  </div>
+
+  <div class="studio-body">
+    <div class="manuscript">
+      <div class="ms-page">
+        <h1>1장 · 다락방</h1>
+        <p>비가 그친 뒤에도 처마 끝에서는 한참을 물이 떨어졌다. 서연은 낡은 계단을 올랐다. 삐걱이는 소리마다 오래 눌러둔 기억이 하나씩 깨어나는 것 같았다.</p>
+        <p>다락방 구석, 먼지 쌓인 상자 안에서 그녀는 편지 한 장을 꺼냈다. 발신인의 이름은 누군가 정성껏 지워 놓은 뒤였다.</p>
+        <p class="dim">서연은 편지를 접었다 다시 폈다. 지워진 자리에 손끝을 대자, 종이의 결이 미세하게 파여 있는 것이 느껴졌다.</p>
+      </div>
+    </div>
+
+    <div class="catcher on" onclick="closePanel()"></div>
+
+    <aside class="refpanel" id="panel">
+      <div class="ref-head">
+        <div class="seg" id="seg">
+          <button data-v="board">보드</button>
+          <button data-v="card" class="on">카드</button>
+        </div>
+        <span class="spacer"></span>
+        <button class="ic" title="넓게" onclick="document.getElementById('panel').classList.toggle('wide')">⤢</button>
+        <button class="ic" title="전체 화면">↗</button>
+        <button class="ic" title="닫기" onclick="closePanel()">✕</button>
+      </div>
+
+      <div class="ref-body">
+        <!-- 보드 뷰(자리표시) -->
+        <div class="board-view" id="boardView">
+          <div class="board-canvas">
+            <span>이 작품 보드 · 시리즈 보드 캔버스 (기존 043/046)</span>
+            <div class="mini-card k-event" style="top:24px;left:26px">복선: 다락방 편지</div>
+            <div class="mini-card k-character" style="top:120px;left:150px">주인공 김서연</div>
+            <div class="mini-card k-place" style="top:60px;right:24px">폐역 정거장</div>
+          </div>
+        </div>
+
+        <!-- 카드 뷰 (3단 그룹) -->
+        <div class="card-view on" id="cardView"></div>
+      </div>
+    </aside>
+
+    <!-- 카드 상세 미니 -->
+    <div class="detail-scrim" id="detailScrim" onclick="closeDetail()">
+      <div class="detail-card" onclick="event.stopPropagation()">
+        <div class="dh"><span class="kind-chip" id="dChip"></span><button class="x" onclick="closeDetail()">✕</button></div>
+        <div class="dbody"><div class="bname" id="dBoard"></div><div class="dtext" id="dText"></div></div>
+        <div class="detail-hint">집필 중 참조용 — 편집·생성·재배정은 보드 화면의 카드 탭에서</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const KINDS={character:{cls:"k-character",label:"인물"},place:{cls:"k-place",label:"장소"},event:{cls:"k-event",label:"사건"},theme:{cls:"k-theme",label:"테마"},none:{cls:"k-none",label:"종류 없음"}};
+  // 그룹: work(이 작품 보드) → series(시리즈 보드) → solo(독립). 각 그룹 내 생성일 내림차순.
+  const GROUPS=[
+    {key:"work",title:"이 작품 보드",cards:[
+      {body:"복선: 다락방에서 발견한 오래된 편지. 발신인이 지워져 있다.",kind:"event",board:"1부 플롯",date:"어제"},
+      {body:"주인공 김서연 — 26세, 냉소적이지만 여린. 복수를 결심한 계기.",kind:"character",board:"인물 관계도",date:"3일 전"},
+      {body:"폐역 정거장 — 1부 클라이맥스 배경. 안개, 녹슨 철로.",kind:"place",board:"1부 플롯",date:"6월 27일"},
+      {body:"'복수'라는 주제가 결국 자기 파괴로 귀결되는 구조.",kind:"theme",board:"1부 플롯",date:"6월 25일"},
+    ]},
+    {key:"series",title:"시리즈 보드",cards:[
+      {body:"연작 공통 배경: 안개 낀 항구도시. 세 작품이 같은 도시를 공유.",kind:"place",board:"안개 연작 · 세계관",date:"6월 20일"},
+      {body:"반복 모티프: 안개 = 지워진 기억. 매 작품 1장에 등장.",kind:"theme",board:"안개 연작 · 세계관",date:"6월 18일"},
+    ]},
+    {key:"solo",title:"독립 카드",cards:[
+      {body:"문득 떠오른 결말 아이디어 — 편지의 발신인이 사실은 본인이었다면?",kind:"none",board:null,date:"오늘"},
+      {body:"제목 후보: 「지워진 이름」 / 「안개 정거장」",kind:"none",board:null,date:"6월 22일"},
+    ]},
+  ];
+
+  function bname(b){ return b ? `<span class="bname">🕸 ${b}</span>` : `<span class="bname none">🗂 독립</span>`; }
+
+  function renderCards(){
+    document.getElementById("cardView").innerHTML = GROUPS.map(g=>{
+      const tiles = g.cards.map((c,i)=>{
+        const k=KINDS[c.kind];
+        return `<div class="rcard ${k.cls}" onclick='openDetail(${JSON.stringify(c).replace(/'/g,"&#39;")})'>
+          <div class="rtext">${c.body}</div>
+          <div class="rfoot"><span class="kind-chip"><span class="kind-dot"></span>${k.label}</span>${bname(c.board)}<span class="rdate">${c.date}</span></div>
+        </div>`;
+      }).join("");
+      return `<div><div class="grp-head"><span class="gt">${g.title}</span><span class="gc">${g.cards.length}</span><span class="gline"></span></div><div class="card-grid">${tiles}</div></div>`;
+    }).join("");
+  }
+  renderCards();
+
+  function openDetail(c){
+    const k=KINDS[c.kind];
+    const chip=document.getElementById("dChip");
+    chip.className="kind-chip "+k.cls;
+    chip.innerHTML=`<span class="kind-dot"></span>${k.label}`;
+    document.getElementById("dBoard").innerHTML = bname(c.board);
+    document.getElementById("dText").textContent=c.body;
+    document.getElementById("detailScrim").classList.add("on");
+  }
+  function closeDetail(){ document.getElementById("detailScrim").classList.remove("on"); }
+
+  document.getElementById("seg").addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    document.querySelectorAll("#seg button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    const card = b.dataset.v==="card";
+    document.getElementById("cardView").classList.toggle("on",card);
+    document.getElementById("boardView").classList.toggle("on",!card);
+  });
+
+  function closePanel(){
+    document.getElementById("panel").style.transform="translateX(100%)";
+    document.getElementById("panel").style.transition="transform .24s";
+    document.querySelector(".catcher").classList.remove("on");
+    setTimeout(()=>alert("(목업) 패널 닫힘 — 상단 '보드 참조'로 다시 열기"),260);
+  }
+</script>
+</body>
+</html>

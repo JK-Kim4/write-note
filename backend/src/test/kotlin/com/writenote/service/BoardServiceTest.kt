@@ -385,6 +385,18 @@ class BoardServiceTest {
     }
 
     @Test
+    @DisplayName("createCard — 카드에 소유 user_id 채움 (048 독립카드 소유모델 회귀 가드)")
+    fun `createCard fills owner userId`() {
+        every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L, userId = 1L))
+        val captured = slot<Card>()
+        every { cardRepository.save(capture(captured)) } answers { savedCard(firstArg()) }
+
+        service.createCard(1L, 100L, CreateCardRequest(body = "x", posX = 0.0, posY = 0.0))
+
+        assertThat(captured.captured.userId).isEqualTo(1L)
+    }
+
+    @Test
     @DisplayName("createCard — 타입 지정 시 영속(V25)")
     fun `createCard persists type`() {
         every { boardRepository.findByIdAndUserId(eq(100L), eq(1L)) } returns Optional.of(ownedBoard(id = 100L))
