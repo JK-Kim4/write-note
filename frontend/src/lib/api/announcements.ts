@@ -42,3 +42,13 @@ export function listAnnouncements(params: ListAnnouncementsParams = {}): Promise
 export function getAnnouncement(id: number): Promise<AnnouncementDetail> {
     return apiFetch<AnnouncementDetail>(`/api/announcements/${id}`, { method: "GET" });
 }
+
+/** 홈 두 슬롯 — 고정/최신 각각 요약(없으면 null). */
+export interface HomeAnnouncements {
+    pinned: AnnouncementSummary | null;
+    latest: AnnouncementSummary | null;
+}
+
+export function getHomeAnnouncements(): Promise<HomeAnnouncements> {
+    return apiFetch<HomeAnnouncements>(`/api/announcements/home`, { method: "GET" });
+}

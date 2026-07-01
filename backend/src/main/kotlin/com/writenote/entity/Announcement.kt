@@ -14,7 +14,8 @@ import java.time.Instant
  * 공지사항 — 운영자가 작성하고 사용자에게 노출되는 안내 글.
  *
  * 어느 작품/유저에도 종속되지 않는 독립 테이블(FK 없음).
- * 공개 조회는 [isPublished] = true 만 노출, 배너는 [isPinned] 우선.
+ * 공개 조회는 [isPublished] = true 만 노출. 홈 배너(GET /api/announcements/home)는
+ * 고정([isPinned]) 슬롯 1건 + 최신 슬롯 1건 두 개로 구분 노출한다.
  */
 @Entity
 @Table(name = "announcements")
