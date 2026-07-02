@@ -4,12 +4,15 @@ import com.writenote.auth.AuthenticatedPrincipal
 import com.writenote.model.request.CreateShareLinkRequest
 import com.writenote.model.request.SetPublicWorksRequest
 import com.writenote.model.request.UpdateShareLinkRequest
+import com.writenote.model.response.AuthorSnapshotFeedbackResponse
 import com.writenote.model.response.DeleteShareLinkResponse
+import com.writenote.model.response.MarkCommentsReadResponse
 import com.writenote.model.response.Result
 import com.writenote.model.response.ShareLinkResponse
 import com.writenote.model.response.SharedViewResponse
 import com.writenote.model.response.SharedWorkResponse
 import com.writenote.service.ShareCommentService
+import com.writenote.service.ShareReactionService
 import com.writenote.service.ShareService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -34,6 +37,7 @@ import org.springframework.web.bind.annotation.RestController
 class ShareController(
     private val shareService: ShareService,
     private val shareCommentService: ShareCommentService,
+    private val shareReactionService: ShareReactionService,
 ) {
     // ── 작가 — 링크 관리 (authenticated) ─────────────────────────────────────────
 
@@ -79,6 +83,29 @@ class ShareController(
         return Result.success(DeleteShareLinkResponse(deleted = true))
     }
 
+    @GetMapping("/api/share-links/{linkId}/works/{projectId}/feedback")
+    @Operation(
+        summary = "작가용 피드백 맥락 뷰",
+        description = "그 링크(스냅샷) 본문 전문 + 전체 댓글 + 반응 집계. 비활성 링크도 열람 가능. 비소유 403, 없음 404 (050 US1)",
+    )
+    fun getAuthorFeedback(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @PathVariable linkId: Long,
+        @PathVariable projectId: Long,
+    ): Result<AuthorSnapshotFeedbackResponse> =
+        Result.success(shareCommentService.authorSnapshotFeedback(linkId, projectId, principal.userId))
+
+    @PostMapping("/api/share-links/{linkId}/works/{projectId}/comments/read")
+    @Operation(
+        summary = "스냅샷 스코프 읽음 처리",
+        description = "그 링크(스냅샷) 안 읽은 댓글만 읽음 처리(같은 작품 다른 링크는 무영향). 비소유 403 (050 US1, D7)",
+    )
+    fun markSnapshotCommentsRead(
+        @AuthenticationPrincipal principal: AuthenticatedPrincipal,
+        @PathVariable linkId: Long,
+        @PathVariable projectId: Long,
+    ): Result<MarkCommentsReadResponse> = Result.success(shareCommentService.markReadBySnapshotId(linkId, projectId, principal.userId))
+
     // ── 공개 — 열람 (permitAll, nullable principal) ──────────────────────────────
 
     @GetMapping("/api/shared/{token}")
@@ -89,7 +116,10 @@ class ShareController(
     ): Result<SharedViewResponse> = Result.success(shareService.getPublicView(token))
 
     @GetMapping("/api/shared/{token}/works/{projectId}")
-    @Operation(summary = "공개 본문 열람", description = "스냅샷 owner 키 복호 평문 PM JSON + 요청자 본인 댓글만(가시성 R-3). 비로그인 허용")
+    @Operation(
+        summary = "공개 본문 열람",
+        description = "스냅샷 owner 키 복호 평문 PM JSON + 요청자 본인 댓글만(가시성 R-3) + 반응 집계(공개, 050). 비로그인 허용",
+    )
     fun getSharedWork(
         @AuthenticationPrincipal principal: AuthenticatedPrincipal?,
         @PathVariable token: String,
@@ -98,6 +128,8 @@ class ShareController(
         val work = shareService.getSharedWork(token, projectId)
         // 댓글 가시성(R-3): 회원이면 본인 댓글만, 비로그인이면 빈 배열.
         val comments = shareCommentService.listMineForSharedWork(token, projectId, principal?.userId)
-        return Result.success(work.copy(comments = comments))
+        // 반응 집계(050 US3): 공개 — 열람자 전체가 개수를 봄, mine 만 회원 본인 반영.
+        val reactions = shareReactionService.aggregateForSharedWork(token, projectId, principal?.userId)
+        return Result.success(work.copy(comments = comments, reactions = reactions))
     }
 }

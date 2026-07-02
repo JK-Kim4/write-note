@@ -7,9 +7,11 @@
 import { useQuery } from "@tanstack/react-query";
 import {
     getAnnouncement,
+    getHomeAnnouncements,
     listAnnouncements,
     type AnnouncementDetail,
     type AnnouncementSummary,
+    type HomeAnnouncements,
 } from "@/lib/api/announcements";
 import type { Page } from "@/types/api";
 
@@ -18,7 +20,7 @@ const STALE_MS = 60_000;
 export const announcementKeys = {
     all: ["announcements"] as const,
     list: (page: number, size: number) => [...announcementKeys.all, "list", page, size] as const,
-    latest: () => [...announcementKeys.all, "latest"] as const,
+    home: () => [...announcementKeys.all, "home"] as const,
     detail: (id: number) => [...announcementKeys.all, "detail", id] as const,
 };
 
@@ -31,14 +33,11 @@ export function useAnnouncements(page = 0, size = 20) {
     });
 }
 
-/** 홈 배너 — 최신 공개 공지 1건(없으면 null). */
-export function useLatestAnnouncement() {
-    return useQuery<AnnouncementSummary | null>({
-        queryKey: announcementKeys.latest(),
-        queryFn: async () => {
-            const page = await listAnnouncements({ page: 0, size: 1 });
-            return page.content[0] ?? null;
-        },
+/** 홈 배너 — 고정 슬롯 + 최신 슬롯 두 개(각 없으면 null). */
+export function useHomeAnnouncements() {
+    return useQuery<HomeAnnouncements>({
+        queryKey: announcementKeys.home(),
+        queryFn: getHomeAnnouncements,
         staleTime: STALE_MS,
     });
 }

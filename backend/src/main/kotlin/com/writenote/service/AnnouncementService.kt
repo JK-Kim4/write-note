@@ -7,6 +7,7 @@ import com.writenote.model.request.UpdateAnnouncementRequest
 import com.writenote.model.response.AdminAnnouncementResponse
 import com.writenote.model.response.AnnouncementDetailResponse
 import com.writenote.model.response.AnnouncementSummaryResponse
+import com.writenote.model.response.HomeAnnouncementsResponse
 import com.writenote.model.response.PageResponse
 import com.writenote.repository.AnnouncementRepository
 import org.springframework.data.domain.PageRequest
@@ -30,6 +31,23 @@ class AnnouncementService(
         val result =
             announcementRepository.findAllByIsPublishedTrueOrderByPublishedAtDesc(PageRequest.of(page, size))
         return PageResponse.from(result.map(::toSummary))
+    }
+
+    /**
+     * 홈 두 슬롯 — [pinned] (공개+고정 중 공개일 최신 1건), [latest] (공개일 최신 1건, 단 pinned 와 동일하면 그다음).
+     * 같은 공지가 두 슬롯에 중복 노출되지 않도록 latest 는 pinned 를 제외한다.
+     */
+    @Transactional(readOnly = true)
+    fun getHome(): HomeAnnouncementsResponse {
+        val pinned: Announcement? =
+            announcementRepository.findFirstByIsPublishedTrueAndIsPinnedTrueOrderByPublishedAtDesc().orElse(null)
+        val topTwo =
+            announcementRepository.findAllByIsPublishedTrueOrderByPublishedAtDesc(PageRequest.of(0, 2)).content
+        val latest = topTwo.firstOrNull { it.id != pinned?.id }
+        return HomeAnnouncementsResponse(
+            pinned = pinned?.let(::toSummary),
+            latest = latest?.let(::toSummary),
+        )
     }
 
     @Transactional(readOnly = true)

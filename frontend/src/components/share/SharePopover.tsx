@@ -6,7 +6,7 @@ import { ApiError } from "@/lib/api/client";
 import { useCreateShareLink, useDeleteShareLink, useMyShareLinks, useSetShareLinkActive } from "@/lib/query/useShares";
 import { linksForTarget } from "@/lib/share/shareGrouping";
 import { PublicWorkPicker } from "./PublicWorkPicker";
-import { AuthorCommentInbox } from "./AuthorCommentInbox";
+import { AuthorFeedbackView } from "./AuthorFeedbackView";
 import { MAX_SHARE_LINKS_PER_TARGET } from "@/lib/api/share";
 import type { ShareLinkResponse, ShareTargetType } from "@/lib/api/share";
 
@@ -15,7 +15,7 @@ import type { ShareLinkResponse, ShareTargetType } from "@/lib/api/share";
  *
  * 링크 0개면 "공유 링크 만들기"(그 시점 본문 고정 안내), 1개+면 시점별 링크 목록(주소·복사·받은 피드백·끄기/
  * 다시 켜기) + "새 공유 링크 만들기". 시리즈는 PublicWorkPicker 로 공개 작품을 직접 고른다. 받은 피드백은
- * AuthorCommentInbox(작품 단위) 로 연다. 바깥 클릭/ESC 닫기(자식 모달이 열려 있으면 모달 먼저).
+ * AuthorFeedbackView(그 링크의 전문+피드백 맥락 뷰, 050 D9) 로 연다. 바깥 클릭/ESC 닫기(자식 모달 먼저).
  *
  * 자체 useMyShareLinks 구독(부모 카드의 배지 조회와 같은 쿼리 → React Query dedup, 추가 네트워크 0).
  */
@@ -63,10 +63,10 @@ export function SharePopover({ targetType, targetId, title, onClose, anchorRef }
     const [copiedId, setCopiedId] = useState<number | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [pickerLink, setPickerLink] = useState<ShareLinkResponse | null>(null);
-    const [inboxProject, setInboxProject] = useState<{ id: number; title: string } | null>(null);
+    const [feedbackTarget, setFeedbackTarget] = useState<{ linkId: number; projectId: number } | null>(null);
 
     const popRef = useRef<HTMLDivElement>(null);
-    const modalOpen = inboxProject != null || pickerLink != null;
+    const modalOpen = feedbackTarget != null || pickerLink != null;
 
     // body 포털 — 카드/타일 자손으로 렌더되면 클릭이 카드 진입·드래그와 얽혀 팝오버가 흔들리고 ✕ 가 빗나가던
     // 회귀(047) 근본 해결. 트리거(공유 버튼) 위치 기준 fixed 배치(아래 공간 충분하면 아래, 아니면 위).
@@ -95,8 +95,8 @@ export function SharePopover({ targetType, targetId, title, onClose, anchorRef }
         };
         const onKey = (e: KeyboardEvent) => {
             if (e.key !== "Escape") return;
-            if (inboxProject) {
-                setInboxProject(null);
+            if (feedbackTarget) {
+                setFeedbackTarget(null);
                 return;
             }
             if (pickerLink) {
@@ -111,7 +111,7 @@ export function SharePopover({ targetType, targetId, title, onClose, anchorRef }
             document.removeEventListener("mousedown", onDown);
             document.removeEventListener("keydown", onKey);
         };
-    }, [modalOpen, inboxProject, pickerLink, onClose]);
+    }, [modalOpen, feedbackTarget, pickerLink, onClose]);
 
     const handleCreate = () => {
         setError(null);
@@ -196,30 +196,27 @@ export function SharePopover({ targetType, targetId, title, onClose, anchorRef }
                     </button>
                 ) : null}
 
-                {/* 받은 피드백 — work=단일, series=공개 작품별. */}
+                {/* 본문 보기 — work=단일, series=공개 작품별(피드백 수는 배지). ShareLinkManager 와 동일 라벨. */}
                 {targetType === "work" ? (
-                    <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border pt-2.5">
+                    <div className="mt-2.5 flex items-center gap-2 border-t border-border pt-2.5">
+                        <span className="flex-1" />
                         <button
                             type="button"
-                            onClick={() => setInboxProject({ id: targetId, title })}
-                            className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-semibold ${
-                                workUnread > 0 ? "bg-accent-soft text-accent-text hover:bg-terracotta-100" : "bg-surface-2 text-faint"
-                            }`}
+                            onClick={() => setFeedbackTarget({ linkId: link.id, projectId: link.snapshots[0]?.projectId ?? targetId })}
+                            className="inline-flex items-center gap-1.5 rounded-md bg-accent-soft px-3 py-1.5 text-[11.5px] font-semibold text-accent-text hover:bg-terracotta-100"
                         >
-                            받은 피드백
-                            {workUnread > 0 ? (
-                                <span className="inline-flex min-w-[17px] items-center justify-center rounded-full bg-accent px-1.5 text-[10.5px] text-accent-ink">
+                            본문 보기
+                            {workUnread > 0 && (
+                                <span className="inline-flex min-w-[16px] items-center justify-center rounded-full bg-accent px-1 text-[10px] text-accent-ink">
                                     {workUnread}
                                 </span>
-                            ) : (
-                                <span>0</span>
                             )}
                         </button>
                         <button
                             type="button"
                             onClick={() => handleToggleActive(link)}
                             disabled={setActiveMutation.isPending}
-                            className="shrink-0 rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-strong hover:bg-surface-2 disabled:opacity-50"
+                            className="shrink-0 rounded-md border border-border px-2.5 py-1.5 text-[11px] text-muted-strong hover:bg-surface-2 disabled:opacity-50"
                         >
                             {link.isActive ? "끄기" : "다시 켜기"}
                         </button>
@@ -233,14 +230,15 @@ export function SharePopover({ targetType, targetId, title, onClose, anchorRef }
                                         <span className="truncate text-[12px] text-ink-2">{snap.title}</span>
                                         <button
                                             type="button"
-                                            onClick={() => setInboxProject({ id: snap.projectId, title: snap.title })}
-                                            className={`inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold ${
-                                                snap.unreadCommentCount > 0
-                                                    ? "bg-accent-soft text-accent-text hover:bg-terracotta-100"
-                                                    : "text-faint hover:bg-surface-2"
-                                            }`}
+                                            onClick={() => setFeedbackTarget({ linkId: link.id, projectId: snap.projectId })}
+                                            className="inline-flex shrink-0 items-center gap-1 rounded-md bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent-text hover:bg-terracotta-100"
                                         >
-                                            받은 피드백 {snap.unreadCommentCount}
+                                            본문 보기
+                                            {snap.unreadCommentCount > 0 && (
+                                                <span className="inline-flex min-w-[15px] items-center justify-center rounded-full bg-accent px-1 text-[9.5px] text-accent-ink">
+                                                    {snap.unreadCommentCount}
+                                                </span>
+                                            )}
                                         </button>
                                     </li>
                                 ))}
@@ -371,7 +369,7 @@ export function SharePopover({ targetType, targetId, title, onClose, anchorRef }
                 ) : null}
             </div>
 
-            {/* 모달은 PublicWorkPicker·AuthorCommentInbox 가 자체적으로 body 포털 렌더(부모 카드/타일 stacking·이벤트 탈출). */}
+            {/* 모달은 PublicWorkPicker·AuthorFeedbackView 가 자체적으로 body 포털 렌더(부모 카드/타일 stacking·이벤트 탈출). */}
             {pickerLink ? (
                 <PublicWorkPicker
                     linkId={pickerLink.id}
@@ -380,11 +378,11 @@ export function SharePopover({ targetType, targetId, title, onClose, anchorRef }
                     onClose={() => setPickerLink(null)}
                 />
             ) : null}
-            {inboxProject ? (
-                <AuthorCommentInbox
-                    projectId={inboxProject.id}
-                    projectTitle={inboxProject.title}
-                    onClose={() => setInboxProject(null)}
+            {feedbackTarget ? (
+                <AuthorFeedbackView
+                    linkId={feedbackTarget.linkId}
+                    projectId={feedbackTarget.projectId}
+                    onClose={() => setFeedbackTarget(null)}
                 />
             ) : null}
         </>,

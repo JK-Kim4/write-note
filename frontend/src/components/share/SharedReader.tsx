@@ -13,6 +13,9 @@ import { buildSharedView } from "@/lib/share/sharedDoc";
  * 그 인덱스를 그대로 쓴다(View.blocks 순서 = 앵커 blockIndex, research R-4).
  *
  * 마커(불릿/번호)·인용 바는 `data-block-index` 요소 밖에 두어 선택 오프셋 계산에 끼지 않게 한다.
+ *
+ * 050 US4: 본문 색을 하드코딩 hex 대신 앱 토큰으로 교체 — `var(--w-ink)`(집필 화면 `CustomEditor` 본문과
+ * 동일 토큰, 다크 자동 대응) · 인용 마커 `var(--w-ms-quote)` · 목록 마커 `var(--w-muted)` · 구분선 `var(--w-border)`.
  */
 type Props = { bodyJson: string };
 
@@ -24,7 +27,7 @@ export function SharedReader({ bodyJson }: Props) {
     return (
         <div
             className="mx-auto"
-            style={{ maxWidth: READING_MAX_WIDTH, color: "#1f2937", fontFamily: FONT_FAMILY }}
+            style={{ maxWidth: READING_MAX_WIDTH, color: "var(--w-ink)", fontFamily: FONT_FAMILY }}
         >
             {view.blocks.map((b, i) => {
                 if (b.kind === "image") {
@@ -33,7 +36,7 @@ export function SharedReader({ bodyJson }: Props) {
                 }
 
                 if (b.attr.type === "hr") {
-                    return <hr key={b.id} style={{ border: 0, borderTop: "2px solid #e4e4e7", margin: "20px 0" }} />;
+                    return <hr key={b.id} style={{ border: 0, borderTop: "2px solid var(--w-border)", margin: "20px 0" }} />;
                 }
 
                 const textStyle: CSSProperties = {
@@ -56,7 +59,7 @@ export function SharedReader({ bodyJson }: Props) {
                 if (b.attr.type === "blockquote") {
                     return (
                         <div key={b.id} style={{ position: "relative", paddingLeft: 16, margin: "6px 0" }}>
-                            <div style={{ position: "absolute", left: 0, top: 2, bottom: 2, width: 3, background: "#a1a1aa" }} aria-hidden />
+                            <div style={{ position: "absolute", left: 0, top: 2, bottom: 2, width: 3, background: "var(--w-ms-quote)" }} aria-hidden />
                             {textNode}
                         </div>
                     );
@@ -68,7 +71,7 @@ export function SharedReader({ bodyJson }: Props) {
                         <div key={b.id} style={{ display: "flex", gap: 8, margin: "2px 0", paddingLeft: 8 }}>
                             <span
                                 aria-hidden
-                                style={{ flex: "0 0 auto", color: "#6b7280", fontSize: b.fontSizePx, lineHeight: `${b.lineHeightPx}px`, minWidth: 16, textAlign: b.listNumber != null ? "right" : "center" }}
+                                style={{ flex: "0 0 auto", color: "var(--w-muted)", fontSize: b.fontSizePx, lineHeight: `${b.lineHeightPx}px`, minWidth: 16, textAlign: b.listNumber != null ? "right" : "center" }}
                             >
                                 {marker}
                             </span>

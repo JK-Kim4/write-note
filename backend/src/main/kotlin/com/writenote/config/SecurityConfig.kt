@@ -78,10 +78,13 @@ class SecurityConfig {
                     .requestMatchers(HttpMethod.GET, "/api/announcements", "/api/announcements/*")
                     .permitAll()
                     // 공개 공유 열람 (046) — 비로그인 허용, optional auth(JwtAuthenticationFilter pass-through).
-                    // /api/share-links/** 는 보호(anyRequest authenticated). 댓글 POST(R2)는 컨트롤러가 회원 검증(nullable principal).
+                    // /api/share-links/** 는 보호(anyRequest authenticated). 댓글 POST(R2)·반응 POST/DELETE(050 US3)는
+                    // 컨트롤러가 회원 검증(nullable principal) — 필터에서 막으면 COMMENT_UNAUTHENTICATED 대신 일반 401 로 샌다.
                     .requestMatchers(HttpMethod.GET, "/api/shared/**")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/shared/**")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.DELETE, "/api/shared/**")
                     .permitAll()
                     // 운영 툴 어드민 (030) — 단일 관리자(app.admin.email)만
                     .requestMatchers("/api/admin/**")
