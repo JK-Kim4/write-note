@@ -15,6 +15,8 @@ import java.time.Instant
  * 가시성 = 작가 전용(R-3): 공개 read 는 [authorId] == 요청자만, 작가 인박스([projectId] 소유)만 전체 — 조회 레이어에서 강제.
  * 앵커 = 불변 스냅샷의 ([anchorBlockIndex] top-level 블록 + [anchorStart] 문단 내 오프셋 + [anchorLength] 구간 길이).
  * [projectId] = 작가 집계용 비정규화(스냅샷의 작품). [content] = 평문(R-3).
+ *
+ * 앵커 3필드는 nullable(050 V32) — 셋 다 null = 구간 미지정 "전체 의견", 셋 다 값 = 구간 댓글(부분 null 은 서비스 레이어가 거부).
  */
 @Entity
 @Table(name = "share_comment")
@@ -28,12 +30,12 @@ class ShareComment(
     var projectId: Long = 0,
     @Column(name = "author_id", nullable = false)
     var authorId: Long = 0,
-    @Column(name = "anchor_block_index", nullable = false)
-    var anchorBlockIndex: Int = 0,
-    @Column(name = "anchor_start", nullable = false)
-    var anchorStart: Int = 0,
-    @Column(name = "anchor_length", nullable = false)
-    var anchorLength: Int = 0,
+    @Column(name = "anchor_block_index")
+    var anchorBlockIndex: Int? = null,
+    @Column(name = "anchor_start")
+    var anchorStart: Int? = null,
+    @Column(name = "anchor_length")
+    var anchorLength: Int? = null,
     @Column(nullable = false)
     var content: String = "",
     @Column(name = "created_at", nullable = false, updatable = false)

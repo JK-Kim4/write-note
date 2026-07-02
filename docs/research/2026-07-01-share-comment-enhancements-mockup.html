@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>공유 — 댓글 고도화(이모지 반응 + 전체 의견) 목업</title>
+<style>
+  :root{
+    --w-canvas:#fffdf8; --w-surface:#ffffff; --w-surface-2:#f9fafb; --w-surface-3:#f3f4f6;
+    --w-ink:#2a2620; --w-ink-2:#374151; --w-muted-strong:#4b5563; --w-muted:#6b7280; --w-faint:#9ca3af;
+    --w-border:#e5e7eb; --w-border-strong:#d1d5db;
+    --w-accent:#a8542e; --w-accent-soft:#fbf3ee; --w-accent-text:#8a4325; --w-accent-ink:#ffffff;
+    --w-parchment:#f3ede1;
+    --w-prose: "Apple SD Gothic Neo","Noto Serif KR",serif;
+    --w-ui: "SF Pro Text",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif;
+    --hl: rgba(234,179,8,0.28);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--w-parchment);color:var(--w-ink);font-family:var(--w-ui);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5}
+  .mkbar{position:sticky;top:0;z-index:200;background:#241f1a;color:#f2ece1;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px}
+  .mkbar b{color:#fff}
+  .mkhint{background:#2f2820;color:#cdbfa8;font-size:12px;padding:6px 16px;border-bottom:1px solid #3a322a}
+  .mkhint b{color:#f0e6d5}
+
+  .pubhead{background:var(--w-canvas);border-bottom:1px solid var(--w-border);display:flex;align-items:center;padding:12px 22px}
+  .pubhead .logo{font-family:var(--w-prose);font-weight:800;font-size:17px;letter-spacing:-.3px}
+  .pubhead .me{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--w-muted)}
+  .pubhead .av{width:24px;height:24px;border-radius:50%;background:var(--w-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+
+  .privacy{max-width:680px;margin:14px auto 0;padding:0 22px}
+  .privacy .in{display:flex;align-items:center;gap:8px;background:var(--w-surface-2);border:1px solid var(--w-border);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--w-muted)}
+  .privacy b{color:var(--w-ink-2)}
+
+  .wrap{max-width:680px;margin:0 auto;padding:18px 22px 100px}
+  h1.title{font-family:var(--w-prose);font-size:24px;font-weight:800;text-align:center;margin:8px 0 24px}
+  .prose{font-family:var(--w-prose);color:#28231d;font-size:18px;line-height:1.95}
+  .prose p{margin:0 0 18px}
+  .prose ::selection{background:var(--hl)}
+  .reacted{background:var(--hl);border-radius:2px;padding:0 1px}
+  .rchip{display:inline-flex;align-items:center;gap:2px;vertical-align:super;font-size:11px;margin-left:2px;background:var(--w-surface);border:1px solid var(--w-border);border-radius:999px;padding:1px 6px;color:var(--w-muted-strong);white-space:nowrap}
+
+  /* 선택 시 뜨는 반응+댓글 툴바 */
+  .seltool{position:fixed;z-index:120;display:none;background:var(--w-surface);border:1px solid var(--w-border-strong);
+    border-radius:12px;box-shadow:0 10px 30px rgba(40,30,20,.2);padding:5px;align-items:center;gap:2px}
+  .seltool.show{display:flex}
+  .seltool .emo{border:0;background:transparent;font-size:19px;line-height:1;padding:6px 7px;border-radius:9px;cursor:pointer;transition:.12s}
+  .seltool .emo:hover{background:var(--w-surface-2);transform:scale(1.18)}
+  .seltool .sep{width:1px;height:22px;background:var(--w-border);margin:0 3px}
+  .seltool .cbtn{border:0;background:var(--w-accent);color:#fff;font-size:12.5px;font-weight:700;padding:7px 11px;border-radius:9px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px}
+
+  /* 댓글 작성 패널(기존 계승) */
+  .composer{position:fixed;right:24px;bottom:24px;z-index:130;width:340px;background:var(--w-surface);border:1px solid var(--w-border);border-radius:16px;box-shadow:0 16px 44px rgba(0,0,0,.2);padding:14px;display:none}
+  .composer.show{display:block}
+  .composer .anchor{font-size:11.5px;color:var(--w-muted);margin:0 0 6px}
+  .composer .quote{font-size:13px;color:var(--w-ink-2);background:var(--w-surface-2);border-radius:6px;padding:5px 8px;margin:0 0 8px;line-height:1.4}
+  .composer textarea{width:100%;resize:none;border:1px solid var(--w-border-strong);border-radius:10px;padding:9px 11px;font-size:14px;font-family:inherit}
+  .composer textarea:focus{outline:2px solid var(--w-accent);border-color:var(--w-accent)}
+  .composer .row{display:flex;justify-content:flex-end;gap:8px;margin-top:9px}
+  .composer .ghost{border:0;background:transparent;color:var(--w-muted-strong);font-size:13px;padding:7px 11px;border-radius:9px;cursor:pointer;font-family:inherit}
+  .composer .send{border:0;background:var(--w-accent);color:#fff;font-size:13px;font-weight:700;padding:7px 13px;border-radius:9px;cursor:pointer;font-family:inherit}
+
+  /* 전체 의견(구간 미지정) 상자 */
+  .whole{margin-top:38px;border-top:1px solid var(--w-border);padding-top:22px}
+  .whole h2{font-size:14px;font-weight:800;margin:0 0 4px;color:var(--w-ink)}
+  .whole .sub{font-size:12px;color:var(--w-muted);margin:0 0 12px}
+  .whole .field{display:flex;flex-direction:column;gap:8px}
+  .whole textarea{width:100%;min-height:72px;resize:vertical;border:1px solid var(--w-border-strong);border-radius:12px;padding:11px 13px;font-size:14px;font-family:inherit}
+  .whole textarea:focus{outline:2px solid var(--w-accent);border-color:var(--w-accent)}
+  .whole .send{align-self:flex-end;border:0;background:var(--w-accent);color:#fff;font-size:13px;font-weight:700;padding:9px 16px;border-radius:10px;cursor:pointer;font-family:inherit}
+  .mine{margin-top:16px}
+  .mine h3{font-size:12.5px;font-weight:700;color:var(--w-muted-strong);margin:0 0 8px}
+  .mineitem{border:1px solid var(--w-border);border-radius:10px;padding:9px 12px;margin-bottom:8px;font-size:13.5px;color:var(--w-ink);background:var(--w-surface)}
+  .mineitem .tag{font-size:11px;color:var(--w-faint);margin-bottom:3px}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);z-index:150;background:#241f1a;color:#f4ecdd;font-size:13px;padding:9px 16px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.28);opacity:0;transition:.25s}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="mkbar"><b>목업</b> · 공유 댓글 고도화 — <span>이모지 반응 + 전체 의견(구간 미지정)</span></div>
+<div class="mkhint">
+  <b>로그인 회원</b>이 공유 페이지를 보는 화면입니다. ① 본문을 <b>드래그</b>하면 이모지 반응 + "댓글" 툴바가 뜹니다(이모지 클릭=즉시 반응).
+  ② 맨 아래 <b>"작품 전체에 한마디"</b>는 구간 선택 없이 작품 전체에 의견. 남긴 건 모두 <b>작가에게만</b> 보입니다.
+</div>
+
+<header class="pubhead">
+  <span class="logo">소설비</span>
+  <div class="me"><span class="av">물</span> 물푸레나무 님</div>
+</header>
+
+<div class="privacy"><div class="in">🔒 여기 남기는 <b>반응·댓글·전체 의견</b>은 다른 독자에겐 보이지 않고 <b>작가에게만</b> 전달돼요.</div></div>
+
+<div class="wrap">
+  <h1 class="title">별빛 연대기 · 2화 — 무너진 탑</h1>
+  <div class="prose" id="prose">
+    <p>탑은 사흘째 무너지고 있었다. 처음엔 돌 하나가 굴러떨어졌고, 다음 날엔 계단이 통째로 사라졌다.
+    사람들은 그것을 재앙이라 불렀지만, 리안은 그저 오래 참아온 것이 마침내 놓여나는 소리라고 생각했다.</p>
+    <p>그녀는 무너지는 탑의 그림자 아래에서, 어릴 적 아버지가 남긴 편지를 꺼냈다. 잉크는 바랬고 종이는 부스러졌지만,
+    글자는 여전히 또렷했다. "네가 이 편지를 읽을 때쯤이면, 나는 이미 별이 되어 있을 것이다."</p>
+    <p>정원은 잿빛이었다. 한때 장미가 피었던 자리에는 이제 마른 가시만 남아 바람에 흔들렸다.
+    리안은 그 사이를 천천히 걸으며, 자신이 무엇을 찾고 있는지조차 잊어버린 사람처럼 보였다.</p>
+    <p>탑의 종이 울렸다. 한 번, 두 번, 그리고 세 번째는 울리다 말았다.
+    그 미완의 종소리가, 리안에게는 어떤 대답처럼 들렸다.</p>
+  </div>
+
+  <!-- 전체 의견(구간 미지정) -->
+  <div class="whole">
+    <h2>작품 전체에 한마디</h2>
+    <p class="sub">특정 구간이 아니라 이 작품 전체에 대한 감상을 남길 수 있어요. (작가에게만 보여요)</p>
+    <div class="field">
+      <textarea id="wholeText" placeholder="완결까지 기대돼요. 리안의 감정선이 특히 좋았습니다."></textarea>
+      <button class="send" onclick="submitWhole()">전체 의견 남기기</button>
+    </div>
+    <div class="mine" id="mineWrap" style="display:none">
+      <h3>내가 남긴 것</h3>
+      <div id="mineList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 선택 툴바 -->
+<div class="seltool" id="seltool">
+  <button class="emo" data-e="❤️" title="좋아요">❤️</button>
+  <button class="emo" data-e="👍" title="공감">👍</button>
+  <button class="emo" data-e="😮" title="놀람">😮</button>
+  <button class="emo" data-e="😢" title="슬픔">😢</button>
+  <button class="emo" data-e="🔥" title="인상적">🔥</button>
+  <span class="sep"></span>
+  <button class="cbtn" id="cbtn">💬 댓글</button>
+</div>
+
+<!-- 댓글 작성 패널 -->
+<div class="composer" id="composer">
+  <p class="anchor" id="cAnchor">2번째 문단 · 선택 구간</p>
+  <p class="quote" id="cQuote">“…”</p>
+  <textarea id="cText" rows="3" placeholder="이 구간에 대한 의견을 남겨주세요. (작가에게만 보여요)"></textarea>
+  <div class="row">
+    <button class="ghost" onclick="closeComposer()">취소</button>
+    <button class="send" onclick="submitComment()">댓글 남기기</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const prose=document.getElementById('prose'), seltool=document.getElementById('seltool'),
+        composer=document.getElementById('composer'), toast=document.getElementById('toast');
+  let curRange=null, curText='';
+
+  function showToast(msg){toast.textContent=msg;toast.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>toast.classList.remove('show'),1800);}
+
+  document.addEventListener('selectionchange',()=>{
+    if(composer.classList.contains('show'))return;
+    const s=window.getSelection();
+    if(!s||s.isCollapsed||s.rangeCount===0){seltool.classList.remove('show');return;}
+    const rng=s.getRangeAt(0);
+    if(!prose.contains(rng.commonAncestorContainer)){seltool.classList.remove('show');return;}
+    const r=rng.getBoundingClientRect();
+    if(r.width===0){seltool.classList.remove('show');return;}
+    curRange=rng.cloneRange(); curText=s.toString();
+    const tw=seltool.offsetWidth||260;
+    let left=r.left+r.width/2-tw/2; left=Math.max(10,Math.min(left,window.innerWidth-tw-10));
+    seltool.style.left=left+'px'; seltool.style.top=(r.top-52)+'px';
+    seltool.classList.add('show');
+  });
+
+  // 이모지 반응 = 즉시 저장 + 구간에 칩 표시
+  seltool.querySelectorAll('.emo').forEach(b=>{
+    b.onmousedown=e=>e.preventDefault(); // 선택 유지
+    b.onclick=()=>{
+      if(curRange){
+        const chip=document.createElement('span'); chip.className='rchip'; chip.textContent=b.dataset.e+' 1';
+        try{const end=curRange.cloneRange(); end.collapse(false); end.insertNode(chip);
+          // 선택 구간 옅은 강조
+          const mark=document.createElement('span'); mark.className='reacted';
+          try{curRange.surroundContents(mark);}catch(_){}}catch(_){}
+      }
+      window.getSelection().removeAllRanges(); seltool.classList.remove('show');
+      showToast(b.dataset.e+' 반응을 남겼어요 · 작가에게만 보여요');
+    };
+  });
+
+  // 댓글 = 기존 작성 패널
+  document.getElementById('cbtn').onmousedown=e=>e.preventDefault();
+  document.getElementById('cbtn').onclick=()=>{
+    document.getElementById('cQuote').textContent='“'+(curText.length>60?curText.slice(0,60)+'…':curText)+'”';
+    seltool.classList.remove('show'); composer.classList.add('show');
+    document.getElementById('cText').focus();
+  };
+  function closeComposer(){composer.classList.remove('show');window.getSelection().removeAllRanges();}
+  function submitComment(){
+    const t=document.getElementById('cText').value.trim();
+    if(!t)return; if(curRange){const mark=document.createElement('span');mark.className='reacted';try{curRange.surroundContents(mark);}catch(_){}}
+    document.getElementById('cText').value=''; closeComposer(); addMine('구간 댓글', t); showToast('댓글을 남겼어요 · 작가에게만 보여요');
+  }
+
+  // 전체 의견
+  function submitWhole(){
+    const t=document.getElementById('wholeText').value.trim(); if(!t)return;
+    document.getElementById('wholeText').value=''; addMine('작품 전체', t); showToast('전체 의견을 남겼어요 · 작가에게만 보여요');
+  }
+  function addMine(tag,text){
+    document.getElementById('mineWrap').style.display='block';
+    const d=document.createElement('div'); d.className='mineitem';
+    d.innerHTML='<div class="tag">'+tag+'</div>'+text;
+    document.getElementById('mineList').prepend(d);
+  }
+</script>
+</body>
+</html>

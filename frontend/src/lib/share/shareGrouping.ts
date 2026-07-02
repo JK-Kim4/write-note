@@ -2,8 +2,8 @@
  * 공유 링크 그룹핑/집계(047) — 순수 함수.
  *
  * `listMyShareLinks()` 의 1:N 응답(한 대상에 링크 여럿)을 진입점·관리 화면용으로 거르고 묶는다.
- * 안 읽은 피드백 수(unreadCommentCount)는 BE 가 작품(projectId) 단위로 채우므로(같은 작품이 여러 링크에
- * 있어도 동일 값) projectId 로 dedup 해 합산한다.
+ * 안 읽은 피드백 수(unreadCommentCount)는 BE 가 스냅샷(=링크) 단위로 채우므로(050 — 읽음 처리와 정합),
+ * 같은 작품이 여러 링크에 있으면 projectId 로 묶어 스냅샷별 값을 합산한다(대표값 하나만 취하면 과소 집계).
  */
 import type { ShareLinkResponse, ShareTargetType } from "@/lib/api/share";
 
@@ -43,8 +43,11 @@ export function unreadProjects(links: ReadonlyArray<ShareLinkResponse>): UnreadP
     for (const link of links) {
         for (const snap of link.snapshots) {
             if (snap.unreadCommentCount <= 0) continue;
-            // 작품 단위 동일 값 — 처음 본 것으로 고정(dedup).
-            if (!byProject.has(snap.projectId)) {
+            // 스냅샷 단위 값 — 같은 작품의 여러 링크(스냅샷) unread 를 합산.
+            const existing = byProject.get(snap.projectId);
+            if (existing) {
+                existing.unread += snap.unreadCommentCount;
+            } else {
                 byProject.set(snap.projectId, {
                     projectId: snap.projectId,
                     title: snap.title,

@@ -22,4 +22,13 @@ enum class ShareErrorCode(
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),
     COMMENT_FORBIDDEN(HttpStatus.FORBIDDEN, "권한이 없습니다."),
     COMMENT_ANCHOR_INVALID(HttpStatus.BAD_REQUEST, "댓글 위치가 올바르지 않습니다."),
+
+    // 이모지 반응(050 US3)
+    REACTION_EMOJI_INVALID(HttpStatus.BAD_REQUEST, "지원하지 않는 이모지입니다."),
+    ;
+
+    companion object {
+        /** 반응 이모지 화이트리스트(050 US3) — 서버가 강제, 그 외 값은 [REACTION_EMOJI_INVALID]. */
+        val ALLOWED_EMOJIS = setOf("❤️", "👍", "😮", "😢", "🔥")
+    }
 }

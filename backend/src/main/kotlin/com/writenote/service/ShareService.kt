@@ -171,22 +171,22 @@ class ShareService(
             shareSnapshotRepository
                 .findByShareLinkIdIn(links.mapNotNull { it.id })
                 .groupBy { it.shareLinkId }
-        val projectIds =
-            snapshotsByLink.values
-                .flatten()
-                .map { it.projectId }
-                .distinct()
+        val allSnapshots = snapshotsByLink.values.flatten()
+        val projectIds = allSnapshots.map { it.projectId }.distinct()
         // 삭제된 작품(projects 부재)은 작가가 열람·읽음처리 불가 → unread 배지에서 제외(stuck 방지, M2/ISSUE-055)
-        val livingProjectIds = projectRepository.findAllById(projectIds).mapNotNull { it.id }
-        val unreadByProject =
-            if (livingProjectIds.isEmpty()) {
+        val livingProjectIds = projectRepository.findAllById(projectIds).mapNotNull { it.id }.toSet()
+        // 배지도 스냅샷(링크) 스코프 — 읽음(markReadByShareSnapshotId)과 정합. projectId 스코프면 다중 링크에서
+        // 한 링크를 읽어도 그 링크 배지가 안 사라지거나 다른 링크 배지가 오손상된다(050 리뷰 HIGH).
+        val livingSnapshotIds = allSnapshots.filter { it.projectId in livingProjectIds }.mapNotNull { it.id }
+        val unreadBySnapshot =
+            if (livingSnapshotIds.isEmpty()) {
                 emptyMap()
             } else {
                 shareCommentRepository
-                    .countUnreadByProjectIds(livingProjectIds)
-                    .associate { it.projectId to it.unreadCount.toInt() }
+                    .countUnreadByShareSnapshotIds(livingSnapshotIds)
+                    .associate { it.shareSnapshotId to it.unreadCount.toInt() }
             }
-        return links.map { toResponse(it, snapshotsByLink[it.id] ?: emptyList(), unreadByProject) }
+        return links.map { toResponse(it, snapshotsByLink[it.id] ?: emptyList(), unreadBySnapshot) }
     }
 
     /** 공개 열람 진입(목록) — 활성 링크만. work=단일, series=공개 작품 목록(R3). */
@@ -316,7 +316,7 @@ class ShareService(
     private fun toResponse(
         link: ShareLink,
         snapshots: List<ShareSnapshot>,
-        unreadByProject: Map<Long, Int> = emptyMap(),
+        unreadBySnapshot: Map<Long, Int> = emptyMap(),
     ): ShareLinkResponse =
         ShareLinkResponse(
             id = requireNotNull(link.id),
@@ -327,8 +327,8 @@ class ShareService(
             shareUrl = "$frontendBaseUrl/shared/${link.token}",
             createdAt = requireNotNull(link.createdAt),
             snapshots =
-                snapshots.map {
-                    SharedWorkMeta(it.projectId, it.titleSnapshot, unreadByProject[it.projectId] ?: 0)
+                snapshots.map { snap ->
+                    SharedWorkMeta(snap.projectId, snap.titleSnapshot, snap.id?.let { unreadBySnapshot[it] } ?: 0)
                 },
         )
 

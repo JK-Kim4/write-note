@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>공유 — 비로그인 방문자 로그인 (목업)</title>
+<style>
+  :root{
+    --w-canvas:#fffdf8; --w-surface:#ffffff; --w-surface-2:#f9fafb; --w-surface-3:#f3f4f6;
+    --w-ink:#2a2620; --w-ink-2:#374151; --w-muted-strong:#4b5563; --w-muted:#6b7280; --w-faint:#9ca3af;
+    --w-border:#e5e7eb; --w-border-strong:#d1d5db;
+    --w-accent:#a8542e; --w-accent-soft:#fbf3ee; --w-accent-text:#8a4325; --w-accent-ink:#ffffff;
+    --w-parchment:#f3ede1; --kakao:#FEE500;
+    --w-prose: "Apple SD Gothic Neo","Noto Serif KR",serif;
+    --w-ui: "SF Pro Text",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif;
+    --hl: rgba(234,179,8,0.28);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--w-parchment);color:var(--w-ink);font-family:var(--w-ui);
+    -webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5}
+
+  .mkbar{position:sticky;top:0;z-index:200;background:#241f1a;color:#f2ece1;padding:10px 16px;
+    display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px}
+  .mkbar b{color:#fff}
+  .mkbar .seg{display:inline-flex;border:1px solid #4a4238;border-radius:9px;overflow:hidden}
+  .mkbar .seg button{background:transparent;color:#d9cfbe;border:0;padding:6px 12px;font-size:12.5px;cursor:pointer;font-family:inherit}
+  .mkbar .seg button.on{background:var(--w-accent);color:#fff;font-weight:700}
+  .mkhint{background:#2f2820;color:#cdbfa8;font-size:12px;padding:6px 16px;border-bottom:1px solid #3a322a}
+  .mkhint b{color:#f0e6d5}
+
+  /* 공개 공유 페이지 헤더(현재는 로고만 — 여기에 로그인 버튼 신설) */
+  .pubhead{background:var(--w-canvas);border-bottom:1px solid var(--w-border);
+    display:flex;align-items:center;padding:12px 22px}
+  .pubhead .logo{font-family:var(--w-prose);font-weight:800;font-size:17px;color:var(--w-ink);letter-spacing:-.3px}
+  .pubhead .sp{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .pubhead .guesttag{font-size:12px;color:var(--w-faint)}
+  .btn-login{background:var(--w-accent);color:#fff;border:0;border-radius:9px;padding:8px 15px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn-login:hover{opacity:.92}
+
+  .wrap{max-width:680px;margin:0 auto;padding:26px 22px 90px}
+  h1.title{font-family:var(--w-prose);font-size:24px;font-weight:800;text-align:center;margin:6px 0 26px}
+  .prose{font-family:var(--w-prose);color:#28231d;font-size:18px;line-height:1.95}
+  .prose p{margin:0 0 18px}
+  .prose ::selection{background:var(--hl)}
+
+  /* 본문 아래 댓글 영역 — 비로그인 CTA (현재: 클릭 안 되는 안내문 → 클릭되는 CTA로) */
+  .cbox{margin-top:34px;border-top:1px solid var(--w-border);padding-top:22px}
+  .cbox h2{font-size:14px;font-weight:800;margin:0 0 12px;color:var(--w-ink)}
+  .cta{display:flex;align-items:center;gap:12px;background:var(--w-accent-soft);border:1px solid #f0d9cb;
+    border-radius:14px;padding:16px 18px}
+  .cta .txt{font-size:13.5px;color:var(--w-accent-text);line-height:1.5}
+  .cta .txt b{color:#6f3218}
+  .cta button{margin-left:auto;white-space:nowrap;background:var(--w-accent);color:#fff;border:0;border-radius:10px;
+    padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+  .cta button:hover{opacity:.92}
+
+  /* 드래그 선택 시 뜨는 안내(비로그인) */
+  .selhint{position:fixed;z-index:120;display:none;background:#241f1a;color:#f6efe2;font-size:12.5px;
+    padding:8px 12px;border-radius:10px;box-shadow:0 8px 22px rgba(0,0,0,.25);cursor:pointer;align-items:center;gap:8px}
+  .selhint b{color:#fff}
+  .selhint .go{background:var(--w-accent);color:#fff;border-radius:7px;padding:3px 9px;font-weight:700}
+
+  /* ===== 안 1: 로그인 페이지로 이동(redirect) 데모 ===== */
+  .redir{position:fixed;inset:0;z-index:150;display:none;background:rgba(33,29,24,.55);backdrop-filter:blur(2px);
+    align-items:center;justify-content:center}
+  .redir .card{background:var(--w-surface);border-radius:16px;padding:26px 30px;text-align:center;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .redir .spin{width:26px;height:26px;border:3px solid var(--w-border);border-top-color:var(--w-accent);border-radius:50%;margin:0 auto 14px;animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .redir p{margin:0;font-size:14px;color:var(--w-ink)}
+  .redir .sub{margin-top:6px;font-size:12px;color:var(--w-muted)}
+
+  /* ===== 안 2: 그 자리 모달 로그인 ===== */
+  .modal{position:fixed;inset:0;z-index:150;display:none;background:rgba(33,29,24,.5);align-items:center;justify-content:center;padding:20px}
+  .modal .sheet{background:var(--w-surface);border-radius:18px;padding:26px;width:100%;max-width:380px;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+  .modal h3{margin:0 0 4px;font-size:18px;font-weight:800;font-family:var(--w-prose)}
+  .modal .lead{margin:0 0 18px;font-size:13px;color:var(--w-muted);line-height:1.5}
+  .modal label{display:block;font-size:12px;color:var(--w-muted-strong);margin:0 0 4px;font-weight:600}
+  .modal input{width:100%;border:1px solid var(--w-border-strong);border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:12px;font-family:inherit}
+  .modal input:focus{outline:2px solid var(--w-accent);border-color:var(--w-accent)}
+  .modal .primary{width:100%;background:var(--w-accent);color:#fff;border:0;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+  .modal .div{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--w-faint);font-size:11.5px}
+  .modal .div::before,.modal .div::after{content:"";flex:1;height:1px;background:var(--w-border)}
+  .modal .kakao{width:100%;background:var(--kakao);color:#3c1e1e;border:0;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px}
+  .modal .note{margin-top:14px;font-size:11px;color:var(--w-faint);line-height:1.5;background:var(--w-surface-2);padding:9px 11px;border-radius:9px}
+  .modal .x{float:right;border:0;background:transparent;font-size:20px;color:var(--w-faint);cursor:pointer;line-height:1;margin:-6px -6px 0 0}
+  .modal .signup{margin-top:14px;text-align:center;font-size:12.5px;color:var(--w-muted)}
+  .modal .signup a{color:var(--w-accent-text);font-weight:700;text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="mkbar">
+  <b>목업</b> · 공유 페이지 "비로그인 방문자 로그인" —
+  <span>로그인 방식:</span>
+  <span class="seg">
+    <button id="btn1" class="on">안 1 · 로그인 페이지로 이동</button>
+    <button id="btn2">안 2 · 그 자리 모달</button>
+  </span>
+</div>
+<div class="mkhint">
+  지금 이 화면은 <b>비로그인 방문자</b>가 보는 공개 공유 페이지입니다. 우상단 <b>로그인</b> 버튼, 본문 아래 <b>CTA</b>,
+  또는 본문을 <b>드래그</b>해 보세요 — 위 토글로 고른 방식(이동 vs 모달)이 실제로 동작합니다. 로그인 후엔 <b>이 페이지로 복귀</b>가 핵심.
+</div>
+
+<header class="pubhead">
+  <span class="logo">소설비</span>
+  <div class="sp">
+    <span class="guesttag">비로그인 · 읽는 중</span>
+    <button class="btn-login" onclick="startLogin()">로그인</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <h1 class="title">별빛 연대기 · 2화 — 무너진 탑</h1>
+  <div class="prose" id="prose">
+    <p>탑은 사흘째 무너지고 있었다. 처음엔 돌 하나가 굴러떨어졌고, 다음 날엔 계단이 통째로 사라졌다.
+    사람들은 그것을 재앙이라 불렀지만, 리안은 그저 오래 참아온 것이 마침내 놓여나는 소리라고 생각했다.</p>
+    <p>그녀는 무너지는 탑의 그림자 아래에서, 어릴 적 아버지가 남긴 편지를 꺼냈다. 잉크는 바랬고 종이는 부스러졌지만,
+    글자는 여전히 또렷했다. "네가 이 편지를 읽을 때쯤이면, 나는 이미 별이 되어 있을 것이다."</p>
+    <p>정원은 잿빛이었다. 한때 장미가 피었던 자리에는 이제 마른 가시만 남아 바람에 흔들렸다.
+    리안은 그 사이를 천천히 걸으며, 자신이 무엇을 찾고 있는지조차 잊어버린 사람처럼 보였다.</p>
+    <p>탑의 종이 울렸다. 한 번, 두 번, 그리고 세 번째는 울리다 말았다.
+    그 미완의 종소리가, 리안에게는 어떤 대답처럼 들렸다.</p>
+  </div>
+
+  <div class="cbox">
+    <h2>이 작품에 의견 남기기</h2>
+    <div class="cta">
+      <div class="txt"><b>마음에 남는 구절이 있었나요?</b><br/>로그인하면 본문에서 구간을 선택해 <b>작가에게만 보이는</b> 의견을 남길 수 있어요.</div>
+      <button onclick="startLogin()">로그인하고 남기기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 드래그 선택 시 뜨는 로그인 유도 -->
+<div class="selhint" id="selhint" onclick="startLogin()">
+  <span>이 구간에 의견을 남기려면?</span><span class="go">로그인</span>
+</div>
+
+<!-- 안 1: redirect 데모 -->
+<div class="redir" id="redir">
+  <div class="card">
+    <div class="spin"></div>
+    <p>로그인 페이지로 이동합니다…</p>
+    <p class="sub">로그인하면 <b>이 공유 페이지로 자동 복귀</b>합니다.</p>
+  </div>
+</div>
+
+<!-- 안 2: 모달 로그인 -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <button class="x" onclick="closeModal()">×</button>
+    <h3>로그인</h3>
+    <p class="lead">로그인하면 이 페이지에서 바로 이어서 의견을 남길 수 있어요.</p>
+    <label>이메일</label>
+    <input type="email" placeholder="you@example.com" />
+    <label>비밀번호</label>
+    <input type="password" placeholder="••••••••" />
+    <button class="primary">이메일로 로그인</button>
+    <div class="div">또는</div>
+    <button class="kakao" onclick="kakaoFromModal()">💬 카카오로 로그인</button>
+    <div class="note">※ 카카오 로그인은 카카오 화면으로 잠깐 이동한 뒤 <b>이 공유 페이지로 돌아옵니다</b>(모달 안에서 끝나지 않음).</div>
+    <div class="signup">아직 계정이 없나요? <a href="#">회원가입</a></div>
+  </div>
+</div>
+
+<script>
+  let flow='redirect';
+  const btn1=document.getElementById('btn1'),btn2=document.getElementById('btn2');
+  btn1.onclick=()=>setFlow('redirect');btn2.onclick=()=>setFlow('modal');
+  function setFlow(f){flow=f;btn1.classList.toggle('on',f==='redirect');btn2.classList.toggle('on',f==='modal');closeAll();}
+
+  function startLogin(){
+    hideSel();
+    if(flow==='redirect'){
+      const r=document.getElementById('redir');r.style.display='flex';
+      setTimeout(()=>{r.style.display='none';alert('데모: 여기서 /auth/login 으로 이동 → 로그인 후 이 공유 페이지로 복귀합니다.');},1400);
+    }else{
+      document.getElementById('modal').style.display='flex';
+    }
+  }
+  function closeModal(){document.getElementById('modal').style.display='none';}
+  function kakaoFromModal(){closeModal();const r=document.getElementById('redir');r.querySelector('p').textContent='카카오로 이동합니다…';r.style.display='flex';
+    setTimeout(()=>{r.style.display='none';alert('데모: 카카오는 전체 이동 → 로그인 후 이 공유 페이지로 복귀.');},1400);}
+  function closeAll(){document.getElementById('modal').style.display='none';document.getElementById('redir').style.display='none';}
+
+  // 드래그 선택 → 로그인 유도(비로그인)
+  const selhint=document.getElementById('selhint');
+  function hideSel(){selhint.style.display='none';}
+  document.addEventListener('selectionchange',()=>{
+    const s=window.getSelection();
+    if(!s||s.isCollapsed||s.rangeCount===0){hideSel();return;}
+    const r=s.getRangeAt(0).getBoundingClientRect();
+    if(r.width===0){hideSel();return;}
+    selhint.style.display='flex';
+    selhint.style.left=Math.min(r.left, window.innerWidth-220)+'px';
+    selhint.style.top=(r.bottom+8)+'px';
+  });
+</script>
+</body>
+</html>

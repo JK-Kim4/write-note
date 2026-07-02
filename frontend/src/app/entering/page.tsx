@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { BrandLoader } from "@/components/ui/BrandLoader";
+import { consumeReturnTo } from "@/lib/share/returnTo";
 
 /**
  * `/entering` — 로그인 중 트랜지션 인터스티셜.
@@ -14,6 +15,10 @@ import { BrandLoader } from "@/components/ui/BrandLoader";
  *
  * `auth/layout`(requireAnon) 밖의 top-level 라우트여야 세션 보유자가 와도 즉시 튕기지 않아 효과가 보인다.
  * 효과 자체는 공용 [BrandLoader] 로 분리(서비스 전역 재사용). 본 라우트는 hold·fade·replace 타이밍만 담당.
+ *
+ * 050 US2 — 로그인 진입이 공유 페이지(`ShareLoginButton`/`CommentLayer` 의 로그인 유도)에서 왔으면
+ * `saveReturnTo` 로 저장해 둔 경로가 있다. 여기서 `consumeReturnTo()` 로 1회 소비해 있으면 그 공유 페이지로,
+ * 없으면 기존대로 앱 홈(`/`)으로 복귀한다(이메일·카카오 로그인 모두 이 라우트로 도착 — LoginForm 참고).
  */
 
 const HOLD_MS = 500;
@@ -29,7 +34,7 @@ export default function EnteringPage() {
         // LoginForm 은 requireAnon 가드가 /entering 진입을 replace("/")로 덮지 않도록 invalidate 를 여기로 미뤘다.
         queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
         const fade = setTimeout(() => setLeaving(true), HOLD_MS);
-        const go = setTimeout(() => router.replace("/"), HOLD_MS + FADE_MS);
+        const go = setTimeout(() => router.replace(consumeReturnTo() ?? "/"), HOLD_MS + FADE_MS);
         return () => {
             clearTimeout(fade);
             clearTimeout(go);
