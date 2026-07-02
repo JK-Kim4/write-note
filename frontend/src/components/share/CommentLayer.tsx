@@ -82,6 +82,13 @@ export function CommentLayer({ containerRef, bodyJson, comments, reactions, isMe
         composingRef.current = composing !== null;
     }, [composing]);
 
+    // composer 밖(반응 토글 등)에서 난 오류는 인라인 표시처가 없으므로 잠깐 토스트로 띄웠다 자동 소거.
+    useEffect(() => {
+        if (!error || composing) return;
+        const t = window.setTimeout(() => setError(null), 3500);
+        return () => window.clearTimeout(t);
+    }, [error, composing]);
+
     const handleGuestLogin = useCallback(() => {
         saveReturnTo(pathname ?? `/shared/${token}/works/${projectId}`);
         router.push("/auth/login");
@@ -216,6 +223,7 @@ export function CommentLayer({ containerRef, bodyJson, comments, reactions, isMe
     // 이모지 클릭(회원 전용 UI 에서만 노출) — 이미 내 반응이면 취소(토글), 아니면 추가.
     const handleReactionClick = (emoji: string) => {
         if (!pending) return;
+        setError(null);
         const anchorInput = { blockIndex: pending.anchor.blockIndex, start: pending.anchor.start, length: pending.anchor.length };
         const mine = findMineReaction(reactions, anchorInput, emoji);
         const input = {
@@ -269,6 +277,13 @@ export function CommentLayer({ containerRef, bodyJson, comments, reactions, isMe
                     </span>
                 ))}
             </div>
+
+            {/* 오류 토스트 — composer 밖(반응 토글 등) 실패 안내(composer 는 인라인 표시). */}
+            {error && !composing && (
+                <div role="alert" className="fixed inset-x-0 bottom-6 z-[60] mx-auto w-fit max-w-[90vw] rounded-lg bg-ink px-4 py-2 text-sm text-canvas shadow-lg">
+                    {error}
+                </div>
+            )}
 
             {/* 떠 있는 툴바(유효 선택 시) — 회원=반응 5종+댓글, 비회원=로그인 유도(US2). */}
             {pending && !composing && isMember && (

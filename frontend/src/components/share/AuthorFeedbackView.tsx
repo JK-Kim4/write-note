@@ -55,12 +55,15 @@ export function AuthorFeedbackView({ linkId, projectId, onClose }: Props) {
     const markMutate = markRead.mutate;
     const didMarkRef = useRef(false);
 
-    // 진입 시 1회 — 그 링크(스냅샷)의 안 읽은 피드백을 읽음 처리(D7, FR-005).
+    // 그 링크(스냅샷)의 안 읽은 피드백을 읽음 처리(D7, FR-005) — 단 **피드백 GET 성공 후** 1회.
+    // mount 즉시 발화하면 GET(복호+집계, 더 느림)보다 POST 가 먼저 커밋돼 응답 readAt 이 채워진 채 와서
+    // 첫 진입에 "안 읽음" 강조가 안 보인다(047 인박스 패턴 회귀). useMarkSnapshotRead 는 feedback 쿼리를
+    // 무효화하지 않으므로 로드된 데이터의 강조는 보는 동안 유지된다.
     useEffect(() => {
-        if (didMarkRef.current) return;
+        if (didMarkRef.current || !feedback.isSuccess) return;
         didMarkRef.current = true;
         markMutate({ linkId, projectId });
-    }, [linkId, projectId, markMutate]);
+    }, [feedback.isSuccess, linkId, projectId, markMutate]);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const [activeId, setActiveId] = useState<number | null>(null);

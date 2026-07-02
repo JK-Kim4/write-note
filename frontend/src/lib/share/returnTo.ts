@@ -12,8 +12,8 @@ const RETURN_TO_KEY = "writenote.share.returnTo.v1";
 const SHARED_PREFIX = "/shared/";
 
 function isSafeSharePath(path: string): boolean {
-    // `/shared/` prefix + `..` traversal 거부(`/shared/../admin` 같은 내부 우회 방어). 외부(`//`·스킴)는 prefix 로 이미 차단.
-    return path.startsWith(SHARED_PREFIX) && !path.includes("..");
+    // `/shared/` prefix + `..`(인코딩 `%2e` 포함) traversal 거부. 외부(`//`·스킴)는 prefix 로 이미 차단.
+    return path.startsWith(SHARED_PREFIX) && !path.includes("..") && !/%2e/i.test(path);
 }
 
 /** 로그인 진입 직전 현재 경로 저장. `/shared/` 로 시작하지 않으면 저장하지 않는다. */

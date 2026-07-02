@@ -41,6 +41,13 @@ describe("returnTo — 비로그인 로그인 복귀(050 US2)", () => {
         expect(consumeReturnTo()).toBeNull();
     });
 
+    it("인코딩된 점(`%2e%2e`) 트래버설도 차단한다", () => {
+        window.localStorage.setItem(KEY, "/shared/%2e%2e/mypage");
+        expect(consumeReturnTo()).toBeNull();
+        window.localStorage.setItem(KEY, "/shared/%2E%2E/admin");
+        expect(consumeReturnTo()).toBeNull();
+    });
+
     it("저장된 값이 없으면 null 이다", () => {
         expect(consumeReturnTo()).toBeNull();
     });
