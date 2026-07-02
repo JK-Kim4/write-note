@@ -1,0 +1,41 @@
+discovery.docker "all" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "5s"
+}
+
+discovery.relabel "all" {
+  targets = []
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/wn-be-.*"
+    target_label  = "app"
+    replacement   = "backend"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/write-note-postgres"
+    target_label  = "app"
+    replacement   = "postgres"
+  }
+}
+
+loki.source.docker "all" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.all.targets
+  relabel_rules = discovery.relabel.all.rules
+  forward_to    = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

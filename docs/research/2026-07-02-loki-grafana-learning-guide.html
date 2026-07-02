@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grafana Loki + Grafana 로그 모니터링 학습 가이드</title>
+  <style>
+  :root {
+    --fg: #1f2328;
+    --fg-muted: #59636e;
+    --bg: #ffffff;
+    --bg-subtle: #f6f8fa;
+    --border: #d1d9e0;
+    --accent: #0969da;
+    --green: #1a7f37;
+    --green-bg: #dafbe1;
+    --amber: #9a6700;
+    --amber-bg: #fff8c5;
+    --red: #cf222e;
+    --red-bg: #ffebe9;
+    --neutral: #59636e;
+    --neutral-bg: #eaeef2;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo",
+      "Malgun Gothic", "Noto Sans KR", sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    line-height: 1.7;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+    font-size: 16px;
+    word-break: keep-all;
+  }
+
+  h1 { font-size: 1.9em; line-height: 1.3; margin: 0 0 8px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  h2 { font-size: 1.4em; margin: 36px 0 12px; }
+  h3 { font-size: 1.15em; margin: 24px 0 8px; }
+  p, li { font-size: 1em; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  code {
+    font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    background: var(--bg-subtle);
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+  pre code { background: none; padding: 0; font-size: 0.85em; }
+
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+  th { background: var(--bg-subtle); font-weight: 600; }
+  tr:nth-child(even) td { background: #fafbfc; }
+
+  .doc-meta { color: var(--fg-muted); font-size: 0.9em; margin: -4px 0 24px; }
+
+  .summary {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+  .summary h2 { margin-top: 0; font-size: 1.1em; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.82em;
+    font-weight: 600;
+    vertical-align: middle;
+  }
+  .badge-green   { background: var(--green-bg);   color: var(--green); }
+  .badge-amber   { background: var(--amber-bg);   color: var(--amber); }
+  .badge-red     { background: var(--red-bg);     color: var(--red); }
+  .badge-neutral { background: var(--neutral-bg); color: var(--neutral); }
+
+  .callout {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    border-left: 4px solid;
+  }
+  .callout-warning { background: var(--red-bg);   border-color: var(--red); }
+  .callout-caution { background: var(--amber-bg); border-color: var(--amber); }
+  .callout-info    { background: var(--bg-subtle); border-color: var(--accent); }
+  .callout-title { font-weight: 700; margin-bottom: 4px; }
+
+  ul.checklist { list-style: none; padding-left: 0; }
+  ul.checklist li { padding-left: 28px; position: relative; margin: 6px 0; }
+  ul.checklist li.done::before    { content: "✅"; position: absolute; left: 0; }
+  ul.checklist li.todo::before    { content: "⬜"; position: absolute; left: 0; }
+  ul.checklist li.blocked::before { content: "🚧"; position: absolute; left: 0; }
+  ul.checklist li.done { color: var(--fg-muted); }
+
+  .expected {
+    background: var(--green-bg);
+    border-radius: 6px;
+    padding: 8px 14px;
+    margin: 6px 0 16px;
+    font-size: 0.92em;
+  }
+  .expected::before { content: "→ "; font-weight: 700; }
+
+  figure.diagram {
+    margin: 24px 0;
+    padding: 16px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    text-align: center;
+    overflow-x: auto;
+  }
+  figure.diagram svg { max-width: 100%; height: auto; }
+  figure.diagram figcaption {
+    margin-top: 10px;
+    font-size: 0.88em;
+    color: var(--fg-muted);
+  }
+
+  .toc {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 20px;
+    margin: 20px 0;
+  }
+  .toc-title { font-weight: 700; margin-bottom: 4px; }
+
+  @media print {
+    body { padding: 0; max-width: none; font-size: 12pt; }
+    h2 { page-break-after: avoid; }
+    pre, table, .callout, .proscons, figure.diagram { page-break-inside: avoid; }
+    a { color: var(--fg); }
+  }
+  </style>
+</head>
+<body>
+
+<h1>Grafana Loki + Grafana 로그 모니터링 학습 가이드</h1>
+<p class="doc-meta">작성일 2026-07-02 · 대상: Loki/Grafana를 처음 사용하는 개발자 · 목적: 소설비(write-note) 백엔드 로그 모니터링 설계에 앞선 기술 학습</p>
+
+<div class="summary">
+  <h2>핵심 요약</h2>
+  <ul>
+    <li><strong>Loki는 "로그 본문을 색인하지 않는" 로그 저장소</strong>다. 라벨(메타데이터)만 색인하기 때문에 Elasticsearch보다 훨씬 가볍고, 대신 본문 검색은 그때그때 훑는(grep) 방식이다.</li>
+    <li>스택은 3개 구성요소로 이뤄진다: <strong>Alloy(수집)</strong> · <strong>Loki(저장·색인)</strong> · <strong>Grafana(조회·시각화·알림)</strong>.</li>
+    <li>로그는 <strong>LogQL</strong>이라는 질의 언어로 검색한다. Prometheus의 PromQL과 닮았다.</li>
+    <li>가장 중요한 설계 원칙 하나만 기억하면 된다: <strong>라벨 종류(카디널리티)를 적게 유지하라.</strong> 이걸 어기면 Loki의 장점이 전부 사라진다.</li>
+    <li>기존 수집기 Promtail은 <strong>2026-03-02부로 지원 종료(EOL)</strong>. 신규 구축은 무조건 Grafana Alloy를 쓴다.</li>
+  </ul>
+</div>
+
+<nav class="toc">
+  <div class="toc-title">목차</div>
+  <ol>
+    <li><a href="#big-picture">큰 그림 — 세 구성요소의 역할</a></li>
+    <li><a href="#vs-elk">Elasticsearch(ELK)와 무엇이 다른가</a></li>
+    <li><a href="#loki-concepts">Loki 핵심 개념 — 라벨, 스트림, 청크</a></li>
+    <li><a href="#alloy">수집기 — Grafana Alloy</a></li>
+    <li><a href="#logql">LogQL — 로그 질의 언어</a></li>
+    <li><a href="#grafana">Grafana — 조회·시각화·알림</a></li>
+    <li><a href="#hands-on">직접 만져보기 — 로컬 10분 실습</a></li>
+    <li><a href="#our-infra">우리 인프라(OCI free-a1)에 적용할 때</a></li>
+    <li><a href="#next">다음 단계 — 설계에서 결정할 것</a></li>
+    <li><a href="#refs">더 읽을 자료</a></li>
+  </ol>
+</nav>
+
+<h2 id="big-picture">1. 큰 그림 — 세 구성요소의 역할</h2>
+
+<p>로그 모니터링 스택은 어떤 제품을 쓰든 세 단계로 이뤄진다: <strong>수집(collect) · 저장(store) · 조회(query)</strong>. Grafana 진영에서 이 세 역할을 맡는 것이 각각 Alloy, Loki, Grafana다.</p>
+
+<table>
+  <tr><th>구성요소</th><th>역할</th><th>비유</th></tr>
+  <tr><td><strong>Grafana Alloy</strong></td><td>서버·컨테이너에서 로그를 긁어모아 Loki로 보내는 <strong>수집기(agent)</strong>. Docker 소켓을 통해 컨테이너 stdout 로그를 자동 발견·수집할 수 있다.</td><td>우편배달부</td></tr>
+  <tr><td><strong>Loki</strong></td><td>받은 로그를 압축 저장하고, 질의가 오면 찾아주는 <strong>로그 저장소(서버)</strong>. Go로 짜인 단일 바이너리라 가볍다.</td><td>도서관 서고</td></tr>
+  <tr><td><strong>Grafana</strong></td><td>Loki에 질의를 날려 결과를 보여주는 <strong>웹 UI</strong>. 로그 탐색(Explore), 대시보드, 알림(Alerting)을 담당한다.</td><td>열람실 + 사서</td></tr>
+</table>
+
+<figure class="diagram">
+<svg viewBox="0 0 460 532" role="img" aria-label="소설비 인프라에 올린 Loki 스택 구성도">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#59636e"/>
+    </marker>
+  </defs>
+
+  <!-- 경계: OCI 인스턴스 -->
+  <rect x="20" y="36" width="420" height="384" rx="8" fill="#ffffff" stroke="#d1d9e0" stroke-dasharray="6 4"/>
+  <text x="32" y="58" font-size="13" fill="#59636e" font-weight="600">OCI 인스턴스 (free-a1) — Docker</text>
+
+  <!-- 로그 발생원 -->
+  <g>
+    <rect x="40" y="76" width="160" height="52" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+    <text x="120" y="96" text-anchor="middle" dominant-baseline="central" font-size="13" fill="#1f2328">Spring Boot 백엔드</text>
+    <text x="120" y="112" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#59636e">(wn-be-green)</text>
+  </g>
+  <g>
+    <rect x="240" y="76" width="160" height="52" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+    <text x="320" y="96" text-anchor="middle" dominant-baseline="central" font-size="13" fill="#1f2328">PostgreSQL</text>
+    <text x="320" y="112" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#59636e">(write-note-postgres)</text>
+  </g>
+
+  <!-- 수집 화살표 -->
+  <line x1="120" y1="128" x2="196" y2="168" stroke="#59636e" marker-end="url(#arrow)"/>
+  <line x1="320" y1="128" x2="244" y2="168" stroke="#59636e" marker-end="url(#arrow)"/>
+  <text x="220" y="150" text-anchor="middle" font-size="12" fill="#59636e">stdout 로그 수집 (docker.sock)</text>
+
+  <!-- Alloy -->
+  <g>
+    <rect x="140" y="168" width="160" height="52" rx="6" fill="#ddf4ff" stroke="#0969da"/>
+    <text x="220" y="188" text-anchor="middle" dominant-baseline="central" font-size="13" fill="#1f2328">Grafana Alloy</text>
+    <text x="220" y="204" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#59636e">수집기</text>
+  </g>
+
+  <!-- Alloy -> Loki -->
+  <line x1="220" y1="220" x2="220" y2="260" stroke="#59636e" marker-end="url(#arrow)"/>
+  <text x="230" y="244" text-anchor="start" font-size="12" fill="#59636e">HTTP push</text>
+
+  <!-- Loki -->
+  <g>
+    <rect x="140" y="260" width="160" height="52" rx="6" fill="#dafbe1" stroke="#1a7f37"/>
+    <text x="220" y="280" text-anchor="middle" dominant-baseline="central" font-size="13" fill="#1f2328">Loki</text>
+    <text x="220" y="296" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#59636e">저장·색인 (포트 3100, 내부 전용)</text>
+  </g>
+
+  <!-- Grafana -> Loki (조회) -->
+  <line x1="220" y1="352" x2="220" y2="312" stroke="#59636e" marker-end="url(#arrow)"/>
+  <text x="230" y="336" text-anchor="start" font-size="12" fill="#59636e">LogQL 조회</text>
+
+  <!-- Grafana -->
+  <g>
+    <rect x="140" y="352" width="160" height="52" rx="6" fill="#fff8c5" stroke="#9a6700"/>
+    <text x="220" y="372" text-anchor="middle" dominant-baseline="central" font-size="13" fill="#1f2328">Grafana</text>
+    <text x="220" y="388" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#59636e">웹 UI · 대시보드 · 알림</text>
+  </g>
+
+  <!-- 사용자 -->
+  <line x1="220" y1="460" x2="220" y2="404" stroke="#59636e" marker-end="url(#arrow)"/>
+  <text x="230" y="436" text-anchor="start" font-size="12" fill="#59636e">HTTPS (Caddy 경유)</text>
+  <g>
+    <rect x="140" y="460" width="160" height="52" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+    <text x="220" y="486" text-anchor="middle" dominant-baseline="central" font-size="13" fill="#1f2328">운영자 브라우저</text>
+  </g>
+</svg>
+<figcaption>그림 1. 소설비 인프라에 올렸을 때의 구성 — 모든 구성요소가 지금 쓰는 한 대의 서버 안에서 돈다.</figcaption>
+</figure>
+
+<p>세 구성요소는 전부 독립 프로세스(각각 Docker 컨테이너)로 돌며, 서로 HTTP로만 통신한다. 하나가 죽어도 나머지는 영향받지 않는다 — 예를 들어 Grafana가 내려가도 로그 수집·저장은 계속된다.</p>
+
+<h2 id="vs-elk">2. Elasticsearch(ELK)와 무엇이 다른가</h2>
+
+<p>앞선 조사에서 ELK 스택과 비교했으니, 근본 차이를 정확히 짚고 넘어가자. 핵심은 <strong>"무엇을 색인(index)하느냐"</strong>다.</p>
+
+<ul>
+  <li><strong>Elasticsearch</strong>는 로그 본문의 <em>모든 단어</em>를 역색인(inverted index)한다. 어떤 단어든 즉시 찾지만, 색인 자체가 원본보다 커질 수 있고 그걸 만들고 유지하는 데 CPU와 메모리(JVM 힙)를 크게 쓴다.</li>
+  <li><strong>Loki</strong>는 본문을 색인하지 않는다. 로그에 붙은 <em>라벨</em>(예: 어느 컨테이너에서 왔나)만 색인하고, 본문은 압축해서 통째로 저장한다. 검색할 때는 라벨로 범위를 좁힌 뒤 그 범위의 본문을 훑는다(분산 grep).</li>
+</ul>
+
+<table>
+  <tr><th></th><th>Elasticsearch (ELK)</th><th>Loki</th></tr>
+  <tr><td>색인 대상</td><td>본문 전체 (역색인)</td><td>라벨만 (본문은 압축 저장)</td></tr>
+  <tr><td>본문 검색 방식</td><td>색인 조회 — 항상 빠름</td><td>범위를 좁힌 뒤 스캔 — 소규모에선 충분히 빠름</td></tr>
+  <tr><td>상주 자원</td><td>무거움 (JVM, 최소 힙 1GB+)</td><td>가벼움 (Go 단일 바이너리, 수백 MB)</td></tr>
+  <tr><td>저장 비용</td><td>색인 때문에 원본의 수 배</td><td>압축으로 원본보다 작음</td></tr>
+  <tr><td>질의 언어</td><td>Query DSL / KQL</td><td>LogQL (PromQL 유사)</td></tr>
+  <tr><td>적합한 규모</td><td>대량 로그 + 복잡한 전문 검색</td><td>중소 규모 + 라벨 기반 탐색 (우리 케이스)</td></tr>
+</table>
+
+<p>트래픽이 적고 "백엔드에서 방금 무슨 에러가 났지?"가 주 용도인 우리 상황에서는, 전문 검색 색인의 비용을 낼 이유가 없다. 이것이 Loki를 선택한 근거다.</p>
+
+<h2 id="loki-concepts">3. Loki 핵심 개념 — 라벨, 스트림, 청크</h2>
+
+<h3>3-1. 로그 한 줄의 구조</h3>
+
+<p>Loki에 저장되는 로그 한 줄(entry)은 세 부분으로 이뤄진다.</p>
+
+<table>
+  <tr><th>구성</th><th>예시</th><th>색인 여부</th></tr>
+  <tr>
+    <td><strong>라벨 (labels)</strong></td>
+    <td><code>{container="wn-be-green", level="ERROR"}</code></td>
+    <td><span class="badge badge-green">색인됨</span> — 검색의 진입점</td>
+  </tr>
+  <tr>
+    <td><strong>타임스탬프</strong></td>
+    <td><code>2026-07-02T12:31:05.123Z</code></td>
+    <td><span class="badge badge-green">정렬 기준</span></td>
+  </tr>
+  <tr>
+    <td><strong>본문 (log line)</strong></td>
+    <td><code>NullPointerException at ShareService.kt:42 ...</code></td>
+    <td><span class="badge badge-neutral">색인 안 됨</span> — 압축돼 청크에 저장</td>
+  </tr>
+</table>
+
+<h3>3-2. 스트림(stream) — 라벨 조합이 곧 파일 하나</h3>
+
+<p><strong>라벨 키·값의 고유한 조합 하나가 스트림 하나</strong>를 만든다. 같은 라벨 조합으로 들어온 로그는 같은 스트림에 시간순으로 쌓이고, 일정량이 모이면 <strong>청크(chunk)</strong>라는 압축 블록으로 굳어져 디스크에 쓰인다.</p>
+
+<figure class="diagram">
+<svg viewBox="0 0 600 260" role="img" aria-label="스트림과 청크의 관계">
+  <!-- 스트림 1 -->
+  <rect x="20" y="20" width="560" height="96" rx="8" fill="#ffffff" stroke="#d1d9e0"/>
+  <text x="32" y="44" font-size="13" fill="#0969da" font-family="Menlo, monospace">{container="wn-be-green", level="INFO"}</text>
+  <text x="500" y="44" font-size="12" fill="#59636e">스트림 1</text>
+  <rect x="32"  y="60" width="100" height="36" rx="4" fill="#dafbe1" stroke="#1a7f37"/>
+  <rect x="152" y="60" width="100" height="36" rx="4" fill="#dafbe1" stroke="#1a7f37"/>
+  <rect x="272" y="60" width="100" height="36" rx="4" fill="#dafbe1" stroke="#1a7f37"/>
+  <rect x="392" y="60" width="100" height="36" rx="4" fill="#dafbe1" stroke="#1a7f37" stroke-dasharray="4 3"/>
+  <text x="82"  y="78" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#1f2328">청크</text>
+  <text x="202" y="78" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#1f2328">청크</text>
+  <text x="322" y="78" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#1f2328">청크</text>
+  <text x="442" y="78" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#1f2328">쌓이는 중</text>
+
+  <!-- 스트림 2 -->
+  <rect x="20" y="136" width="560" height="96" rx="8" fill="#ffffff" stroke="#d1d9e0"/>
+  <text x="32" y="160" font-size="13" fill="#cf222e" font-family="Menlo, monospace">{container="wn-be-green", level="ERROR"}</text>
+  <text x="500" y="160" font-size="12" fill="#59636e">스트림 2</text>
+  <rect x="32"  y="176" width="100" height="36" rx="4" fill="#dafbe1" stroke="#1a7f37"/>
+  <rect x="152" y="176" width="100" height="36" rx="4" fill="#dafbe1" stroke="#1a7f37" stroke-dasharray="4 3"/>
+  <text x="82"  y="194" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#1f2328">청크</text>
+  <text x="202" y="194" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#1f2328">쌓이는 중</text>
+
+  <text x="300" y="252" text-anchor="middle" font-size="12" fill="#59636e">청크는 시간순으로 왼쪽에서 오른쪽으로 쌓인다</text>
+</svg>
+<figcaption>그림 2. 라벨 조합이 다르면 별개의 스트림이 되고, 각 스트림 안에 로그가 청크 단위로 쌓인다.</figcaption>
+</figure>
+
+<div class="callout callout-caution">
+  <div class="callout-title">가장 중요한 규칙 — 라벨 카디널리티(cardinality)를 낮게 유지하라</div>
+  <p style="margin:0">라벨 값의 종류가 늘어나는 만큼 스트림 수가 <em>곱셈으로</em> 늘어난다. 예를 들어 <code>user_id</code>를 라벨로 쓰면 사용자 수만큼 스트림이 생기고, 각 스트림이 메모리 버퍼와 자잘한 청크를 만들어 Loki가 급격히 무거워진다. <strong>라벨로 좋은 것</strong>: <code>container</code>, <code>app</code>, <code>env</code>, <code>level</code> 처럼 값이 몇 개 안 되는 것. <strong>라벨로 쓰면 안 되는 것</strong>: <code>user_id</code>, <code>trace_id</code>, <code>request_path</code>, IP 주소 등 값이 무한히 늘어나는 것 — 이런 값은 본문에 남겨두고 질의 시점에 필터·파서로 걸러낸다.</p>
+</div>
+
+<h3>3-3. 저장과 보존 (retention)</h3>
+
+<ul>
+  <li><strong>저장 위치</strong>: 단일 서버에서는 로컬 디스크(filesystem)에 저장한다. 규모가 커지면 S3 같은 오브젝트 스토리지로 바꿀 수 있다 — 설정만 다르고 개념은 같다.</li>
+  <li><strong>색인 방식</strong>: 최신 스키마는 <code>tsdb</code>(v13)다. 설정에 스키마 버전을 명시하게 되어 있다.</li>
+  <li><strong>보존 기간</strong>: <code>compactor</code>(청크 정리 담당 내부 구성요소)가 오래된 로그를 지운다. 설정 예시:</li>
+</ul>
+
+<pre><code># loki-config.yaml 중 보존 관련 부분
+compactor:
+  working_directory: /loki/retention
+  delete_request_store: filesystem   # 삭제 요청 기록 위치 (retention 켤 때 필수)
+  retention_enabled: true
+
+limits_config:
+  retention_period: 30d              # 30일 지난 로그는 삭제</code></pre>
+
+<h3>3-4. 배포 모드 — 우리는 "모놀리식" 하나만 알면 된다</h3>
+
+<p>Loki 문서를 보면 배포 모드가 3가지 나온다: 모놀리식(monolithic, 단일 바이너리), 단순 확장형(simple scalable), 마이크로서비스. 이건 같은 코드를 몇 개의 프로세스로 쪼개 돌리느냐의 차이일 뿐이다. <strong>단일 서버·소규모에서는 모놀리식 모드(프로세스 1개, <code>-target=all</code>)가 공식 권장</strong>이고, 우리도 이걸 쓴다. 문서에서 distributor, ingester, querier 같은 용어를 만나면 "모놀리식 안에 다 들어있는 내부 부품 이름"이라고 이해하면 된다.</p>
+
+<h2 id="alloy">4. 수집기 — Grafana Alloy</h2>
+
+<div class="callout callout-warning">
+  <div class="callout-title">Promtail은 끝났다 (EOL 2026-03-02)</div>
+  <p style="margin:0">인터넷 자료 대부분이 수집기로 Promtail을 소개하지만, <strong>Promtail은 2026년 3월 2일부로 지원 종료(EOL)</strong>됐고 코드가 Grafana Alloy에 흡수됐다(Loki 공식 문서 명시). 튜토리얼·블로그를 볼 때 Promtail 기반 글이면 오래된 자료라고 판단하면 된다. 신규 구축은 Alloy 하나만 보면 된다.</p>
+</div>
+
+<p><strong>Grafana Alloy</strong>는 Grafana의 통합 수집기다. 로그뿐 아니라 메트릭·트레이스도 수집할 수 있는 범용 에이전트(OpenTelemetry 호환)인데, 우리는 로그 수집 기능만 쓴다.</p>
+
+<h3>4-1. 동작 원리 — 부품(component)을 파이프라인으로 잇는다</h3>
+
+<p>Alloy 설정 파일(<code>config.alloy</code>)은 "부품 선언 + 부품끼리 연결"로 읽는다. Docker 컨테이너 로그를 수집하는 실제 공식 예시가 이렇다:</p>
+
+<pre><code>// 1) Docker 소켓으로 떠 있는 컨테이너를 자동 발견
+discovery.docker "backend" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "5s"
+}
+
+// 2) 컨테이너 이름을 container 라벨로 변환
+discovery.relabel "backend" {
+  targets = []
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+}
+
+// 3) 발견한 컨테이너들의 stdout/stderr 로그를 읽는다
+loki.source.docker "backend" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.backend.targets
+  relabel_rules = discovery.relabel.backend.rules
+  forward_to    = [loki.write.default.receiver]
+}
+
+// 4) Loki로 전송
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}</code></pre>
+
+<p>읽는 법: <code>discovery.docker</code>가 컨테이너 목록을 뽑고, <code>loki.source.docker</code>가 그 컨테이너들의 로그를 읽어, <code>forward_to</code>로 지정된 <code>loki.write</code>에 넘긴다. 앱 코드는 <strong>한 줄도 건드리지 않는다</strong> — 컨테이너가 stdout에 찍는 로그를 밖에서 받아가는 구조다.</p>
+
+<h3>4-2. 대안 — 앱이 Loki로 직접 쏘기</h3>
+
+<p>수집기 없이 Spring Boot 앱이 Loki HTTP API로 직접 로그를 보내는 방법도 있다(logback용 Loki appender 라이브러리 사용). 다만 이 방식은 앱과 로깅 인프라가 결합되고(Loki가 죽으면 앱 로깅 경로에 영향), 백엔드 외 다른 컨테이너(PostgreSQL 등) 로그는 못 담는다. <strong>일반적으로는 Alloy 방식(수집기가 밖에서 수거)이 표준</strong>이고, 우리 설계에서도 그쪽이 유력하다 — 최종 선택은 설계 단계에서.</p>
+
+<h2 id="logql">5. LogQL — 로그 질의 언어</h2>
+
+<p>LogQL은 Grafana 화면에서 로그를 검색할 때 쓰는 언어다. 구조는 항상 <strong>"스트림 선택 + 파이프(|)로 가공"</strong> 2단이다. 셸에서 <code>cat file | grep ...</code> 하는 감각과 같다.</p>
+
+<h3>5-1. 스트림 셀렉터 — 어느 로그를 볼 것인가 (필수)</h3>
+
+<pre><code>{container="wn-be-green"}                  # 백엔드 컨테이너의 모든 로그
+{container=~"wn-be-.*"}                    # 정규식 매칭 (blue/green 둘 다)
+{container="wn-be-green", level="ERROR"}   # 라벨 두 개로 좁히기</code></pre>
+
+<p>중괄호 안이 라벨 매처다. <strong>모든 질의는 최소 한 개의 라벨 매처로 시작</strong>해야 한다 — 색인된 라벨로 먼저 범위를 좁혀야 하기 때문이다.</p>
+
+<h3>5-2. 라인 필터 — 본문에서 골라내기</h3>
+
+<pre><code>{container="wn-be-green"} |= "ERROR"          # "ERROR" 포함 라인만
+{container="wn-be-green"} |= "ERROR" != "test" # 포함 + 제외 연쇄
+{container="wn-be-green"} |~ "Exception|OOM"   # 정규식 필터</code></pre>
+
+<table>
+  <tr><th>연산자</th><th>의미</th></tr>
+  <tr><td><code>|=</code></td><td>문자열 포함</td></tr>
+  <tr><td><code>!=</code></td><td>문자열 미포함</td></tr>
+  <tr><td><code>|~</code></td><td>정규식 일치</td></tr>
+  <tr><td><code>!~</code></td><td>정규식 불일치</td></tr>
+</table>
+
+<h3>5-3. 파서 — 본문을 필드로 쪼개기</h3>
+
+<p>로그 본문이 JSON이나 <code>key=value</code>(logfmt) 형식이면, 파서를 파이프에 끼워 본문 안의 필드를 질의에 쓸 수 있다. <strong>저장할 때 색인하지 않았어도 질의 시점에 구조를 뽑아내는 것</strong> — 이게 Loki의 "나중에 파싱(schema on read)" 철학이다.</p>
+
+<pre><code># 본문이 JSON일 때: {"level":"ERROR","logger":"ShareService","message":"..."}
+{container="wn-be-green"} | json | logger="ShareService"
+
+# 파싱한 필드로 숫자 비교도 가능
+{container="wn-be-green"} | json | duration_ms > 1000</code></pre>
+
+<h3>5-4. 메트릭 질의 — 로그를 숫자로 바꿔 그래프 그리기</h3>
+
+<p>로그 줄 수를 세어 시계열 그래프로 만들 수 있다. 대시보드와 알림의 재료가 된다.</p>
+
+<pre><code># 5분 구간마다 에러 로그 개수
+sum(count_over_time({container="wn-be-green"} |= "ERROR" [5m]))
+
+# 초당 로그 발생률
+rate({container="wn-be-green"}[1m])
+
+# 레벨별로 나눠 세기 (JSON 로그 가정)
+sum by (level) (count_over_time({container="wn-be-green"} | json [5m]))</code></pre>
+
+<p>PromQL을 써봤다면 <code>rate</code>, <code>sum by</code>가 그대로라 익숙할 것이고, 안 써봤어도 "구간을 정해 세고, 라벨별로 묶는다"만 이해하면 된다.</p>
+
+<h2 id="grafana">6. Grafana — 조회·시각화·알림</h2>
+
+<p>Grafana는 Loki 전용 도구가 아니라 범용 시각화 플랫폼이다. Loki를 <strong>데이터소스(data source)</strong>로 등록하면 그때부터 로그를 다룰 수 있다. 처음에 쓰게 될 화면은 세 가지다.</p>
+
+<h3>6-1. Explore — 로그 조회의 주 무대</h3>
+<p>왼쪽 메뉴의 Explore가 로그를 뒤지는 화면이다. 데이터소스를 Loki로 고르면 LogQL 입력창이 나오고, 라벨 브라우저(어떤 라벨·값이 있는지 클릭으로 탐색)와 질의 빌더를 제공해서 LogQL을 다 외우지 않아도 된다. 실시간으로 흘러오는 로그를 보는 <strong>Live tail</strong> 기능도 여기 있다. "방금 배포했는데 에러 나나?"를 볼 때 <code>docker logs -f</code> 대신 쓰게 되는 화면.</p>
+
+<h3>6-2. 대시보드 — 반복해서 볼 화면을 저장</h3>
+<p>메트릭 질의(5-4)를 시계열 패널로, 로그 질의를 로그 패널로 만들어 한 화면에 배치한다. 예: "시간대별 에러 수 그래프 + 최근 ERROR 로그 목록 + 5xx 응답 카운트"를 한 장에. 커뮤니티가 만든 대시보드를 가져올 수도 있다.</p>
+
+<h3>6-3. 알림 (Alerting) — 사람이 안 보고 있어도</h3>
+<p>메트릭 질의에 조건을 걸어 알림 규칙을 만든다. 예: "5분간 ERROR 로그가 10건 넘으면" 이메일·Slack·Discord 등으로 통지. 솔로 운영에서 사실상 가장 가치 있는 기능이다 — 대시보드는 안 볼 수 있지만 알림은 찾아온다.</p>
+
+<div class="callout callout-info">
+  <div class="callout-title">참고 — Grafana 로그인과 노출</div>
+  <p style="margin:0">Grafana는 자체 계정 체계(기본 admin 계정)가 있는 웹 앱이다. 운영 서버에 올릴 때는 외부에 직접 노출하지 않고 Caddy 뒤에 두거나 SSH 터널로만 접근하는 방식을 설계 단계에서 정한다(8절).</p>
+</div>
+
+<h2 id="hands-on">7. 직접 만져보기 — 로컬 10분 실습</h2>
+
+<p>운영 서버를 건드리지 않고, 지금 쓰는 Mac에서 스택 전체를 띄워 감을 잡는 실습이다. 끝나면 <code>docker compose down -v</code>로 흔적 없이 지워진다. (Apple Silicon에서 세 이미지 모두 arm64를 지원한다.)</p>
+
+<p><strong>준비물</strong>: Docker Desktop 실행 중일 것. 아래 3개 파일을 빈 디렉토리(예: <code>~/loki-playground</code>)에 만든다.</p>
+
+<p><strong>파일 1 — <code>loki-config.yaml</code></strong> (모놀리식 + 로컬 디스크 저장 최소 설정)</p>
+<pre><code>auth_enabled: false
+
+server:
+  http_listen_port: 3100
+
+common:
+  instance_addr: 127.0.0.1
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2024-04-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h</code></pre>
+
+<p><strong>파일 2 — <code>config.alloy</code></strong> (이 Mac의 모든 Docker 컨테이너 로그를 수집)</p>
+<pre><code>discovery.docker "local" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "5s"
+}
+
+discovery.relabel "local" {
+  targets = []
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+}
+
+loki.source.docker "local" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.local.targets
+  relabel_rules = discovery.relabel.local.rules
+  forward_to    = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}</code></pre>
+
+<p><strong>파일 3 — <code>docker-compose.yml</code></strong></p>
+<pre><code>services:
+  loki:
+    image: grafana/loki:latest        # 실습용. 운영에선 버전 고정
+    command: -config.file=/etc/loki/config.yaml
+    volumes:
+      - ./loki-config.yaml:/etc/loki/config.yaml:ro
+      - loki-data:/loki
+
+  alloy:
+    image: grafana/alloy:latest
+    command: run /etc/alloy/config.alloy
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3200:3000"                   # 로컬 3000은 Next.js dev가 쓰므로 3200으로
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - loki
+
+volumes:
+  loki-data:</code></pre>
+
+<p><strong>실습 단계</strong></p>
+<ol>
+  <li><strong>스택 기동</strong> — 파일 3개가 있는 디렉토리에서:
+    <pre><code>docker compose up -d</code></pre>
+    <div class="expected">컨테이너 3개(loki, alloy, grafana)가 Started로 뜬다. <code>docker compose ps</code>로 확인.</div>
+  </li>
+  <li><strong>Grafana 접속</strong> — 브라우저에서 <code>http://localhost:3200</code> 접속, 아이디 <code>admin</code> / 비밀번호 <code>admin</code>.
+    <div class="expected">Grafana 홈 대시보드가 보인다.</div>
+  </li>
+  <li><strong>데이터소스 등록</strong> — 좌측 메뉴 Connections에서 Data sources로 들어가 Add new data source, Loki 선택. URL에 <code>http://loki:3100</code> 입력(컨테이너끼리는 서비스 이름으로 통신) 후 Save &amp; test.
+    <div class="expected">"Data source successfully connected." 초록 메시지.</div>
+  </li>
+  <li><strong>첫 질의</strong> — 좌측 메뉴 Explore, 데이터소스 Loki 선택, 질의창에 입력 후 실행(Shift+Enter):
+    <pre><code>{container=~".+"}</code></pre>
+    <div class="expected">이 Mac에서 돌고 있는 컨테이너들(loki, alloy, grafana 자신 포함)의 로그가 쏟아진다. Alloy가 docker.sock으로 전부 수집하고 있다는 증거.</div>
+  </li>
+  <li><strong>필터 연습</strong> — 앞 절에서 배운 것들을 실제로 쳐본다:
+    <pre><code>{container="grafana"} |= "error"
+sum by (container) (count_over_time({container=~".+"}[1m]))</code></pre>
+    <div class="expected">두 번째 질의는 로그가 아니라 컨테이너별 분당 로그 수 그래프가 그려진다 — 로그가 숫자가 되는 순간.</div>
+  </li>
+  <li><strong>선택: 소설비 로컬 dev와 연결해 보기</strong> — 로컬에서 <code>docker compose up -d --wait postgres</code> + 백엔드 <code>bootRun</code>을 돌리고 있다면, postgres 컨테이너 로그가 이미 수집되고 있다. <code>{container="write-note-postgres"}</code>로 조회해 보라.</li>
+  <li><strong>정리</strong>:
+    <pre><code>docker compose down -v</code></pre>
+    <div class="expected">컨테이너·볼륨 모두 삭제. Mac에 남는 것 없음.</div>
+  </li>
+</ol>
+
+<h2 id="our-infra">8. 우리 인프라(OCI free-a1)에 적용할 때</h2>
+
+<p>2026-07-02 실측 기준으로 확인된 사실과, 설계 시 짚을 지점들이다.</p>
+
+<h3>8-1. 자원은 충분하다 (실측 + 추정)</h3>
+<table>
+  <tr><th>항목</th><th>값</th><th>근거</th></tr>
+  <tr><td>서버 유휴 메모리</td><td>약 10GB / 12GB</td><td><span class="badge badge-green">실측</span> 백엔드 516MB + PostgreSQL 52MB + Caddy 등만 상주</td></tr>
+  <tr><td>Loki 예상 상주</td><td>200~500MB</td><td><span class="badge badge-amber">추정</span> 소규모 모놀리식 기준</td></tr>
+  <tr><td>Alloy 예상 상주</td><td>100~200MB</td><td><span class="badge badge-amber">추정</span></td></tr>
+  <tr><td>Grafana 예상 상주</td><td>200~400MB</td><td><span class="badge badge-amber">추정</span></td></tr>
+  <tr><td>디스크</td><td>185GB 여유</td><td><span class="badge badge-green">실측</span> 보존 30일이면 현 트래픽에서 수 GB 미만 예상</td></tr>
+</table>
+<p>합계 약 1GB 내외로 ELK(약 3GB+) 대비 3분의 1 이하. 다만 서버에 스왑이 없고 운영 서비스와 동거하므로, <strong>세 컨테이너 모두 메모리 상한(<code>mem_limit</code>)을 걸어 올리는 것</strong>이 안전하다 — 이 원칙은 설계에 반영한다.</p>
+
+<h3>8-2. 보안 — 노출 범위를 좁힌다</h3>
+<ul>
+  <li>Loki(3100)와 Alloy는 <strong>외부 노출 금지</strong> — Docker 내부 네트워크에서만 통신하면 되고, 호스트 포트 바인딩 자체가 필요 없다.</li>
+  <li>Grafana만 사람이 접근해야 하는데, 방식은 설계에서 결정: (a) Caddy에 서브도메인 추가해 HTTPS 노출(+Grafana 로그인), (b) SSH 터널로만 접근(포트 미노출, 가장 보수적).</li>
+  <li>Alloy가 <code>/var/run/docker.sock</code>을 읽는다 — 이는 Docker 제어 권한과 맞먹는 강한 권한이므로 read-only 마운트로 제한한다.</li>
+</ul>
+
+<h3>8-3. 로그 포맷 — JSON 구조화가 LogQL 활용도를 결정한다</h3>
+<p>백엔드(Spring Boot)가 지금처럼 사람용 텍스트 로그를 찍으면 <code>|=</code> 필터까지만 편하고, <code>| json</code> 파서의 힘(레벨별 집계, 필드 비교)은 못 쓴다. Spring Boot는 구조화 로깅(JSON 출력)을 설정으로 지원하므로(3.4부터 내장 — 우리 버전(4.x)에서의 정확한 설정 키는 설계 단계에서 확인), <strong>운영 프로파일만 JSON 출력으로 바꾸는 것</strong>을 설계에서 검토한다. 로컬 개발은 사람이 읽는 텍스트 유지.</p>
+
+<h3>8-4. 기타</h3>
+<ul>
+  <li>세 이미지 모두 arm64(우리 서버 아키텍처)를 공식 지원한다.</li>
+  <li>Docker의 json-file 로그 로테이션(<code>max-size</code>)은 Loki 도입과 별개로 걸어두는 것이 좋다 — Alloy가 읽는 원본이 무한히 커지지 않게.</li>
+  <li>blue-green 배포 시 컨테이너 이름이 <code>wn-be-blue</code>/<code>wn-be-green</code>으로 바뀐다 — 라벨 설계에서 <code>container=~"wn-be-.*"</code>로 묶거나 고정 라벨(<code>app="backend"</code>)을 부여하는 처리가 필요하다. 설계 포인트.</li>
+</ul>
+
+<h2 id="next">9. 다음 단계 — 설계에서 결정할 것</h2>
+
+<p>이 문서로 개념 학습을 마쳤다면, 설계 단계에서 아래를 결정하게 된다.</p>
+
+<ul class="checklist">
+  <li class="todo">수집 경로: Alloy docker 수집(유력) vs 앱 직접 전송 — 4절 참고</li>
+  <li class="todo">라벨 설계: 어떤 라벨을 몇 개 둘 것인가 (blue/green 컨테이너명 처리 포함) — 3-2절, 8-4절</li>
+  <li class="todo">백엔드 로그 포맷: 운영 프로파일 JSON 구조화 전환 여부 — 8-3절</li>
+  <li class="todo">보존 기간: 30일? 90일? — 3-3절</li>
+  <li class="todo">Grafana 접근 방식: Caddy 서브도메인 vs SSH 터널 — 8-2절</li>
+  <li class="todo">알림 규칙과 채널: 무엇이 울리면 어디로 받을 것인가 — 6-3절</li>
+  <li class="todo">컨테이너별 메모리·CPU 상한 값 — 8-1절</li>
+</ul>
+
+<h2 id="refs">10. 더 읽을 자료</h2>
+
+<ul>
+  <li><a href="https://grafana.com/docs/loki/latest/get-started/">Loki 공식 Get started</a> — 아키텍처·개념 원문</li>
+  <li><a href="https://grafana.com/docs/loki/latest/get-started/quick-start/">Loki Quick start 튜토리얼</a> — 7절 실습의 확장판 (공식 샌드박스)</li>
+  <li><a href="https://grafana.com/docs/loki/latest/query/">LogQL 레퍼런스</a> — 파서·함수 전체 목록</li>
+  <li><a href="https://grafana.com/docs/loki/latest/get-started/labels/">라벨 설계 가이드 (Labels)</a> — 카디널리티 원칙 원문</li>
+  <li><a href="https://grafana.com/docs/alloy/latest/">Grafana Alloy 문서</a> — 수집기 부품 레퍼런스</li>
+  <li><a href="https://grafana.com/docs/grafana/latest/alerting/">Grafana Alerting 문서</a> — 알림 규칙 구성</li>
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,48 @@
+services:
+  loki:
+    image: grafana/loki:3.7.3
+    command: -config.file=/etc/loki/config.yaml
+    ports:
+      - "127.0.0.1:3100:3100"   # 서버 내 상태 확인용. 외부 미노출
+    volumes:
+      - ./loki-config.yaml:/etc/loki/config.yaml:ro
+      - loki-data:/loki
+    mem_limit: 1g
+    cpus: 0.75
+    restart: unless-stopped
+
+  alloy:
+    image: grafana/alloy:v1.17.1
+    command: run --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/var/lib/alloy/data
+    mem_limit: 256m
+    cpus: 0.25
+    restart: unless-stopped
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:13.1.0
+    ports:
+      - "127.0.0.1:3200:3000"   # Caddy reverse_proxy 대상. 외부 미노출
+    env_file:
+      - ./monitoring.env        # GF_SECURITY_ADMIN_PASSWORD (gitignore, 환경별 생성)
+    environment:
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=https://logs.soseolbi.com   # 알림 메시지 내 링크 도메인 (로컬 검증엔 무해)
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    mem_limit: 512m
+    cpus: 0.5
+    restart: unless-stopped
+    depends_on:
+      - loki
+
+volumes:
+  loki-data:
+  alloy-data:
+  grafana-data:
