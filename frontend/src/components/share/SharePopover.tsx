@@ -196,30 +196,27 @@ export function SharePopover({ targetType, targetId, title, onClose, anchorRef }
                     </button>
                 ) : null}
 
-                {/* 받은 피드백 — work=단일, series=공개 작품별. */}
+                {/* 본문 보기 — work=단일, series=공개 작품별(피드백 수는 배지). ShareLinkManager 와 동일 라벨. */}
                 {targetType === "work" ? (
-                    <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border pt-2.5">
+                    <div className="mt-2.5 flex items-center gap-2 border-t border-border pt-2.5">
+                        <span className="flex-1" />
                         <button
                             type="button"
                             onClick={() => setFeedbackTarget({ linkId: link.id, projectId: link.snapshots[0]?.projectId ?? targetId })}
-                            className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-semibold ${
-                                workUnread > 0 ? "bg-accent-soft text-accent-text hover:bg-terracotta-100" : "bg-surface-2 text-faint"
-                            }`}
+                            className="inline-flex items-center gap-1.5 rounded-md bg-accent-soft px-3 py-1.5 text-[11.5px] font-semibold text-accent-text hover:bg-terracotta-100"
                         >
-                            받은 피드백
-                            {workUnread > 0 ? (
-                                <span className="inline-flex min-w-[17px] items-center justify-center rounded-full bg-accent px-1.5 text-[10.5px] text-accent-ink">
+                            본문 보기
+                            {workUnread > 0 && (
+                                <span className="inline-flex min-w-[16px] items-center justify-center rounded-full bg-accent px-1 text-[10px] text-accent-ink">
                                     {workUnread}
                                 </span>
-                            ) : (
-                                <span>0</span>
                             )}
                         </button>
                         <button
                             type="button"
                             onClick={() => handleToggleActive(link)}
                             disabled={setActiveMutation.isPending}
-                            className="shrink-0 rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-strong hover:bg-surface-2 disabled:opacity-50"
+                            className="shrink-0 rounded-md border border-border px-2.5 py-1.5 text-[11px] text-muted-strong hover:bg-surface-2 disabled:opacity-50"
                         >
                             {link.isActive ? "끄기" : "다시 켜기"}
                         </button>
@@ -234,13 +231,14 @@ export function SharePopover({ targetType, targetId, title, onClose, anchorRef }
                                         <button
                                             type="button"
                                             onClick={() => setFeedbackTarget({ linkId: link.id, projectId: snap.projectId })}
-                                            className={`inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold ${
-                                                snap.unreadCommentCount > 0
-                                                    ? "bg-accent-soft text-accent-text hover:bg-terracotta-100"
-                                                    : "text-faint hover:bg-surface-2"
-                                            }`}
+                                            className="inline-flex shrink-0 items-center gap-1 rounded-md bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent-text hover:bg-terracotta-100"
                                         >
-                                            받은 피드백 {snap.unreadCommentCount}
+                                            본문 보기
+                                            {snap.unreadCommentCount > 0 && (
+                                                <span className="inline-flex min-w-[15px] items-center justify-center rounded-full bg-accent px-1 text-[9.5px] text-accent-ink">
+                                                    {snap.unreadCommentCount}
+                                                </span>
+                                            )}
                                         </button>
                                     </li>
                                 ))}

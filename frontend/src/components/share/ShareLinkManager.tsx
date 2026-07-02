@@ -156,71 +156,76 @@ export function ShareLinkManager() {
                     </button>
                 </div>
 
-                {group.targetType === "work" ? (
-                    <div className="mt-2.5 flex items-center justify-between gap-2">
+                {group.targetType === "series" && (
+                    link.snapshots.length > 0 ? (
+                        <ul className="mt-2.5 space-y-1 border-t border-border pt-2.5">
+                            {link.snapshots.map((snap) => (
+                                <li key={snap.projectId} className="flex items-center justify-between gap-2">
+                                    <span className="truncate text-[12px] text-ink-2">{snap.title}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFeedbackTarget({ linkId: link.id, projectId: snap.projectId })}
+                                        className="inline-flex shrink-0 items-center gap-1 rounded-md bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent-text hover:bg-terracotta-100"
+                                    >
+                                        본문 보기
+                                        {snap.unreadCommentCount > 0 && (
+                                            <span className="inline-flex min-w-[15px] items-center justify-center rounded-full bg-accent px-1 text-[9.5px] text-accent-ink">
+                                                {snap.unreadCommentCount}
+                                            </span>
+                                        )}
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="mt-2.5 border-t border-border pt-2.5 text-[11px] text-faint">아직 공개한 작품이 없어요.</p>
+                    )
+                )}
+
+                {/* 기능 버튼 한 줄(안 A) — 우측 클러스터. 작품=본문 보기, 시리즈=공개 작품 선택 + 공통 끄기·삭제 */}
+                <div className="mt-2.5 flex items-center gap-2 border-t border-border pt-2.5">
+                    {group.targetType === "series" && (
+                        <button
+                            type="button"
+                            onClick={() => setPickerLink(link)}
+                            className="rounded-md border border-border px-2.5 py-1.5 text-[11px] text-muted-strong hover:bg-surface"
+                        >
+                            공개 작품 선택{link.snapshots.length > 0 ? ` (${link.snapshots.length})` : ""}
+                        </button>
+                    )}
+                    <span className="flex-1" />
+                    {group.targetType === "work" && (
                         <button
                             type="button"
                             onClick={() => setFeedbackTarget({ linkId: link.id, projectId: group.targetId })}
-                            className={`rounded-md px-2.5 py-1.5 text-[11.5px] font-semibold ${
-                                workUnread > 0 ? "bg-accent-soft text-accent-text hover:bg-terracotta-100" : "text-faint hover:bg-surface"
-                            }`}
+                            className="inline-flex items-center gap-1.5 rounded-md bg-accent-soft px-3 py-1.5 text-[11.5px] font-semibold text-accent-text hover:bg-terracotta-100"
                         >
-                            받은 피드백 {workUnread}
+                            본문 보기
+                            {workUnread > 0 && (
+                                <span className="inline-flex min-w-[16px] items-center justify-center rounded-full bg-accent px-1 text-[10px] text-accent-ink">
+                                    {workUnread}
+                                </span>
+                            )}
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => handleToggleActive(link)}
-                            disabled={setActiveMutation.isPending}
-                            className="shrink-0 rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-strong hover:bg-surface disabled:opacity-50"
-                        >
-                            {link.isActive ? "끄기" : "다시 켜기"}
-                        </button>
-                    </div>
-                ) : (
-                    <div className="mt-2.5">
-                        <div className="flex items-center justify-between gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setPickerLink(link)}
-                                className="rounded-md border border-border px-2.5 py-1 text-[11.5px] text-muted-strong hover:bg-surface"
-                            >
-                                공개 작품 선택{link.snapshots.length > 0 ? ` (${link.snapshots.length})` : ""}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => handleToggleActive(link)}
-                                disabled={setActiveMutation.isPending}
-                                className="shrink-0 rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-strong hover:bg-surface disabled:opacity-50"
-                            >
-                                {link.isActive ? "끄기" : "다시 켜기"}
-                            </button>
-                        </div>
-                        {link.snapshots.length > 0 ? (
-                            <ul className="mt-2 space-y-1 border-t border-border pt-2">
-                                {link.snapshots.map((snap) => (
-                                    <li key={snap.projectId} className="flex items-center justify-between gap-2">
-                                        <span className="truncate text-[12px] text-ink-2">{snap.title}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => setFeedbackTarget({ linkId: link.id, projectId: snap.projectId })}
-                                            className={`shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold ${
-                                                snap.unreadCommentCount > 0
-                                                    ? "bg-accent-soft text-accent-text hover:bg-terracotta-100"
-                                                    : "text-faint hover:bg-surface"
-                                            }`}
-                                        >
-                                            받은 피드백 {snap.unreadCommentCount}
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="mt-2 border-t border-border pt-2 text-[11px] text-faint">아직 공개한 작품이 없어요.</p>
-                        )}
-                    </div>
-                )}
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => handleToggleActive(link)}
+                        disabled={setActiveMutation.isPending}
+                        className="shrink-0 rounded-md border border-border px-2.5 py-1.5 text-[11px] text-muted-strong hover:bg-surface disabled:opacity-50"
+                    >
+                        {link.isActive ? "끄기" : "다시 켜기"}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(link.id)}
+                        className="shrink-0 rounded-md px-2 py-1.5 text-[11px] font-semibold text-faint hover:text-red-600"
+                    >
+                        삭제
+                    </button>
+                </div>
 
-                {confirmDeleteId === link.id ? (
+                {confirmDeleteId === link.id && (
                     <div className="mt-2.5 rounded-md border border-red-200 bg-red-50 p-2">
                         <p className="text-[11px] leading-relaxed text-red-600">삭제하면 받은 피드백도 함께 사라져요. 되돌릴 수 없어요.</p>
                         <div className="mt-1.5 flex justify-end gap-1.5">
@@ -240,16 +245,6 @@ export function ShareLinkManager() {
                                 삭제
                             </button>
                         </div>
-                    </div>
-                ) : (
-                    <div className="mt-2 text-right">
-                        <button
-                            type="button"
-                            onClick={() => setConfirmDeleteId(link.id)}
-                            className="text-[11px] text-faint hover:text-red-600"
-                        >
-                            삭제
-                        </button>
                     </div>
                 )}
             </div>
@@ -327,13 +322,25 @@ export function ShareLinkManager() {
                                 ref={(el) => {
                                     groupRefs.current[key] = el;
                                 }}
-                                className={`rounded-xl border p-4 transition-shadow ${
+                                className={`relative overflow-hidden rounded-xl border p-4 pl-5 transition-shadow ${
                                     highlightedGroup === key ? "border-accent ring-2 ring-accent" : "border-border"
                                 }`}
                             >
+                                <span
+                                    aria-hidden
+                                    className={`absolute inset-y-0 left-0 w-[5px] ${group.targetType === "series" ? "bg-teal-600" : "bg-accent"}`}
+                                />
                                 <div className="mb-3 flex items-center gap-2">
                                     <span className="truncate text-sm font-bold text-ink">{titleForGroup(group)}</span>
-                                    <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-[11px] text-muted">
+                                    <span
+                                        className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                                            group.targetType === "series" ? "bg-teal-50 text-teal-700" : "bg-accent-soft text-accent-text"
+                                        }`}
+                                    >
+                                        <span
+                                            aria-hidden
+                                            className={`h-1.5 w-1.5 rounded-full ${group.targetType === "series" ? "bg-teal-600" : "bg-accent"}`}
+                                        />
                                         {group.targetType === "series" ? "시리즈" : "작품"}
                                     </span>
                                     <span className="ml-auto shrink-0 text-[11.5px] text-muted">공유 링크 {group.links.length}</span>

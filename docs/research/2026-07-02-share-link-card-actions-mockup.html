@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>공유 관리 — 링크 카드 (유형 구분 + 기능 버튼 정리) 목업</title>
+<style>
+  :root{
+    --w-surface:#ffffff; --w-surface-2:#f9fafb; --w-surface-3:#f3f4f6;
+    --w-ink:#2a2620; --w-ink-2:#374151; --w-muted-strong:#4b5563; --w-muted:#6b7280; --w-faint:#9ca3af;
+    --w-border:#e5e7eb; --w-border-strong:#d1d5db;
+    --w-accent:#a8542e; --w-accent-soft:#fbf3ee; --w-accent-text:#8a4325; --w-accent-ink:#fff;
+    --teal-50:#f0fdfa; --teal-600:#0d9488; --teal-700:#0f766e;
+    --w-parchment:#f3ede1;
+    --w-ui:"SF Pro Text",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--w-parchment);color:var(--w-ink);font-family:var(--w-ui);-webkit-font-smoothing:antialiased;font-size:14px}
+  .mkbar{position:sticky;top:0;z-index:50;background:#241f1a;color:#f2ece1;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px}
+  .mkbar b{color:#fff}
+  .seg{display:inline-flex;border:1px solid #4a4238;border-radius:9px;overflow:hidden}
+  .seg button{background:transparent;color:#d9cfbe;border:0;padding:6px 12px;font-size:12.5px;cursor:pointer;font-family:inherit}
+  .seg button.on{background:var(--w-accent);color:#fff;font-weight:700}
+  .mkhint{background:#2f2820;color:#cdbfa8;font-size:12px;padding:6px 16px;border-bottom:1px solid #3a322a}
+  .mkhint b{color:#f0e6d5}
+
+  .wrap{max-width:760px;margin:0 auto;padding:24px 20px 80px}
+  h1{font-size:20px;font-weight:800;margin:0 0 2px}
+  .sub{color:var(--w-muted);font-size:13px;margin:0 0 18px}
+  .section{border:1px solid var(--w-border);background:var(--w-surface);border-radius:14px;padding:18px;margin-bottom:16px}
+
+  /* 유형 구분 = 좌측 색 띠 + 색 채운 칩 (작품=테라코타 / 시리즈=청록, 보드 라벨 규약과 동일) */
+  .group{border:1px solid var(--w-border);border-radius:14px;padding:14px 14px 14px 16px;position:relative;overflow:hidden}
+  .group::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px}
+  .group.work::before{background:var(--w-accent)}
+  .group.series::before{background:var(--teal-600)}
+  .grouphead{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+  .grouphead .name{font-weight:800;font-size:15px}
+  .grouphead .count{margin-left:auto;font-size:11.5px;color:var(--w-muted)}
+  .typechip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:800;letter-spacing:.2px}
+  .typechip .dot{width:6px;height:6px;border-radius:50%}
+  .type-work{background:var(--w-accent-soft);color:var(--w-accent-text)}
+  .type-work .dot{background:var(--w-accent)}
+  .type-series{background:var(--teal-50);color:var(--teal-700)}
+  .type-series .dot{background:var(--teal-600)}
+
+  .link{border:1px solid var(--w-border);background:var(--w-surface-2);border-radius:12px;padding:12px;margin-bottom:9px}
+  .lhead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .lhead .date{font-size:12px;font-weight:700;color:var(--w-ink-2)}
+  .live{border-radius:999px;padding:2px 8px;font-size:10.5px;font-weight:700;background:#eef2f6;color:var(--w-muted-strong)}
+  .live .g{color:#16a34a}
+  .urlrow{display:flex;align-items:center;gap:6px}
+  .urlrow input{flex:1;min-width:0;border:1px solid var(--w-border);background:var(--w-surface);border-radius:6px;padding:7px 8px;font-size:11.5px;color:var(--w-muted)}
+  .btn{border-radius:8px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;padding:7px 11px;white-space:nowrap}
+  .btn-copy{border:1px solid var(--w-border-strong);background:var(--w-surface);color:var(--w-muted-strong)}
+  .btn-view{border:0;background:var(--w-accent-soft);color:var(--w-accent-text);display:inline-flex;align-items:center;gap:6px}
+  .btn-view .badge{display:inline-flex;min-width:16px;justify-content:center;background:var(--w-accent);color:#fff;border-radius:999px;font-size:10px;padding:0 5px}
+  .btn-ghost{border:1px solid var(--w-border);background:var(--w-surface);color:var(--w-muted-strong)}
+  .btn-select{border:1px solid var(--w-border);background:var(--w-surface);color:var(--w-muted-strong)}
+  .btn-del{border:0;background:transparent;color:var(--w-faint);font-weight:600;padding:7px 8px}
+  .btn-del:hover{color:#dc2626}
+
+  .actionbar{display:flex;align-items:center;gap:7px;margin-top:11px;padding-top:11px;border-top:1px solid var(--w-border)}
+  .actionbar .spacer{flex:1}
+  .worklist{margin-top:10px;border-top:1px solid var(--w-border);padding-top:9px;display:flex;flex-direction:column;gap:7px}
+  .workrow{display:flex;align-items:center;gap:8px}
+  .workrow .title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;color:var(--w-ink-2)}
+  body.mode-b .actionbar .view-slot{order:-1}
+  .note{font-size:12px;color:var(--w-faint);margin-top:6px}
+</style>
+</head>
+<body class="mode-a">
+
+<div class="mkbar">
+  <b>목업</b> · 공유 관리 링크 카드 — 유형 구분 + 기능 버튼
+  <span class="seg">
+    <button id="bA" class="on">안 A · 버튼 우측 한 줄</button>
+    <button id="bB">안 B · 본문보기 좌 + 관리 우</button>
+  </span>
+</div>
+<div class="mkhint">
+  <b>유형 구분 강화</b>: 작품=테라코타·시리즈=청록으로 (1) 카드 <b>좌측 색 띠</b> + (2) 색 채운 유형 칩(●작품/●시리즈).
+  기능 버튼은 하단 액션 바에 모음. 위 토글로 버튼 배치 A/B 비교.
+</div>
+
+<div class="wrap">
+  <h1>공유</h1>
+  <p class="sub">작품·시리즈 화면에서 만든 공유 링크와, 독자가 남긴 피드백을 한곳에서 봅니다.</p>
+
+  <!-- 작품 카드 -->
+  <div class="section">
+    <div class="group work">
+      <div class="grouphead">
+        <span class="name">2화 — 갈라진 하늘</span>
+        <span class="typechip type-work"><span class="dot"></span>작품</span>
+        <span class="count">공유 링크 1</span>
+      </div>
+      <div class="link">
+        <div class="lhead"><span class="date">2026.06.28 공유</span><span class="live"><span class="g">●</span> 공유 중</span></div>
+        <div class="urlrow">
+          <input readonly value="http://localhost:3000/shared/1ZzKwXsjv8hQVryqm9lfgGaaZa19MqVS" />
+          <button class="btn btn-copy">복사</button>
+        </div>
+        <div class="actionbar">
+          <span class="spacer"></span>
+          <span class="view-slot"><button class="btn btn-view">본문 보기 <span class="badge">2</span></button></span>
+          <button class="btn btn-ghost">끄기</button>
+          <button class="btn btn-del">삭제</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 시리즈 카드 -->
+  <div class="section">
+    <div class="group series">
+      <div class="grouphead">
+        <span class="name">가나나나</span>
+        <span class="typechip type-series"><span class="dot"></span>시리즈</span>
+        <span class="count">공유 링크 2</span>
+      </div>
+      <div class="link">
+        <div class="lhead"><span class="date">2026.06.28 공유</span><span class="live"><span class="g">●</span> 공유 중</span></div>
+        <div class="urlrow">
+          <input readonly value="http://localhost:3000/shared/4kXt7uqzcB9aGYS9JdQcbBez0yGAu94v" />
+          <button class="btn btn-copy">복사</button>
+        </div>
+        <div class="worklist">
+          <div class="workrow"><span class="title">1화 — 물의 기억</span><button class="btn btn-view">본문 보기 <span class="badge">1</span></button></div>
+          <div class="workrow"><span class="title">2화 — 갈라진 하늘</span><button class="btn btn-view">본문 보기</button></div>
+        </div>
+        <div class="actionbar">
+          <button class="btn btn-select">공개 작품 선택 (2)</button>
+          <span class="spacer"></span>
+          <button class="btn btn-ghost">끄기</button>
+          <button class="btn btn-del">삭제</button>
+        </div>
+      </div>
+    </div>
+    <p class="note">시리즈는 공개 작품이 여럿 → "본문 보기"가 작품별(리스트) 위에, 카드 관리(공개작품 선택·끄기·삭제)는 아래 한 줄.</p>
+  </div>
+</div>
+
+<script>
+  const bA=document.getElementById('bA'),bB=document.getElementById('bB');
+  bA.onclick=()=>{document.body.className='mode-a';bA.classList.add('on');bB.classList.remove('on');};
+  bB.onclick=()=>{document.body.className='mode-b';bB.classList.add('on');bA.classList.remove('on');};
+</script>
+</body>
+</html>
